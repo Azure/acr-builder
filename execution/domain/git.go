@@ -14,6 +14,7 @@ var clone = Abstract("clone")
 var cloneBranch = Abstract("-b")
 var checkout = Abstract("checkout")
 var authTypePA = Abstract("OAuth Personal Access Token")
+var authTypeX = Abstract("OAuth X Access Token")
 
 type GitSource struct {
 	Address       AbstractString
@@ -147,13 +148,39 @@ func (s *GitPersonalAccessToken) Export() []EnvVar {
 }
 
 func (s *GitPersonalAccessToken) toAuthAddress(runner Runner, address AbstractString) (AbstractString, error) {
+	userResolved := runner.Resolve(s.user)
+	tokenResolved := runner.Resolve(s.token)
+	return insertAuth(runner, address, userResolved+":"+tokenResolved)
+}
+
+type GitXToken struct {
+	token AbstractString
+}
+
+func NewXToken(token string) *GitXToken {
+	return &GitXToken{token: *AbstractSensitive(token)}
+}
+
+func (s *GitXToken) toAuthAddress(runner Runner, address AbstractString) (AbstractString, error) {
+	tokenResolved := runner.Resolve(s.token)
+	return insertAuth(runner, address, "x-access-token:"+tokenResolved)
+}
+
+func (s *GitXToken) Export() []EnvVar {
+	return []EnvVar{
+		EnvVar{
+			constants.GitAuthTypeVar,
+			*authTypeX,
+		},
+	}
+}
+
+func insertAuth(runner Runner, address AbstractString, authString string) (AbstractString, error) {
 	addressResolved := runner.Resolve(address)
 	protocolDivider := "://"
 	if !strings.Contains(addressResolved, protocolDivider) {
 		return AbstractString{}, fmt.Errorf("Git repository address %s cannot be used with Personal Access Token", addressResolved)
 	}
-	userResolved := runner.Resolve(s.user)
-	tokenResolved := runner.Resolve(s.token)
-	addressAuthenticated := strings.Replace(addressResolved, protocolDivider, protocolDivider+userResolved+":"+tokenResolved+"@", 1)
+	addressAuthenticated := strings.Replace(addressResolved, protocolDivider, protocolDivider+authString+"@", 1)
 	return *AbstractSensitive(addressAuthenticated), nil
 }

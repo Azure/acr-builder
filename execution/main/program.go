@@ -29,7 +29,7 @@ func main() {
 	// required when using git as source
 	var gitURL string
 	// optional when using git as source
-	var gitCloneDir, gitbranch, gitOAuthUser, gitOAuthToken string
+	var gitCloneDir, gitbranch, gitPATokenUser, gitPAToken, gitXToken string
 
 	// Untested code paths:
 	// required unless the host is properly logged in
@@ -44,8 +44,9 @@ func main() {
 	flag.StringVar(&gitURL, "git-url", "", "Git url to the project")
 	flag.StringVar(&gitCloneDir, "git-clone-to", constants.DefaultCloneDir, "Directory to clone to. If the directory exists, we won't clone again and will just clean and pull the directory")
 	flag.StringVar(&gitbranch, "git-branch", "", "The git branch to checkout. If it is not given, no checkout command would be performed.")
-	flag.StringVar(&gitOAuthUser, "git-oath-user", "", "Git username.")
-	flag.StringVar(&gitOAuthToken, "git-oath-token", "", "Git personal access token.")
+	flag.StringVar(&gitPATokenUser, "git-pa-token-user", "", "Git username for the personal access token.")
+	flag.StringVar(&gitPAToken, "git-pa-token", "", "Git personal access token.")
+	flag.StringVar(&gitXToken, "git-x-token", "", "Git OAuth x access token.")
 	flag.StringVar(&composeFile, "compose-file", "", "Path to the docker-compose file.")
 	flag.StringVar(&registry, "docker-registry", "", "Docker registry to publish to")
 	flag.StringVar(&dockeruser, "docker-user", "", "Docker username.")
@@ -58,7 +59,7 @@ func main() {
 	if registry == "" {
 		panic("Registry needs to be provided")
 	}
-	err := build.Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCloneDir, gitbranch, gitOAuthUser, gitOAuthToken, buildEnvs, buildArgs, nopublish)
+	err := build.Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCloneDir, gitbranch, gitPATokenUser, gitPAToken, gitXToken, buildEnvs, buildArgs, nopublish)
 	ensureNoError("%s", err)
 }
 

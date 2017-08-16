@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCloneDir, gitbranch, gitOAuthUser, gitOAuthToken string, buildEnvs, buildArgs []string, nopublish bool) error {
+func Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCloneDir, gitbranch, gitPATokenUser, gitPAToken, gitXToken string, buildEnvs, buildArgs []string, nopublish bool) error {
 	envSet := map[string]bool{}
 	global := []domain.EnvVar{
 		domain.EnvVar{Name: constants.BuildNumberVar, Value: *domain.Abstract(buildNumber)},
@@ -43,16 +43,20 @@ func Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCl
 			Auth:     domain.NewDockerUsernamePassword(registryInput, dockeruser, dockerpw),
 		})
 	}
-	var source domain.SourceDescription
-	if (gitOAuthUser == "") != (gitOAuthToken == "") {
-		return fmt.Errorf("Please provide both git user and token or none")
-	}
 
 	var gitCred domain.GitCredential
-	if gitOAuthUser != "" {
-		gitCred = domain.NewGitPersonalAccessToken(gitOAuthUser, gitOAuthToken)
+	if gitXToken != "" {
+		gitCred = domain.NewXToken(gitXToken)
+	} else {
+		if (gitPATokenUser == "") != (gitPAToken == "") {
+			return fmt.Errorf("Please provide both git user and token or none")
+		}
+
+		if gitPATokenUser != "" {
+			gitCred = domain.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
+		}
 	}
-	source = &domain.GitSource{
+	var source = &domain.GitSource{
 		Address:       *domain.Abstract(gitURL),
 		TargetDir:     *domain.Abstract(gitCloneDir),
 		InitialBranch: *domain.Abstract(gitbranch),
