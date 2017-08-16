@@ -41,12 +41,12 @@ func TestReduce(t *testing.T) {
 			original: map[string]*domain.AbstractString{
 				"a": domain.Abstract("value1"),
 				"b": domain.Abstract("value2"),
-				"c": domain.Abstract("$(a) $(b) $(a) $(b)$(b) $(dne)"),
+				"c": domain.Abstract("${a} ${b} ${a} ${b}${b} ${dne}"),
 			},
 			expected: map[string]*domain.AbstractString{
 				"a": domain.Abstract("value1"),
 				"b": domain.Abstract("value2"),
-				"c": domain.Abstract("value1 value2 value1 value2value2 $(dne)"),
+				"c": domain.Abstract("value1 value2 value1 value2value2 ${dne}"),
 			},
 		},
 
@@ -56,8 +56,8 @@ func TestReduce(t *testing.T) {
 				"zero": domain.Abstract("0"),
 				"one":  domain.Abstract("1"),
 				"a":    domain.Abstract("a"),
-				"a_0":  domain.Abstract("$($(a)$(zero))"),
-				"a_1":  domain.Abstract("$($(a)$(one))"),
+				"a_0":  domain.Abstract("${${a}${zero}}"),
+				"a_1":  domain.Abstract("${${a}${one}}"),
 				"a0":   domain.Abstract("ValueA_0"),
 				"a1":   domain.Abstract("ValueA_1"),
 			},
@@ -75,7 +75,7 @@ func TestReduce(t *testing.T) {
 		// 4: Self reference
 		{
 			original: map[string]*domain.AbstractString{
-				"c": domain.Abstract("$(c)"),
+				"c": domain.Abstract("${c}"),
 			},
 			expected: map[string]*domain.AbstractString{},
 			errFunc:  verifyCycleError,
@@ -84,8 +84,8 @@ func TestReduce(t *testing.T) {
 		// 4: 2-cycle
 		{
 			original: map[string]*domain.AbstractString{
-				"a": domain.Abstract("$(b)"),
-				"b": domain.Abstract("$(a)"),
+				"a": domain.Abstract("${b}"),
+				"b": domain.Abstract("${a}"),
 				"c": domain.Abstract("c"),
 			},
 			expected: map[string]*domain.AbstractString{},
@@ -95,11 +95,11 @@ func TestReduce(t *testing.T) {
 		// 5: 5-cycle
 		{
 			original: map[string]*domain.AbstractString{
-				"a": domain.Abstract("$(d)"),
-				"b": domain.Abstract("$(e)"),
-				"c": domain.Abstract("$(a)"),
-				"d": domain.Abstract("$(b)"),
-				"e": domain.Abstract("$(c)"),
+				"a": domain.Abstract("${d}"),
+				"b": domain.Abstract("${e}"),
+				"c": domain.Abstract("${a}"),
+				"d": domain.Abstract("${b}"),
+				"e": domain.Abstract("${c}"),
 			},
 			expected: map[string]*domain.AbstractString{},
 			errFunc:  verifyCycleError,
@@ -108,7 +108,7 @@ func TestReduce(t *testing.T) {
 		// 6: complex nesting
 		{
 			original: map[string]*domain.AbstractString{
-				"a": domain.Abstract("$($($($($($($($($(b)))))))))"),
+				"a": domain.Abstract("${${${${${${${${${b}}}}}}}}}"),
 				"b": domain.Abstract("c"),
 				"c": domain.Abstract("b"),
 			},
@@ -122,7 +122,11 @@ func TestReduce(t *testing.T) {
 		err := reduceEnv(tc.original)
 		if tc.errFunc == nil {
 			assert.Nil(t, err, "Unexpected error: %s", err)
-			assert.Equal(t, tc.expected, tc.original)
+			assert.Equal(t, len(tc.expected), len(tc.original))
+			for k, v := range tc.expected {
+				altered := tc.original[k]
+				assert.Equal(t, v, altered)
+			}
 		} else {
 			if assert.NotNil(t, err, "There should be an error") {
 				assert.True(t, tc.errFunc(err), fmt.Sprintf("Unexpected error: %s", err))
