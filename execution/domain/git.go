@@ -2,6 +2,8 @@ package domain
 
 import (
 	"fmt"
+	"os/exec"
+	"strconv"
 	"strings"
 
 	"github.com/Azure/acr-builder/execution/constants"
@@ -25,6 +27,9 @@ type GitSource struct {
 }
 
 func (s *GitSource) EnsureSource(runner Runner) error {
+	if err := verifyGitVersion(); err != nil {
+		logrus.Errorf("%s", err)
+	}
 	// TODO: try to clone with -b so we don't check out a branch we don't use
 	var targetEmpty bool
 	targetExists, err := runner.DoesDirExist(s.TargetDir)
@@ -60,6 +65,33 @@ func (s *GitSource) EnsureSource(runner Runner) error {
 	err = runner.Chdir(s.TargetDir)
 	if err != nil {
 		return fmt.Errorf("Failed to chdir to %s", err)
+	}
+	return nil
+}
+
+func verifyGitVersion() error {
+	// NOTE: Git 2.13 is known to have a major security vulnerability
+	gitVerifyCmd := exec.Command("git", "--version")
+	gitVersionString, err := gitVerifyCmd.Output()
+	if err != nil {
+		return fmt.Errorf("Failed to verify git command, %s", err)
+	}
+	gitVersionTokens := strings.Fields(string(gitVersionString))
+	gitVersionNumber := gitVersionTokens[len(gitVersionTokens)-1]
+	gitVersionNumberTokens := strings.Split(gitVersionNumber, ".")
+	if len(gitVersionNumberTokens) < 2 {
+		return fmt.Errorf("Unexpected git version number: %s", gitVersionNumber)
+	}
+	gitMajorVersion, err := strconv.Atoi(gitVersionNumberTokens[0])
+	if err != nil {
+		return fmt.Errorf("Unexpected git version number: %s", gitVersionNumber)
+	}
+	gitMinorVersion, err := strconv.Atoi(gitVersionNumberTokens[1])
+	if err != nil {
+		return fmt.Errorf("Unexpected git version number: %s", gitVersionNumber)
+	}
+	if gitMajorVersion < 2 || gitMinorVersion < 14 {
+		return fmt.Errorf("Please consider using Git version 2.14.0 or higher")
 	}
 	return nil
 }

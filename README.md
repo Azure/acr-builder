@@ -22,7 +22,7 @@ See [Dockerfile](./Dockerfile)
 `--no-publish` Specify if the current run is a dry run and no publish is needed upon build success
 
 ##### Build Environment
-By setting environment variable with parameter `--build-env <VAR_NAME>=<VAR_VALUE>`, the builder would be aware of the environmental variables throughout the build and the environment will be set for all child processeses. ACR builder has a set of reserved environment varialbes such as `ACR_BUILD_BUILD_NUMBER` and `ACR_BUILD_DOCKER_REGISTRY` mentioned in the parameteters paragraph. The user will set them by passing in the optional parameters `--build-number` and `--docker-registry` and they cannot be overriden with `--build-env`
+By setting environment variable with parameter `--build-env <VAR_NAME>=<VAR_VALUE>`, the builder would be aware of the environmental variables throughout the build and the environment will be set for all child processes. ACR builder has a set of reserved environment varialbes such as `ACR_BUILD_BUILD_NUMBER` and `ACR_BUILD_DOCKER_REGISTRY` mentioned in the parameters paragraph. The user will set them by passing in the optional parameters `--build-number` and `--docker-registry` and they cannot be overriden with `--build-env`
 
 Furthermore, ACR builder also populates the following variables during build so the child process can make use of these values:
 
@@ -35,8 +35,8 @@ Furthermore, ACR builder also populates the following variables during build so 
 `ACR_BUILD_PUBLISH_ON_SUCCESS` Indicate whether current build will publish on success
 
 ##### Compose File
-In `docker-compose.yml`, Build image should be prefixed by the reserved environmental variable `ACR_BUILD_DOCKER_REGISTRY` so they are publihsed to the desired registry. You can also use the reserved `ACR_BUILD_BUILD_NUMBER` to postfix your image or tag
-```
+In `docker-compose.yml`, Build image should be prefixed by the reserved environmental variable `ACR_BUILD_DOCKER_REGISTRY` so they are published to the desired registry. You can also use the reserved `ACR_BUILD_BUILD_NUMBER` to postfix your image or tag
+```yaml
 version: '2'
 services:
   hello:

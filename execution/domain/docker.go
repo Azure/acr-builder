@@ -77,7 +77,7 @@ func (u *DockerCustomAuthentication) Authenticate(runner Runner, registry Abstra
 	return u.Task.Execute(runner)
 }
 
-// NOTE: enusre branch is not null when creating the build task
+// NOTE: ensure branch is not null when creating the build task
 type DockerBuildTask struct {
 	source    SourceDescription
 	publishTo AbstractString

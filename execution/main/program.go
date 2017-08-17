@@ -11,6 +11,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const defaultCloneDir = "/checkout"
+
 type stringSlice []string
 
 func (i *stringSlice) String() string {
@@ -42,7 +44,7 @@ func main() {
 	var buildNumber string
 	flag.StringVar(&buildNumber, "build-number", "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.BuildNumberVar))
 	flag.StringVar(&gitURL, "git-url", "", "Git url to the project")
-	flag.StringVar(&gitCloneDir, "git-clone-to", constants.DefaultCloneDir, "Directory to clone to. If the directory exists, we won't clone again and will just clean and pull the directory")
+	flag.StringVar(&gitCloneDir, "git-clone-to", defaultCloneDir, "Directory to clone to. If the directory exists, we won't clone again and will just clean and pull the directory")
 	flag.StringVar(&gitbranch, "git-branch", "", "The git branch to checkout. If it is not given, no checkout command would be performed.")
 	flag.StringVar(&gitPATokenUser, "git-pa-token-user", "", "Git username for the personal access token.")
 	flag.StringVar(&gitPAToken, "git-pa-token", "", "Git personal access token.")

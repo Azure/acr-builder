@@ -1,7 +1,5 @@
 package constants
 
-const DefaultCloneDir = "/checkout"
-
 const acrBuildPrefix = "ACR_BUILD_"
 const CheckoutDirVar = acrBuildPrefix + "CHECKOUT_DIR"
 

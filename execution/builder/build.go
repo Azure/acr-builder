@@ -95,7 +95,7 @@ func executeRequest(sh *shell.Shell, request *domain.BuildRequest, publishOnSucc
 
 	err = request.Source.EnsureSource(runner)
 	if err != nil {
-		return fmt.Errorf("Failed to ensource source: %s", err)
+		return fmt.Errorf("Failed to ensure source: %s", err)
 	}
 
 	err = runIfExists(runner, request.Setup)

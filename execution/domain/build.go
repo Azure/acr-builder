@@ -17,7 +17,7 @@ type Runner interface {
 }
 
 // TODO, verify all referenced task are defined and of type ReferenceTask or ShellTask
-// TODO, verify all regsitries has a login
+// TODO, verify all registries has a login
 type BuildRequest struct {
 	Version     AbstractString
 	Global      []EnvVar
