@@ -97,6 +97,9 @@ func verifyGitVersion() error {
 }
 
 func (s *GitSource) EnsureBranch(runner Runner, branch AbstractString) error {
+	if branch.value == "" {
+		return fmt.Errorf("Branch parameter is required for git source")
+	}
 	defer func() { s.stale = true }()
 	if s.stale {
 		err := runner.ExecuteCmd(*git, *Abstract("clean"), *Abstract("-xdf"))

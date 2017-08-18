@@ -17,9 +17,6 @@ var dockerComposeSupportedFilenames = []string{
 var dockerCompose = Abstract("docker-compose")
 
 func NewDockerComposeBuildTarget(source SourceDescription, branch string, path string, buildArgsStr []string) (*BuildTarget, error) {
-	if branch == "" {
-		return nil, fmt.Errorf("Branch is required to create a build task")
-	}
 	buildArgs := make([]AbstractString, len(buildArgsStr))
 	for i, v := range buildArgsStr {
 		buildArgs[i] = *Abstract(v)

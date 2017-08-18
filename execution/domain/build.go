@@ -123,7 +123,7 @@ func (s *LocalSource) EnsureSource(runner Runner) error {
 
 func (s *LocalSource) EnsureBranch(runner Runner, branch AbstractString) error {
 	if branch.value != "" {
-		return fmt.Errorf("Source does not support branching")
+		return fmt.Errorf("Static local source does not support branching")
 	}
 	return nil
 }
