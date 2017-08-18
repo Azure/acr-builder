@@ -2,7 +2,6 @@ package domain
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/Azure/acr-builder/execution/constants"
 	"github.com/sirupsen/logrus"
@@ -55,18 +54,19 @@ func (t *DockerComposeBuildTask) Execute(runner Runner) error {
 	if t.Path.value != "" {
 		targetPath = t.Path
 	} else {
+		var exists bool
 		for _, defaultFile := range dockerComposeSupportedFilenames {
 			targetPath = *Abstract(defaultFile)
-			exists, err := runner.DoesFileExist(targetPath)
-			if err != nil && os.IsNotExist(err) {
+			exists, err = runner.DoesFileExist(targetPath)
+			if err != nil {
 				logrus.Errorf("Unexpected error while checking for default docker compose file: %s", err)
 			}
 			if exists {
 				break
 			}
 		}
-		if targetPath.value == "" {
-			return fmt.Errorf("Failed to determine default compose file")
+		if !exists {
+			return fmt.Errorf("Failed to find docker compose file in source directory")
 		}
 	}
 	// TODO: now scan for target path

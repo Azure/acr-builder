@@ -104,6 +104,8 @@ func (r *Runner) lookupPath(path domain.AbstractString, isDir bool) (bool, error
 		err = fmt.Errorf("Path is expected to be IsDir: %t", isDir)
 	} else if os.IsNotExist(err) {
 		err = nil
+	} else {
+		logrus.Warnf("Unexpected error while getting path: %s", path.RawValue())
 	}
 	return false, err
 }
