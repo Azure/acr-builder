@@ -25,13 +25,10 @@ func (i *stringSlice) Set(value string) error {
 }
 
 func main() {
-	// required
 	var composeFile string
-
-	// required when using git as source
 	var gitURL string
-	// optional when using git as source
 	var gitCloneDir, gitbranch, gitPATokenUser, gitPAToken, gitXToken string
+	var localSource string
 
 	// Untested code paths:
 	// required unless the host is properly logged in
@@ -40,7 +37,7 @@ func main() {
 	// optional
 	var registry string
 	var buildArgs, buildEnvs stringSlice
-	var nopublish bool
+	var push bool
 	var buildNumber string
 	flag.StringVar(&buildNumber, "build-number", "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.BuildNumberVar))
 	flag.StringVar(&gitURL, "git-url", "", "Git url to the project")
@@ -49,19 +46,20 @@ func main() {
 	flag.StringVar(&gitPATokenUser, "git-pa-token-user", "", "Git username for the personal access token.")
 	flag.StringVar(&gitPAToken, "git-pa-token", "", "Git personal access token.")
 	flag.StringVar(&gitXToken, "git-x-token", "", "Git OAuth x access token.")
+	flag.StringVar(&localSource, "local-source", "", "Local source directory. Specifying this parameter tells the builder no source control is used and it would use the specified directory as source")
 	flag.StringVar(&composeFile, "compose-file", "", "Path to the docker-compose file.")
-	flag.StringVar(&registry, "docker-registry", "", "Docker registry to publish to")
+	flag.StringVar(&registry, "docker-registry", "", "Docker registry to push to")
 	flag.StringVar(&dockeruser, "docker-user", "", "Docker username.")
 	flag.StringVar(&dockerpw, "docker-password", "", "Docker password or OAuth identity token.")
 	flag.Var(&buildArgs, "docker-build-arg", "Build arguments to be passed to docker build or docker-compose build")
 	flag.Var(&buildEnvs, "build-env", "Custom environment variables defined for the build process")
-	flag.BoolVar(&nopublish, "no-publish", false, "Do not publish on success")
+	flag.BoolVar(&push, "push", false, "Push on success")
 	flag.Parse()
 
-	if registry == "" {
-		panic("Registry needs to be provided")
+	if push && registry == "" {
+		panic("Registry needs to be provided if push is needed")
 	}
-	err := build.Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCloneDir, gitbranch, gitPATokenUser, gitPAToken, gitXToken, buildEnvs, buildArgs, nopublish)
+	err := build.Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCloneDir, gitbranch, gitPATokenUser, gitPAToken, gitXToken, localSource, buildEnvs, buildArgs, push)
 	ensureNoError("%s", err)
 }
 

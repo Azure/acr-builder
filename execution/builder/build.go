@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCloneDir, gitbranch, gitPATokenUser, gitPAToken, gitXToken string, buildEnvs, buildArgs []string, nopublish bool) error {
+func Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCloneDir, gitbranch, gitPATokenUser, gitPAToken, gitXToken, localSource string, buildEnvs, buildArgs []string, push bool) error {
 	envSet := map[string]bool{}
 	global := []domain.EnvVar{
 		domain.EnvVar{Name: constants.BuildNumberVar, Value: *domain.Abstract(buildNumber)},
@@ -44,23 +44,31 @@ func Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCl
 		})
 	}
 
-	var gitCred domain.GitCredential
-	if gitXToken != "" {
-		gitCred = domain.NewXToken(gitXToken)
+	var source domain.SourceDescription
+	if gitURL != "" {
+		var gitCred domain.GitCredential
+		if gitXToken != "" {
+			gitCred = domain.NewXToken(gitXToken)
+		} else {
+			if (gitPATokenUser == "") != (gitPAToken == "") {
+				return fmt.Errorf("Please provide both git user and token or none")
+			}
+			if gitPATokenUser != "" {
+				gitCred = domain.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
+			}
+		}
+		source = &domain.GitSource{
+			Address:       *domain.Abstract(gitURL),
+			TargetDir:     *domain.Abstract(gitCloneDir),
+			InitialBranch: *domain.Abstract(gitbranch),
+			Credential:    gitCred,
+		}
 	} else {
-		if (gitPATokenUser == "") != (gitPAToken == "") {
-			return fmt.Errorf("Please provide both git user and token or none")
+		var err error
+		source, err = domain.NewLocalSource(localSource)
+		if err != nil {
+			return err
 		}
-
-		if gitPATokenUser != "" {
-			gitCred = domain.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
-		}
-	}
-	var source = &domain.GitSource{
-		Address:       *domain.Abstract(gitURL),
-		TargetDir:     *domain.Abstract(gitCloneDir),
-		InitialBranch: *domain.Abstract(gitbranch),
-		Credential:    gitCred,
 	}
 
 	build, err := domain.NewDockerComposeBuildTarget(source, gitbranch, composeFile, buildArgs)
@@ -75,17 +83,17 @@ func Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCl
 			Source:      source,
 			Build:       []domain.BuildTarget{*build},
 		},
-		!nopublish)
+		push)
 }
 
-func executeRequest(sh *shell.Shell, request *domain.BuildRequest, publishOnSuccess bool) error {
+func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) error {
 	var err error
 	var runner domain.Runner
 	initialVar := append(
 		append(request.Global,
 			domain.EnvVar{
-				Name:  constants.PublishOnSuccessVar,
-				Value: *domain.Abstract(strconv.FormatBool(publishOnSuccess)),
+				Name:  constants.PushOnSuccessVar,
+				Value: *domain.Abstract(strconv.FormatBool(push)),
 			}),
 		request.Source.Export()...)
 	runner, err = shell.NewRunner(sh, initialVar)
@@ -116,15 +124,15 @@ func executeRequest(sh *shell.Shell, request *domain.BuildRequest, publishOnSucc
 				return fmt.Errorf("Failed to login: %s", err)
 			}
 		}
-		err = handleBuildAndPublish(
+		err = handleBuildAndPush(
 			buildRunner,
 			request.DockerAuths,
 			buildTarget,
 			request.Prebuild,
 			request.Postbuild,
-			request.Prepublish,
-			request.Postpublish,
-			publishOnSuccess)
+			request.Prepush,
+			request.Postpush,
+			push)
 		if err != nil {
 			return err
 		}
@@ -138,15 +146,15 @@ func executeRequest(sh *shell.Shell, request *domain.BuildRequest, publishOnSucc
 	return nil
 }
 
-func handleBuildAndPublish(
+func handleBuildAndPush(
 	buildRunner domain.Runner,
 	dockerAuths []domain.DockerAuthentication,
 	buildTarget domain.BuildTarget,
 	prebuild domain.Task,
 	postbuild domain.Task,
-	prepublish domain.Task,
-	postpublish domain.Task,
-	publishOnSuccess bool) (err error) {
+	prepush domain.Task,
+	postpush domain.Task,
+	push bool) (err error) {
 
 	err = runIfExists(buildRunner, prebuild)
 	if err != nil {
@@ -163,20 +171,20 @@ func handleBuildAndPublish(
 		return fmt.Errorf("Failed to run postbuild task, error: %s", err)
 	}
 
-	if publishOnSuccess {
-		err = runIfExists(buildRunner, prepublish)
+	if push {
+		err = runIfExists(buildRunner, prepush)
 		if err != nil {
-			return fmt.Errorf("Failed to run prepublish task, error: %s", err)
+			return fmt.Errorf("Failed to run prepush task, error: %s", err)
 		}
 
-		err = buildTarget.Publish.Execute(buildRunner)
+		err = buildTarget.Push.Execute(buildRunner)
 		if err != nil {
-			return fmt.Errorf("Fail to publish image, error: %s", err)
+			return fmt.Errorf("Fail to push image, error: %s", err)
 		}
 
-		err = runIfExists(buildRunner, postpublish)
+		err = runIfExists(buildRunner, postpush)
 		if err != nil {
-			return fmt.Errorf("Failed to run postpublish task, error: %s", err)
+			return fmt.Errorf("Failed to run postpush task, error: %s", err)
 		}
 	}
 	return nil

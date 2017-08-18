@@ -20,25 +20,21 @@ var pwd = Abstract(".")
 
 type BuildTarget struct {
 	Build BuildTask
-	// PublishTo and Publish should be sync'd on BuildTask creation
-	// so we know which registry to log into when publish happens
-	// PublishTo should be array since publish Task might publish to multiple repos
-	Publish PublishTask
-	// PublishTo AbstractString
+	Push  PushTask
 }
 
 type BuildTask interface {
 	Execute(runner Runner) error
 }
 
-type PublishTask interface {
+type PushTask interface {
 	Execute(runner Runner) error
 }
 
 func (t *BuildTarget) Export() []EnvVar {
 	exports := []EnvVar{}
 	appendExports(exports, t.Build)
-	appendExports(exports, t.Publish)
+	appendExports(exports, t.Push)
 	return exports
 }
 
@@ -80,7 +76,7 @@ func (u *DockerCustomAuthentication) Authenticate(runner Runner, registry Abstra
 // NOTE: ensure branch is not null when creating the build task
 type DockerBuildTask struct {
 	source    SourceDescription
-	publishTo AbstractString
+	pushTo    AbstractString
 	Branch    AbstractString
 	Path      AbstractString
 	Context   AbstractString
@@ -101,8 +97,8 @@ func (t *DockerBuildTask) Execute(runner Runner) error {
 		args = append(args, *file, t.Path)
 	}
 
-	if t.publishTo.value != "" {
-		args = append(args, *tag, t.publishTo)
+	if t.pushTo.value != "" {
+		args = append(args, *tag, t.pushTo)
 	}
 
 	for _, buildArg := range t.BuildArgs {
@@ -135,18 +131,18 @@ func (t *DockerBuildTask) Export() []EnvVar {
 	}
 }
 
-type DockerPublishTask struct {
-	publishTo AbstractString
+type DockerPushTask struct {
+	pushTo AbstractString
 }
 
-func (t *DockerPublishTask) Execute(runner Runner) error {
-	return runner.ExecuteCmd(*docker, *push, t.publishTo)
+func (t *DockerPushTask) Execute(runner Runner) error {
+	return runner.ExecuteCmd(*docker, *push, t.pushTo)
 }
 
-func (t *DockerPublishTask) Export() []EnvVar {
+func (t *DockerPushTask) Export() []EnvVar {
 	return []EnvVar{EnvVar{
-		Name:  constants.DockerPublishImageVar,
-		Value: t.publishTo,
+		Name:  constants.DockerPushImageVar,
+		Value: t.pushTo,
 	}}
 }
 

@@ -2,9 +2,17 @@ package domain
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/Azure/acr-builder/execution/constants"
+	"github.com/sirupsen/logrus"
 )
+
+// This array needs to be an exact copy of docker compose's SUPPORTED_FILENAMES in config.py
+var dockerComposeSupportedFilenames = []string{
+	"docker-compose.yml",
+	"docker-compose.yaml",
+}
 
 var dockerCompose = Abstract("docker-compose")
 
@@ -24,7 +32,7 @@ func NewDockerComposeBuildTarget(source SourceDescription, branch string, path s
 			Path:      *Abstract(path),
 			BuildArgs: buildArgs,
 		},
-		Publish: &DockerComposePushTask{
+		Push: &DockerComposePushTask{
 			path: *Abstract(path),
 		},
 	}, nil
@@ -46,9 +54,26 @@ func (t *DockerComposeBuildTask) Execute(runner Runner) error {
 		}
 	}
 	args := []AbstractString{}
+	var targetPath AbstractString
 	if t.Path.value != "" {
-		args = append(args, *file, t.Path)
+		targetPath = t.Path
+	} else {
+		for _, defaultFile := range dockerComposeSupportedFilenames {
+			targetPath = *Abstract(defaultFile)
+			exists, err := runner.DoesFileExist(targetPath)
+			if err != nil && os.IsNotExist(err) {
+				logrus.Errorf("Unexpected error while checking for default docker compose file: %s", err)
+			}
+			if exists {
+				break
+			}
+		}
+		if targetPath.value == "" {
+			return fmt.Errorf("Failed to determine default compose file")
+		}
 	}
+	// TODO: now scan for target path
+	args = append(args, *file, targetPath)
 	args = append(args, *build)
 
 	for _, buildArg := range t.BuildArgs {

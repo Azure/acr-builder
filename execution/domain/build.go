@@ -3,6 +3,9 @@ package domain
 import (
 	"bytes"
 	"fmt"
+	"os"
+
+	"github.com/Azure/acr-builder/execution/constants"
 )
 
 type Runner interface {
@@ -16,8 +19,8 @@ type Runner interface {
 	Chdir(path AbstractString) error
 }
 
-// TODO, verify all referenced task are defined and of type ReferenceTask or ShellTask
-// TODO, verify all registries has a login
+// TODO: verify all referenced task are defined and of type ReferenceTask or ShellTask
+// TODO: verify all registries has a login
 type BuildRequest struct {
 	Version     AbstractString
 	Global      []EnvVar
@@ -29,8 +32,8 @@ type BuildRequest struct {
 	Build       []BuildTarget
 	Postbuild   Task
 	Validation  Task
-	Prepublish  Task
-	Postpublish Task
+	Prepush     Task
+	Postpush    Task
 	WrapUp      Task
 }
 
@@ -99,26 +102,37 @@ type SourceDescription interface {
 	Export() []EnvVar
 }
 
-// Currently not support static local source
-// type LocalSource struct {
-// 	Dir AbstractString
-// }
+type LocalSource struct {
+	Dir AbstractString
+}
 
-// func (s *LocalSource) EnsureSource(runner Runner) error {
-// 	// TODO: document that every path is relative to source
-// 	return runner.Chdir(s.Dir)
-// }
+func NewLocalSource(dir string) (*LocalSource, error) {
+	if dir == "" {
+		var err error
+		dir, err = os.Getwd()
+		if err != nil {
+			return nil, fmt.Errorf("Error trying to locate current working directory as local source %s", err)
+		}
+	}
+	return &LocalSource{Dir: *Abstract(dir)}, nil
+}
 
-// func (s *LocalSource) EnsureBranch(runner Runner, branch AbstractString) error {
-// 	if branch.value == "" {
-// 		return fmt.Errorf("Source does not support branching")
-// 	}
-// 	return nil
-// }
+func (s *LocalSource) EnsureSource(runner Runner) error {
+	return runner.Chdir(s.Dir)
+}
 
-// func (s *LocalSource) Export() []EnvVar {
-// 	return []EnvVar{EnvVar{
-// 		Name:  constants.BuildSourceVar,
-// 		Value: s.Dir,
-// 	}}
-// }
+func (s *LocalSource) EnsureBranch(runner Runner, branch AbstractString) error {
+	if branch.value != "" {
+		return fmt.Errorf("Source does not support branching")
+	}
+	return nil
+}
+
+func (s *LocalSource) Export() []EnvVar {
+	return []EnvVar{
+		EnvVar{
+			Name:  constants.CheckoutDirVar,
+			Value: s.Dir,
+		},
+	}
+}
