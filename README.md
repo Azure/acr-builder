@@ -14,6 +14,7 @@ See [Dockerfile](./Dockerfile)
 `--git-url` Git url to the project. Clone operation will be ignored if `--git-clone-to` folder exist and is not empty and this parameter will not be requried<br />
 `--git-clone-to` Directory to clone to. If the directory exists, we won't clone again and will just clean and pull the directory. The default value is `/checkout`<br />
 `--git-branch` The git branch to checkout. If it is not given, no checkout command would be performed<br />
+`--git-head-revision` Desired git HEAD revision, note that providing this parameter will cause the branch parameter to be ignored<br />
 `--git-oath-user` Git OAuth only, Git username<br />
 `--git-oath-token` Git OAuth only, Git personal access token<br />
 `--local-source` Local source directory. Specifying this parameter tells the builder no source control is used and it would use the specified directory as source<br />

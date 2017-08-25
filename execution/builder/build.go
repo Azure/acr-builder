@@ -11,11 +11,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCloneDir, gitbranch, gitPATokenUser, gitPAToken, gitXToken, localSource string, buildEnvs, buildArgs []string, push bool) error {
+func Run(buildNumber, composeFile, dockeruser, dockerpw, dockerRegistry, gitURL, gitCloneDir, gitbranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string, buildEnvs, buildArgs []string, push bool) error {
 	envSet := map[string]bool{}
 	global := []domain.EnvVar{
 		domain.EnvVar{Name: constants.BuildNumberVar, Value: *domain.Abstract(buildNumber)},
-		domain.EnvVar{Name: constants.DockerRegistryVar, Value: *domain.Abstract(registry)},
+		domain.EnvVar{Name: constants.DockerRegistryVar, Value: *domain.Abstract(dockerRegistry)},
 	}
 	for _, env := range global {
 		envSet[env.Name] = true
@@ -32,7 +32,7 @@ func Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCl
 		envSet[k] = true
 	}
 
-	registryInput := *domain.Abstract(registry)
+	registryInput := *domain.Abstract(dockerRegistry)
 	dockerAuths := []domain.DockerAuthentication{}
 	if (dockeruser == "") != (dockerpw == "") {
 		return fmt.Errorf("Please provide both docker user and password or none")
@@ -60,6 +60,7 @@ func Run(buildNumber, composeFile, gitURL, dockeruser, dockerpw, registry, gitCl
 		source = &domain.GitSource{
 			Address:       *domain.Abstract(gitURL),
 			TargetDir:     *domain.Abstract(gitCloneDir),
+			HeadRev:       *domain.Abstract(gitHeadRev),
 			InitialBranch: *domain.Abstract(gitbranch),
 			Credential:    gitCred,
 		}

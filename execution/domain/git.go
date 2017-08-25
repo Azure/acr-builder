@@ -21,6 +21,7 @@ var authTypeX = Abstract("OAuth X Access Token")
 type GitSource struct {
 	Address       AbstractString
 	InitialBranch AbstractString
+	HeadRev       AbstractString
 	Credential    GitCredential
 	TargetDir     AbstractString
 	stale         bool
@@ -111,18 +112,31 @@ func (s *GitSource) EnsureBranch(runner Runner, branch AbstractString) error {
 			return fmt.Errorf("Failed to discard local changes: %s", err)
 		}
 	}
-	err := runner.ExecuteCmd(*git, *checkout, branch)
+	address, err := s.toAuthAddress(runner)
 	if err != nil {
-		return fmt.Errorf("Error checking out branch %s", branch.value)
+		return fmt.Errorf("Failed to get authorized address, error: %s", err)
 	}
-	if s.stale {
-		address, err := s.toAuthAddress(runner)
-		if err != nil {
-			return err
+	if s.HeadRev.value != "" {
+		if s.stale {
+			err := runner.ExecuteCmd(*git, *Abstract("fetch"), address)
+			if err != nil {
+				return fmt.Errorf("Error fetching from: %s", address.value)
+			}
 		}
-		err = runner.ExecuteCmd(*git, *Abstract("pull"), address, branch)
+		err = runner.ExecuteCmd(*git, *checkout, s.HeadRev)
 		if err != nil {
-			return fmt.Errorf("Failed to pull from branch %s: %s", branch.value, err)
+			return fmt.Errorf("Error checking out revision: %s", s.HeadRev.value)
+		}
+	} else {
+		err := runner.ExecuteCmd(*git, *checkout, branch)
+		if err != nil {
+			return fmt.Errorf("Error checking out branch %s", branch.value)
+		}
+		if s.stale {
+			err = runner.ExecuteCmd(*git, *Abstract("pull"), address, branch)
+			if err != nil {
+				return fmt.Errorf("Failed to pull from branch %s: %s", branch.value, err)
+			}
 		}
 	}
 	return nil
