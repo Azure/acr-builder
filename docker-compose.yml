@@ -1,0 +1,5 @@
+version: '2'
+services:
+  acr-builder:
+    build: .
+    image: ${ACR_BUILD_DOCKER_REGISTRY}/acr-builder
