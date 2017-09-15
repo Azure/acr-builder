@@ -19,9 +19,9 @@ RUN apk add --update --no-cache \
     git \
     openssh \
     openssl \
-    ca-certificates 
+    ca-certificates
 
-ENV GLIBC 2.23-r3 
+ENV GLIBC 2.23-r3
 RUN wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://raw.githubusercontent.com/sgerrand/alpine-pkg-glibc/master/sgerrand.rsa.pub && \
     wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/$GLIBC/glibc-$GLIBC.apk && \
     apk add --no-cache glibc-$GLIBC.apk && rm glibc-$GLIBC.apk && \

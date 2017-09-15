@@ -11,12 +11,13 @@ import (
 type Runner interface {
 	AppendContext(newEnv []EnvVar) (Runner, error)
 	Resolve(value AbstractString) string
-	ExecuteCmd(cmdExe AbstractString, cmdArgs ...AbstractString) error
+	ExecuteCmd(cmdExe AbstractString, cmdArgs []AbstractString) error
 	ExecuteString(cmdString AbstractString) error
 	DoesDirExist(path AbstractString) (bool, error)
 	DoesFileExist(path AbstractString) (bool, error)
 	IsDirEmpty(path AbstractString) (bool, error)
 	Chdir(path AbstractString) error
+	GetEnv(key string) (string, bool)
 }
 
 // TODO: verify all referenced task are defined and of type ReferenceTask or ShellTask
@@ -85,10 +86,10 @@ func (t *ShellTask) Execute(runner Runner) error {
 
 func (t *ShellTask) Append(env []EnvVar, parameters []AbstractString) Task {
 	buf := new(bytes.Buffer)
-	buf.WriteString(t.Command.value)
+	buf.WriteString(t.Command.raw)
 	for _, s := range parameters {
 		buf.WriteByte(' ')
-		buf.WriteString(s.value)
+		buf.WriteString(s.raw)
 	}
 	return &ShellTask{
 		Command: *Abstract((string)(buf.Bytes())),
@@ -122,7 +123,7 @@ func (s *LocalSource) EnsureSource(runner Runner) error {
 }
 
 func (s *LocalSource) EnsureBranch(runner Runner, branch AbstractString) error {
-	if branch.value != "" {
+	if !branch.IsEmpty() {
 		return fmt.Errorf("Static local source does not support branching")
 	}
 	return nil
@@ -135,4 +136,49 @@ func (s *LocalSource) Export() []EnvVar {
 			Value: s.Dir,
 		},
 	}
+}
+
+type BuildTarget struct {
+	Build BuildTask
+	Push  PushTask
+}
+
+type BuildTask interface {
+	// Build task can't be a generic tasks now because it needs to return ImageDependencies
+	// If we use docker events to figure out dependencies, we can make build tasks a generic task
+	Execute(runner Runner) ([]ImageDependencies, error)
+}
+
+type PushTask interface {
+	Execute(runner Runner) error
+}
+
+func (t *BuildTarget) Export() []EnvVar {
+	exports := []EnvVar{}
+	appendExports(exports, t.Build)
+	appendExports(exports, t.Push)
+	return exports
+}
+
+type ImageDependencies struct {
+	Image             string   `json:"image"`
+	BuildDependencies []string `json:"build-dependencies"`
+	RuntimeDependency string   `json:"runtime-dependency"`
+}
+
+type DockerAuthentication struct {
+	Registry AbstractString
+	Auth     DockerAuthenticationMethod
+}
+
+type DockerAuthenticationMethod interface {
+	Execute(runner Runner) error
+}
+
+func appendExports(input []EnvVar, obj interface{}) []EnvVar {
+	exporter, toExport := obj.(EnvExporter)
+	if toExport {
+		return append(input, exporter.Export()...)
+	}
+	return input
 }

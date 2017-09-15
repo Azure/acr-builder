@@ -1,0 +1,11 @@
+version: '2'
+services:
+  hello-multistage:
+    build: ./hello-multistage
+    image: ${ACR_BUILD_DOCKER_REGISTRY}/hello-multistage
+
+  hello-node:
+    build:
+        context: ./hello-node
+        dockerfile: Dockerfile.alpine
+    image: ${ACR_BUILD_DOCKER_REGISTRY}/hello-node

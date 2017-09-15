@@ -11,31 +11,43 @@ type EnvVar struct {
 }
 
 type AbstractString struct {
-	value       string
+	raw         string
 	isSensitive bool
 }
 
 func Abstract(s string) *AbstractString {
-	return &AbstractString{value: s}
+	return &AbstractString{raw: s}
 }
 
 func AbstractSensitive(s string) *AbstractString {
-	return &AbstractString{value: s, isSensitive: true}
+	return &AbstractString{raw: s, isSensitive: true}
 }
 
-func (abs *AbstractString) DisplayValue() string {
-	if abs.isSensitive {
+func AbstractBatch(in []string) []AbstractString {
+	result := make([]AbstractString, len(in))
+	for i, val := range in {
+		result[i] = *Abstract(val)
+	}
+	return result
+}
+
+func (s *AbstractString) Clone() *AbstractString {
+	return &AbstractString{raw: s.raw, isSensitive: s.isSensitive}
+}
+
+func (s *AbstractString) DisplayValue() string {
+	if s.isSensitive {
 		return "*****"
 	}
-	return abs.value
+	return s.EscapedValue()
 }
 
-func (abs *AbstractString) RawValue() string {
-	return abs.value
+func (s *AbstractString) IsEmpty() bool {
+	return s.raw == ""
 }
 
 func (abs *AbstractString) EscapedValue() string {
-	return strings.Replace(abs.value, "\"$\"", "$", -1)
+	return strings.Replace(abs.raw, "\"$\"", "$", -1)
 }
 
 func (abs *AbstractString) Resolve(env map[string]*AbstractString) bool {
@@ -54,12 +66,12 @@ func (abs *AbstractString) resolve(env map[string]*AbstractString, disallowedKey
 	replaced := false
 	for k, v := range env {
 		replaceStr := "${" + k + "}"
-		toReplace := strings.Contains(abs.value, replaceStr)
+		toReplace := strings.Contains(abs.raw, replaceStr)
 		if toReplace {
 			if disallowedKey != nil && k == *disallowedKey {
 				return false, fmt.Errorf("Cycle detected for key:%s", *disallowedKey)
 			}
-			abs.value = strings.Replace(abs.value, replaceStr, v.value, -1)
+			abs.raw = strings.Replace(abs.raw, replaceStr, v.raw, -1)
 			replaced = true
 		}
 	}

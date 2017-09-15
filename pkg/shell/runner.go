@@ -25,10 +25,10 @@ func NewRunner(sh *Shell, env []domain.EnvVar) (domain.Runner, error) {
 func (r *Runner) AppendContext(newEnv []domain.EnvVar) (domain.Runner, error) {
 	allVars := map[string]*domain.AbstractString{}
 	for k, v := range r.env {
-		allVars[k] = domain.Abstract(v.RawValue())
+		allVars[k] = v.Clone()
 	}
 	for _, v := range newEnv {
-		allVars[v.Name] = domain.Abstract(v.Value.RawValue())
+		allVars[v.Name] = v.Value.Clone()
 	}
 	err := reduceEnv(allVars)
 	if err != nil {
@@ -45,12 +45,14 @@ func (a *Runner) Resolve(value domain.AbstractString) string {
 	return value.EscapedValue()
 }
 
-func (r *Runner) ExecuteCmd(cmdExe domain.AbstractString, cmdArgs ...domain.AbstractString) error {
+func (r *Runner) ExecuteCmd(cmdExe domain.AbstractString, cmdArgs []domain.AbstractString) error {
 	resolvedArgs := make([]string, len(cmdArgs))
 	displayArgs := make([]string, len(cmdArgs))
-	for i, arg := range cmdArgs {
-		resolvedArgs[i] = r.Resolve(arg)
-		displayArgs[i] = arg.DisplayValue()
+	if cmdArgs != nil {
+		for i, arg := range cmdArgs {
+			resolvedArgs[i] = r.Resolve(arg)
+			displayArgs[i] = arg.DisplayValue()
+		}
 	}
 	cmd := exec.Command(r.Resolve(cmdExe), resolvedArgs...)
 	logrus.Infof("Running command %s %s", cmdExe.DisplayValue(), strings.Join(displayArgs, " "))
@@ -95,6 +97,17 @@ func (r *Runner) IsDirEmpty(path domain.AbstractString) (bool, error) {
 	return len(info) == 0, nil
 }
 
+func (r *Runner) GetEnv(key string) (string, bool) {
+	value, found := r.env[key]
+	var result string
+	if found {
+		result = value.EscapedValue()
+	} else {
+		result = ""
+	}
+	return result, found
+}
+
 func (r *Runner) lookupPath(path domain.AbstractString, isDir bool) (bool, error) {
 	fileInfo, err := r.GetFileInfo(path)
 	if err == nil {
@@ -105,7 +118,7 @@ func (r *Runner) lookupPath(path domain.AbstractString, isDir bool) (bool, error
 	} else if os.IsNotExist(err) {
 		err = nil
 	} else {
-		logrus.Warnf("Unexpected error while getting path: %s", path.RawValue())
+		logrus.Warnf("Unexpected error while getting path: %s", path.DisplayValue())
 	}
 	return false, err
 }

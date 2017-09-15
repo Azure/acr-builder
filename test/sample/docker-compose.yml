@@ -1,5 +1,0 @@
-version: '2'
-services:
-  hello:
-    build: ./hello-builder
-    image: ${acr_build_docker_registry}/hello-builder

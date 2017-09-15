@@ -5,13 +5,18 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Azure/acr-builder/pkg/commands"
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/domain"
 	"github.com/Azure/acr-builder/pkg/shell"
-	"github.com/sirupsen/logrus"
 )
 
-func Run(buildNumber, composeFile, dockeruser, dockerpw, dockerRegistry, gitURL, gitCloneDir, gitbranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string, buildEnvs, buildArgs []string, push bool) error {
+func Run(buildNumber, composeFile, composeProjectDir,
+	dockerfile, dockerImage, dockerContextDir,
+	dockeruser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitbranch,
+	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
+	buildEnvs, buildArgs []string, push bool) ([]domain.ImageDependencies, error) {
+
 	envSet := map[string]bool{}
 	global := []domain.EnvVar{
 		domain.EnvVar{Name: constants.BuildNumberVar, Value: *domain.Abstract(buildNumber)},
@@ -23,10 +28,10 @@ func Run(buildNumber, composeFile, dockeruser, dockerpw, dockerRegistry, gitURL,
 	for _, env := range buildEnvs {
 		k, v, err := parseAssignment(env)
 		if err != nil {
-			return fmt.Errorf("Error parsing build environment \"%s\"", err)
+			return nil, fmt.Errorf("Error parsing build environment \"%s\"", err)
 		}
 		if envSet[k] {
-			return fmt.Errorf("Ambiguous environmental variable %s", k)
+			return nil, fmt.Errorf("Ambiguous environmental variable %s", k)
 		}
 		global = append(global, domain.EnvVar{Name: k, Value: *domain.Abstract(v)})
 		envSet[k] = true
@@ -34,30 +39,30 @@ func Run(buildNumber, composeFile, dockeruser, dockerpw, dockerRegistry, gitURL,
 
 	registryInput := *domain.Abstract(dockerRegistry)
 	dockerAuths := []domain.DockerAuthentication{}
-	if (dockeruser == "") != (dockerpw == "") {
-		return fmt.Errorf("Please provide both docker user and password or none")
+	if (dockeruser == "") != (dockerPW == "") {
+		return nil, fmt.Errorf("Please provide both docker user and password or none")
 	}
 	if dockeruser != "" {
 		dockerAuths = append(dockerAuths, domain.DockerAuthentication{
 			Registry: registryInput,
-			Auth:     domain.NewDockerUsernamePassword(registryInput, dockeruser, dockerpw),
+			Auth:     commands.NewDockerUsernamePassword(registryInput, dockeruser, dockerPW),
 		})
 	}
 
 	var source domain.SourceDescription
 	if gitURL != "" {
-		var gitCred domain.GitCredential
+		var gitCred commands.GitCredential
 		if gitXToken != "" {
-			gitCred = domain.NewXToken(gitXToken)
+			gitCred = commands.NewXToken(gitXToken)
 		} else {
 			if (gitPATokenUser == "") != (gitPAToken == "") {
-				return fmt.Errorf("Please provide both git user and token or none")
+				return nil, fmt.Errorf("Please provide both git user and token or none")
 			}
 			if gitPATokenUser != "" {
-				gitCred = domain.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
+				gitCred = commands.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
 			}
 		}
-		source = &domain.GitSource{
+		source = &commands.GitSource{
 			Address:       *domain.Abstract(gitURL),
 			TargetDir:     *domain.Abstract(gitCloneDir),
 			HeadRev:       *domain.Abstract(gitHeadRev),
@@ -68,13 +73,31 @@ func Run(buildNumber, composeFile, dockeruser, dockerpw, dockerRegistry, gitURL,
 		var err error
 		source, err = domain.NewLocalSource(localSource)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	build, err := domain.NewDockerComposeBuildTarget(source, gitbranch, composeFile, buildArgs)
-	if err != nil {
-		return err
+	builds := []domain.BuildTarget{}
+	if composeFile != "" {
+		if dockerfile != "" || dockerImage != "" || dockerContextDir != "" {
+			return nil, fmt.Errorf("Parameters --%s, --%s, %s cannot be used with %s",
+				constants.ArgNameDockerfile, constants.ArgNameDockerImage,
+				constants.ArgNameDockerContextDir, constants.ArgNameDockerComposeFile)
+		}
+		build, err := commands.NewDockerComposeBuildTarget(source, gitbranch, composeFile, composeProjectDir, buildArgs)
+		if err != nil {
+			return nil, err
+		}
+		builds = append(builds, *build)
+	} else {
+		if composeProjectDir != "" {
+			return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
+		}
+		build, err := commands.NewDockerBuildTarget(source, gitbranch, dockerfile, dockerContextDir, buildArgs, push, dockerRegistry, dockerImage)
+		if err != nil {
+			return nil, err
+		}
+		builds = append(builds, *build)
 	}
 
 	return executeRequest(shell.Instances["sh"],
@@ -82,12 +105,12 @@ func Run(buildNumber, composeFile, dockeruser, dockerpw, dockerRegistry, gitURL,
 			Global:      global,
 			DockerAuths: dockerAuths,
 			Source:      source,
-			Build:       []domain.BuildTarget{*build},
+			Build:       builds,
 		},
 		push)
 }
 
-func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) error {
+func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) ([]domain.ImageDependencies, error) {
 	var err error
 	var runner domain.Runner
 	initialVar := append(
@@ -99,123 +122,113 @@ func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) er
 		request.Source.Export()...)
 	runner, err = shell.NewRunner(sh, initialVar)
 	if err != nil {
-		return fmt.Errorf("Failed to initiate runner, error: %s", err)
+		return nil, fmt.Errorf("Failed to initiate runner, error: %s", err)
 	}
 
 	err = request.Source.EnsureSource(runner)
 	if err != nil {
-		return fmt.Errorf("Failed to ensure source: %s", err)
+		return nil, fmt.Errorf("Failed to ensure source: %s", err)
 	}
 
 	err = runIfExists(runner, request.Setup)
 	if err != nil {
-		return fmt.Errorf("Setup failed: %s", err)
+		return nil, fmt.Errorf("Setup failed: %s", err)
 	}
 
+	for _, auth := range request.DockerAuths {
+		err = auth.Auth.Execute(runner)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to login: %s", err)
+		}
+	}
+
+	allDependencies := []domain.ImageDependencies{}
 	for _, buildTarget := range request.Build {
 		env := buildTarget.Export()
 		var buildRunner domain.Runner
 		buildRunner, err = runner.AppendContext(env)
 		if err != nil {
-			return fmt.Errorf("Error initializing build context: %s", err)
+			return nil, fmt.Errorf("Error initializing build context: %s", err)
 		}
-		for _, auth := range request.DockerAuths {
-			err = auth.Auth.Execute(buildRunner)
-			if err != nil {
-				return fmt.Errorf("Failed to login: %s", err)
-			}
-		}
-		err = handleBuildAndPush(
+		dep, err := handleBuild(
 			buildRunner,
-			request.DockerAuths,
 			buildTarget,
 			request.Prebuild,
-			request.Postbuild,
-			request.Prepush,
-			request.Postpush,
-			push)
+			request.Postbuild)
 		if err != nil {
-			return err
+			return nil, err
+		}
+		allDependencies = append(allDependencies, dep...)
+	}
+
+	if push {
+		for _, buildTarget := range request.Build {
+			env := buildTarget.Export()
+			var buildRunner domain.Runner
+			buildRunner, err = runner.AppendContext(env)
+			if err != nil {
+				return nil, fmt.Errorf("Error initializing build context: %s", err)
+			}
+			err := handlePush(
+				buildRunner,
+				buildTarget,
+				request.Prebuild,
+				request.Postbuild)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	err = runIfExists(runner, request.WrapUp)
 	if err != nil {
-		return fmt.Errorf("Wrap up task failed: %s", err)
+		return nil, fmt.Errorf("Wrap up task failed: %s", err)
 	}
 
-	return nil
+	return allDependencies, nil
 }
 
-func handleBuildAndPush(
+func handleBuild(
 	buildRunner domain.Runner,
-	dockerAuths []domain.DockerAuthentication,
 	buildTarget domain.BuildTarget,
 	prebuild domain.Task,
-	postbuild domain.Task,
-	prepush domain.Task,
-	postpush domain.Task,
-	push bool) (err error) {
-
-	err = runIfExists(buildRunner, prebuild)
+	postbuild domain.Task) ([]domain.ImageDependencies, error) {
+	err := runIfExists(buildRunner, prebuild)
 	if err != nil {
-		return fmt.Errorf("Failed to run prebuild task, error: %s", err)
+		return nil, fmt.Errorf("Failed to run prebuild task, error: %s", err)
 	}
 
-	err = buildTarget.Build.Execute(buildRunner)
+	dependencies, err := buildTarget.Build.Execute(buildRunner)
 	if err != nil {
-		return fmt.Errorf("Failed building build task, error: %s", err)
+		return nil, fmt.Errorf("Failed building build task, error: %s", err)
 	}
 
 	err = runIfExists(buildRunner, postbuild)
 	if err != nil {
-		return fmt.Errorf("Failed to run postbuild task, error: %s", err)
+		return nil, fmt.Errorf("Failed to run postbuild task, error: %s", err)
 	}
 
-	if push {
-		err = runIfExists(buildRunner, prepush)
-		if err != nil {
-			return fmt.Errorf("Failed to run prepush task, error: %s", err)
-		}
-
-		err = buildTarget.Push.Execute(buildRunner)
-		if err != nil {
-			return fmt.Errorf("Fail to push image, error: %s", err)
-		}
-
-		err = runIfExists(buildRunner, postpush)
-		if err != nil {
-			return fmt.Errorf("Failed to run postpush task, error: %s", err)
-		}
-	}
-	return nil
+	return dependencies, nil
 }
 
-func handleDockerLogin(
+func handlePush(
 	buildRunner domain.Runner,
-	dockerAuths []domain.DockerAuthentication,
-	targetName string) error {
-
-	targetNamespace := getNamespace(targetName)
-	namespaceNotRegistry := !strings.Contains(targetNamespace, ".")
-	var authMethod domain.DockerAuthenticationMethod
-	for _, login := range dockerAuths {
-		registry := buildRunner.Resolve(login.Registry)
-		if registry == targetNamespace {
-			authMethod = login.Auth
-			break
-		} else if registry == "" && namespaceNotRegistry {
-			authMethod = login.Auth
-		}
+	buildTarget domain.BuildTarget,
+	prepush domain.Task,
+	postpush domain.Task) (err error) {
+	err = runIfExists(buildRunner, prepush)
+	if err != nil {
+		return fmt.Errorf("Failed to run prepush task, error: %s", err)
 	}
 
-	// TODO: what about the case where default namespace mapped to github.io??
-	if authMethod == nil && !namespaceNotRegistry {
-		logrus.Warnf("Namespace %s appears to be a registry but no authentication method is provided.", targetNamespace)
-	} else if authMethod != nil {
-		if err := authMethod.Execute(buildRunner); err != nil {
-			return fmt.Errorf("Error loggin in to %s, error: %s", targetNamespace, err)
-		}
+	err = buildTarget.Push.Execute(buildRunner)
+	if err != nil {
+		return fmt.Errorf("Fail to push image, error: %s", err)
+	}
+
+	err = runIfExists(buildRunner, postpush)
+	if err != nil {
+		return fmt.Errorf("Failed to run postpush task, error: %s", err)
 	}
 	return nil
 }

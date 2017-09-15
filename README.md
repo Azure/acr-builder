@@ -28,13 +28,17 @@ By setting environment variable with parameter `--build-env <VAR_NAME>=<VAR_VALU
 
 Furthermore, ACR builder also populates the following variables during build so the child process can make use of these values:
 
-`ACR_BUILD_CHECKOUT_DIR` Source directory on the current build system<br />
+// TODO remove ACR prefixes
+`ACR_BUILD_SOURCE_DIR` Source directory on the current build system<br />
 `ACR_BUILD_DOCKER_COMPOSE_FILE` Current docker compose file being used, relative to the source directory<br />
-`ACR_BUILD_GIT_SOURCE` Current Git source directory<br />
+`ACR_BUILD_GIT_URL` Git URL<br />
 `ACR_BUILD_GIT_BRANCH` Current Git branch<br />
-`ACR_BUILD_GIT_AUTH_TYPE` Git authentication type, currently only `OAuth Personal Access Token` is supported<br />
-`ACR_BUILD_GIT_USER` Current Git user, this variable will only be populated in the OAuth Personal Access Token scenario which requires a username<br />
-`ACR_BUILD_PUSH_ON_SUCCESS` Indicate whether current build will push on success
+`ACR_BUILD_PUSH_IMAGES` Indicate whether current build will push on success
+// TODO:
+BUILD_NUMBER
+BUILD_ID
+BUILD_TIMESTAMP ISO format
+
 
 ##### Compose File
 In `docker-compose.yml`, Build image should be prefixed by the reserved environmental variable `ACR_BUILD_DOCKER_REGISTRY` so they are pushed to the desired registry. You can also use the reserved `ACR_BUILD_BUILD_NUMBER` to postfix your image or tag

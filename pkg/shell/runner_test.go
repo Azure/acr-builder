@@ -133,7 +133,7 @@ func TestReduce(t *testing.T) {
 			} else {
 				fmt.Print("Reduced map:\n")
 				for k, v := range tc.original {
-					fmt.Fprintf(os.Stderr, "%s: %v\n", k, v.RawValue())
+					fmt.Fprintf(os.Stderr, "%s: %v\n", k, v.DisplayValue())
 				}
 			}
 		}
