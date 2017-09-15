@@ -118,7 +118,7 @@ func (s *GitSource) EnsureBranch(runner Runner, branch AbstractString) error {
 	}
 	if s.HeadRev.value != "" {
 		if s.stale {
-			err := runner.ExecuteCmd(*git, *Abstract("fetch"), address)
+			err := runner.ExecuteCmd(*git, *Abstract("fetch"), *Abstract("--all"))
 			if err != nil {
 				return fmt.Errorf("Error fetching from: %s", address.value)
 			}

@@ -60,7 +60,7 @@ func main() {
 	}
 
 	if gitHeadRev != "" && gitbranch != "" {
-		logrus.Infof("Both HEAD revision %s and branch %s are provided as parameter, HEAD will take precedence")
+		logrus.Infof("Both HEAD revision %s and branch %s are provided as parameter, HEAD will take precedence", gitHeadRev, gitbranch)
 	}
 
 	err := build.Run(buildNumber, composeFile, dockeruser, dockerpw, dockerRegistry, gitURL, gitCloneDir, gitbranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource, buildEnvs, buildArgs, push)
