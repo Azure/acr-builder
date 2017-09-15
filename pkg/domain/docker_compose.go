@@ -3,7 +3,7 @@ package domain
 import (
 	"fmt"
 
-	"github.com/Azure/acr-builder/execution/constants"
+	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/sirupsen/logrus"
 )
 

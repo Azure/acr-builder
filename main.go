@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Azure/acr-builder/execution/builder"
-	"github.com/Azure/acr-builder/execution/constants"
+	"github.com/Azure/acr-builder/pkg/builder"
+	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/sirupsen/logrus"
 )
 

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Azure/acr-builder/execution/domain"
+	"github.com/Azure/acr-builder/pkg/domain"
 	"github.com/sirupsen/logrus"
 )
 
