@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Azure/acr-builder/execution/constants"
+	"github.com/Azure/acr-builder/pkg/constants"
 )
 
 type Runner interface {

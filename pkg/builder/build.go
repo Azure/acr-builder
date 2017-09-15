@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Azure/acr-builder/execution/constants"
-	"github.com/Azure/acr-builder/execution/domain"
-	"github.com/Azure/acr-builder/execution/shell"
+	"github.com/Azure/acr-builder/pkg/constants"
+	"github.com/Azure/acr-builder/pkg/domain"
+	"github.com/Azure/acr-builder/pkg/shell"
 	"github.com/sirupsen/logrus"
 )
 

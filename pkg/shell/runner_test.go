@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Azure/acr-builder/execution/domain"
+	"github.com/Azure/acr-builder/pkg/domain"
 	"github.com/stretchr/testify/assert"
 )
 
