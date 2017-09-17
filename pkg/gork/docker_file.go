@@ -18,7 +18,7 @@ func ResolveDockerfileDependencies(path string) (string, []string, error) {
 
 	originLookup := map[string]string{} // given an alias, look up its origin
 	allOrigins := map[string]bool{}     // set of all origins
-	var image string                    // cursor for walking graphs
+	var origin string
 	for scanner.Scan() {
 		line := scanner.Text()
 		tokens := strings.Fields(line)
@@ -27,8 +27,9 @@ func ResolveDockerfileDependencies(path string) (string, []string, error) {
 				return "", nil, fmt.Errorf("Unable to understand line %s", line)
 			}
 
-			image = tokens[1]
-			origin, found := originLookup[image]
+			var image = tokens[1]
+			var found bool
+			origin, found = originLookup[image]
 			if !found {
 				allOrigins[image] = true
 				origin = image
@@ -48,19 +49,14 @@ func ResolveDockerfileDependencies(path string) (string, []string, error) {
 		}
 	}
 
-	// Backtrack to find root dependency of last image reference and we will find the runtime dependency
-	runtimeOrigin, found := originLookup[image]
-	if !found {
-		runtimeOrigin = image
-		// assert isOrigin[runtimeOrigin] == true
-	}
+	// note that origin variable now points to the runtime origin
 
 	buildtimeDependencies := make([]string, 0, len(allOrigins)-1)
 	for terminal := range allOrigins {
-		if terminal != runtimeOrigin {
+		if terminal != origin {
 			buildtimeDependencies = append(buildtimeDependencies, terminal)
 		}
 	}
 	// assert len(buildtimeDependencies) == len(allOrigins)-1
-	return runtimeOrigin, buildtimeDependencies, nil
+	return origin, buildtimeDependencies, nil
 }
