@@ -2,6 +2,9 @@ FROM microsoft/aspnetcore:2.0 AS base
 WORKDIR /app
 EXPOSE 80
 
+FROM base AS secondary
+RUN nothing
+
 FROM microsoft/aspnetcore-build:2.0 AS builder
 WORKDIR /src
 COPY *.sln ./
@@ -17,7 +20,7 @@ RUN dotnet publish -c Release -o /app
 FROM imaginary/cert-generator:1.0
 RUN generate-cert.sh
 
-FROM base AS production
+FROM secondary AS production
 WORKDIR /app
 COPY --from=publish /app .
 COPY --from=3 /cert /app

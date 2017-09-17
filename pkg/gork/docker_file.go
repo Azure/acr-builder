@@ -16,9 +16,9 @@ func ResolveDockerfileDependencies(path string) (string, []string, error) {
 	}
 	scanner := bufio.NewScanner(file)
 
-	aliases := map[string]string{} // dependency graph
-	terminals := map[string]bool{} // terminals are image dependencies that must be pulled during build
-	var image string               // cursor for walking graphs
+	originLookup := map[string]string{} // given an alias, look up its origin
+	allOrigins := map[string]bool{}     // set of all origins
+	var image string                    // cursor for walking graphs
 	for scanner.Scan() {
 		line := scanner.Text()
 		tokens := strings.Fields(line)
@@ -28,9 +28,10 @@ func ResolveDockerfileDependencies(path string) (string, []string, error) {
 			}
 
 			image = tokens[1]
-			_, found := aliases[image]
+			origin, found := originLookup[image]
 			if !found {
-				terminals[image] = true
+				allOrigins[image] = true
+				origin = image
 			}
 
 			if len(tokens) > 2 {
@@ -38,7 +39,7 @@ func ResolveDockerfileDependencies(path string) (string, []string, error) {
 					return "", nil, fmt.Errorf("Unable to understand line %s", line)
 				}
 				alias := tokens[3]
-				aliases[alias] = image
+				originLookup[alias] = origin
 				// Just ignore the rest of the tokens...
 				if len(tokens) > 4 {
 					logrus.Infof("Ignoring chunks from FROM clause: %v", tokens[4:])
@@ -48,26 +49,18 @@ func ResolveDockerfileDependencies(path string) (string, []string, error) {
 	}
 
 	// Backtrack to find root dependency of last image reference and we will find the runtime dependency
-	// Note that since there is not such thing as forward declaration in multistage syntax we should
-	// really never find a cycle in the dependency graph. However, we can check for it for completeness
-	for {
-		parent, hasParent := aliases[image]
-		if !hasParent {
-			break
-		} else if parent == "" {
-			// This really should never happen
-			return "", nil, fmt.Errorf("Circular dependencies found while looking for runtime dependency on dockerfile %s", path)
-		} else {
-			aliases[image] = ""
-			image = parent
-		}
+	runtimeOrigin, found := originLookup[image]
+	if !found {
+		runtimeOrigin = image
+		// assert isOrigin[runtimeOrigin] == true
 	}
 
-	buildtimeDependencies := make([]string, 0, len(terminals)-1)
-	for terminal := range terminals {
-		if terminal != image {
+	buildtimeDependencies := make([]string, 0, len(allOrigins)-1)
+	for terminal := range allOrigins {
+		if terminal != runtimeOrigin {
 			buildtimeDependencies = append(buildtimeDependencies, terminal)
 		}
 	}
-	return image, buildtimeDependencies, nil
+	// assert len(buildtimeDependencies) == len(allOrigins)-1
+	return runtimeOrigin, buildtimeDependencies, nil
 }
