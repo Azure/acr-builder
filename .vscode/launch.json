@@ -11,7 +11,7 @@
             "host": "127.0.0.1",
             "program": "${workspaceRoot}/main.go",
             "env": { },
-            "args": [ "--push", "--docker-image", "hello-multistage:docker", "--docker-registry", "shhsuacr2.azurecr.io" ],
+            "args": [ "--push", "--docker-image", "hello-multistage:docker", "--docker-registry", "<registry name>" ],
             "cwd": "${workspaceRoot}/tests/resources/docker-compose/hello-multistage",
             "showLog": true
         },
@@ -25,7 +25,7 @@
             "host": "127.0.0.1",
             "program": "${workspaceRoot}/main.go",
             "env": { },
-            "args": [ "--push", "--docker-compose-file", "${workspaceRoot}/tests/resources/docker-compose/docker-compose.yml", "--docker-registry", "shhsuacr2.azurecr.io" ],
+            "args": [ "--push", "--docker-compose-file", "${workspaceRoot}/tests/resources/docker-compose/docker-compose.yml", "--docker-registry", "<registry name>" ],
             "showLog": true
         }
     ]
