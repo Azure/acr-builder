@@ -12,67 +12,86 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Runner struct {
-	env   map[string]*domain.AbstractString
-	shell *Shell
+type shellRunner struct {
+	userDefined     []domain.EnvVar // user defined variables in its raw form
+	systemGenerated []domain.EnvVar // system defined variables
+	resolvedContext map[string]string
+	shell           *Shell
 }
 
-func NewRunner(sh *Shell, env []domain.EnvVar) (domain.Runner, error) {
-	runner := &Runner{shell: sh, env: map[string]*domain.AbstractString{}}
-	return runner.AppendContext(env)
-}
-
-func (r *Runner) AppendContext(newEnv []domain.EnvVar) (domain.Runner, error) {
-	allVars := map[string]*domain.AbstractString{}
-	for k, v := range r.env {
-		allVars[k] = v.Clone()
+// NewRunner creates a runner for a given shell
+func NewRunner(sh *Shell, userDefined []domain.EnvVar, systemGenerated []domain.EnvVar) domain.Runner {
+	runner := &shellRunner{
+		userDefined:     userDefined,
+		systemGenerated: systemGenerated,
+		shell:           sh,
 	}
-	for _, v := range newEnv {
-		allVars[v.Name] = v.Value.Clone()
-	}
-	err := reduceEnv(allVars)
-	if err != nil {
-		return nil, fmt.Errorf("Error evaluating the initial environments: %s", err)
-	}
-	return &Runner{
-		shell: r.shell,
-		env:   allVars,
-	}, nil
+	return runner.AppendContext(systemGenerated)
 }
 
-func (a *Runner) Resolve(value domain.AbstractString) string {
-	value.Resolve(a.env)
-	return value.EscapedValue()
+// AppendContext append environment variables that the commands are run on
+func (r *shellRunner) AppendContext(newlyGenerated []domain.EnvVar) domain.Runner {
+	resolvedContext := map[string]string{}
+	for _, entry := range r.userDefined {
+		resolvedContext[entry.Name] = ContextResolve(resolvedContext, entry.Value)
+	}
+	systemGeneratedMap := map[string]domain.EnvVar{}
+	for _, entry := range r.systemGenerated {
+		systemGeneratedMap[entry.Name] = entry
+	}
+	for _, entry := range newlyGenerated {
+		systemGeneratedMap[entry.Name] = entry
+	}
+	systemGenerated := []domain.EnvVar{}
+	for _, v := range systemGeneratedMap {
+		systemGenerated = append(systemGenerated, v)
+		resolvedContext[v.Name] = ContextResolve(resolvedContext, v.Value)
+	}
+	return &shellRunner{shell: r.shell,
+		userDefined:     r.userDefined,
+		systemGenerated: systemGenerated,
+		resolvedContext: resolvedContext}
 }
 
-func (r *Runner) ExecuteCmd(cmdExe domain.AbstractString, cmdArgs []domain.AbstractString) error {
-	resolvedArgs := make([]string, len(cmdArgs))
-	displayArgs := make([]string, len(cmdArgs))
-	if cmdArgs != nil {
-		for i, arg := range cmdArgs {
-			resolvedArgs[i] = r.Resolve(arg)
-			displayArgs[i] = arg.DisplayValue()
+// ContextResolve : given a context and a string with reference to env variables, expand it
+func ContextResolve(context map[string]string, value string) string {
+	return os.Expand(value, func(key string) string {
+		if value, ok := context[key]; ok {
+			return value
 		}
+		return os.Getenv(key)
+	})
+}
+
+// Resolve resolves an string given the runner's environment
+func (r *shellRunner) Resolve(value string) string {
+	return ContextResolve(r.resolvedContext, value)
+}
+
+// ExecuteCmd runs the given command
+func (r *shellRunner) ExecuteCmd(cmdExe string, cmdArgs []string) error {
+	resolvedArgs := make([]string, len(cmdArgs))
+	for i, arg := range cmdArgs {
+		resolvedArgs[i] = r.Resolve(arg)
 	}
 	cmd := exec.Command(r.Resolve(cmdExe), resolvedArgs...)
-	logrus.Infof("Running command %s %s", cmdExe.DisplayValue(), strings.Join(displayArgs, " "))
+	// TODO: not show secrets
+	logrus.Infof("Running command %s %s", cmdExe, strings.Join(resolvedArgs, " "))
 	return r.execute(cmd)
 }
 
-func (r *Runner) ExecuteString(cmdString domain.AbstractString) error {
-	cmd := exec.Command(r.shell.BootstrapExe, r.Resolve(cmdString))
-	logrus.Infof("Running predefined command %s", cmdString.DisplayValue())
+// ExecuteString runs the given string as command
+func (r *shellRunner) ExecuteString(cmdString string) error {
+	cmdString = r.Resolve(cmdString)
+	cmd := exec.Command(r.shell.BootstrapExe, cmdString)
+	logrus.Infof("Running predefined command %s", cmdString)
 	return r.execute(cmd)
 }
 
-func (r *Runner) GetFileInfo(path domain.AbstractString) (os.FileInfo, error) {
-	resolved := r.Resolve(path)
-	return os.Stat(resolved)
-}
-
-func (r *Runner) Chdir(path domain.AbstractString) error {
+// Chdir changes current working directory for the runner
+func (r *shellRunner) Chdir(path string) error {
 	dir := r.Resolve(path)
-	logrus.Infof("Chdir to %s", path.DisplayValue())
+	logrus.Infof("Chdir to %s", path)
 	err := os.Chdir(dir)
 	if err != nil {
 		return fmt.Errorf("Error chdir to %s", dir)
@@ -80,15 +99,18 @@ func (r *Runner) Chdir(path domain.AbstractString) error {
 	return nil
 }
 
-func (r *Runner) DoesDirExist(path domain.AbstractString) (bool, error) {
+// DoesDirExist checks if a given directory exists
+func (r *shellRunner) DoesDirExist(path string) (bool, error) {
 	return r.lookupPath(path, true)
 }
 
-func (r *Runner) DoesFileExist(path domain.AbstractString) (bool, error) {
+// DoesFileExist checks if a given file exists
+func (r *shellRunner) DoesFileExist(path string) (bool, error) {
 	return r.lookupPath(path, false)
 }
 
-func (r *Runner) IsDirEmpty(path domain.AbstractString) (bool, error) {
+// IsDirEmpty checks if given directory is empty
+func (r *shellRunner) IsDirEmpty(path string) (bool, error) {
 	resolved := r.Resolve(path)
 	info, err := ioutil.ReadDir(resolved)
 	if err != nil {
@@ -97,19 +119,13 @@ func (r *Runner) IsDirEmpty(path domain.AbstractString) (bool, error) {
 	return len(info) == 0, nil
 }
 
-func (r *Runner) GetEnv(key string) (string, bool) {
-	value, found := r.env[key]
-	var result string
-	if found {
-		result = value.EscapedValue()
-	} else {
-		result = ""
-	}
-	return result, found
+func (r *shellRunner) getFileInfo(path string) (os.FileInfo, error) {
+	resolved := r.Resolve(path)
+	return os.Stat(resolved)
 }
 
-func (r *Runner) lookupPath(path domain.AbstractString, isDir bool) (bool, error) {
-	fileInfo, err := r.GetFileInfo(path)
+func (r *shellRunner) lookupPath(path string, isDir bool) (bool, error) {
+	fileInfo, err := r.getFileInfo(path)
 	if err == nil {
 		if fileInfo.IsDir() == isDir {
 			return true, nil
@@ -118,16 +134,16 @@ func (r *Runner) lookupPath(path domain.AbstractString, isDir bool) (bool, error
 	} else if os.IsNotExist(err) {
 		err = nil
 	} else {
-		logrus.Warnf("Unexpected error while getting path: %s", path.DisplayValue())
+		logrus.Warnf("Unexpected error while getting path: %s", path)
 	}
 	return false, err
 }
 
-func (r *Runner) execute(cmd *exec.Cmd) error {
+func (r *shellRunner) execute(cmd *exec.Cmd) error {
 	cmd.Env = append(cmd.Env, os.Environ()...)
-	for k, v := range r.env {
-		// TODO: verify if space works
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v.EscapedValue()))
+	for k, v := range r.resolvedContext {
+		// TODO: think about expanding the raw values to enable nesting scenario
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -136,30 +152,7 @@ func (r *Runner) execute(cmd *exec.Cmd) error {
 		return fmt.Errorf("Failed to start command: %s", err)
 	}
 	if err := cmd.Wait(); err != nil {
-		// TODO: check if any stderr causes this to fail
 		return fmt.Errorf("Failed to run command: %s", err)
-	}
-	return nil
-}
-
-const MaxReduceLevel = 5
-
-func reduceEnv(env map[string]*domain.AbstractString) error {
-	replaced := true
-	levelCount := 0
-	for replaced {
-		if levelCount == MaxReduceLevel {
-			return fmt.Errorf("Variable nested for too many levels")
-		}
-		replaced = false
-		for k, v := range env {
-			found, err := v.ResolveWithCycleDetection(env, k)
-			if err != nil {
-				return err
-			}
-			replaced = replaced || found
-		}
-		levelCount++
 	}
 	return nil
 }

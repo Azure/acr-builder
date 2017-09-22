@@ -11,7 +11,7 @@
         "failf",
         "envs",
         "auths",
-        "gork",
+        "grok",
         "stretchr",
         "unresolvable"
     ]

@@ -11,16 +11,17 @@ import (
 	"github.com/Azure/acr-builder/pkg/shell"
 )
 
+// Run is the main body of the acr-builder
 func Run(buildNumber, composeFile, composeProjectDir,
 	dockerfile, dockerImage, dockerContextDir,
-	dockeruser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitbranch,
+	dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
 	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
 	buildEnvs, buildArgs []string, push bool) ([]domain.ImageDependencies, error) {
 
 	envSet := map[string]bool{}
 	global := []domain.EnvVar{
-		domain.EnvVar{Name: constants.BuildNumberVar, Value: *domain.Abstract(buildNumber)},
-		domain.EnvVar{Name: constants.DockerRegistryVar, Value: *domain.Abstract(dockerRegistry)},
+		{Name: constants.BuildNumberVar, Value: buildNumber},
+		{Name: constants.DockerRegistryVar, Value: dockerRegistry},
 	}
 	for _, env := range global {
 		envSet[env.Name] = true
@@ -33,19 +34,18 @@ func Run(buildNumber, composeFile, composeProjectDir,
 		if envSet[k] {
 			return nil, fmt.Errorf("Ambiguous environmental variable %s", k)
 		}
-		global = append(global, domain.EnvVar{Name: k, Value: *domain.Abstract(v)})
+		global = append(global, domain.EnvVar{Name: k, Value: v})
 		envSet[k] = true
 	}
 
-	registryInput := *domain.Abstract(dockerRegistry)
 	dockerAuths := []domain.DockerAuthentication{}
-	if (dockeruser == "") != (dockerPW == "") {
+	if (dockerUser == "") != (dockerPW == "") {
 		return nil, fmt.Errorf("Please provide both docker user and password or none")
 	}
-	if dockeruser != "" {
+	if dockerUser != "" {
 		dockerAuths = append(dockerAuths, domain.DockerAuthentication{
-			Registry: registryInput,
-			Auth:     commands.NewDockerUsernamePassword(registryInput, dockeruser, dockerPW),
+			Registry: dockerRegistry,
+			Auth:     commands.NewDockerUsernamePassword(dockerRegistry, dockerUser, dockerPW),
 		})
 	}
 
@@ -62,13 +62,7 @@ func Run(buildNumber, composeFile, composeProjectDir,
 				gitCred = commands.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
 			}
 		}
-		source = &commands.GitSource{
-			Address:       *domain.Abstract(gitURL),
-			TargetDir:     *domain.Abstract(gitCloneDir),
-			HeadRev:       *domain.Abstract(gitHeadRev),
-			InitialBranch: *domain.Abstract(gitbranch),
-			Credential:    gitCred,
-		}
+		source = commands.NewGitSource(gitURL, gitBranch, gitHeadRev, gitCloneDir, gitCred)
 	} else {
 		var err error
 		source, err = domain.NewLocalSource(localSource)
@@ -84,16 +78,13 @@ func Run(buildNumber, composeFile, composeProjectDir,
 				constants.ArgNameDockerfile, constants.ArgNameDockerImage,
 				constants.ArgNameDockerContextDir, constants.ArgNameDockerComposeFile)
 		}
-		build, err := commands.NewDockerComposeBuildTarget(source, gitbranch, composeFile, composeProjectDir, buildArgs)
-		if err != nil {
-			return nil, err
-		}
+		build := commands.NewDockerComposeBuildTarget(source, gitBranch, composeFile, composeProjectDir, buildArgs)
 		builds = append(builds, *build)
 	} else {
 		if composeProjectDir != "" {
 			return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
 		}
-		build, err := commands.NewDockerBuildTarget(source, gitbranch, dockerfile, dockerContextDir, buildArgs, push, dockerRegistry, dockerImage)
+		build, err := commands.NewDockerBuildTarget(source, gitBranch, dockerfile, dockerContextDir, buildArgs, push, dockerRegistry, dockerImage)
 		if err != nil {
 			return nil, err
 		}
@@ -113,17 +104,13 @@ func Run(buildNumber, composeFile, composeProjectDir,
 func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) ([]domain.ImageDependencies, error) {
 	var err error
 	var runner domain.Runner
-	initialVar := append(
-		append(request.Global,
-			domain.EnvVar{
-				Name:  constants.PushOnSuccessVar,
-				Value: *domain.Abstract(strconv.FormatBool(push)),
-			}),
-		request.Source.Export()...)
-	runner, err = shell.NewRunner(sh, initialVar)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to initiate runner, error: %s", err)
-	}
+	runner = shell.NewRunner(sh, request.Global, append(
+		request.Source.Export(),
+		domain.EnvVar{
+			Name:  constants.PushOnSuccessVar,
+			Value: strconv.FormatBool(push),
+		},
+	))
 
 	err = request.Source.EnsureSource(runner)
 	if err != nil {
@@ -144,12 +131,7 @@ func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) ([
 
 	allDependencies := []domain.ImageDependencies{}
 	for _, buildTarget := range request.Build {
-		env := buildTarget.Export()
-		var buildRunner domain.Runner
-		buildRunner, err = runner.AppendContext(env)
-		if err != nil {
-			return nil, fmt.Errorf("Error initializing build context: %s", err)
-		}
+		buildRunner := runner.AppendContext(buildTarget.Export())
 		dep, err := handleBuild(
 			buildRunner,
 			buildTarget,
@@ -163,12 +145,7 @@ func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) ([
 
 	if push {
 		for _, buildTarget := range request.Build {
-			env := buildTarget.Export()
-			var buildRunner domain.Runner
-			buildRunner, err = runner.AppendContext(env)
-			if err != nil {
-				return nil, fmt.Errorf("Error initializing build context: %s", err)
-			}
+			buildRunner := runner.AppendContext(buildTarget.Export())
 			err := handlePush(
 				buildRunner,
 				buildTarget,
@@ -238,14 +215,6 @@ func runIfExists(runner domain.Runner, task domain.Task) error {
 		return task.Execute(runner)
 	}
 	return nil
-}
-
-func getNamespace(image string) string {
-	divIndex := strings.LastIndex(image, "/")
-	if divIndex == -1 {
-		return ""
-	}
-	return image[0:divIndex]
 }
 
 func parseAssignment(in string) (string, string, error) {

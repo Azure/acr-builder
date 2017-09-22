@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const defaultCloneDir = "/checkout"
+const defaultCloneDir = "$HOME/acr-builder/src"
 
 type stringSlice []string
 
@@ -28,20 +28,20 @@ func (i *stringSlice) Set(value string) error {
 func main() {
 	var composeFile, composeProjectDir string
 	var dockerfile, dockerImage, dockerContextDir string
-	var gitURL, gitCloneDir, gitbranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken string
+	var gitURL, gitCloneDir, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken string
 	var localSource string
 
 	// Untested code paths:
 	// required unless the host is properly logged in
 	// if the program is launched in docker container, use option -v /var/run/docker.sock:/var/run/docker.sock -v ~/.docker:/root/.docker
-	var dockeruser, dockerPW, dockerRegistry string
+	var dockerUser, dockerPW, dockerRegistry string
 	var buildArgs, buildEnvs stringSlice
 	var push bool
 	var buildNumber string
 	flag.StringVar(&buildNumber, constants.ArgNameBuildNumber, "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.BuildNumberVar))
 	flag.StringVar(&gitURL, constants.ArgNameGitURL, "", "Git url to the project")
 	flag.StringVar(&gitCloneDir, constants.ArgNameGitCloneTo, defaultCloneDir, "Directory to clone to. If the directory exists, we won't clone again and will just clean and pull the directory")
-	flag.StringVar(&gitbranch, constants.ArgNameGitBranch, "", "The git branch to checkout. If it is not given, no checkout command would be performed.")
+	flag.StringVar(&gitBranch, constants.ArgNameGitBranch, "", "The git branch to checkout. If it is not given, no checkout command would be performed.")
 	flag.StringVar(&gitHeadRev, constants.ArgNameGitHeadRev, "", "Desired git HEAD revision, note that providing this parameter will cause the branch parameter to be ignored")
 	flag.StringVar(&gitPATokenUser, constants.ArgNameGitPATokenUser, "", "Git username for the personal access token.")
 	flag.StringVar(&gitPAToken, constants.ArgNameGitPAToken, "", "Git personal access token.")
@@ -54,35 +54,36 @@ func main() {
 	flag.StringVar(&dockerContextDir, constants.ArgNameDockerContextDir, "", "Context directory for docker build. This option is only available when building with dockerfile.")
 	flag.Var(&buildArgs, constants.ArgNameDockerBuildArg, "Build arguments to be passed to docker build or docker-compose build")
 	flag.StringVar(&dockerRegistry, constants.ArgNameDockerRegistry, "", "Docker registry to push to")
-	flag.StringVar(&dockeruser, constants.ArgNameDockerUser, "", "Docker username.")
+	flag.StringVar(&dockerUser, constants.ArgNameDockerUser, "", "Docker username.")
 	flag.StringVar(&dockerPW, constants.ArgNameDockerPW, "", "Docker password or OAuth identity token.")
 	flag.Var(&buildEnvs, constants.ArgNameBuildEnv, "Custom environment variables defined for the build process")
 	flag.BoolVar(&push, constants.ArgNamePush, false, "Push on success")
 	flag.Parse()
 
 	if push && dockerRegistry == "" {
-		panic("Registry needs to be provided if push is needed")
+		logrus.Errorf("Registry needs to be provided if push is needed")
+		flag.CommandLine.Usage()
+		os.Exit(-1)
 	}
 
-	if gitHeadRev != "" && gitbranch != "" {
-		logrus.Infof("Both HEAD revision %s and branch %s are provided as parameter, HEAD will take precedence", gitHeadRev, gitbranch)
+	if gitHeadRev != "" && gitBranch != "" {
+		logrus.Infof("Both HEAD revision %s and branch %s are provided as parameter, HEAD will take precedence", gitHeadRev, gitBranch)
 	}
 
 	dep, err := build.Run(buildNumber, composeFile, composeProjectDir,
 		dockerfile, dockerImage, dockerContextDir,
-		dockeruser, dockerPW, dockerRegistry,
-		gitURL, gitCloneDir, gitbranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
+		dockerUser, dockerPW, dockerRegistry,
+		gitURL, gitCloneDir, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 		localSource, buildEnvs, buildArgs, push)
-	ensureNoError("%s", err)
-
-	output, err := json.Marshal(dep)
-	ensureNoError("Failed to serialize dependencies %s", err)
-	fmt.Printf("\nACR Builder discovered the following dependencies:\n%s\n", string(output))
-}
-
-func ensureNoError(msg string, err error) {
 	if err != nil {
-		logrus.Errorf(msg, err)
+		logrus.Error(err)
 		os.Exit(-1)
 	}
+
+	output, err := json.Marshal(dep)
+	if err != nil {
+		logrus.Errorf("Failed to serialize dependencies %s", err)
+		os.Exit(-1)
+	}
+	fmt.Printf("\nACR Builder discovered the following dependencies:\n%s\n", string(output))
 }

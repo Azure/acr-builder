@@ -1,8 +1,8 @@
 package constants
 
 const acrBuildPrefix = "ACR_BUILD_"
-const CheckoutDirVar = acrBuildPrefix + "CHECKOUT_DIR"
 
+const CheckoutDirVar = acrBuildPrefix + "CHECKOUT_DIR"
 const dockerDomainPrefix = acrBuildPrefix + "DOCKER_"
 const DockerfilePathVar = dockerDomainPrefix + "FILE"
 const DockerBuildContextVar = dockerDomainPrefix + "CONTEXT"

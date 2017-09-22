@@ -1,19 +1,14 @@
-package gork
+package grok
 
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path"
 	"path/filepath"
 
 	"github.com/Azure/acr-builder/pkg/domain"
 	yaml "gopkg.in/yaml.v2"
 )
-
-type EnvironmentalVariableResolver interface {
-	GetEnv(key string) (string, bool)
-}
 
 type dockerCompose struct {
 	Version  string   `yaml:"version"`
@@ -97,7 +92,8 @@ func readDockerComposeFile(path string) (*dockerCompose, error) {
 	return &compose, nil
 }
 
-func ResolveDockerComposeDependencies(env EnvironmentalVariableResolver, projectDirectory string, composeFile string) ([]domain.ImageDependencies, error) {
+// ResolveDockerComposeDependencies => given a compose file, resolve its dependencies
+func ResolveDockerComposeDependencies(env domain.Runner, projectDirectory string, composeFile string) ([]domain.ImageDependencies, error) {
 	result := []domain.ImageDependencies{}
 	compose, err := readDockerComposeFile(composeFile)
 	if err != nil {
@@ -108,28 +104,31 @@ func ResolveDockerComposeDependencies(env EnvironmentalVariableResolver, project
 		projectDirectory = filepath.Dir(composeFile)
 	}
 
-	envResolve := func(key string) string {
-		if value, ok := env.GetEnv(key); ok {
-			return value
-		}
-		return os.Getenv(key)
-	}
+	// envResolve := func(key string) string {
+	// 	if value, ok := env.GetEnv(key); ok {
+	// 		return value
+	// 	}
+	// 	return os.Getenv(key)
+	// }
 
 	for _, service := range compose.Services.Services {
-		contextDir := os.Expand(service.Build.ContextDir, envResolve)
+		//os.Expand(service.Build.ContextDir, envResolve)
+		contextDir := env.Resolve(service.Build.ContextDir)
 		imageContext := path.Join(projectDirectory, contextDir)
 		var dockerfilePath string
 		if service.Build.Dockerfile == "" {
 			dockerfilePath = path.Join(imageContext, "Dockerfile")
 		} else {
-			dockerfilePath = path.Join(imageContext, os.Expand(service.Build.Dockerfile, envResolve))
+			//os.Expand(service.Build.Dockerfile, envResolve))
+			dockerfilePath = path.Join(imageContext, env.Resolve(service.Build.Dockerfile))
 		}
 		runtime, buildtime, err := ResolveDockerfileDependencies(dockerfilePath)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to list dependencies for dockerfile %s, error, %s", dockerfilePath, err)
 		}
 		result = append(result, domain.ImageDependencies{
-			Image:             os.Expand(service.Image, envResolve),
+			// os.Expand(service.Image, envResolve)
+			Image:             env.Resolve(service.Image),
 			RuntimeDependency: runtime,
 			BuildDependencies: buildtime,
 		})

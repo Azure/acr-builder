@@ -1,4 +1,4 @@
-package gork
+package grok
 
 import (
 	"bufio"
@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ResolveDockerfileDependencies given a docker file, resolve its dependencies
 func ResolveDockerfileDependencies(path string) (string, []string, error) {
 	file, err := os.Open(path)
 	if err != nil {

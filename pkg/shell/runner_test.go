@@ -3,139 +3,263 @@ package shell
 import (
 	"fmt"
 	"os"
-	"strings"
+	"path"
+	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/Azure/acr-builder/pkg/domain"
-	"github.com/stretchr/testify/assert"
+	"github.com/shhsu/testify/assert"
 )
 
-func TestReduce(t *testing.T) {
-	verifyCycleError := func(err error) bool {
-		// Note that due to property of map, we can't predict which element in the cycle will be picked out first
-		return strings.HasPrefix(err.Error(), "Cycle detected for key:")
+func TestAppendContext(t *testing.T) {
+	os.Setenv("TestAppendContext1", "TestAppendContext.Value1")
+	os.Setenv("TestAppendContext2", "TestAppendContext.Value2")
+	os.Setenv("TestAppendContextDNE", "")
+
+	userDefined := []domain.EnvVar{
+		{
+			Name:  "u1",
+			Value: "${TestAppendContext1}",
+		},
+		{
+			Name:  "u2",
+			Value: "UserValue2",
+		},
+		{
+			Name:  "u3",
+			Value: "${TestAppendContextDNE}",
+		},
 	}
-	testCases := []struct {
-		original map[string]*domain.AbstractString
-		expected map[string]*domain.AbstractString
-		errFunc  func(error) bool
+
+	systemGenerated := []domain.EnvVar{
+		{
+			Name:  "s1",
+			Value: "${u1} is set",
+		},
+		{
+			Name:  "s2",
+			Value: "${TestAppendContext2} is set",
+		},
+		{
+			Name:  "s3",
+			Value: "${TestAppendContextDNE} is not set",
+		},
+	}
+
+	newlyGenerated := []domain.EnvVar{
+		{
+			Name:  "s3",
+			Value: "Value modified",
+		},
+		{
+			Name:  "s4",
+			Value: "${u3}",
+		},
+	}
+
+	dummyShell := &Shell{BootstrapExe: "something"}
+	// test user defined value inherit from osEnv
+	// both positive and negative
+	runner := NewRunner(dummyShell, userDefined, systemGenerated).(*shellRunner)
+	verifyRunnerOriginalValues(t, runner)
+
+	newRunner := runner.AppendContext(newlyGenerated).(*shellRunner)
+	assert.Equal(t, []domain.EnvVar{
+		{
+			Name:  "u1",
+			Value: "${TestAppendContext1}",
+		},
+		{
+			Name:  "u2",
+			Value: "UserValue2",
+		},
+		{
+			Name:  "u3",
+			Value: "${TestAppendContextDNE}",
+		},
+	}, newRunner.userDefined)
+	assertSameEnv(t, []domain.EnvVar{
+		{
+			Name:  "s1",
+			Value: "${u1} is set",
+		},
+		{
+			Name:  "s2",
+			Value: "${TestAppendContext2} is set",
+		},
+		{
+			Name:  "s3",
+			Value: "Value modified",
+		},
+		{
+			Name:  "s4",
+			Value: "${u3}",
+		},
+	}, newRunner.systemGenerated)
+	assert.Equal(t, 7, len(newRunner.resolvedContext))
+	assert.Equal(t, "TestAppendContext.Value1", newRunner.resolvedContext["u1"])
+	assert.Equal(t, "UserValue2", newRunner.resolvedContext["u2"])
+	assert.Equal(t, "", newRunner.resolvedContext["u3"])
+	assert.Equal(t, "TestAppendContext.Value1 is set", newRunner.resolvedContext["s1"])
+	assert.Equal(t, "TestAppendContext.Value2 is set", newRunner.resolvedContext["s2"])
+	assert.Equal(t, "Value modified", newRunner.resolvedContext["s3"])
+	assert.Equal(t, "", newRunner.resolvedContext["s4"])
+
+	verifyRunnerOriginalValues(t, runner)
+}
+
+func assertSameEnv(t *testing.T, expected, actual []domain.EnvVar) {
+	assert.Equal(t, len(expected), len(actual))
+	env := map[string]string{}
+	for _, entry := range expected {
+		env[entry.Name] = entry.Value
+	}
+	for _, entry := range actual {
+		value, found := env[entry.Name]
+		assert.True(t, found, "key %s not found", entry.Name)
+		assert.Equal(t, value, entry.Value, "key %s, expected: %s, actual: %s", entry.Name, value, entry.Value)
+	}
+}
+
+func verifyRunnerOriginalValues(t *testing.T, runner *shellRunner) {
+	assert.Equal(t, []domain.EnvVar{
+		{
+			Name:  "u1",
+			Value: "${TestAppendContext1}",
+		},
+		{
+			Name:  "u2",
+			Value: "UserValue2",
+		},
+		{
+			Name:  "u3",
+			Value: "${TestAppendContextDNE}",
+		},
+	}, runner.userDefined)
+	assertSameEnv(t, []domain.EnvVar{
+		{
+			Name:  "s1",
+			Value: "${u1} is set",
+		},
+		{
+			Name:  "s2",
+			Value: "${TestAppendContext2} is set",
+		},
+		{
+			Name:  "s3",
+			Value: "${TestAppendContextDNE} is not set",
+		},
+	}, runner.systemGenerated)
+	assert.Equal(t, 6, len(runner.resolvedContext))
+	assert.Equal(t, "TestAppendContext.Value1", runner.resolvedContext["u1"])
+	assert.Equal(t, "UserValue2", runner.resolvedContext["u2"])
+	assert.Equal(t, "", runner.resolvedContext["u3"])
+	assert.Equal(t, "TestAppendContext.Value1 is set", runner.resolvedContext["s1"])
+	assert.Equal(t, "TestAppendContext.Value2 is set", runner.resolvedContext["s2"])
+	assert.Equal(t, " is not set", runner.resolvedContext["s3"])
+}
+
+func TestChdir(t *testing.T) {
+	pwd, err := os.Getwd()
+	assert.Nil(t, err)
+	defer os.Chdir(pwd)
+	runner := NewRunner(&Shell{}, []domain.EnvVar{}, []domain.EnvVar{})
+	err = runner.Chdir("..")
+	assert.Nil(t, err)
+	parent := filepath.Dir(pwd)
+	newWD, err := os.Getwd()
+	assert.Nil(t, err)
+	assert.Equal(t, parent, newWD)
+}
+
+func TestChdirFail(t *testing.T) {
+	runner := NewRunner(&Shell{}, []domain.EnvVar{}, []domain.EnvVar{})
+	err := runner.Chdir("???")
+	assert.NotNil(t, err)
+	assert.Equal(t, "Error chdir to ???", err.Error())
+}
+
+func TestIsDirEmpty(t *testing.T) {
+	runner := NewRunner(&Shell{}, []domain.EnvVar{}, []domain.EnvVar{})
+	resourceRoot := path.Join("..", "..", "tests", "resources")
+	testCase := []struct {
+		path           string
+		isEmpty        bool
+		expectedErrMsg string
 	}{
-		// 0: empty
 		{
-			original: map[string]*domain.AbstractString{},
-			expected: map[string]*domain.AbstractString{},
+			path:           resourceRoot,
+			isEmpty:        false,
+			expectedErrMsg: "",
 		},
-
-		// 1: 1 var
 		{
-			original: map[string]*domain.AbstractString{
-				"a": domain.Abstract("value1"),
-			},
-			expected: map[string]*domain.AbstractString{
-				"a": domain.Abstract("value1"),
-			},
+			path:           path.Join(resourceRoot, "empty-dir"),
+			isEmpty:        true,
+			expectedErrMsg: "",
 		},
-
-		// 2: 3 vars, with unresolvable symbol
 		{
-			original: map[string]*domain.AbstractString{
-				"a": domain.Abstract("value1"),
-				"b": domain.Abstract("value2"),
-				"c": domain.Abstract("${a} ${b} ${a} ${b}${b} ${dne}"),
-			},
-			expected: map[string]*domain.AbstractString{
-				"a": domain.Abstract("value1"),
-				"b": domain.Abstract("value2"),
-				"c": domain.Abstract("value1 value2 value1 value2value2 ${dne}"),
-			},
-		},
-
-		// 3: nested
-		{
-			original: map[string]*domain.AbstractString{
-				"zero": domain.Abstract("0"),
-				"one":  domain.Abstract("1"),
-				"a":    domain.Abstract("a"),
-				"a_0":  domain.Abstract("${${a}${zero}}"),
-				"a_1":  domain.Abstract("${${a}${one}}"),
-				"a0":   domain.Abstract("ValueA_0"),
-				"a1":   domain.Abstract("ValueA_1"),
-			},
-			expected: map[string]*domain.AbstractString{
-				"zero": domain.Abstract("0"),
-				"one":  domain.Abstract("1"),
-				"a":    domain.Abstract("a"),
-				"a_0":  domain.Abstract("ValueA_0"),
-				"a_1":  domain.Abstract("ValueA_1"),
-				"a0":   domain.Abstract("ValueA_0"),
-				"a1":   domain.Abstract("ValueA_1"),
-			},
-		},
-
-		// 4: Self reference
-		{
-			original: map[string]*domain.AbstractString{
-				"c": domain.Abstract("${c}"),
-			},
-			expected: map[string]*domain.AbstractString{},
-			errFunc:  verifyCycleError,
-		},
-
-		// 4: 2-cycle
-		{
-			original: map[string]*domain.AbstractString{
-				"a": domain.Abstract("${b}"),
-				"b": domain.Abstract("${a}"),
-				"c": domain.Abstract("c"),
-			},
-			expected: map[string]*domain.AbstractString{},
-			errFunc:  verifyCycleError,
-		},
-
-		// 5: 5-cycle
-		{
-			original: map[string]*domain.AbstractString{
-				"a": domain.Abstract("${d}"),
-				"b": domain.Abstract("${e}"),
-				"c": domain.Abstract("${a}"),
-				"d": domain.Abstract("${b}"),
-				"e": domain.Abstract("${c}"),
-			},
-			expected: map[string]*domain.AbstractString{},
-			errFunc:  verifyCycleError,
-		},
-
-		// 6: complex nesting
-		{
-			original: map[string]*domain.AbstractString{
-				"a": domain.Abstract("${${${${${${${${${b}}}}}}}}}"),
-				"b": domain.Abstract("c"),
-				"c": domain.Abstract("b"),
-			},
-			expected: map[string]*domain.AbstractString{},
-			errFunc: func(err error) bool {
-				return err.Error() == "Variable nested for too many levels"
-			},
+			path:           "dne",
+			expectedErrMsg: "^open dne: ",
 		},
 	}
-	for _, tc := range testCases {
-		err := reduceEnv(tc.original)
-		if tc.errFunc == nil {
-			assert.Nil(t, err, "Unexpected error: %s", err)
-			assert.Equal(t, len(tc.expected), len(tc.original))
-			for k, v := range tc.expected {
-				altered := tc.original[k]
-				assert.Equal(t, v, altered)
-			}
+
+	for _, tc := range testCase {
+		isEmpty, err := runner.IsDirEmpty(tc.path)
+		if tc.expectedErrMsg != "" {
+			assert.NotNil(t, err)
+			assert.Regexp(t, regexp.MustCompile(tc.expectedErrMsg), err.Error())
 		} else {
-			if assert.NotNil(t, err, "There should be an error") {
-				assert.True(t, tc.errFunc(err), fmt.Sprintf("Unexpected error: %s", err))
-			} else {
-				fmt.Print("Reduced map:\n")
-				for k, v := range tc.original {
-					fmt.Fprintf(os.Stderr, "%s: %v\n", k, v.DisplayValue())
-				}
-			}
+			assert.Nil(t, err)
+			assert.Equal(t, tc.isEmpty, isEmpty)
 		}
+	}
+}
+
+func TestDoesFileOrDirExist(t *testing.T) {
+	runner := NewRunner(&Shell{}, []domain.EnvVar{}, []domain.EnvVar{})
+	dir := path.Join("..", "..", "tests", "resources", "docker-compose")
+	file := path.Join(dir, "docker-compose.yml")
+	dne := path.Join(dir, "not_here")
+	testCase := []struct {
+		path     string
+		expected bool
+		isDir    bool
+	}{
+		{
+			path:     dir,
+			expected: true,
+			isDir:    true,
+		},
+		{
+			path:     file,
+			expected: true,
+			isDir:    false,
+		},
+		{
+			path:     dne,
+			expected: false,
+			isDir:    false,
+		},
+	}
+
+	for _, tc := range testCase {
+		exists, err := runner.DoesDirExist(tc.path)
+		lookupPathAssertHelper(t, exists, err, tc.expected, true, tc.isDir)
+		exists, err = runner.DoesFileExist(tc.path)
+		lookupPathAssertHelper(t, exists, err, tc.expected, false, tc.isDir)
+	}
+}
+
+func lookupPathAssertHelper(t *testing.T, exists bool, err error, expectedToExist, expectedIsDir, actuallyIsDir bool) {
+	if expectedIsDir == actuallyIsDir {
+		assert.Nil(t, err)
+		assert.Equal(t, expectedToExist, exists)
+	} else if expectedToExist {
+		assert.NotNil(t, err)
+		assert.Equal(t, fmt.Sprintf("Path is expected to be IsDir: %t", expectedIsDir), err.Error())
+	} else {
+		assert.False(t, exists)
+		assert.Nil(t, err)
 	}
 }

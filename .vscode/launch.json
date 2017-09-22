@@ -9,10 +9,10 @@
             "remotePath": "",
             "port": 2345,
             "host": "127.0.0.1",
-            "program": "${workspaceRoot}\\main.go",
+            "program": "${workspaceRoot}/main.go",
             "env": { },
-            "args": [ "--push", "--docker-image", "hello-multistage:docker", "--docker-registry", "shhsubootstrap.azurecr.io" ],
-            "cwd": "${workspaceRoot}\\test\\resources\\docker-compose\\hello-multistage",
+            "args": [ "--push", "--docker-image", "hello-multistage:docker", "--docker-registry", "shhsuacr2.azurecr.io" ],
+            "cwd": "${workspaceRoot}/tests/resources/docker-compose/hello-multistage",
             "showLog": true
         },
         {
@@ -23,9 +23,9 @@
             "remotePath": "",
             "port": 2345,
             "host": "127.0.0.1",
-            "program": "${workspaceRoot}\\main.go",
+            "program": "${workspaceRoot}/main.go",
             "env": { },
-            "args": [ "--push", "--docker-compose-file", "${workspaceRoot}\\test\\resources\\docker-compose\\docker-compose.yml", "--docker-registry", "shhsubootstrap.azurecr.io" ],
+            "args": [ "--push", "--docker-compose-file", "${workspaceRoot}/tests/resources/docker-compose/docker-compose.yml", "--docker-registry", "shhsuacr2.azurecr.io" ],
             "showLog": true
         }
     ]

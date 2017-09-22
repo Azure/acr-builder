@@ -1,9 +1,13 @@
 ## ACR builder
 
 #### Build
-See [Dockerfile](./Dockerfile)
+Run `docker build`
 
 #### Usage
+
+TODO: add examples
+
+
 ##### Required Parameters
 `--compose-file` Docker Compose file to be invoked for build and push<br />
 `--docker-registry` Docker registry to push to. This parameter will populate the `ACR_BUILD_DOCKER_REGISTRY` reserved environment variable (see `Build Environment`)<br />
@@ -11,8 +15,8 @@ See [Dockerfile](./Dockerfile)
 `--docker-secret` Password or token for registry specified above
 
 ##### Conditional or Optional parameters
-`--git-url` Git url to the project. Clone operation will be ignored if `--git-clone-to` folder exist and is not empty and this parameter will not be requried<br />
-`--git-clone-to` Directory to clone to. If the directory exists, we won't clone again and will just clean and pull the directory. The default value is `/checkout`<br />
+`--git-url` Git url to the project. Clone operation will be ignored if `--git-clone-to` folder exist and is not empty and this parameter will not be required<br />
+`--git-clone-to` Directory to clone to. If the directory exists, we won't clone again and will just clean and pull the directory. The default value is `$HOME/acr-builder/src`<br />
 `--git-branch` The git branch to checkout. If it is not given, no checkout command would be performed<br />
 `--git-head-revision` Desired git HEAD revision, note that providing this parameter will cause the branch parameter to be ignored<br />
 `--git-oath-user` Git OAuth only, Git username<br />
@@ -28,7 +32,6 @@ By setting environment variable with parameter `--build-env <VAR_NAME>=<VAR_VALU
 
 Furthermore, ACR builder also populates the following variables during build so the child process can make use of these values:
 
-// TODO remove ACR prefixes
 `ACR_BUILD_SOURCE_DIR` Source directory on the current build system<br />
 `ACR_BUILD_DOCKER_COMPOSE_FILE` Current docker compose file being used, relative to the source directory<br />
 `ACR_BUILD_GIT_URL` Git URL<br />

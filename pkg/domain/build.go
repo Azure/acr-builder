@@ -8,22 +8,28 @@ import (
 	"github.com/Azure/acr-builder/pkg/constants"
 )
 
-type Runner interface {
-	AppendContext(newEnv []EnvVar) (Runner, error)
-	Resolve(value AbstractString) string
-	ExecuteCmd(cmdExe AbstractString, cmdArgs []AbstractString) error
-	ExecuteString(cmdString AbstractString) error
-	DoesDirExist(path AbstractString) (bool, error)
-	DoesFileExist(path AbstractString) (bool, error)
-	IsDirEmpty(path AbstractString) (bool, error)
-	Chdir(path AbstractString) error
-	GetEnv(key string) (string, bool)
+// EnvVar defines an environmental variable
+type EnvVar struct {
+	Name  string // [a-zA-z_][a-zA-z_0-9]*
+	Value string
 }
 
-// TODO: verify all referenced task are defined and of type ReferenceTask or ShellTask
-// TODO: verify all registries has a login
+// Runner is used to run shell commands
+type Runner interface {
+	AppendContext(newEnv []EnvVar) Runner
+	Resolve(value string) string
+	ExecuteCmd(cmdExe string, cmdArgs []string) error
+	ExecuteString(cmdString string) error
+	DoesDirExist(path string) (bool, error)
+	DoesFileExist(path string) (bool, error)
+	IsDirEmpty(path string) (bool, error)
+	Chdir(path string) error
+	//GetEnv(key string) (string, bool)
+}
+
+// BuildRequest defines a acr-builder build
 type BuildRequest struct {
-	Version     AbstractString
+	Version     string
 	Global      []EnvVar
 	SharedTasks map[string]Task
 	DockerAuths []DockerAuthentication
@@ -38,22 +44,26 @@ type BuildRequest struct {
 	WrapUp      Task
 }
 
+// EnvExporter are tasks that would export environmental variables
 type EnvExporter interface {
 	Export() []EnvVar
 }
 
+// Task is a generic interface that denotes a unit of work  (currently not used)
 type Task interface {
 	Execute(runner Runner) error
-	Append(env []EnvVar, parameters []AbstractString) Task
+	Append(env []EnvVar, parameters []string) Task
 }
 
+// ReferencedTask refers to another task by name (currently not used)
 type ReferencedTask struct {
 	context    *map[string]Task
 	Name       string
-	Parameters []AbstractString
+	Parameters []string
 	Env        []EnvVar
 }
 
+// Execute executes the task referred by ReferencedTask (currently not used)
 func (t *ReferencedTask) Execute(runner Runner) error {
 	reference, found := (*t.context)[t.Name]
 	if !found {
@@ -62,7 +72,8 @@ func (t *ReferencedTask) Execute(runner Runner) error {
 	return reference.Append(t.Env, t.Parameters).Execute(runner)
 }
 
-func (t *ReferencedTask) Append(env []EnvVar, parameters []AbstractString) Task {
+// Append appends environment variable and parameters provided (currently not used)
+func (t *ReferencedTask) Append(env []EnvVar, parameters []string) Task {
 	return &ReferencedTask{
 		context:    t.context,
 		Name:       t.Name,
@@ -71,43 +82,45 @@ func (t *ReferencedTask) Append(env []EnvVar, parameters []AbstractString) Task 
 	}
 }
 
+// ShellTask defines a shell command (currently not used)
 type ShellTask struct {
-	Command AbstractString
+	Command string
 	Env     []EnvVar
 }
 
+// Execute executes the shell command (currently not used)
 func (t *ShellTask) Execute(runner Runner) error {
-	taskRunner, err := runner.AppendContext(t.Env)
-	if err != nil {
-		return err
-	}
+	taskRunner := runner.AppendContext(t.Env)
 	return taskRunner.ExecuteString(t.Command)
 }
 
-func (t *ShellTask) Append(env []EnvVar, parameters []AbstractString) Task {
+// Append appends environment variable and parameters provided (currently not used)
+func (t *ShellTask) Append(env []EnvVar, parameters []string) Task {
 	buf := new(bytes.Buffer)
-	buf.WriteString(t.Command.raw)
+	buf.WriteString(t.Command)
 	for _, s := range parameters {
 		buf.WriteByte(' ')
-		buf.WriteString(s.raw)
+		buf.WriteString(s)
 	}
 	return &ShellTask{
-		Command: *Abstract((string)(buf.Bytes())),
+		Command: buf.String(),
 		Env:     append(t.Env, env...),
 	}
 }
 
+// SourceDescription defines where the source code is and how to fetch the code
 type SourceDescription interface {
 	EnsureSource(runner Runner) error
-	EnsureBranch(runner Runner, branch AbstractString) error
+	EnsureBranch(runner Runner, branch string) error
 	Export() []EnvVar
 }
 
-type LocalSource struct {
-	Dir AbstractString
+type localSource struct {
+	Dir string
 }
 
-func NewLocalSource(dir string) (*LocalSource, error) {
+// NewLocalSource creates an object denoting locally mounted source
+func NewLocalSource(dir string) (SourceDescription, error) {
 	if dir == "" {
 		var err error
 		dir, err = os.Getwd()
@@ -115,21 +128,21 @@ func NewLocalSource(dir string) (*LocalSource, error) {
 			return nil, fmt.Errorf("Error trying to locate current working directory as local source %s", err)
 		}
 	}
-	return &LocalSource{Dir: *Abstract(dir)}, nil
+	return &localSource{Dir: dir}, nil
 }
 
-func (s *LocalSource) EnsureSource(runner Runner) error {
+func (s *localSource) EnsureSource(runner Runner) error {
 	return runner.Chdir(s.Dir)
 }
 
-func (s *LocalSource) EnsureBranch(runner Runner, branch AbstractString) error {
-	if !branch.IsEmpty() {
+func (s *localSource) EnsureBranch(runner Runner, branch string) error {
+	if branch != "" {
 		return fmt.Errorf("Static local source does not support branching")
 	}
 	return nil
 }
 
-func (s *LocalSource) Export() []EnvVar {
+func (s *localSource) Export() []EnvVar {
 	return []EnvVar{
 		EnvVar{
 			Name:  constants.CheckoutDirVar,
@@ -138,21 +151,25 @@ func (s *LocalSource) Export() []EnvVar {
 	}
 }
 
+// BuildTarget defines how the docker images are build and pushed
 type BuildTarget struct {
 	Build BuildTask
 	Push  PushTask
 }
 
+// BuildTask is the build part of BuildTarget
 type BuildTask interface {
 	// Build task can't be a generic tasks now because it needs to return ImageDependencies
 	// If we use docker events to figure out dependencies, we can make build tasks a generic task
 	Execute(runner Runner) ([]ImageDependencies, error)
 }
 
+// PushTask is the push part of BuildTarget
 type PushTask interface {
 	Execute(runner Runner) error
 }
 
+// Export method exports environment variables defined in the build and push tasks
 func (t *BuildTarget) Export() []EnvVar {
 	exports := []EnvVar{}
 	appendExports(exports, t.Build)
@@ -160,17 +177,20 @@ func (t *BuildTarget) Export() []EnvVar {
 	return exports
 }
 
+// ImageDependencies denotes docker image dependencies
 type ImageDependencies struct {
 	Image             string   `json:"image"`
 	BuildDependencies []string `json:"build-dependencies"`
 	RuntimeDependency string   `json:"runtime-dependency"`
 }
 
+// DockerAuthentication is the association between a registry and its authentication method
 type DockerAuthentication struct {
-	Registry AbstractString
+	Registry string
 	Auth     DockerAuthenticationMethod
 }
 
+// DockerAuthenticationMethod denote how to authenticate to a docker registry
 type DockerAuthenticationMethod interface {
 	Execute(runner Runner) error
 }
