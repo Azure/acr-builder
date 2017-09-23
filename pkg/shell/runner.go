@@ -68,15 +68,30 @@ func (r *shellRunner) Resolve(value string) string {
 	return ContextResolve(r.resolvedContext, value)
 }
 
-// ExecuteCmd runs the given command
+// ExecuteCmdWithCustomLogging runs the given command but use custom logging logic
+// this method can be used to hide secrets passed in
+func (r *shellRunner) ExecuteCmdWithObfuscation(obfuscate func([]string), cmdExe string, cmdArgs []string) error {
+	return r.executeCmd(obfuscate, cmdExe, cmdArgs)
+}
+
+// ExecuteCmd runs the given command with default logging
 func (r *shellRunner) ExecuteCmd(cmdExe string, cmdArgs []string) error {
+	return r.executeCmd(nil, cmdExe, cmdArgs)
+}
+
+func (r *shellRunner) executeCmd(obfuscate func([]string), cmdExe string, cmdArgs []string) error {
 	resolvedArgs := make([]string, len(cmdArgs))
 	for i, arg := range cmdArgs {
 		resolvedArgs[i] = r.Resolve(arg)
 	}
 	cmd := exec.Command(r.Resolve(cmdExe), resolvedArgs...)
-	// TODO: not show secrets
-	logrus.Infof("Running command %s %s", cmdExe, strings.Join(resolvedArgs, " "))
+	displayValues := resolvedArgs
+	if obfuscate != nil {
+		displayValues = make([]string, len(resolvedArgs))
+		copy(displayValues, resolvedArgs)
+		obfuscate(displayValues)
+	}
+	logrus.Infof("Running command %s %s", cmd, strings.Join(displayValues, " "))
 	return r.execute(cmd)
 }
 

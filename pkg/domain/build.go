@@ -19,12 +19,17 @@ type Runner interface {
 	AppendContext(newEnv []EnvVar) Runner
 	Resolve(value string) string
 	ExecuteCmd(cmdExe string, cmdArgs []string) error
+	// Note: ExecuteCmdWithObfuscation allow obfuscating sensitive data such as
+	// authentication tokens or passwords not to be shown in logs
+	// However, passing these sensitive data through command lines are not
+	// quite safe anyway because OS would keep command logs
+	// We need to think about the security implications
+	ExecuteCmdWithObfuscation(obfuscate func([]string), cmdExe string, cmdArgs []string) error
 	ExecuteString(cmdString string) error
 	DoesDirExist(path string) (bool, error)
 	DoesFileExist(path string) (bool, error)
 	IsDirEmpty(path string) (bool, error)
 	Chdir(path string) error
-	//GetEnv(key string) (string, bool)
 }
 
 // BuildRequest defines a acr-builder build

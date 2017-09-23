@@ -183,6 +183,24 @@ func TestChdirFail(t *testing.T) {
 func TestIsDirEmpty(t *testing.T) {
 	runner := NewRunner(&Shell{}, []domain.EnvVar{}, []domain.EnvVar{})
 	resourceRoot := path.Join("..", "..", "tests", "resources")
+	emptyDirPath := path.Join(resourceRoot, "empty-dir")
+	emptyDirInfo, err := os.Stat(emptyDirPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err := os.Mkdir(emptyDirPath, 0x777)
+			defer os.Remove(emptyDirPath)
+			if err != nil {
+				t.Errorf("Failed to create for empty-dir, test cannot continue")
+				t.Fail()
+			}
+		} else {
+			t.Errorf("Failed to stat for empty-dir, test cannot continue")
+			t.Fail()
+		}
+	} else if !emptyDirInfo.IsDir() {
+		t.Errorf("empty-dir exists but is a file, test will fail now")
+		t.Fail()
+	}
 	testCase := []struct {
 		path           string
 		isEmpty        bool
@@ -194,7 +212,7 @@ func TestIsDirEmpty(t *testing.T) {
 			expectedErrMsg: "",
 		},
 		{
-			path:           path.Join(resourceRoot, "empty-dir"),
+			path:           emptyDirPath,
 			isEmpty:        true,
 			expectedErrMsg: "",
 		},

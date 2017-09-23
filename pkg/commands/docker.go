@@ -30,7 +30,15 @@ type dockerUsernamePassword struct {
 }
 
 func (u *dockerUsernamePassword) Execute(runner domain.Runner) error {
-	return runner.ExecuteCmd("docker", []string{"login", "-u", u.username, "-p", u.password, u.registry})
+	return runner.ExecuteCmdWithObfuscation(func(args []string) {
+		for i := 0; i < len(args)-1; i++ {
+			if args[i] == "-p" {
+				args[i+1] = constants.ObfuscationString
+				return
+			}
+		}
+		logrus.Errorf("No password found, obfuscation not performed")
+	}, "docker", []string{"login", "-u", u.username, "-p", u.password, u.registry})
 }
 
 // NewDockerBuildTarget creates a build target with specified docker file and build parameters

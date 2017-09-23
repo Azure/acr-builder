@@ -57,12 +57,12 @@ func (s *gitSource) EnsureSource(runner domain.Runner) error {
 		if s.InitialBranch != "" {
 			cloneArgs = append(cloneArgs, "-b", s.InitialBranch)
 		}
-		address, err := s.toAuthAddress(runner)
+		address, obfuscation, err := s.toAuthAddress(runner)
 		if err != nil {
-			return err
+			return fmt.Errorf("Failed to get authorized address, error: %s", err)
 		}
 		cloneArgs = append(cloneArgs, address, s.TargetDir)
-		err = runner.ExecuteCmd("git", cloneArgs)
+		err = runner.ExecuteCmdWithObfuscation(obfuscator(address, obfuscation), "git", cloneArgs)
 		if err != nil {
 			return fmt.Errorf("Error cloning git source: %s to directory %s", runner.Resolve(s.Address), runner.Resolve(s.TargetDir))
 		}
@@ -117,7 +117,7 @@ func (s *gitSource) EnsureBranch(runner domain.Runner, branch string) error {
 			return fmt.Errorf("Failed to discard local changes: %s", err)
 		}
 	}
-	address, err := s.toAuthAddress(runner)
+	address, obfuscation, err := s.toAuthAddress(runner)
 	if err != nil {
 		return fmt.Errorf("Failed to get authorized address, error: %s", err)
 	}
@@ -138,13 +138,28 @@ func (s *gitSource) EnsureBranch(runner domain.Runner, branch string) error {
 			return fmt.Errorf("Error checking out branch %s", runner.Resolve(branch))
 		}
 		if s.stale {
-			err = runner.ExecuteCmd("git", []string{"pull", address, branch})
+			err = runner.ExecuteCmdWithObfuscation(obfuscator(address, obfuscation), "git", []string{"pull", address, branch})
 			if err != nil {
 				return fmt.Errorf("Failed to pull from branch %s: %s", runner.Resolve(branch), err)
 			}
 		}
 	}
 	return nil
+}
+
+func obfuscator(address, obfuscation string) func(args []string) {
+	return func(args []string) {
+		replaced := false
+		for i := 0; i < len(args); i++ {
+			if args[i] == address {
+				args[i] = obfuscation
+				replaced = true
+			}
+		}
+		if !replaced {
+			logrus.Errorf("Unexpectedly unable to obfuscate git address")
+		}
+	}
 }
 
 func (s *gitSource) Export() []domain.EnvVar {
@@ -164,16 +179,16 @@ func (s *gitSource) Export() []domain.EnvVar {
 	)
 }
 
-func (s *gitSource) toAuthAddress(runner domain.Runner) (string, error) {
+func (s *gitSource) toAuthAddress(runner domain.Runner) (string, string, error) {
 	if s.Credential != nil {
 		return s.Credential.toAuthAddress(runner, s.Address)
 	}
-	return s.Address, nil
+	return s.Address, s.Address, nil
 }
 
 // GitCredential objects are ways git authenticates
 type GitCredential interface {
-	toAuthAddress(runner domain.Runner, address string) (string, error)
+	toAuthAddress(runner domain.Runner, address string) (string, string, error)
 	Export() []domain.EnvVar
 }
 
@@ -203,10 +218,15 @@ func (s *gitPersonalAccessToken) Export() []domain.EnvVar {
 	}
 }
 
-func (s *gitPersonalAccessToken) toAuthAddress(runner domain.Runner, address string) (string, error) {
+func (s *gitPersonalAccessToken) toAuthAddress(runner domain.Runner, address string) (authAddress, obfuscation string, err error) {
 	userResolved := runner.Resolve(s.user)
 	tokenResolved := runner.Resolve(s.token)
-	return insertAuth(runner, address, userResolved+":"+tokenResolved)
+	authAddress, err = insertAuth(runner, address, userResolved+":"+tokenResolved)
+	if err != nil {
+		return
+	}
+	obfuscation, err = insertAuth(runner, address, userResolved+":"+constants.ObfuscationString)
+	return
 }
 
 type gitXToken struct {
@@ -218,9 +238,14 @@ func NewXToken(token string) GitCredential {
 	return &gitXToken{token: token}
 }
 
-func (s *gitXToken) toAuthAddress(runner domain.Runner, address string) (string, error) {
+func (s *gitXToken) toAuthAddress(runner domain.Runner, address string) (authAddress, obfuscation string, err error) {
 	tokenResolved := runner.Resolve(s.token)
-	return insertAuth(runner, address, "x-access-token:"+tokenResolved)
+	authAddress, err = insertAuth(runner, address, "x-access-token:"+tokenResolved)
+	if err != nil {
+		return
+	}
+	obfuscation, err = insertAuth(runner, address, "x-access-token:"+constants.ObfuscationString)
+	return
 }
 
 func (s *gitXToken) Export() []domain.EnvVar {

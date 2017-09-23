@@ -113,6 +113,11 @@ func (m *MockRunner) ExecuteCmd(cmdExe string, cmdArgs []string) error {
 	return values.Error(0)
 }
 
+func (m *MockRunner) ExecuteCmdWithObfuscation(obfuscate func([]string), cmdExe string, cmdArgs []string) error {
+	values := m.Called(obfuscate, cmdExe, cmdArgs)
+	return values.Error(0)
+}
+
 func (m *MockRunner) ExecuteString(cmdString string) error {
 	values := m.Called(cmdString)
 	return values.Error(0)

@@ -11,20 +11,29 @@ import (
 	test_domain "github.com/Azure/acr-builder/tests/utils/domain"
 	testutils "github.com/Azure/acr-builder/tests/utils/grok"
 	"github.com/shhsu/testify/assert"
+	"github.com/shhsu/testify/mock"
 )
 
 func TestDockerUsernamePasswordExecute(t *testing.T) {
 	m := NewDockerUsernamePassword("registry", "username", "password")
 	runner := new(test_domain.MockRunner)
-	expectations := []test_domain.CommandsExpectation{
-		{
-			Command:       "docker",
-			Args:          []string{"login", "-u", "username", "-p", "password", "registry"},
-			SensitiveArgs: map[int]bool{4: true},
-			ErrorMsg:      "some error",
-		},
-	}
-	runner.PrepareCommandExpectation(expectations)
+	parameters := []string{"login", "-u", "username", "-p", "password", "registry"}
+	call := runner.On("ExecuteCmdWithObfuscation",
+		mock.Anything,
+		"docker",
+		parameters).Times(1)
+	call.Run(func(args mock.Arguments) {
+		assert.NotNil(t, args[0])
+		obfFunc, ok := args[0].(func([]string))
+		assert.True(t, ok)
+		obfFunc(parameters)
+		assert.Equal(t, []string{"login", "-u", "username", "-p", constants.ObfuscationString, "registry"}, parameters)
+		// this part is just to prove that things do not blow up on invalid data
+		invalidData := []string{"-p"}
+		obfFunc(invalidData)
+		assert.Equal(t, []string{"-p"}, invalidData)
+		call.ReturnArguments = []interface{}{fmt.Errorf("some error")}
+	})
 	err := m.Execute(runner)
 	assert.NotNil(t, err)
 	assert.Equal(t, "some error", err.Error())
