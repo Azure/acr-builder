@@ -91,7 +91,7 @@ func Run(buildNumber, composeFile, composeProjectDir,
 		builds = append(builds, *build)
 	}
 
-	return executeRequest(shell.Instances["sh"],
+	return executeRequest(
 		&domain.BuildRequest{
 			Global:      global,
 			DockerAuths: dockerAuths,
@@ -101,10 +101,10 @@ func Run(buildNumber, composeFile, composeProjectDir,
 		push)
 }
 
-func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) ([]domain.ImageDependencies, error) {
+func executeRequest(request *domain.BuildRequest, push bool) ([]domain.ImageDependencies, error) {
 	var err error
 	var runner domain.Runner
-	runner = shell.NewRunner(sh, request.Global, append(
+	runner = shell.NewRunner(request.Global, append(
 		request.Source.Export(),
 		domain.EnvVar{
 			Name:  constants.PushOnSuccessVar,
@@ -115,11 +115,6 @@ func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) ([
 	err = request.Source.EnsureSource(runner)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to ensure source: %s", err)
-	}
-
-	err = runIfExists(runner, request.Setup)
-	if err != nil {
-		return nil, fmt.Errorf("Setup failed: %s", err)
 	}
 
 	for _, auth := range request.DockerAuths {
@@ -134,9 +129,7 @@ func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) ([
 		buildRunner := runner.AppendContext(buildTarget.Export())
 		dep, err := handleBuild(
 			buildRunner,
-			buildTarget,
-			request.Prebuild,
-			request.Postbuild)
+			buildTarget)
 		if err != nil {
 			return nil, err
 		}
@@ -148,71 +141,33 @@ func executeRequest(sh *shell.Shell, request *domain.BuildRequest, push bool) ([
 			buildRunner := runner.AppendContext(buildTarget.Export())
 			err := handlePush(
 				buildRunner,
-				buildTarget,
-				request.Prebuild,
-				request.Postbuild)
+				buildTarget)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
-
-	err = runIfExists(runner, request.WrapUp)
-	if err != nil {
-		return nil, fmt.Errorf("Wrap up task failed: %s", err)
-	}
-
 	return allDependencies, nil
 }
 
 func handleBuild(
 	buildRunner domain.Runner,
-	buildTarget domain.BuildTarget,
-	prebuild domain.Task,
-	postbuild domain.Task) ([]domain.ImageDependencies, error) {
-	err := runIfExists(buildRunner, prebuild)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to run prebuild task, error: %s", err)
-	}
+	buildTarget domain.BuildTarget) ([]domain.ImageDependencies, error) {
 
 	dependencies, err := buildTarget.Build.Execute(buildRunner)
 	if err != nil {
 		return nil, fmt.Errorf("Failed building build task, error: %s", err)
 	}
-
-	err = runIfExists(buildRunner, postbuild)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to run postbuild task, error: %s", err)
-	}
-
 	return dependencies, nil
 }
 
 func handlePush(
 	buildRunner domain.Runner,
-	buildTarget domain.BuildTarget,
-	prepush domain.Task,
-	postpush domain.Task) (err error) {
-	err = runIfExists(buildRunner, prepush)
-	if err != nil {
-		return fmt.Errorf("Failed to run prepush task, error: %s", err)
-	}
+	buildTarget domain.BuildTarget) (err error) {
 
 	err = buildTarget.Push.Execute(buildRunner)
 	if err != nil {
 		return fmt.Errorf("Fail to push image, error: %s", err)
-	}
-
-	err = runIfExists(buildRunner, postpush)
-	if err != nil {
-		return fmt.Errorf("Failed to run postpush task, error: %s", err)
-	}
-	return nil
-}
-
-func runIfExists(runner domain.Runner, task domain.Task) error {
-	if task != nil {
-		return task.Execute(runner)
 	}
 	return nil
 }

@@ -2,10 +2,9 @@ package domain
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/Azure/acr-builder/pkg/domain"
-	"github.com/shhsu/testify/mock"
+	"github.com/stretchr/testify/mock"
 )
 
 type CommandsExpectation struct {
@@ -17,6 +16,12 @@ type CommandsExpectation struct {
 	IsOptional    bool
 }
 
+type FileSystemExpectations []FileSystemExpectation
+
+func NewFileSystem() FileSystemExpectations {
+	return []FileSystemExpectation{}
+}
+
 type FileSystemExpectation struct {
 	operation string
 	path      string
@@ -24,55 +29,61 @@ type FileSystemExpectation struct {
 	err       error
 }
 
-func AssertFileExists(path string, exists bool, err error) *FileSystemExpectation {
-	return &FileSystemExpectation{
+func (e FileSystemExpectations) AssertFileExists(path string, exists bool, err error) FileSystemExpectations {
+	return append(e, FileSystemExpectation{
 		operation: "DoesFileExist",
 		path:      path,
 		assertion: exists,
 		err:       err,
-	}
+	})
 }
 
-func AssertDirExists(path string, exists bool, err error) *FileSystemExpectation {
-	return &FileSystemExpectation{
+func (e FileSystemExpectations) AssertDirExists(path string, exists bool, err error) FileSystemExpectations {
+	return append(e, FileSystemExpectation{
 		operation: "DoesDirExist",
 		path:      path,
 		assertion: exists,
 		err:       err,
-	}
+	})
 }
 
-func AssertIsDirEmpty(path string, empty bool, err error) *FileSystemExpectation {
-	return &FileSystemExpectation{
-		operation: "IsDirEmpty",
-		path:      path,
-		assertion: empty,
-		err:       err,
-	}
+func (e FileSystemExpectations) AssertIsDirEmpty(path string, empty bool, err error) FileSystemExpectations {
+	return append(e,
+		FileSystemExpectation{
+			operation: "DoesFileExist",
+			path:      path,
+			assertion: true,
+			err:       nil,
+		},
+		FileSystemExpectation{
+			operation: "IsDirEmpty",
+			path:      path,
+			assertion: empty,
+			err:       err,
+		})
+}
+
+type ArgumentResolution struct {
+	Input  string
+	Output string
+}
+
+func ResolveDefault(input string) *ArgumentResolution {
+	return Resolve(input, input)
+}
+
+func Resolve(input string, output string) *ArgumentResolution {
+	return &ArgumentResolution{Input: input, Output: output}
 }
 
 type MockRunner struct {
 	mock.Mock
 }
 
-func (m *MockRunner) PrepareDefaultResolves() *mock.Call {
-	resolveCall := m.On("Resolve", mock.Anything)
-	return resolveCall.Run(func(arg mock.Arguments) {
-		input := arg.Get(0).(string)
-		resolveCall.ReturnArguments = []interface{}{input}
-	})
-}
-
-func (m *MockRunner) PrepareEnvResolves(env map[string]string) *mock.Call {
-	resolveCall := m.On("Resolve", mock.Anything)
-	return resolveCall.Run(func(arg mock.Arguments) {
-		input := arg.Get(0).(string)
-		value := os.Expand(input, func(k string) string {
-			v, _ := env[k]
-			return v
-		})
-		resolveCall.ReturnArguments = []interface{}{value}
-	})
+func (m *MockRunner) PrepareResolve(parameters []*ArgumentResolution) {
+	for _, entry := range parameters {
+		m.On("Resolve", entry.Input).Return(entry.Output)
+	}
 }
 
 func (m *MockRunner) PrepareCommandExpectation(commands []CommandsExpectation) {
@@ -85,16 +96,13 @@ func (m *MockRunner) PrepareCommandExpectation(commands []CommandsExpectation) {
 		if cmd.ErrorMsg != "" {
 			returnErr = fmt.Errorf(cmd.ErrorMsg)
 		}
-		call := m.On("ExecuteCmd", cmd.Command, cmd.Args).Return(returnErr).Times(times)
-		if cmd.IsOptional {
-			call.Maybe()
-		}
+		m.On("ExecuteCmd", cmd.Command, cmd.Args).Return(returnErr).Times(times)
 	}
 }
 
-func (m *MockRunner) PrepareFileSystem(commands []*FileSystemExpectation) {
+func (m *MockRunner) PrepareFileSystem(commands FileSystemExpectations) {
 	for _, cmd := range commands {
-		m.On(cmd.operation, cmd.path).Return(cmd.assertion, cmd.err).Maybe()
+		m.On(cmd.operation, cmd.path).Return(cmd.assertion, cmd.err)
 	}
 }
 
@@ -115,11 +123,6 @@ func (m *MockRunner) ExecuteCmd(cmdExe string, cmdArgs []string) error {
 
 func (m *MockRunner) ExecuteCmdWithObfuscation(obfuscate func([]string), cmdExe string, cmdArgs []string) error {
 	values := m.Called(obfuscate, cmdExe, cmdArgs)
-	return values.Error(0)
-}
-
-func (m *MockRunner) ExecuteString(cmdString string) error {
-	values := m.Called(cmdString)
 	return values.Error(0)
 }
 

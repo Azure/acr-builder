@@ -40,12 +40,12 @@ func (s *gitSource) EnsureSource(runner domain.Runner) error {
 	var targetEmpty bool
 	targetExists, err := runner.DoesDirExist(s.TargetDir)
 	if err != nil {
-		return fmt.Errorf("Error checking for source dir: %s", err)
+		return fmt.Errorf("Error checking for source dir: %s, error: %s", runner.Resolve(s.TargetDir), err)
 	}
 	if targetExists {
 		targetEmpty, err = runner.IsDirEmpty(s.TargetDir)
 		if err != nil {
-			return fmt.Errorf("Error checking if source dir is empty: %s", err)
+			return fmt.Errorf("Error checking if source dir is empty: %s, error: %s", runner.Resolve(s.TargetDir), err)
 		}
 	}
 	if targetExists && !targetEmpty {

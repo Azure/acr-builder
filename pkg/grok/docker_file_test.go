@@ -7,7 +7,7 @@ import (
 
 	"github.com/Azure/acr-builder/pkg/domain"
 	testutils "github.com/Azure/acr-builder/tests/utils/grok"
-	"github.com/shhsu/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestResolveDockerfileDependencies(t *testing.T) {

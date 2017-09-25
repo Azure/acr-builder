@@ -1,7 +1,6 @@
 package grok
 
 import (
-	"os"
 	"path"
 	"testing"
 
@@ -13,14 +12,13 @@ import (
 func TestParse(t *testing.T) {
 	testResourceDir := path.Join("..", "..", "tests", "resources", "docker-compose")
 	composeFile := path.Join(testResourceDir, "docker-compose-envs.yml")
-	err := os.Setenv("ACR_BUILD_DOCKER_REGISTRY", "unit-tests")
-	if err != nil {
-		panic(err)
-	}
 	runner := new(mocks.MockRunner)
-	runner.PrepareEnvResolves(map[string]string{
-		"DOCKERFILE":                "Dockerfile",
-		"ACR_BUILD_DOCKER_REGISTRY": "unit-tests",
+	runner.PrepareResolve([]*mocks.ArgumentResolution{
+		mocks.ResolveDefault("./hello-multistage"),
+		mocks.Resolve("${ACR_BUILD_DOCKER_REGISTRY}/hello-multistage", "unit-tests/hello-multistage"),
+		mocks.ResolveDefault("./hello-node"),
+		mocks.Resolve("$DOCKERFILE.alpine", "Dockerfile.alpine"),
+		mocks.Resolve("${ACR_BUILD_DOCKER_REGISTRY}/hello-node", "unit-tests/hello-node"),
 	})
 	actualDependencies, err := ResolveDockerComposeDependencies(runner, "", composeFile)
 	if err != nil {

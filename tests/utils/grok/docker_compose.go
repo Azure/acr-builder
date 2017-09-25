@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/Azure/acr-builder/pkg/domain"
-	"github.com/shhsu/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 var MultistageExampleDependencies = domain.ImageDependencies{

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/Azure/acr-builder/pkg/domain"
-	"github.com/shhsu/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAppendContext(t *testing.T) {
@@ -58,10 +58,9 @@ func TestAppendContext(t *testing.T) {
 		},
 	}
 
-	dummyShell := &Shell{BootstrapExe: "something"}
 	// test user defined value inherit from osEnv
 	// both positive and negative
-	runner := NewRunner(dummyShell, userDefined, systemGenerated).(*shellRunner)
+	runner := NewRunner(userDefined, systemGenerated).(*shellRunner)
 	verifyRunnerOriginalValues(t, runner)
 
 	newRunner := runner.AppendContext(newlyGenerated).(*shellRunner)
@@ -164,7 +163,7 @@ func TestChdir(t *testing.T) {
 	pwd, err := os.Getwd()
 	assert.Nil(t, err)
 	defer os.Chdir(pwd)
-	runner := NewRunner(&Shell{}, []domain.EnvVar{}, []domain.EnvVar{})
+	runner := NewRunner([]domain.EnvVar{}, []domain.EnvVar{})
 	err = runner.Chdir("..")
 	assert.Nil(t, err)
 	parent := filepath.Dir(pwd)
@@ -174,14 +173,14 @@ func TestChdir(t *testing.T) {
 }
 
 func TestChdirFail(t *testing.T) {
-	runner := NewRunner(&Shell{}, []domain.EnvVar{}, []domain.EnvVar{})
+	runner := NewRunner([]domain.EnvVar{}, []domain.EnvVar{})
 	err := runner.Chdir("???")
 	assert.NotNil(t, err)
 	assert.Equal(t, "Error chdir to ???", err.Error())
 }
 
 func TestIsDirEmpty(t *testing.T) {
-	runner := NewRunner(&Shell{}, []domain.EnvVar{}, []domain.EnvVar{})
+	runner := NewRunner([]domain.EnvVar{}, []domain.EnvVar{})
 	resourceRoot := path.Join("..", "..", "tests", "resources")
 	emptyDirPath := path.Join(resourceRoot, "empty-dir")
 	emptyDirInfo, err := os.Stat(emptyDirPath)
@@ -235,7 +234,7 @@ func TestIsDirEmpty(t *testing.T) {
 }
 
 func TestDoesFileOrDirExist(t *testing.T) {
-	runner := NewRunner(&Shell{}, []domain.EnvVar{}, []domain.EnvVar{})
+	runner := NewRunner([]domain.EnvVar{}, []domain.EnvVar{})
 	dir := path.Join("..", "..", "tests", "resources", "docker-compose")
 	file := path.Join(dir, "docker-compose.yml")
 	dne := path.Join(dir, "not_here")

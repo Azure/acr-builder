@@ -16,15 +16,13 @@ type shellRunner struct {
 	userDefined     []domain.EnvVar // user defined variables in its raw form
 	systemGenerated []domain.EnvVar // system defined variables
 	resolvedContext map[string]string
-	shell           *Shell
 }
 
 // NewRunner creates a runner for a given shell
-func NewRunner(sh *Shell, userDefined []domain.EnvVar, systemGenerated []domain.EnvVar) domain.Runner {
+func NewRunner(userDefined []domain.EnvVar, systemGenerated []domain.EnvVar) domain.Runner {
 	runner := &shellRunner{
 		userDefined:     userDefined,
 		systemGenerated: systemGenerated,
-		shell:           sh,
 	}
 	return runner.AppendContext(systemGenerated)
 }
@@ -47,7 +45,7 @@ func (r *shellRunner) AppendContext(newlyGenerated []domain.EnvVar) domain.Runne
 		systemGenerated = append(systemGenerated, v)
 		resolvedContext[v.Name] = ContextResolve(resolvedContext, v.Value)
 	}
-	return &shellRunner{shell: r.shell,
+	return &shellRunner{
 		userDefined:     r.userDefined,
 		systemGenerated: systemGenerated,
 		resolvedContext: resolvedContext}
@@ -92,14 +90,6 @@ func (r *shellRunner) executeCmd(obfuscate func([]string), cmdExe string, cmdArg
 		obfuscate(displayValues)
 	}
 	logrus.Infof("Running command %s %s", cmd, strings.Join(displayValues, " "))
-	return r.execute(cmd)
-}
-
-// ExecuteString runs the given string as command
-func (r *shellRunner) ExecuteString(cmdString string) error {
-	cmdString = r.Resolve(cmdString)
-	cmd := exec.Command(r.shell.BootstrapExe, cmdString)
-	logrus.Infof("Running predefined command %s", cmdString)
 	return r.execute(cmd)
 }
 

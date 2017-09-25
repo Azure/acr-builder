@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 
@@ -25,7 +24,6 @@ type Runner interface {
 	// quite safe anyway because OS would keep command logs
 	// We need to think about the security implications
 	ExecuteCmdWithObfuscation(obfuscate func([]string), cmdExe string, cmdArgs []string) error
-	ExecuteString(cmdString string) error
 	DoesDirExist(path string) (bool, error)
 	DoesFileExist(path string) (bool, error)
 	IsDirEmpty(path string) (bool, error)
@@ -39,14 +37,7 @@ type BuildRequest struct {
 	SharedTasks map[string]Task
 	DockerAuths []DockerAuthentication
 	Source      SourceDescription
-	Setup       Task
-	Prebuild    Task
 	Build       []BuildTarget
-	Postbuild   Task
-	Validation  Task
-	Prepush     Task
-	Postpush    Task
-	WrapUp      Task
 }
 
 // EnvExporter are tasks that would export environmental variables
@@ -57,60 +48,6 @@ type EnvExporter interface {
 // Task is a generic interface that denotes a unit of work  (currently not used)
 type Task interface {
 	Execute(runner Runner) error
-	Append(env []EnvVar, parameters []string) Task
-}
-
-// ReferencedTask refers to another task by name (currently not used)
-type ReferencedTask struct {
-	context    *map[string]Task
-	Name       string
-	Parameters []string
-	Env        []EnvVar
-}
-
-// Execute executes the task referred by ReferencedTask (currently not used)
-func (t *ReferencedTask) Execute(runner Runner) error {
-	reference, found := (*t.context)[t.Name]
-	if !found {
-		return fmt.Errorf("Undefined task: %s", t.Name)
-	}
-	return reference.Append(t.Env, t.Parameters).Execute(runner)
-}
-
-// Append appends environment variable and parameters provided (currently not used)
-func (t *ReferencedTask) Append(env []EnvVar, parameters []string) Task {
-	return &ReferencedTask{
-		context:    t.context,
-		Name:       t.Name,
-		Env:        append(t.Env, env...),
-		Parameters: append(t.Parameters, parameters...),
-	}
-}
-
-// ShellTask defines a shell command (currently not used)
-type ShellTask struct {
-	Command string
-	Env     []EnvVar
-}
-
-// Execute executes the shell command (currently not used)
-func (t *ShellTask) Execute(runner Runner) error {
-	taskRunner := runner.AppendContext(t.Env)
-	return taskRunner.ExecuteString(t.Command)
-}
-
-// Append appends environment variable and parameters provided (currently not used)
-func (t *ShellTask) Append(env []EnvVar, parameters []string) Task {
-	buf := new(bytes.Buffer)
-	buf.WriteString(t.Command)
-	for _, s := range parameters {
-		buf.WriteByte(' ')
-		buf.WriteString(s)
-	}
-	return &ShellTask{
-		Command: buf.String(),
-		Env:     append(t.Env, env...),
-	}
 }
 
 // SourceDescription defines where the source code is and how to fetch the code
@@ -177,8 +114,8 @@ type PushTask interface {
 // Export method exports environment variables defined in the build and push tasks
 func (t *BuildTarget) Export() []EnvVar {
 	exports := []EnvVar{}
-	appendExports(exports, t.Build)
-	appendExports(exports, t.Push)
+	exports = appendExports(exports, t.Build)
+	exports = appendExports(exports, t.Push)
 	return exports
 }
 
