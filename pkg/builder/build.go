@@ -1,14 +1,18 @@
-package build
+package builder
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
+	"github.com/Azure/acr-builder/pkg/shell"
+	"github.com/Azure/acr-builder/pkg/workflow"
+
 	"github.com/Azure/acr-builder/pkg/commands"
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/domain"
-	"github.com/Azure/acr-builder/pkg/shell"
 )
 
 // Run is the main body of the acr-builder
@@ -18,158 +22,124 @@ func Run(buildNumber, composeFile, composeProjectDir,
 	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
 	buildEnvs, buildArgs []string, push bool) ([]domain.ImageDependencies, error) {
 
-	envSet := map[string]bool{}
-	global := []domain.EnvVar{
-		{Name: constants.BuildNumberVar, Value: buildNumber},
-		{Name: constants.DockerRegistryVar, Value: dockerRegistry},
-	}
-	for _, env := range global {
-		envSet[env.Name] = true
-	}
-	for _, env := range buildEnvs {
-		k, v, err := parseAssignment(env)
-		if err != nil {
-			return nil, fmt.Errorf("Error parsing build environment \"%s\"", err)
-		}
-		if envSet[k] {
-			return nil, fmt.Errorf("Ambiguous environmental variable %s", k)
-		}
-		global = append(global, domain.EnvVar{Name: k, Value: v})
-		envSet[k] = true
+	userDefined, err := parseUserDefined(buildEnvs)
+	if err != nil {
+		return nil, err
 	}
 
-	dockerAuths := []domain.DockerAuthentication{}
-	if (dockerUser == "") != (dockerPW == "") {
-		return nil, fmt.Errorf("Please provide both docker user and password or none")
+	runner := shell.NewRunner()
+	request, err := createBuildRequest(runner, composeFile, composeProjectDir,
+		dockerfile, dockerImage, dockerContextDir,
+		dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
+		gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource,
+		buildArgs, push)
+
+	if err != nil {
+		return nil, err
 	}
+
+	buildWorkflow := compile(buildNumber, dockerRegistry, userDefined, request, push)
+	err = buildWorkflow.Run(runner)
+	return buildWorkflow.GetOutputs().ImageDependencies, err
+}
+
+func createBuildRequest(runner domain.Runner, composeFile, composeProjectDir,
+	dockerfile, dockerImage, dockerContextDir,
+	dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
+	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
+	buildArgs []string, push bool) (*domain.BuildRequest, error) {
+
+	dockerCreds := []domain.DockerCredential{}
 	if dockerUser != "" {
-		dockerAuths = append(dockerAuths, domain.DockerAuthentication{
-			Registry: dockerRegistry,
-			Auth:     commands.NewDockerUsernamePassword(dockerRegistry, dockerUser, dockerPW),
-		})
+		cred, err := commands.NewDockerUsernamePassword(dockerRegistry, dockerUser, dockerPW)
+		if err != nil {
+			return nil, err
+		}
+		dockerCreds = append(dockerCreds, cred)
 	}
 
-	var source domain.SourceDescription
+	var source domain.SourceTarget
 	if gitURL != "" {
 		var gitCred commands.GitCredential
 		if gitXToken != "" {
 			gitCred = commands.NewXToken(gitXToken)
 		} else {
-			if (gitPATokenUser == "") != (gitPAToken == "") {
-				return nil, fmt.Errorf("Please provide both git user and token or none")
-			}
 			if gitPATokenUser != "" {
-				gitCred = commands.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
+				var err error
+				gitCred, err = commands.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
-		source = commands.NewGitSource(gitURL, gitBranch, gitHeadRev, gitCloneDir, gitCred)
+		source.Source = commands.NewGitSource(gitURL, gitBranch, gitHeadRev, gitCloneDir, gitCred)
 	} else {
+		if gitXToken != "" || gitPATokenUser != "" || gitPAToken != "" {
+			return nil, fmt.Errorf("Git credentials are given but --%s was not", constants.ArgNameGitURL)
+		}
 		var err error
-		source, err = domain.NewLocalSource(localSource)
+		source.Source, err = commands.NewLocalSource(localSource)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	builds := []domain.BuildTarget{}
-	if composeFile != "" {
-		if dockerfile != "" || dockerImage != "" || dockerContextDir != "" {
-			return nil, fmt.Errorf("Parameters --%s, --%s, %s cannot be used with %s",
-				constants.ArgNameDockerfile, constants.ArgNameDockerImage,
-				constants.ArgNameDockerContextDir, constants.ArgNameDockerComposeFile)
+	var build domain.BuildTarget
+	if composeFile == "" {
+		// composeFile is not specified, maybe we should try dockerfile... unless we found the default docker-compose.y(a)ml
+		defaultComposeFileFound := false
+		if dockerfile == "" {
+			composeFile, err := commands.FindDefaultDockerComposeFile(runner)
+			if err != nil && err != commands.ErrNoDefaultDockerfile {
+				// Note: do we really exit here? What does it mean when there's an error checking docker-compose file?
+				return nil, err
+			}
+			defaultComposeFileFound = (composeFile != "")
 		}
-		build := commands.NewDockerComposeBuildTarget(source, gitBranch, composeFile, composeProjectDir, buildArgs)
-		builds = append(builds, *build)
-	} else {
-		if composeProjectDir != "" {
-			return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
-		}
-		build, err := commands.NewDockerBuildTarget(source, gitBranch, dockerfile, dockerContextDir, buildArgs, push, dockerRegistry, dockerImage)
-		if err != nil {
-			return nil, err
-		}
-		builds = append(builds, *build)
-	}
-
-	return executeRequest(
-		&domain.BuildRequest{
-			Global:      global,
-			DockerAuths: dockerAuths,
-			Source:      source,
-			Build:       builds,
-		},
-		push)
-}
-
-func executeRequest(request *domain.BuildRequest, push bool) ([]domain.ImageDependencies, error) {
-	var err error
-	var runner domain.Runner
-	runner = shell.NewRunner(request.Global, append(
-		request.Source.Export(),
-		domain.EnvVar{
-			Name:  constants.PushOnSuccessVar,
-			Value: strconv.FormatBool(push),
-		},
-	))
-
-	err = request.Source.EnsureSource(runner)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to ensure source: %s", err)
-	}
-
-	for _, auth := range request.DockerAuths {
-		err = auth.Auth.Execute(runner)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to login: %s", err)
-		}
-	}
-
-	allDependencies := []domain.ImageDependencies{}
-	for _, buildTarget := range request.Build {
-		buildRunner := runner.AppendContext(buildTarget.Export())
-		dep, err := handleBuild(
-			buildRunner,
-			buildTarget)
-		if err != nil {
-			return nil, err
-		}
-		allDependencies = append(allDependencies, dep...)
-	}
-
-	if push {
-		for _, buildTarget := range request.Build {
-			buildRunner := runner.AppendContext(buildTarget.Export())
-			err := handlePush(
-				buildRunner,
-				buildTarget)
+		if !defaultComposeFileFound {
+			if composeProjectDir != "" {
+				return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
+			}
+			var err error
+			build, err = commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, push, dockerRegistry, dockerImage)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
-	return allDependencies, nil
+
+	if build == nil {
+		if composeFile == "" {
+			logrus.Debugf("No dockerfile is provided, using docker-compose as default")
+		}
+		if dockerfile != "" || dockerImage != "" || dockerContextDir != "" {
+			return nil, fmt.Errorf("Parameters --%s, --%s, %s cannot be used in docker-compose scenario",
+				constants.ArgNameDockerfile, constants.ArgNameDockerImage, constants.ArgNameDockerContextDir)
+		}
+		build = commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs)
+	}
+	source.Builds = append(source.Builds, build)
+
+	return &domain.BuildRequest{
+		DockerCredentials: dockerCreds,
+		Targets:           []domain.SourceTarget{source},
+	}, nil
 }
 
-func handleBuild(
-	buildRunner domain.Runner,
-	buildTarget domain.BuildTarget) ([]domain.ImageDependencies, error) {
-
-	dependencies, err := buildTarget.Build.Execute(buildRunner)
-	if err != nil {
-		return nil, fmt.Errorf("Failed building build task, error: %s", err)
+func parseUserDefined(buildEnvs []string) ([]domain.EnvVar, error) {
+	userDefined := []domain.EnvVar{}
+	for _, env := range buildEnvs {
+		k, v, err := parseAssignment(env)
+		if err != nil {
+			return nil, fmt.Errorf("Error parsing build environment \"%s\"", err)
+		}
+		envVar, err := domain.NewEnvVar(k, v)
+		if err != nil {
+			return nil, err
+		}
+		userDefined = append(userDefined, *envVar)
 	}
-	return dependencies, nil
-}
-
-func handlePush(
-	buildRunner domain.Runner,
-	buildTarget domain.BuildTarget) (err error) {
-
-	err = buildTarget.Push.Execute(buildRunner)
-	if err != nil {
-		return fmt.Errorf("Fail to push image, error: %s", err)
-	}
-	return nil
+	return userDefined, nil
 }
 
 func parseAssignment(in string) (string, string, error) {
@@ -178,4 +148,63 @@ func parseAssignment(in string) (string, string, error) {
 		return "", "", fmt.Errorf("%s cannot be split into 2 tokens with '='", in)
 	}
 	return values[0], values[1], nil
+}
+
+func dependencyTask(build domain.BuildTarget) workflow.EvaluationTask {
+	return func(runner domain.Runner, outputContext *workflow.OutputContext) error {
+		dependencies, err := build.ScanForDependencies(runner)
+		if err != nil {
+			// build continues if dependency scan fails
+			logrus.Errorf("Failed to find dependency for build task, error: %s", err)
+		} else {
+			outputContext.ImageDependencies = append(outputContext.ImageDependencies, dependencies...)
+		}
+		return nil
+	}
+}
+
+// a utility type used only for compile method
+type pushItem struct {
+	context *domain.BuilderContext
+	push    workflow.RunningTask
+}
+
+// compile takes a build request and populate it into workflow
+func compile(buildNumber, dockerRegistry string,
+	userDefined []domain.EnvVar, request *domain.BuildRequest, push bool) *workflow.Workflow {
+
+	w := workflow.NewWorkflow()
+	rootContext := domain.NewContext(userDefined, []domain.EnvVar{
+		{Name: constants.BuildNumberVar, Value: buildNumber},
+		{Name: constants.DockerRegistryVar, Value: dockerRegistry},
+		{Name: constants.PushOnSuccessVar, Value: strconv.FormatBool(push)}})
+
+	for _, auth := range request.DockerCredentials {
+		w.ScheduleRun(rootContext, auth.Authenticate)
+	}
+
+	pushItems := []pushItem{}
+	for _, sourceTarget := range request.Targets {
+		source := sourceTarget.Source
+		sourceContext := rootContext.Append(source.Export())
+		w.ScheduleRun(sourceContext, source.Obtain)
+		for _, build := range sourceTarget.Builds {
+			buildContext := sourceContext.Append(build.Export())
+			w.ScheduleEvaluation(buildContext, dependencyTask(build))
+			w.ScheduleRun(buildContext, build.Build)
+			// if push is enabled, add them last
+			if push {
+				pushItems = append(pushItems, pushItem{
+					context: buildContext,
+					push:    build.Push,
+				})
+			}
+		}
+	}
+
+	for _, item := range pushItems {
+		w.ScheduleRun(item.context, item.push)
+	}
+
+	return w
 }

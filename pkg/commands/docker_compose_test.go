@@ -6,57 +6,38 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/domain"
-	test_domain "github.com/Azure/acr-builder/tests/utils/domain"
-	testutils "github.com/Azure/acr-builder/tests/utils/grok"
-	"github.com/stretchr/testify/assert"
+	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
+	testutils "github.com/Azure/acr-builder/tests/testCommon"
 )
 
-type dockerComposeBuildExecuteTestCase struct {
-	branch               string
-	path                 string
-	projectDir           string
-	buildArgs            []string
-	branchErr            string
-	files                test_domain.FileSystemExpectations
-	expectedErr          string
-	expectedCommands     []test_domain.CommandsExpectation
-	expectedDependencies []domain.ImageDependencies
-	expectedResolves     []*test_domain.ArgumentResolution
+type composeTestCase struct {
+	path             string
+	projectDir       string
+	buildArgs        []string
+	expectedErr      string
+	expectedCommands []test_domain.CommandsExpectation
 }
 
-func testDockerComposeBuildExecute(t *testing.T, tc dockerComposeBuildExecuteTestCase) {
-	runner := new(test_domain.MockRunner)
+func testDockerComposeBuild(t *testing.T, tc composeTestCase) {
+	runner := test_domain.NewMockRunner()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
-	runner.PrepareResolve(tc.expectedResolves)
-	if tc.files != nil {
-		runner.PrepareFileSystem(tc.files)
-	}
-	source := new(test_domain.MockSource)
-	var branchErr error
-	if tc.branchErr != "" {
-		branchErr = fmt.Errorf(tc.branchErr)
-	}
-	if tc.branch != "" {
-		source.On("EnsureBranch", runner, tc.branch).Return(branchErr).Times(1)
-	}
-	task := NewDockerComposeBuildTarget(source, tc.branch, tc.path, tc.projectDir, tc.buildArgs)
-	dependencies, err := task.Build.Execute(runner)
-	runner.AssertExpectations(t)
-	source.AssertExpectations(t)
+	defer runner.AssertExpectations(t)
+	task := NewDockerComposeBuild(tc.path, tc.projectDir, tc.buildArgs)
+	err := task.Build(runner)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
 	} else {
 		assert.Nil(t, err)
-		testutils.AssertSameDependencies(t, tc.expectedDependencies, dependencies)
 	}
 }
 
-func TestDockerComposeBuildExecuteHappy(t *testing.T) {
-	testDockerComposeBuildExecute(t, dockerComposeBuildExecuteTestCase{
-		branch:     "myBranch",
+func TestDockerComposeBuildAllArgs(t *testing.T) {
+	testDockerComposeBuild(t, composeTestCase{
 		path:       path.Join("docker-compose", "docker-compose.yml"),
 		buildArgs:  []string{"arg1=value1", "arg2=value2"},
 		projectDir: "SomeProject",
@@ -66,129 +47,181 @@ func TestDockerComposeBuildExecuteHappy(t *testing.T) {
 				Args:    []string{"-f", "docker-compose/docker-compose.yml", "build", "--pull", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
 			},
 		},
-		expectedResolves: []*test_domain.ArgumentResolution{
-			test_domain.ResolveDefault("myBranch"),
-			test_domain.ResolveDefault("SomeProject"),
-			test_domain.ResolveDefault("docker-compose/docker-compose.yml"),
-		}})
-}
-
-func TestDockerComposeBuildExecuteSwithBranchError(t *testing.T) {
-	testDockerComposeBuildExecute(t, dockerComposeBuildExecuteTestCase{
-		branch:      "myBranch",
-		branchErr:   "Can't switch branch for some reasons....",
-		expectedErr: "^Error while switching to branch myBranch, error: Can't switch branch for some reasons....",
-		expectedResolves: []*test_domain.ArgumentResolution{
-			test_domain.ResolveDefault("myBranch"),
-		},
 	})
 }
 
-func TestDockerComposeBuildExecuteFailedToFindDockerfile(t *testing.T) {
-	testDockerComposeBuildExecute(t, dockerComposeBuildExecuteTestCase{
-		files: test_domain.NewFileSystem().
-			AssertFileExists("docker-compose.yml", false, nil).
-			AssertFileExists("docker-compose.yaml", false, nil),
-		expectedErr: "^Failed to find docker compose file in source directory",
-	})
-}
-
-func TestDockerComposeBuildExecuteFailedReadDockerfile(t *testing.T) {
-	// test case: scanning for docker-compose file, found the file but cannot parse dependency
-	// however build fails afterward
-	//
-	// unexpected error while reading dockerfile should be logged but not cause the method to exit
-	// dependencies resolution will fail, but the build will go on
-	testDockerComposeBuildExecute(t, dockerComposeBuildExecuteTestCase{
-		files: test_domain.NewFileSystem().
-			AssertFileExists("docker-compose.yml", false, fmt.Errorf("Some filesystem error")).
-			AssertFileExists("docker-compose.yaml", true, nil),
+func TestDockerComposeBuildAllArgsError(t *testing.T) {
+	testDockerComposeBuild(t, composeTestCase{
+		path:       path.Join("docker-compose", "docker-compose.yml"),
+		buildArgs:  []string{"arg1=value1", "arg2=value2"},
+		projectDir: "SomeProject",
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
 				Command:  "docker-compose",
-				Args:     []string{"-f", "docker-compose.yaml", "build", "--pull"},
-				ErrorMsg: "Some error while building",
+				Args:     []string{"-f", "docker-compose/docker-compose.yml", "build", "--pull", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
+				ErrorMsg: "Build failed",
 			},
 		},
-		expectedResolves: []*test_domain.ArgumentResolution{
-			test_domain.ResolveDefault(""),
-			test_domain.ResolveDefault("docker-compose.yaml"),
+		expectedErr: "^Build failed$",
+	})
+}
+
+func TestDockerComposeBuildNoArgs(t *testing.T) {
+	testDockerComposeBuild(t, composeTestCase{
+		expectedCommands: []test_domain.CommandsExpectation{
+			{
+				Command: "docker-compose",
+				Args:    []string{"build", "--pull"},
+			},
 		},
-		expectedErr: "^Some error while building",
+	})
+}
+
+func testDockerComposePush(t *testing.T, tc composeTestCase) {
+	runner := test_domain.NewMockRunner()
+	runner.PrepareCommandExpectation(tc.expectedCommands)
+	defer runner.AssertExpectations(t)
+	task := NewDockerComposeBuild(tc.path, tc.projectDir, tc.buildArgs)
+	err := task.Push(runner)
+	if tc.expectedErr != "" {
+		assert.NotNil(t, err)
+		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
+	} else {
+		assert.Nil(t, err)
+	}
+}
+
+func TestDockerComposePushWithPath(t *testing.T) {
+	testDockerComposePush(t, composeTestCase{
+		path:       path.Join("docker-compose", "docker-compose.yml"),
+		buildArgs:  []string{"arg1=value1", "arg2=value2"},
+		projectDir: "SomeProject",
+		expectedCommands: []test_domain.CommandsExpectation{
+			{
+				Command: "docker-compose",
+				Args:    []string{"-f", "docker-compose/docker-compose.yml", "push"},
+			},
+		},
+	})
+}
+
+func TestDockerComposePushWithPathFailed(t *testing.T) {
+	testDockerComposePush(t, composeTestCase{
+		path:       path.Join("docker-compose", "docker-compose.yml"),
+		buildArgs:  []string{"arg1=value1", "arg2=value2"},
+		projectDir: "SomeProject",
+		expectedCommands: []test_domain.CommandsExpectation{
+			{
+				Command:  "docker-compose",
+				Args:     []string{"-f", "docker-compose/docker-compose.yml", "push"},
+				ErrorMsg: "Publish failed",
+			},
+		},
+		expectedErr: "^Publish failed$",
+	})
+}
+
+func TestDockerComposePushWithNoPath(t *testing.T) {
+	testDockerComposePush(t, composeTestCase{
+		buildArgs:  []string{"arg1=value1", "arg2=value2"},
+		projectDir: "SomeProject",
+		expectedCommands: []test_domain.CommandsExpectation{
+			{
+				Command: "docker-compose",
+				Args:    []string{"push"},
+			},
+		},
 	})
 }
 
 func TestComposeBuildTaskExport(t *testing.T) {
-	task := NewDockerComposeBuildTarget(nil, "branch", "path", "project", []string{}).Build
-	exports := task.(domain.EnvExporter).Export()
+	exports := NewDockerComposeBuild("path", "project", []string{}).Export()
 	assert.Equal(t, []domain.EnvVar{
 		{
 			Name:  constants.DockerComposeFileVar,
 			Value: "path",
 		},
-		{
-			Name:  constants.GitBranchVar,
-			Value: "branch",
-		},
-	},
-		exports)
+	}, exports)
 }
 
-type dockerComposePublishExecuteTestCase struct {
-	path             string
-	expectedCommands []test_domain.CommandsExpectation
-	expectedErr      string
+type composeScanForDependenciesRealFileTestCase struct {
+	path                 string
+	expectedErr          string
+	expectedDependencies []domain.ImageDependencies
 }
 
-func testDockerComposePublishExecute(t *testing.T, tc dockerComposePublishExecuteTestCase) {
-	task := NewDockerComposeBuildTarget(nil, "branch", tc.path, "project", []string{}).Push
-	runner := new(test_domain.MockRunner)
-	runner.PrepareCommandExpectation(tc.expectedCommands)
-	err := task.Execute(runner)
-	runner.AssertExpectations(t)
-	if tc.expectedErr == "" {
-		assert.Nil(t, err)
-	} else {
+func TestComposeScanDependenciesHappy(t *testing.T) {
+	testComposeScanDependenciesRealFiles(t, composeScanForDependenciesRealFileTestCase{
+		path:                 path.Join("${project_root}", "docker-compose.yml"),
+		expectedDependencies: []domain.ImageDependencies{testutils.HelloNodeExampleDependencies, testutils.MultistageExampleDependencies},
+	})
+}
+
+func TestComposeScanDependenciesFailed(t *testing.T) {
+	testComposeScanDependenciesRealFiles(t, composeScanForDependenciesRealFileTestCase{
+		path:        path.Join("${project_root}", "docker-compose.ymll"),
+		expectedErr: "no such file or directory",
+	})
+}
+
+func testComposeScanDependenciesRealFiles(t *testing.T, tc composeScanForDependenciesRealFileTestCase) {
+	runner := test_domain.NewMockRunner()
+	defer runner.AssertExpectations(t)
+	runner.UseDefaultFileSystem()
+	runner.SetContext(domain.NewContext(
+		append(testutils.MultiStageExampleTestEnv,
+			domain.EnvVar{Name: "project_root", Value: path.Join("..", "..", "tests", "resources", "docker-compose")}),
+		[]domain.EnvVar{}))
+	task := NewDockerComposeBuild(tc.path, "", []string{})
+	dep, err := task.ScanForDependencies(runner)
+	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
+	} else {
+		assert.Nil(t, err)
+		testutils.AssertSameDependencies(t, tc.expectedDependencies, dep)
 	}
 }
 
-func TestDockerComposePublishExecutePathNotGiven(t *testing.T) {
-	testDockerComposePublishExecute(t,
-		dockerComposePublishExecuteTestCase{
-			expectedCommands: []test_domain.CommandsExpectation{
-				{
-					Command: "docker-compose",
-					Args:    []string{"push"},
-				},
-			},
-		})
+type composeFileProbeTestCase struct {
+	files       test_domain.FileSystemExpectations
+	expectedErr string
 }
 
-func TestDockerComposePublishExecutePathGiven(t *testing.T) {
-	testDockerComposePublishExecute(t,
-		dockerComposePublishExecuteTestCase{
-			path: "custom-compose-file.yml",
-			expectedCommands: []test_domain.CommandsExpectation{
-				{
-					Command: "docker-compose",
-					Args:    []string{"-f", "custom-compose-file.yml", "push"},
-				},
-			},
-		})
+func TestComposeFileProbeFailed(t *testing.T) {
+	testComposeFileProbe(t, composeFileProbeTestCase{
+		files: make(test_domain.FileSystemExpectations, 0).
+			AssertFileExists("docker-compose.yml", false, nil).
+			AssertFileExists("docker-compose.yaml", false, nil),
+		expectedErr: "^No default docker-compose file found$",
+	})
 }
 
-func TestDockerComposePublishExecuteError(t *testing.T) {
-	testDockerComposePublishExecute(t,
-		dockerComposePublishExecuteTestCase{
-			expectedCommands: []test_domain.CommandsExpectation{
-				{
-					Command:  "docker-compose",
-					Args:     []string{"push"},
-					ErrorMsg: "Some publish error",
-				},
-			},
-			expectedErr: "^Some publish error$",
-		})
+func TestComposeFileProbeSucceed(t *testing.T) {
+	testComposeFileProbe(t, composeFileProbeTestCase{
+		files: make(test_domain.FileSystemExpectations, 0).
+			AssertFileExists("docker-compose.yml", false, nil).
+			AssertFileExists("docker-compose.yaml", true, nil),
+		expectedErr: "^Error opening docker-compose file docker-compose.yaml",
+	})
+}
+
+func TestComposeFileProbeFSError(t *testing.T) {
+	testComposeFileProbe(t, composeFileProbeTestCase{
+		files: make(test_domain.FileSystemExpectations, 0).
+			AssertFileExists("docker-compose.yml", false, nil).
+			AssertFileExists("docker-compose.yaml", true, fmt.Errorf("boom")),
+		expectedErr: "^Unexpected error while checking for default docker compose file: boom$",
+	})
+}
+
+func testComposeFileProbe(t *testing.T, tc composeFileProbeTestCase) {
+	runner := test_domain.NewMockRunner()
+	defer runner.AssertExpectations(t)
+	fs := runner.GetFileSystem().(*test_domain.MockFileSystem)
+	fs.PrepareFileSystem(tc.files)
+	defer fs.AssertExpectations(t)
+	_, err := NewDockerComposeBuild("", "", []string{}).ScanForDependencies(runner)
+	assert.NotNil(t, err)
+	assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
 }

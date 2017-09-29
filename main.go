@@ -70,7 +70,7 @@ func main() {
 		logrus.Infof("Both HEAD revision %s and branch %s are provided as parameter, HEAD will take precedence", gitHeadRev, gitBranch)
 	}
 
-	dep, err := build.Run(buildNumber, composeFile, composeProjectDir,
+	dep, err := builder.Run(buildNumber, composeFile, composeProjectDir,
 		dockerfile, dockerImage, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
 		gitURL, gitCloneDir, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,

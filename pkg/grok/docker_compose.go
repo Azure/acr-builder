@@ -93,7 +93,7 @@ func readDockerComposeFile(path string) (*dockerCompose, error) {
 }
 
 // ResolveDockerComposeDependencies => given a compose file, resolve its dependencies
-func ResolveDockerComposeDependencies(env domain.Runner, projectDirectory string, composeFile string) ([]domain.ImageDependencies, error) {
+func ResolveDockerComposeDependencies(env *domain.BuilderContext, projectDirectory string, composeFile string) ([]domain.ImageDependencies, error) {
 	result := []domain.ImageDependencies{}
 	compose, err := readDockerComposeFile(composeFile)
 	if err != nil {
@@ -104,31 +104,21 @@ func ResolveDockerComposeDependencies(env domain.Runner, projectDirectory string
 		projectDirectory = filepath.Dir(composeFile)
 	}
 
-	// envResolve := func(key string) string {
-	// 	if value, ok := env.GetEnv(key); ok {
-	// 		return value
-	// 	}
-	// 	return os.Getenv(key)
-	// }
-
 	for _, service := range compose.Services.Services {
-		//os.Expand(service.Build.ContextDir, envResolve)
-		contextDir := env.Resolve(service.Build.ContextDir)
+		contextDir := env.Expand(service.Build.ContextDir)
 		imageContext := path.Join(projectDirectory, contextDir)
 		var dockerfilePath string
 		if service.Build.Dockerfile == "" {
 			dockerfilePath = path.Join(imageContext, "Dockerfile")
 		} else {
-			//os.Expand(service.Build.Dockerfile, envResolve))
-			dockerfilePath = path.Join(imageContext, env.Resolve(service.Build.Dockerfile))
+			dockerfilePath = path.Join(imageContext, env.Expand(service.Build.Dockerfile))
 		}
 		runtime, buildtime, err := ResolveDockerfileDependencies(dockerfilePath)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to list dependencies for dockerfile %s, error, %s", dockerfilePath, err)
 		}
 		result = append(result, domain.ImageDependencies{
-			// os.Expand(service.Image, envResolve)
-			Image:             env.Resolve(service.Image),
+			Image:             env.Expand(service.Image),
 			RuntimeDependency: runtime,
 			BuildDependencies: buildtime,
 		})

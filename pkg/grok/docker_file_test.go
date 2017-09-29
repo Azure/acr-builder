@@ -6,7 +6,7 @@ import (
 	"path"
 
 	"github.com/Azure/acr-builder/pkg/domain"
-	testutils "github.com/Azure/acr-builder/tests/utils/grok"
+	testutils "github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/assert"
 )
 

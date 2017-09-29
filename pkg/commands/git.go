@@ -14,63 +14,135 @@ import (
 // Vocabulary to be used to build commands
 
 type gitSource struct {
-	Address       string
-	InitialBranch string
-	HeadRev       string
-	Credential    GitCredential
-	TargetDir     string
-	stale         bool
+	address    string
+	branch     string
+	headRev    string
+	credential GitCredential
+	targetDir  string
 }
 
 // NewGitSource create a SourceDescription that represents a git checkout
-func NewGitSource(address, initialBranch, headRev, targetDir string, credential GitCredential) domain.SourceDescription {
+func NewGitSource(address, branch, headRev, targetDir string, credential GitCredential) domain.BuildSource {
 	return &gitSource{
-		Address:       address,
-		InitialBranch: initialBranch,
-		HeadRev:       headRev,
-		Credential:    credential,
-		TargetDir:     targetDir,
+		address:    address,
+		branch:     branch,
+		headRev:    headRev,
+		credential: credential,
+		targetDir:  targetDir,
 	}
 }
 
-func (s *gitSource) EnsureSource(runner domain.Runner) error {
+func (s *gitSource) Obtain(runner domain.Runner) error {
 	if err := verifyGitVersion(); err != nil {
-		logrus.Errorf("%s", err)
-	}
-	var targetEmpty bool
-	targetExists, err := runner.DoesDirExist(s.TargetDir)
-	if err != nil {
-		return fmt.Errorf("Error checking for source dir: %s, error: %s", runner.Resolve(s.TargetDir), err)
-	}
-	if targetExists {
-		targetEmpty, err = runner.IsDirEmpty(s.TargetDir)
-		if err != nil {
-			return fmt.Errorf("Error checking if source dir is empty: %s, error: %s", runner.Resolve(s.TargetDir), err)
-		}
-	}
-	if targetExists && !targetEmpty {
-		// target exists and not empty, we don't check out but will assume it's stale
-		s.stale = true
-		logrus.Infof("Directory %s exists, we will assume it's a valid git repository.", runner.Resolve(s.TargetDir))
-	} else {
-		cloneArgs := []string{"clone"}
-		if s.InitialBranch != "" {
-			cloneArgs = append(cloneArgs, "-b", s.InitialBranch)
-		}
-		address, obfuscation, err := s.toAuthAddress(runner)
-		if err != nil {
-			return fmt.Errorf("Failed to get authorized address, error: %s", err)
-		}
-		cloneArgs = append(cloneArgs, address, s.TargetDir)
-		err = runner.ExecuteCmdWithObfuscation(obfuscator(address, obfuscation), "git", cloneArgs)
-		if err != nil {
-			return fmt.Errorf("Error cloning git source: %s to directory %s", runner.Resolve(s.Address), runner.Resolve(s.TargetDir))
-		}
+		logrus.Errorf("Error verifying Git version: %s", err)
 	}
 
-	err = runner.Chdir(s.TargetDir)
+	env := runner.GetContext()
+	fs := runner.GetFileSystem()
+	if exists, err := s.targetExists(runner); err != nil {
+		return err
+	} else if exists {
+		logrus.Infof("Directory %s exists, we will assume it's a valid git repository.", env.Expand(s.targetDir))
+		if err := fs.Chdir(s.targetDir); err != nil {
+			return fmt.Errorf("Failed to chdir to %s", err)
+		}
+		if err := s.clean(runner); err != nil {
+			return err
+		}
+		if err := s.checkout(runner); err != nil {
+			return err
+		}
+	} else {
+		if err := s.clone(runner); err != nil {
+			return err
+		}
+		if err := fs.Chdir(s.targetDir); err != nil {
+			return fmt.Errorf("Failed to chdir to %s", err)
+		}
+	}
+	return nil
+}
+
+func (s *gitSource) targetExists(runner domain.Runner) (bool, error) {
+	env := runner.GetContext()
+	fs := runner.GetFileSystem()
+	dirExists, err := fs.DoesDirExist(s.targetDir)
 	if err != nil {
-		return fmt.Errorf("Failed to chdir to %s", err)
+		return false, fmt.Errorf("Error checking for source dir: %s, error: %s", env.Expand(s.targetDir), err)
+	}
+	if !dirExists {
+		return false, nil
+	}
+
+	dirEmpty, err := fs.IsDirEmpty(s.targetDir)
+	if err != nil {
+		return false, fmt.Errorf("Error checking if source dir is empty: %s, error: %s", env.Expand(s.targetDir), err)
+	}
+	return !dirEmpty, nil
+}
+
+func (s *gitSource) clone(runner domain.Runner) error {
+	env := runner.GetContext()
+	args := []string{"clone"}
+	if s.branch != "" {
+		args = append(args, "-b", s.branch)
+	}
+	remote, obfuscated, err := s.toAuthAddress(runner)
+	if err != nil {
+		return fmt.Errorf("Failed to get authorized address, error: %s", err)
+	}
+	obfuscator := gitAddressObfuscator(remote, obfuscated)
+	args = append(args, remote, s.targetDir)
+	err = runner.ExecuteCmdWithObfuscation(obfuscator, "git", args)
+	if err != nil {
+		return fmt.Errorf("Error cloning git source: %s to directory %s", obfuscated, env.Expand(s.targetDir))
+	}
+	if s.headRev != "" {
+		return s.ensureHeadRev(runner)
+	}
+	return nil
+}
+
+func (s *gitSource) clean(runner domain.Runner) error {
+	if err := runner.ExecuteCmd("git", []string{"clean", "-xdf"}); err != nil {
+		return fmt.Errorf("Failed to clean repository: %s", err)
+	}
+	// reset shouldn't be necessary...
+	if err := runner.ExecuteCmd("git", []string{"reset", "--hard", "HEAD"}); err != nil {
+		return fmt.Errorf("Failed to discard local changes: %s", err)
+	}
+	return nil
+}
+
+func (s *gitSource) checkout(runner domain.Runner) error {
+	env := runner.GetContext()
+	remote, obfuscated, err := s.toAuthAddress(runner)
+	if err != nil {
+		return fmt.Errorf("Failed to get authorized address, error: %s", err)
+	}
+	obfuscator := gitAddressObfuscator(remote, obfuscated)
+	if err := runner.ExecuteCmdWithObfuscation(obfuscator, "git", []string{"fetch", remote}); err != nil {
+		return fmt.Errorf("Failed to clean fetch from remote: %s, error: %s", obfuscated, err)
+	}
+	if s.headRev != "" {
+		return s.ensureHeadRev(runner)
+	}
+	if err := runner.ExecuteCmd("git", []string{"checkout", s.branch}); err != nil {
+		return fmt.Errorf("Failed checkout branch: %s, error: %s", env.Expand(s.branch), err)
+	}
+	if err := runner.ExecuteCmdWithObfuscation(obfuscator, "git", []string{"pull", remote, s.branch}); err != nil {
+		return fmt.Errorf("Failed pull from branch: %s/%s, error: %s", obfuscated, env.Expand(s.branch), err)
+	}
+	return nil
+}
+
+func (s *gitSource) ensureHeadRev(runner domain.Runner) error {
+	env := runner.GetContext()
+	if s.branch != "" {
+		logrus.Infof("Ignoring branch %s since head rev %s is given...", env.Expand(s.branch), env.Expand(s.headRev))
+	}
+	if err := runner.ExecuteCmd("git", []string{"checkout", s.headRev}); err != nil {
+		return fmt.Errorf("Failed checkout revision: %s, error: %s", env.Expand(s.headRev), err)
 	}
 	return nil
 }
@@ -102,52 +174,7 @@ func verifyGitVersion() error {
 	return nil
 }
 
-func (s *gitSource) EnsureBranch(runner domain.Runner, branch string) error {
-	if branch == "" {
-		return fmt.Errorf("Branch parameter is required for git source")
-	}
-	defer func() { s.stale = true }()
-	if s.stale {
-		err := runner.ExecuteCmd("git", []string{"clean", "-xdf"})
-		if err != nil {
-			return fmt.Errorf("Failed to clean repository: %s", err)
-		}
-		err = runner.ExecuteCmd("git", []string{"reset", "--hard", "HEAD"})
-		if err != nil {
-			return fmt.Errorf("Failed to discard local changes: %s", err)
-		}
-	}
-	address, obfuscation, err := s.toAuthAddress(runner)
-	if err != nil {
-		return fmt.Errorf("Failed to get authorized address, error: %s", err)
-	}
-	if s.HeadRev != "" {
-		if s.stale {
-			err := runner.ExecuteCmd("git", []string{"fetch", "--all"})
-			if err != nil {
-				return fmt.Errorf("Error fetching from: %s", runner.Resolve(address))
-			}
-		}
-		err = runner.ExecuteCmd("git", []string{"checkout", s.HeadRev})
-		if err != nil {
-			return fmt.Errorf("Error checking out revision: %s", runner.Resolve(s.HeadRev))
-		}
-	} else {
-		err := runner.ExecuteCmd("git", []string{"checkout", branch})
-		if err != nil {
-			return fmt.Errorf("Error checking out branch %s", runner.Resolve(branch))
-		}
-		if s.stale {
-			err = runner.ExecuteCmdWithObfuscation(obfuscator(address, obfuscation), "git", []string{"pull", address, branch})
-			if err != nil {
-				return fmt.Errorf("Failed to pull from branch %s: %s", runner.Resolve(branch), err)
-			}
-		}
-	}
-	return nil
-}
-
-func obfuscator(address, obfuscation string) func(args []string) {
+func gitAddressObfuscator(address, obfuscation string) func(args []string) {
 	return func(args []string) {
 		replaced := false
 		for i := 0; i < len(args); i++ {
@@ -163,27 +190,31 @@ func obfuscator(address, obfuscation string) func(args []string) {
 }
 
 func (s *gitSource) Export() []domain.EnvVar {
-	if s.Credential == nil {
+	if s.credential == nil {
 		return []domain.EnvVar{}
 	}
-	credsExport := s.Credential.Export()
+	credsExport := s.credential.Export()
 	return append(credsExport,
 		domain.EnvVar{
 			Name:  constants.GitSourceVar,
-			Value: s.Address,
+			Value: s.address,
 		},
 		domain.EnvVar{
 			Name:  constants.CheckoutDirVar,
-			Value: s.TargetDir,
+			Value: s.targetDir,
+		},
+		domain.EnvVar{
+			Name:  constants.GitBranchVar,
+			Value: s.branch,
 		},
 	)
 }
 
 func (s *gitSource) toAuthAddress(runner domain.Runner) (string, string, error) {
-	if s.Credential != nil {
-		return s.Credential.toAuthAddress(runner, s.Address)
+	if s.credential != nil {
+		return s.credential.toAuthAddress(runner, s.address)
 	}
-	return s.Address, s.Address, nil
+	return s.address, s.address, nil
 }
 
 // GitCredential objects are ways git authenticates
@@ -198,11 +229,14 @@ type gitPersonalAccessToken struct {
 }
 
 // NewGitPersonalAccessToken creates a GitCredential object with username and token/password
-func NewGitPersonalAccessToken(user string, token string) GitCredential {
+func NewGitPersonalAccessToken(user string, token string) (GitCredential, error) {
+	if (user == "") != (token == "") {
+		return nil, fmt.Errorf("Please provide both --%s and --%s or neither", constants.ArgNameGitPATokenUser, constants.ArgNameGitPAToken)
+	}
 	return &gitPersonalAccessToken{
 		user:  user,
 		token: token,
-	}
+	}, nil
 }
 
 func (s *gitPersonalAccessToken) Export() []domain.EnvVar {
@@ -219,8 +253,9 @@ func (s *gitPersonalAccessToken) Export() []domain.EnvVar {
 }
 
 func (s *gitPersonalAccessToken) toAuthAddress(runner domain.Runner, address string) (authAddress, obfuscation string, err error) {
-	userResolved := runner.Resolve(s.user)
-	tokenResolved := runner.Resolve(s.token)
+	env := runner.GetContext()
+	userResolved := env.Expand(s.user)
+	tokenResolved := env.Expand(s.token)
 	authAddress, err = insertAuth(runner, address, userResolved+":"+tokenResolved)
 	if err != nil {
 		return
@@ -239,7 +274,8 @@ func NewXToken(token string) GitCredential {
 }
 
 func (s *gitXToken) toAuthAddress(runner domain.Runner, address string) (authAddress, obfuscation string, err error) {
-	tokenResolved := runner.Resolve(s.token)
+	env := runner.GetContext()
+	tokenResolved := env.Expand(s.token)
 	authAddress, err = insertAuth(runner, address, "x-access-token:"+tokenResolved)
 	if err != nil {
 		return
@@ -258,7 +294,8 @@ func (s *gitXToken) Export() []domain.EnvVar {
 }
 
 func insertAuth(runner domain.Runner, address string, authString string) (string, error) {
-	addressResolved := runner.Resolve(address)
+	env := runner.GetContext()
+	addressResolved := env.Expand(address)
 	protocolDivider := "://"
 	if !strings.Contains(addressResolved, protocolDivider) {
 		return "", fmt.Errorf("Git repository address %s cannot be used with Personal Access Token", addressResolved)
