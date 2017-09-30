@@ -3,7 +3,6 @@ package domain
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"testing"
@@ -17,8 +16,8 @@ var fs *BuildContextAwareFileSystem
 func init() {
 	sharedContext = NewContext([]EnvVar{
 		{Name: "dne_dir", Value: "???"},
-		{Name: "resource_root", Value: path.Join("..", "..", "tests", "resources")},
-		{Name: "docker_compose_project", Value: path.Join("${resource_root}", "docker-compose")},
+		{Name: "resource_root", Value: filepath.Join("..", "..", "tests", "resources")},
+		{Name: "docker_compose_project", Value: filepath.Join("${resource_root}", "docker-compose")},
 	}, []EnvVar{})
 	fs = &BuildContextAwareFileSystem{}
 	fs.SetContext(sharedContext)
@@ -43,7 +42,7 @@ func TestChdirFail(t *testing.T) {
 }
 
 func TestIsDirEmpty(t *testing.T) {
-	emptyDirPath := path.Join("${resource_root}", "empty-dir")
+	emptyDirPath := filepath.Join("${resource_root}", "empty-dir")
 
 	// Test Setup
 	emptyDirPathResolved := sharedContext.Expand(emptyDirPath)
@@ -100,8 +99,8 @@ func TestIsDirEmpty(t *testing.T) {
 }
 
 func TestDoesFileOrDirExist(t *testing.T) {
-	file := path.Join("${docker_compose_project}", "docker-compose.yml")
-	dne := path.Join("${docker_compose_project}", "not_here")
+	file := filepath.Join("${docker_compose_project}", "docker-compose.yml")
+	dne := filepath.Join("${docker_compose_project}", "not_here")
 	testCase := []struct {
 		path     string
 		expected bool

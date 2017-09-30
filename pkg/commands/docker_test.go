@@ -2,7 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"path"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -105,7 +105,7 @@ func TestDockerBuildHappy(t *testing.T) {
 	// dockerfile is not there, dependencies resolution will fail but build will go on
 	// let's return a dependency error for fun
 	testDockerBuild(t, dockerTestCase{
-		dockerfile: path.Join("..", "..", "tests", "resources", "docker-dotnet", "Dockerfile"),
+		dockerfile: filepath.Join("..", "..", "tests", "resources", "docker-dotnet", "Dockerfile"),
 		contextDir: "contextDir",
 		buildArgs:  []string{"k1=v1", "k2=v2"},
 		registry:   testutils.DotnetExampleTargetRegistryName,
@@ -113,7 +113,8 @@ func TestDockerBuildHappy(t *testing.T) {
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
 				Command: "docker",
-				Args:    []string{"build", "-f", "../../tests/resources/docker-dotnet/Dockerfile", "-t", testutils.DotnetExampleDependencies.Image, "--build-arg", "k1=v1", "--build-arg", "k2=v2", "contextDir"},
+				Args: []string{"build", "-f", filepath.Join("..", "..", "tests", "resources", "docker-dotnet", "Dockerfile"),
+					"-t", testutils.DotnetExampleDependencies.Image, "--build-arg", "k1=v1", "--build-arg", "k2=v2", "contextDir"},
 			},
 		},
 	})
@@ -176,7 +177,7 @@ type dockerDependenciesTestCase struct {
 
 func TestDockerScanDependenciesHappy(t *testing.T) {
 	testDockerScanDependencies(t, dockerDependenciesTestCase{
-		path: path.Join("$project_root", "Dockerfile"),
+		path: filepath.Join("$project_root", "Dockerfile"),
 	})
 }
 
@@ -190,7 +191,7 @@ func testDockerScanDependencies(t *testing.T, tc dockerDependenciesTestCase) {
 	runner := new(test_domain.MockRunner)
 	defer runner.AssertExpectations(t)
 	runner.SetContext(domain.NewContext([]domain.EnvVar{
-		{Name: "project_root", Value: path.Join("..", "..", "tests", "resources", "docker-dotnet")},
+		{Name: "project_root", Value: filepath.Join("..", "..", "tests", "resources", "docker-dotnet")},
 	}, []domain.EnvVar{}))
 	target, err := NewDockerBuild(tc.path, "", []string{}, false,
 		testutils.DotnetExampleTargetRegistryName, testutils.DotnetExampleTargetImageName)

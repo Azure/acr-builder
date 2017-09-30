@@ -3,7 +3,6 @@ package grok
 import (
 	"fmt"
 	"io/ioutil"
-	"path"
 	"path/filepath"
 
 	"github.com/Azure/acr-builder/pkg/domain"
@@ -106,12 +105,12 @@ func ResolveDockerComposeDependencies(env *domain.BuilderContext, projectDirecto
 
 	for _, service := range compose.Services.Services {
 		contextDir := env.Expand(service.Build.ContextDir)
-		imageContext := path.Join(projectDirectory, contextDir)
+		imageContext := filepath.Join(projectDirectory, contextDir)
 		var dockerfilePath string
 		if service.Build.Dockerfile == "" {
-			dockerfilePath = path.Join(imageContext, "Dockerfile")
+			dockerfilePath = filepath.Join(imageContext, "Dockerfile")
 		} else {
-			dockerfilePath = path.Join(imageContext, env.Expand(service.Build.Dockerfile))
+			dockerfilePath = filepath.Join(imageContext, env.Expand(service.Build.Dockerfile))
 		}
 		runtime, buildtime, err := ResolveDockerfileDependencies(dockerfilePath)
 		if err != nil {

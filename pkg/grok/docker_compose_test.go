@@ -1,7 +1,7 @@
 package grok
 
 import (
-	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/Azure/acr-builder/pkg/domain"
@@ -9,8 +9,8 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	testResourceDir := path.Join("..", "..", "tests", "resources", "docker-compose")
-	composeFile := path.Join(testResourceDir, "docker-compose-envs.yml")
+	testResourceDir := filepath.Join("..", "..", "tests", "resources", "docker-compose")
+	composeFile := filepath.Join(testResourceDir, "docker-compose-envs.yml")
 	env := domain.NewContext([]domain.EnvVar{
 		{Name: "ACR_BUILD_DOCKER_REGISTRY", Value: "unit-tests"},
 	}, []domain.EnvVar{

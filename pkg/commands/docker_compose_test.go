@@ -2,8 +2,9 @@ package commands
 
 import (
 	"fmt"
-	"path"
+	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,13 +39,13 @@ func testDockerComposeBuild(t *testing.T, tc composeTestCase) {
 
 func TestDockerComposeBuildAllArgs(t *testing.T) {
 	testDockerComposeBuild(t, composeTestCase{
-		path:       path.Join("docker-compose", "docker-compose.yml"),
+		path:       filepath.Join("docker-compose", "docker-compose.yml"),
 		buildArgs:  []string{"arg1=value1", "arg2=value2"},
 		projectDir: "SomeProject",
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
 				Command: "docker-compose",
-				Args:    []string{"-f", "docker-compose/docker-compose.yml", "build", "--pull", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
+				Args:    []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--pull", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
 			},
 		},
 	})
@@ -52,13 +53,13 @@ func TestDockerComposeBuildAllArgs(t *testing.T) {
 
 func TestDockerComposeBuildAllArgsError(t *testing.T) {
 	testDockerComposeBuild(t, composeTestCase{
-		path:       path.Join("docker-compose", "docker-compose.yml"),
+		path:       filepath.Join("docker-compose", "docker-compose.yml"),
 		buildArgs:  []string{"arg1=value1", "arg2=value2"},
 		projectDir: "SomeProject",
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
 				Command:  "docker-compose",
-				Args:     []string{"-f", "docker-compose/docker-compose.yml", "build", "--pull", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
+				Args:     []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--pull", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
 				ErrorMsg: "Build failed",
 			},
 		},
@@ -93,13 +94,13 @@ func testDockerComposePush(t *testing.T, tc composeTestCase) {
 
 func TestDockerComposePushWithPath(t *testing.T) {
 	testDockerComposePush(t, composeTestCase{
-		path:       path.Join("docker-compose", "docker-compose.yml"),
+		path:       filepath.Join("docker-compose", "docker-compose.yml"),
 		buildArgs:  []string{"arg1=value1", "arg2=value2"},
 		projectDir: "SomeProject",
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
 				Command: "docker-compose",
-				Args:    []string{"-f", "docker-compose/docker-compose.yml", "push"},
+				Args:    []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "push"},
 			},
 		},
 	})
@@ -107,13 +108,13 @@ func TestDockerComposePushWithPath(t *testing.T) {
 
 func TestDockerComposePushWithPathFailed(t *testing.T) {
 	testDockerComposePush(t, composeTestCase{
-		path:       path.Join("docker-compose", "docker-compose.yml"),
+		path:       filepath.Join("docker-compose", "docker-compose.yml"),
 		buildArgs:  []string{"arg1=value1", "arg2=value2"},
 		projectDir: "SomeProject",
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
 				Command:  "docker-compose",
-				Args:     []string{"-f", "docker-compose/docker-compose.yml", "push"},
+				Args:     []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "push"},
 				ErrorMsg: "Publish failed",
 			},
 		},
@@ -152,15 +153,16 @@ type composeScanForDependenciesRealFileTestCase struct {
 
 func TestComposeScanDependenciesHappy(t *testing.T) {
 	testComposeScanDependenciesRealFiles(t, composeScanForDependenciesRealFileTestCase{
-		path:                 path.Join("${project_root}", "docker-compose.yml"),
+		path:                 filepath.Join("${project_root}", "docker-compose.yml"),
 		expectedDependencies: []domain.ImageDependencies{testutils.HelloNodeExampleDependencies, testutils.MultistageExampleDependencies},
 	})
 }
 
 func TestComposeScanDependenciesFailed(t *testing.T) {
 	testComposeScanDependenciesRealFiles(t, composeScanForDependenciesRealFileTestCase{
-		path:        path.Join("${project_root}", "docker-compose.ymll"),
-		expectedErr: "no such file or directory",
+		path: filepath.Join("${project_root}", "docker-compose-invalid.yaml"),
+		expectedErr: strings.Replace(fmt.Sprintf("^Error opening docker-compose file %s",
+			filepath.Join("..", "..", "tests", "resources", "docker-compose", "docker-compose-invalid.yaml")), "\\", "\\\\", -1),
 	})
 }
 
@@ -170,7 +172,7 @@ func testComposeScanDependenciesRealFiles(t *testing.T, tc composeScanForDepende
 	runner.UseDefaultFileSystem()
 	runner.SetContext(domain.NewContext(
 		append(testutils.MultiStageExampleTestEnv,
-			domain.EnvVar{Name: "project_root", Value: path.Join("..", "..", "tests", "resources", "docker-compose")}),
+			domain.EnvVar{Name: "project_root", Value: filepath.Join("..", "..", "tests", "resources", "docker-compose")}),
 		[]domain.EnvVar{}))
 	task := NewDockerComposeBuild(tc.path, "", []string{})
 	dep, err := task.ScanForDependencies(runner)
