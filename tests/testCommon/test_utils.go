@@ -8,21 +8,28 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// NilError is a placeholder for mock objects to use when mocking a function that returns an error
+var NilError error
+
+// StringGenerator generate unique string with given prefix
 type StringGenerator struct {
 	Prefix  string
 	counter int
 }
 
+// Next get next unique value
 func (g *StringGenerator) Next() string {
 	g.counter++
 	return g.Prefix + strconv.Itoa(g.counter)
 }
 
+// MappedStringGenerator geneate unique strings and allow lookup for string that was generated
 type MappedStringGenerator struct {
 	StringGenerator
 	lookup map[string]string
 }
 
+// NewMappedGenerator generates a unique string and can be looked up later by the given key value
 func NewMappedGenerator(prefix string) *MappedStringGenerator {
 	return &MappedStringGenerator{
 		StringGenerator: StringGenerator{Prefix: prefix},
@@ -30,12 +37,14 @@ func NewMappedGenerator(prefix string) *MappedStringGenerator {
 	}
 }
 
+// NextWithKey generates a unique string and can be looked up later by the given key value
 func (g *MappedStringGenerator) NextWithKey(key string) string {
 	value := g.Next()
 	g.lookup[key] = value
 	return value
 }
 
+// Lookup the unique string generated
 func (g *MappedStringGenerator) Lookup(key string) string {
 	return g.lookup[key]
 }
@@ -89,13 +98,14 @@ const DotnetExampleTargetRegistryName = "registry"
 // DotnetExampleTargetImageName is a placeholder image name
 const DotnetExampleTargetImageName = "img"
 
-// DotnetExampleDependencies links to the project in ${workspaceRoot}/tests/resources/docke-dotnet
+// DotnetExampleDependencies links to the project in ${workspaceRoot}/tests/resources/docker-dotnet
 var DotnetExampleDependencies = domain.ImageDependencies{
 	Image:             DotnetExampleTargetRegistryName + "/" + DotnetExampleTargetImageName,
 	RuntimeDependency: "microsoft/aspnetcore:2.0",
 	BuildDependencies: []string{"microsoft/aspnetcore-build:2.0", "imaginary/cert-generator:1.0"},
 }
 
+// AssertSameEnv asserts two sets environment variable are the same
 func AssertSameEnv(t *testing.T, expected, actual []domain.EnvVar) {
 	assert.Equal(t, len(expected), len(actual))
 	env := map[string]string{}

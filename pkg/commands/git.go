@@ -11,41 +11,53 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Vocabulary to be used to build commands
-
 type gitSource struct {
 	address    string
 	branch     string
 	headRev    string
 	credential GitCredential
 	targetDir  string
+	tracker    *DirectoryTracker
 }
 
 // NewGitSource create a SourceDescription that represents a git checkout
-func NewGitSource(address, branch, headRev, targetDir string, credential GitCredential) domain.BuildSource {
+func NewGitSource(address, branch, headRev, targetDir string, credential GitCredential) (domain.BuildSource, error) {
+	if branch == "" && headRev == "" {
+		// The reason I am enforcing the branch variable is because I am passing the branch name when checking out
+		// alternatively we can have checkout figuring out what default branch to use but I'm not supporting it for now
+		return nil, fmt.Errorf("Please provide a --%s or --%s parameter when using git source", constants.ArgNameGitBranch, constants.ArgNameGitHeadRev)
+	}
 	return &gitSource{
 		address:    address,
 		branch:     branch,
 		headRev:    headRev,
 		credential: credential,
 		targetDir:  targetDir,
+	}, nil
+}
+
+func (s *gitSource) Return(runner domain.Runner) error {
+	if s.tracker != nil {
+		return s.tracker.Return(runner)
 	}
+	return nil
 }
 
 func (s *gitSource) Obtain(runner domain.Runner) error {
 	if err := verifyGitVersion(); err != nil {
 		logrus.Errorf("Error verifying Git version: %s", err)
 	}
-
 	env := runner.GetContext()
-	fs := runner.GetFileSystem()
 	if exists, err := s.targetExists(runner); err != nil {
 		return err
 	} else if exists {
 		logrus.Infof("Directory %s exists, we will assume it's a valid git repository.", env.Expand(s.targetDir))
-		if err := fs.Chdir(s.targetDir); err != nil {
-			return fmt.Errorf("Failed to chdir to %s", err)
+		tracker, err := ChdirWithTracking(runner, s.targetDir)
+		if err != nil {
+			return err
 		}
+		s.tracker = tracker
+
 		if err := s.clean(runner); err != nil {
 			return err
 		}
@@ -56,9 +68,11 @@ func (s *gitSource) Obtain(runner domain.Runner) error {
 		if err := s.clone(runner); err != nil {
 			return err
 		}
-		if err := fs.Chdir(s.targetDir); err != nil {
-			return fmt.Errorf("Failed to chdir to %s", err)
+		tracker, err := ChdirWithTracking(runner, s.targetDir)
+		if err != nil {
+			return err
 		}
+		s.tracker = tracker
 	}
 	return nil
 }
@@ -66,17 +80,23 @@ func (s *gitSource) Obtain(runner domain.Runner) error {
 func (s *gitSource) targetExists(runner domain.Runner) (bool, error) {
 	env := runner.GetContext()
 	fs := runner.GetFileSystem()
-	dirExists, err := fs.DoesDirExist(s.targetDir)
-	if err != nil {
-		return false, fmt.Errorf("Error checking for source dir: %s, error: %s", env.Expand(s.targetDir), err)
-	}
-	if !dirExists {
-		return false, nil
+	var targetDir string
+	if s.targetDir != "" {
+		targetDir = s.targetDir
+		dirExists, err := fs.DoesDirExist(targetDir)
+		if err != nil {
+			return false, fmt.Errorf("Error checking for source dir: %s, error: %s", env.Expand(targetDir), err)
+		}
+		if !dirExists {
+			return false, nil
+		}
+	} else {
+		targetDir = "."
 	}
 
-	dirEmpty, err := fs.IsDirEmpty(s.targetDir)
+	dirEmpty, err := fs.IsDirEmpty(targetDir)
 	if err != nil {
-		return false, fmt.Errorf("Error checking if source dir is empty: %s, error: %s", env.Expand(s.targetDir), err)
+		return false, fmt.Errorf("Error checking if source dir is empty: %s, error: %s", env.Expand(targetDir), err)
 	}
 	return !dirEmpty, nil
 }
@@ -92,10 +112,19 @@ func (s *gitSource) clone(runner domain.Runner) error {
 		return fmt.Errorf("Failed to get authorized address, error: %s", err)
 	}
 	obfuscator := gitAddressObfuscator(remote, obfuscated)
-	args = append(args, remote, s.targetDir)
+	args = append(args, remote)
+	if s.targetDir != "" {
+		args = append(args, s.targetDir)
+	}
 	err = runner.ExecuteCmdWithObfuscation(obfuscator, "git", args)
 	if err != nil {
-		return fmt.Errorf("Error cloning git source: %s to directory %s", obfuscated, env.Expand(s.targetDir))
+		var target string
+		if s.targetDir == "" {
+			target = "<current directory>"
+		} else {
+			target = env.Expand(s.targetDir)
+		}
+		return fmt.Errorf("Error cloning git source: %s to directory %s, error: %s", obfuscated, target, err)
 	}
 	if s.headRev != "" {
 		return s.ensureHeadRev(runner)
@@ -190,22 +219,35 @@ func gitAddressObfuscator(address, obfuscation string) func(args []string) {
 }
 
 func (s *gitSource) Export() []domain.EnvVar {
-	if s.credential == nil {
-		return []domain.EnvVar{}
+	var exports []domain.EnvVar
+	if s.credential != nil {
+		exports = s.credential.Export()
+	} else {
+		exports = []domain.EnvVar{}
 	}
-	credsExport := s.credential.Export()
-	return append(credsExport,
+	if s.targetDir != "" {
+		exports = append(exports, domain.EnvVar{
+			Name:  constants.CheckoutDirVar,
+			Value: s.targetDir,
+		})
+	}
+	if s.headRev != "" {
+		exports = append(exports, domain.EnvVar{
+			Name:  constants.GitHeadRevVar,
+			Value: s.headRev,
+		})
+	} else {
+		if s.branch != "" {
+			exports = append(exports, domain.EnvVar{
+				Name:  constants.GitBranchVar,
+				Value: s.branch,
+			})
+		}
+	}
+	return append(exports,
 		domain.EnvVar{
 			Name:  constants.GitSourceVar,
 			Value: s.address,
-		},
-		domain.EnvVar{
-			Name:  constants.CheckoutDirVar,
-			Value: s.targetDir,
-		},
-		domain.EnvVar{
-			Name:  constants.GitBranchVar,
-			Value: s.branch,
 		},
 	)
 }
@@ -268,8 +310,8 @@ type gitXToken struct {
 	token string
 }
 
-// NewXToken creates a GitCredential object with a x-token
-func NewXToken(token string) GitCredential {
+// NewGitXToken creates a GitCredential object with a x-token
+func NewGitXToken(token string) GitCredential {
 	return &gitXToken{token: token}
 }
 
@@ -298,7 +340,7 @@ func insertAuth(runner domain.Runner, address string, authString string) (string
 	addressResolved := env.Expand(address)
 	protocolDivider := "://"
 	if !strings.Contains(addressResolved, protocolDivider) {
-		return "", fmt.Errorf("Git repository address %s cannot be used with Personal Access Token", addressResolved)
+		return "", fmt.Errorf("Git repository address %s cannot be used with Access Tokens", addressResolved)
 	}
 	addressAuthenticated := strings.Replace(addressResolved, protocolDivider, protocolDivider+authString+"@", 1)
 	return addressAuthenticated, nil

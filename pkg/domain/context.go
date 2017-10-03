@@ -19,14 +19,6 @@ type Runner interface {
 	ExecuteCmdWithObfuscation(obfuscate func([]string), cmdExe string, cmdArgs []string) error
 }
 
-// FileSystem contains a few interfaces that we are using in acr-builder
-type FileSystem interface {
-	Chdir(path string) error
-	DoesDirExist(path string) (bool, error)
-	DoesFileExist(path string) (bool, error)
-	IsDirEmpty(path string) (bool, error)
-}
-
 // BuilderContext is the context for Runners
 type BuilderContext struct {
 	userDefined     []EnvVar // user defined variables in its raw form

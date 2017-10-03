@@ -276,6 +276,7 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 		}
 		sourceMock := new(test_domain.MockBuildSource)
 		verifyContext(t, sourceMock.On("Obtain", runner), source.expectedEnv, nil)
+		verifyContext(t, sourceMock.On("Return", runner), source.expectedEnv, nil)
 		sourceMock.On("Export").Return(source.envVar).Once()
 		defer sourceMock.AssertExpectations(t)
 		target := domain.SourceTarget{
@@ -351,7 +352,7 @@ func TestParseUserDefinedFail(t *testing.T) {
 			"hello=world",
 			"0hello=0world",
 		},
-		expectedError: "^Invalid environmental varialbe name: 0hello$",
+		expectedError: "^Invalid environmental variable name: 0hello$",
 	})
 }
 
@@ -400,8 +401,7 @@ type createBuildRequestTestCase struct {
 }
 
 func TestCreateBuildRequestNoParams(t *testing.T) {
-	localSource, err := commands.NewLocalSource("")
-	assert.Nil(t, err)
+	localSource := commands.NewLocalSource("")
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		expected: domain.BuildRequest{
 			DockerCredentials: []domain.DockerCredential{},
@@ -419,7 +419,7 @@ func TestCreateBuildRequestNoParams(t *testing.T) {
 func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 	gitUser := "some.git.user"
 	gitPassword := "some.git.pw"
-	gitAddress := "some.gitrepo"
+	gitAddress := "some.git-repository"
 	branch := "some.branch"
 	headRev := "some.rev"
 	targetDir := "some.dir"
@@ -432,6 +432,8 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 		buildArgs, true, registry, imageName)
 	assert.Nil(t, err)
 	gitCred, err := commands.NewGitPersonalAccessToken(gitUser, gitPassword)
+	assert.Nil(t, err)
+	gitSource, err := commands.NewGitSource(gitAddress, branch, headRev, targetDir, gitCred)
 	assert.Nil(t, err)
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		gitPATokenUser:   gitUser,
@@ -449,7 +451,7 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 			DockerCredentials: []domain.DockerCredential{},
 			Targets: []domain.SourceTarget{
 				{
-					Source: commands.NewGitSource(gitAddress, branch, headRev, targetDir, gitCred),
+					Source: gitSource,
 					Builds: []domain.BuildTarget{dockerBuildTarget},
 				},
 			},
@@ -462,7 +464,7 @@ func TestCreateBuildRequestWithGitXTokenDockerCompose(t *testing.T) {
 	dockerUser := "some.dockerUser"
 	dockerPW := "some.********"
 	gitXToken := "some.x.token"
-	gitAddress := "some.gitrepo"
+	gitAddress := "some.git-repository"
 	branch := "some.branch"
 	headRev := "some.rev"
 	targetDir := "some.dir"
@@ -470,6 +472,8 @@ func TestCreateBuildRequestWithGitXTokenDockerCompose(t *testing.T) {
 	composeProjectDir := "some.projectdir"
 	buildArgs := []string{"k3=v3", "k4=v4"}
 	cred, err := commands.NewDockerUsernamePassword(dockerRegistry, dockerUser, dockerPW)
+	assert.Nil(t, err)
+	gitSource, err := commands.NewGitSource(gitAddress, branch, headRev, targetDir, commands.NewGitXToken(gitXToken))
 	assert.Nil(t, err)
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		dockerRegistry:    dockerRegistry,
@@ -487,8 +491,7 @@ func TestCreateBuildRequestWithGitXTokenDockerCompose(t *testing.T) {
 			DockerCredentials: []domain.DockerCredential{cred},
 			Targets: []domain.SourceTarget{
 				{
-					Source: commands.NewGitSource(gitAddress, branch, headRev, targetDir,
-						commands.NewXToken(gitXToken)),
+					Source: gitSource,
 					Builds: []domain.BuildTarget{commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs)},
 				},
 			},
@@ -513,6 +516,14 @@ func TestCreateBuildRequestNoGitPassword(t *testing.T) {
 		gitPATokenUser: "some.git.user",
 		expectedError: fmt.Sprintf("^Please provide both --%s and --%s or neither$",
 			constants.ArgNameGitPATokenUser, constants.ArgNameGitPAToken),
+	})
+}
+
+func TestCreateBuildRequestNoGitBranchOrRev(t *testing.T) {
+	testCreateBuildRequest(t, createBuildRequestTestCase{
+		gitURL: "some.git.url",
+		expectedError: fmt.Sprintf("^Please provide a --%s or --%s parameter when using git source$",
+			constants.ArgNameGitBranch, constants.ArgNameGitHeadRev),
 	})
 }
 

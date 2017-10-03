@@ -84,6 +84,10 @@ func TestIsDirEmpty(t *testing.T) {
 			path:           "dne",
 			expectedErrMsg: "^open dne: ",
 		},
+		{
+			path:    ".",
+			isEmpty: false,
+		},
 	}
 
 	for _, tc := range testCase {

@@ -8,6 +8,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// FileSystem contains a few interfaces that we are using in acr-builder
+type FileSystem interface {
+	Getwd() (string, error)
+	Chdir(path string) error
+	DoesDirExist(path string) (bool, error)
+	DoesFileExist(path string) (bool, error)
+	IsDirEmpty(path string) (bool, error)
+}
+
 // BuildContextAware are any objects that are aware of build contexts
 type BuildContextAware interface {
 	SetContext(context *BuilderContext)
@@ -28,6 +37,11 @@ func NewBuildContextAwareFileSystem(context *BuilderContext) *BuildContextAwareF
 // SetContext changes the context that the file system uses
 func (r *BuildContextAwareFileSystem) SetContext(context *BuilderContext) {
 	r.context = context
+}
+
+// Getwd gets the current working directory
+func (r *BuildContextAwareFileSystem) Getwd() (string, error) {
+	return os.Getwd()
 }
 
 // Chdir changes current working directory for the runner

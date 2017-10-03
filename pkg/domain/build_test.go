@@ -24,7 +24,7 @@ func TestNewEnvInvalid1(t *testing.T) {
 	testNewEnv(t, newEnvTestCase{
 		name:          " var",
 		value:         "val",
-		expectedError: "^Invalid environmental varialbe name:  var$",
+		expectedError: "^Invalid environmental variable name:  var$",
 	})
 }
 
@@ -32,7 +32,7 @@ func TestNewEnvInvalid2(t *testing.T) {
 	testNewEnv(t, newEnvTestCase{
 		name:          "0var",
 		value:         "val",
-		expectedError: "^Invalid environmental varialbe name: 0var$",
+		expectedError: "^Invalid environmental variable name: 0var$",
 	})
 }
 

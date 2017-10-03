@@ -15,6 +15,7 @@ const DockerComposeFileVar = dockerComposeDomainPrefix + "FILE"
 const gitDomainPrefix = acrBuildPrefix + "GIT_"
 const GitSourceVar = gitDomainPrefix + "SOURCE"
 const GitBranchVar = gitDomainPrefix + "BRANCH"
+const GitHeadRevVar = gitDomainPrefix + "HEAD_REV"
 const GitAuthTypeVar = gitDomainPrefix + "AUTH_TYPE"
 const GitUserVar = gitDomainPrefix + "USER"
 

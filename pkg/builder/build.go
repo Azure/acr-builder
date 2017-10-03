@@ -62,7 +62,7 @@ func createBuildRequest(runner domain.Runner, composeFile, composeProjectDir,
 	if gitURL != "" {
 		var gitCred commands.GitCredential
 		if gitXToken != "" {
-			gitCred = commands.NewXToken(gitXToken)
+			gitCred = commands.NewGitXToken(gitXToken)
 		} else {
 			if gitPATokenUser != "" {
 				var err error
@@ -72,16 +72,16 @@ func createBuildRequest(runner domain.Runner, composeFile, composeProjectDir,
 				}
 			}
 		}
-		source.Source = commands.NewGitSource(gitURL, gitBranch, gitHeadRev, gitCloneDir, gitCred)
+		var err error
+		source.Source, err = commands.NewGitSource(gitURL, gitBranch, gitHeadRev, gitCloneDir, gitCred)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		if gitXToken != "" || gitPATokenUser != "" || gitPAToken != "" {
 			return nil, fmt.Errorf("Git credentials are given but --%s was not", constants.ArgNameGitURL)
 		}
-		var err error
-		source.Source, err = commands.NewLocalSource(localSource)
-		if err != nil {
-			return nil, err
-		}
+		source.Source = commands.NewLocalSource(localSource)
 	}
 
 	var build domain.BuildTarget
@@ -200,6 +200,7 @@ func compile(buildNumber, dockerRegistry string,
 				})
 			}
 		}
+		w.ScheduleRun(sourceContext, source.Return)
 	}
 
 	for _, item := range pushItems {

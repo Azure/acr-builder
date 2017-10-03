@@ -42,6 +42,11 @@ func (m *MockBuildSource) Obtain(runner pkg_domain.Runner) error {
 	return values.Error(0)
 }
 
+func (m *MockBuildSource) Return(runner pkg_domain.Runner) error {
+	values := m.Called(runner)
+	return values.Error(0)
+}
+
 func (m *MockBuildSource) Export() []pkg_domain.EnvVar {
 	values := m.Called()
 	return values.Get(0).([]pkg_domain.EnvVar)

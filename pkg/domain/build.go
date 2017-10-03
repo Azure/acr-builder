@@ -13,10 +13,10 @@ type EnvVar struct {
 
 var envVarRegex = regexp.MustCompile("^[a-zA-z_][a-zA-z_0-9]*$")
 
-// NewEnvVar creates an environmental varialbe with error checking
+// NewEnvVar creates an environmental variable with error checking
 func NewEnvVar(name string, value string) (*EnvVar, error) {
 	if !envVarRegex.Match([]byte(name)) {
-		return nil, fmt.Errorf("Invalid environmental varialbe name: %s", name)
+		return nil, fmt.Errorf("Invalid environmental variable name: %s", name)
 	}
 	return &EnvVar{Name: name, Value: value}, nil
 }
@@ -36,6 +36,7 @@ type SourceTarget struct {
 // BuildSource defines where the source code is and how to fetch the code
 type BuildSource interface {
 	Obtain(runner Runner) error
+	Return(runner Runner) error
 	Export() []EnvVar
 }
 

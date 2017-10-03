@@ -65,7 +65,7 @@ type CommandsExpectation struct {
 	SensitiveArgs map[int]bool
 	Times         *int
 	ErrorMsg      string
-	IsOptional    bool
+	IsObfuscated  bool
 }
 
 func (m *MockRunner) PrepareCommandExpectation(commands []CommandsExpectation) {
@@ -78,7 +78,12 @@ func (m *MockRunner) PrepareCommandExpectation(commands []CommandsExpectation) {
 		if cmd.ErrorMsg != "" {
 			returnErr = fmt.Errorf(cmd.ErrorMsg)
 		}
-		m.On("ExecuteCmd", cmd.Command, cmd.Args).Return(returnErr).Times(times)
+		if cmd.IsObfuscated {
+			m.On("ExecuteCmdWithObfuscation", mock.Anything, cmd.Command, cmd.Args).Return(returnErr).Times(times)
+		} else {
+
+			m.On("ExecuteCmd", cmd.Command, cmd.Args).Return(returnErr).Times(times)
+		}
 	}
 }
 
@@ -113,6 +118,11 @@ func (m *MockFileSystem) IsDirEmpty(path string) (bool, error) {
 	return values.Bool(0), values.Error(1)
 }
 
+func (m *MockFileSystem) Getwd() (string, error) {
+	values := m.Called()
+	return values.String(0), values.Error(1)
+}
+
 func (m *MockFileSystem) Chdir(path string) error {
 	values := m.Called(m.context.Expand(path))
 	return values.Error(0)
@@ -120,7 +130,13 @@ func (m *MockFileSystem) Chdir(path string) error {
 
 func (m *MockFileSystem) PrepareFileSystem(commands FileSystemExpectations) {
 	for _, cmd := range commands {
-		m.On(cmd.operation, cmd.path).Return(cmd.assertion, cmd.err)
+		m.On(cmd.operation, cmd.path).Return(cmd.assertion, cmd.err).Once()
+	}
+}
+
+func (m *MockFileSystem) PrepareChdir(expectations ChdirExpectations) {
+	for _, exp := range expectations {
+		m.On("Chdir", exp.Path).Return(exp.Err).Once()
 	}
 }
 
@@ -151,10 +167,20 @@ func (e FileSystemExpectations) AssertDirExists(path string, exists bool, err er
 	})
 }
 
+func (e FileSystemExpectations) AssertPwdEmpty(empty bool, err error) FileSystemExpectations {
+	return append(e,
+		FileSystemExpectation{
+			operation: "IsDirEmpty",
+			path:      ".",
+			assertion: empty,
+			err:       err,
+		})
+}
+
 func (e FileSystemExpectations) AssertIsDirEmpty(path string, empty bool, err error) FileSystemExpectations {
 	return append(e,
 		FileSystemExpectation{
-			operation: "DoesFileExist",
+			operation: "DoesDirExist",
 			path:      path,
 			assertion: true,
 			err:       nil,
@@ -165,4 +191,11 @@ func (e FileSystemExpectations) AssertIsDirEmpty(path string, empty bool, err er
 			assertion: empty,
 			err:       err,
 		})
+}
+
+type ChdirExpectations []ChdirExpectation
+
+type ChdirExpectation struct {
+	Path string
+	Err  error
 }
