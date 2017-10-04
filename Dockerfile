@@ -1,4 +1,4 @@
-FROM golang:1.8.3-alpine3.6 as build
+FROM golang:1.9.0-alpine3.6 as build
 
 RUN apk add --update --no-cache \
         openssl \

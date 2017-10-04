@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/domain"
 	"github.com/stretchr/testify/assert"
 )
@@ -54,7 +55,7 @@ const TestsDockerRegistryName = "unit-tests"
 
 // MultiStageExampleTestEnv is the test env used for resolving docker-compose{-envs}.yml
 var MultiStageExampleTestEnv = []domain.EnvVar{
-	{Name: "ACR_BUILD_DOCKER_REGISTRY", Value: TestsDockerRegistryName},
+	{Name: constants.ExportsDockerRegistry, Value: TestsDockerRegistryName},
 	// this is just a goofy entry to show that variable resolutions work
 	{Name: "DOCKERFILE", Value: "Dockerfile"},
 }

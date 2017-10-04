@@ -7,7 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Azure/acr-builder/pkg/builder"
+	"github.com/Azure/acr-builder/pkg/shell"
+
+	"github.com/Azure/acr-builder/pkg/build"
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/sirupsen/logrus"
 )
@@ -38,7 +40,7 @@ func main() {
 	var buildArgs, buildEnvs stringSlice
 	var push bool
 	var buildNumber string
-	flag.StringVar(&buildNumber, constants.ArgNameBuildNumber, "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.BuildNumberVar))
+	flag.StringVar(&buildNumber, constants.ArgNameBuildNumber, "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.ExportsBuildNumber))
 	flag.StringVar(&gitURL, constants.ArgNameGitURL, "", "Git url to the project")
 	flag.StringVar(&gitCloneDir, constants.ArgNameGitCloneTo, defaultCloneDir, "Directory to clone to. If the directory exists, we won't clone again and will just clean and pull the directory")
 	flag.StringVar(&gitBranch, constants.ArgNameGitBranch, "", "The git branch to checkout. If it is not given, no checkout command would be performed.")
@@ -70,6 +72,7 @@ func main() {
 		logrus.Infof("Both HEAD revision %s and branch %s are provided as parameter, HEAD will take precedence", gitHeadRev, gitBranch)
 	}
 
+	builder := build.NewBuilder(shell.NewRunner())
 	dep, err := builder.Run(buildNumber, composeFile, composeProjectDir,
 		dockerfile, dockerImage, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,

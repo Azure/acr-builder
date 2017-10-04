@@ -227,26 +227,26 @@ func (s *gitSource) Export() []domain.EnvVar {
 	}
 	if s.targetDir != "" {
 		exports = append(exports, domain.EnvVar{
-			Name:  constants.CheckoutDirVar,
+			Name:  constants.ExportsCheckoutDir,
 			Value: s.targetDir,
 		})
 	}
 	if s.headRev != "" {
 		exports = append(exports, domain.EnvVar{
-			Name:  constants.GitHeadRevVar,
+			Name:  constants.ExportsGitHeadRev,
 			Value: s.headRev,
 		})
 	} else {
 		if s.branch != "" {
 			exports = append(exports, domain.EnvVar{
-				Name:  constants.GitBranchVar,
+				Name:  constants.ExportsGitBranch,
 				Value: s.branch,
 			})
 		}
 	}
 	return append(exports,
 		domain.EnvVar{
-			Name:  constants.GitSourceVar,
+			Name:  constants.ExportsGitSource,
 			Value: s.address,
 		},
 	)
@@ -284,11 +284,11 @@ func NewGitPersonalAccessToken(user string, token string) (GitCredential, error)
 func (s *gitPersonalAccessToken) Export() []domain.EnvVar {
 	return []domain.EnvVar{
 		{
-			Name:  constants.GitUserVar,
+			Name:  constants.ExportsGitUser,
 			Value: s.user,
 		},
 		{
-			Name:  constants.GitAuthTypeVar,
+			Name:  constants.ExportsGitAuthType,
 			Value: "Git Personal Access Token",
 		},
 	}
@@ -329,7 +329,7 @@ func (s *gitXToken) toAuthAddress(runner domain.Runner, address string) (authAdd
 func (s *gitXToken) Export() []domain.EnvVar {
 	return []domain.EnvVar{
 		{
-			Name:  constants.GitAuthTypeVar,
+			Name:  constants.ExportsGitAuthType,
 			Value: "Git X Token",
 		},
 	}

@@ -124,19 +124,11 @@ func TestExport(t *testing.T) {
 	task, err := NewDockerBuild("myDockerfile", "myContextDir", []string{}, false, "myRegistry", "myImage")
 	assert.Nil(t, err)
 	exports := task.Export()
-	assert.Equal(t, 3, len(exports))
-	for _, entry := range exports {
-		switch entry.Name {
-		case constants.DockerfilePathVar:
-			assert.Equal(t, "myDockerfile", entry.Value)
-		case constants.DockerBuildContextVar:
-			assert.Equal(t, "myContextDir", entry.Value)
-		case constants.DockerPushImageVar:
-			assert.Equal(t, "myRegistry/myImage", entry.Value)
-		default:
-			assert.Fail(t, "unexpected entry: %s: %s", entry.Name, entry.Value)
-		}
-	}
+	testutils.AssertSameEnv(t, []domain.EnvVar{
+		{Name: constants.ExportsDockerfilePath, Value: "myDockerfile"},
+		{Name: constants.ExportsDockerBuildContext, Value: "myContextDir"},
+		{Name: constants.ExportsDockerPushImage, Value: "myRegistry/myImage"},
+	}, exports)
 }
 
 func testDockerPush(t *testing.T, tc dockerTestCase) {
@@ -144,6 +136,7 @@ func testDockerPush(t *testing.T, tc dockerTestCase) {
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	defer runner.AssertExpectations(t)
 	target, err := NewDockerBuild(tc.dockerfile, tc.contextDir, tc.buildArgs, tc.push, tc.registry, tc.imageName)
+	assert.Nil(t, err)
 	err = target.Push(runner)
 	if tc.expectedExecutionErr != "" {
 		assert.NotNil(t, err)

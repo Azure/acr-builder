@@ -1,23 +1,48 @@
 package constants
 
 const acrBuildPrefix = "ACR_BUILD_"
-
-const CheckoutDirVar = acrBuildPrefix + "CHECKOUT_DIR"
 const dockerDomainPrefix = acrBuildPrefix + "DOCKER_"
-const DockerfilePathVar = dockerDomainPrefix + "FILE"
-const DockerBuildContextVar = dockerDomainPrefix + "CONTEXT"
-const DockerPushImageVar = dockerDomainPrefix + "PUSH_TO"
-const DockerRegistryVar = dockerDomainPrefix + "REGISTRY"
-
-const dockerComposeDomainPrefix = acrBuildPrefix + "DOCKER_COMPOSE_"
-const DockerComposeFileVar = dockerComposeDomainPrefix + "FILE"
-
 const gitDomainPrefix = acrBuildPrefix + "GIT_"
-const GitSourceVar = gitDomainPrefix + "SOURCE"
-const GitBranchVar = gitDomainPrefix + "BRANCH"
-const GitHeadRevVar = gitDomainPrefix + "HEAD_REV"
-const GitAuthTypeVar = gitDomainPrefix + "AUTH_TYPE"
-const GitUserVar = gitDomainPrefix + "USER"
+const dockerComposeDomainPrefix = acrBuildPrefix + "DOCKER_COMPOSE_"
 
-const PushOnSuccessVar = acrBuildPrefix + "PUSH_ON_SUCCESS"
-const BuildNumberVar = acrBuildPrefix + "BUILD_NUMBER"
+// ExportsCheckoutDir is the variable name for checkout dir
+const ExportsCheckoutDir = acrBuildPrefix + "CHECKOUT_DIR"
+
+// ExportsDockerfilePath is the variable name for docker file path
+const ExportsDockerfilePath = dockerDomainPrefix + "FILE"
+
+// ExportsDockerBuildContext is the docker build context directory
+const ExportsDockerBuildContext = dockerDomainPrefix + "CONTEXT"
+
+// ExportsDockerPushImage is the image name to push to
+const ExportsDockerPushImage = dockerDomainPrefix + "PUSH_TO"
+
+// ExportsDockerRegistry is the docker registry to push to
+const ExportsDockerRegistry = dockerDomainPrefix + "REGISTRY"
+
+// ExportsDockerComposeFile is the docker compose file used for build and push
+const ExportsDockerComposeFile = dockerComposeDomainPrefix + "FILE"
+
+// ExportsGitSource is the current git source URL
+const ExportsGitSource = gitDomainPrefix + "SOURCE"
+
+// ExportsGitBranch is current git branch
+const ExportsGitBranch = gitDomainPrefix + "BRANCH"
+
+// ExportsGitHeadRev is the current git head revision
+const ExportsGitHeadRev = gitDomainPrefix + "HEAD_REV"
+
+// ExportsGitAuthType is the git authentication type used
+const ExportsGitAuthType = gitDomainPrefix + "AUTH_TYPE"
+
+// ExportsGitUser is the current git user
+const ExportsGitUser = gitDomainPrefix + "USER"
+
+// ExportsPushOnSuccess is the boolean value denoting whether the build will push on success
+const ExportsPushOnSuccess = acrBuildPrefix + "PUSH_ON_SUCCESS"
+
+// ExportsBuildNumber is the current build number
+const ExportsBuildNumber = acrBuildPrefix + "NUMBER"
+
+// ExportsBuildTimestamp is the timestamp when the build started in ISO format
+const ExportsBuildTimestamp = acrBuildPrefix + "TIMESTAMP"

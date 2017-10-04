@@ -1,4 +1,4 @@
-package builder
+package build
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/Azure/acr-builder/pkg/constants"
 
@@ -86,6 +87,7 @@ func TestDependenciesTaskError(t *testing.T) {
 
 func testDependencies(t *testing.T, tc dependenciesTestCase) {
 	runner := new(test_domain.MockRunner)
+	defer runner.AssertExpectations(t)
 	runner.UseDefaultFileSystem()
 	buildTarget := new(test_domain.MockBuildTarget)
 	buildTarget.On("ScanForDependencies", runner).Return(tc.new, tc.err).Once()
@@ -137,9 +139,9 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 		},
 		creds: []dockerCredsParameters{
 			{expectedEnv: []string{
-				"ACR_BUILD_BUILD_NUMBER=TestCompileHappy-01",
-				"ACR_BUILD_DOCKER_REGISTRY=TestCompileHappy.azurecr.io",
-				"ACR_BUILD_PUSH_ON_SUCCESS=" + strconv.FormatBool(push),
+				constants.ExportsBuildNumber + "=TestCompileHappy-01",
+				constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
+				constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 				"k1=" + gen.Lookup("k1"),
 				"k2=" + gen.Lookup("k2"),
 			}},
@@ -152,9 +154,9 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 					{Name: "s1.2", Value: gen.NextWithKey("s1.2")},
 				},
 				expectedEnv: []string{
-					"ACR_BUILD_BUILD_NUMBER=TestCompileHappy-01",
-					"ACR_BUILD_DOCKER_REGISTRY=TestCompileHappy.azurecr.io",
-					"ACR_BUILD_PUSH_ON_SUCCESS=" + strconv.FormatBool(push),
+					constants.ExportsBuildNumber + "=TestCompileHappy-01",
+					constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
+					constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 					"k1=" + gen.Lookup("k1"),
 					"k2=" + gen.Lookup("k2"),
 					"s1.1=" + gen.Lookup("s1.1"),
@@ -167,9 +169,9 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 							{Name: "b1.1.2", Value: gen.NextWithKey("b1.1.2")},
 						},
 						expectedEnv: []string{
-							"ACR_BUILD_BUILD_NUMBER=TestCompileHappy-01",
-							"ACR_BUILD_DOCKER_REGISTRY=TestCompileHappy.azurecr.io",
-							"ACR_BUILD_PUSH_ON_SUCCESS=" + strconv.FormatBool(push),
+							constants.ExportsBuildNumber + "=TestCompileHappy-01",
+							constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
+							constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 							"k1=" + gen.Lookup("k1"),
 							"k2=" + gen.Lookup("k2"),
 							"s1.1=" + gen.Lookup("s1.1"),
@@ -184,9 +186,9 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 							{Name: "b1.2.2", Value: gen.NextWithKey("b1.2.2")},
 						},
 						expectedEnv: []string{
-							"ACR_BUILD_BUILD_NUMBER=TestCompileHappy-01",
-							"ACR_BUILD_DOCKER_REGISTRY=TestCompileHappy.azurecr.io",
-							"ACR_BUILD_PUSH_ON_SUCCESS=" + strconv.FormatBool(push),
+							constants.ExportsBuildNumber + "=TestCompileHappy-01",
+							constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
+							constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 							"k1=" + gen.Lookup("k1"),
 							"k2=" + gen.Lookup("k2"),
 							"s1.1=" + gen.Lookup("s1.1"),
@@ -203,9 +205,9 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 					{Name: "s2.2", Value: gen.NextWithKey("s2.2")},
 				},
 				expectedEnv: []string{
-					"ACR_BUILD_BUILD_NUMBER=TestCompileHappy-01",
-					"ACR_BUILD_DOCKER_REGISTRY=TestCompileHappy.azurecr.io",
-					"ACR_BUILD_PUSH_ON_SUCCESS=" + strconv.FormatBool(push),
+					constants.ExportsBuildNumber + "=TestCompileHappy-01",
+					constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
+					constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 					"k1=" + gen.Lookup("k1"),
 					"k2=" + gen.Lookup("k2"),
 					"s2.1=" + gen.Lookup("s2.1"),
@@ -218,9 +220,9 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 							{Name: "b2.1.2", Value: gen.NextWithKey("b2.1.2")},
 						},
 						expectedEnv: []string{
-							"ACR_BUILD_BUILD_NUMBER=TestCompileHappy-01",
-							"ACR_BUILD_DOCKER_REGISTRY=TestCompileHappy.azurecr.io",
-							"ACR_BUILD_PUSH_ON_SUCCESS=" + strconv.FormatBool(push),
+							constants.ExportsBuildNumber + "=TestCompileHappy-01",
+							constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
+							constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 							"k1=" + gen.Lookup("k1"),
 							"k2=" + gen.Lookup("k2"),
 							"s2.1=" + gen.Lookup("s2.1"),
@@ -308,9 +310,20 @@ func verifyContext(t *testing.T, call *mock.Call, expected []string, rtn error) 
 
 func assertSameContext(t *testing.T, expected []string, actual *domain.BuilderContext) {
 	actualEnv := map[string]bool{}
+	timeStampFound := false
 	for _, entry := range actual.Export() {
-		actualEnv[entry] = true
+		k, v, err := parseAssignment(entry)
+		assert.Nil(t, err)
+		if k == constants.ExportsBuildTimestamp {
+			timeStampFound = true
+			buildTime, err := time.Parse(buildTimestampFormat, v)
+			assert.Nil(t, err, "Build time format incorrect")
+			assert.WithinDuration(t, time.Now(), buildTime, time.Second*1)
+		} else {
+			actualEnv[entry] = true
+		}
 	}
+	assert.True(t, timeStampFound)
 	expectedButNotFound := []string{}
 	for _, entry := range expected {
 		if actualEnv[entry] {
@@ -575,7 +588,8 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 	fs := runner.GetFileSystem().(*test_domain.MockFileSystem)
 	fs.PrepareFileSystem(tc.files)
 	defer fs.AssertExpectations(t)
-	req, err := createBuildRequest(runner, tc.composeFile, tc.composeProjectDir,
+	builder := NewBuilder(runner)
+	req, err := builder.createBuildRequest(tc.composeFile, tc.composeProjectDir,
 		tc.dockerfile, tc.dockerImage, tc.dockerContextDir,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
 		tc.gitURL, tc.gitCloneDir, tc.gitBranch, tc.gitHeadRev,
@@ -590,3 +604,24 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 		assert.Equal(t, tc.expected, *req)
 	}
 }
+
+// func TestRunSimpleHappy(t *testing.T) {
+// 	runner := test_domain.NewMockRunner()
+// 	defer runner.AssertExpectations(t)
+// 	runner.UseDefaultFileSystem()
+// 	runner.PrepareCommandExpectation([]test_domain.CommandsExpectation{
+// 		{
+// 			Command: "docker",
+// 			Args:    []string{},
+// 		},
+// 	})
+// 	builder := NewBuilder(runner)
+// 	dependencies, err := builder.Run(
+// 		"buildNum-0", "", "", "", "", "", "", "", "debug-registry", "", "", "", "", "", "", "",
+// 		filepath.Join("..", "..", "tests", "resources", "docker-compose"), nil, nil, false,
+// 	)
+// 	testutils.AssertSameDependencies(t,
+// 		[]domain.ImageDependencies{testutils.MultistageExampleDependencies, testutils.HelloNodeExampleDependencies},
+// 		dependencies)
+// 	assert.Nil(t, err)
+// }

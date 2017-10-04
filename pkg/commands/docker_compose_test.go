@@ -139,7 +139,7 @@ func TestComposeBuildTaskExport(t *testing.T) {
 	exports := NewDockerComposeBuild("path", "project", []string{}).Export()
 	assert.Equal(t, []domain.EnvVar{
 		{
-			Name:  constants.DockerComposeFileVar,
+			Name:  constants.ExportsDockerComposeFile,
 			Value: "path",
 		},
 	}, exports)

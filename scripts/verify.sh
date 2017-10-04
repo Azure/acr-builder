@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-## TODO: chmod me!!!
-
 echo "Running Static Analysis tools..."
 
 echo "Running GoVet..."
@@ -15,9 +13,9 @@ echo "Running MegaCheck..."
 megacheck $(go list ./... | grep -v /vendor/)
 
 echo "Running golint..."
-golint -set_exit_status $(go list ./... | grep -v '/vendor/' | grep -v '/mocks/' | grep -v '/constants')
+golint -set_exit_status $(go list ./... | grep -v '/vendor/' | grep -v '/tests/')
 
 echo "Running tests..."
-go test -cover $(go list ./... | grep -v /vendor/ | grep -v '/tests/' | grep -v '/constants')
+go test -cover $(go list ./... | grep -v /vendor/ | grep -v '/tests/')
 
 echo "Verification successful"

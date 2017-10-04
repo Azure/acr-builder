@@ -31,7 +31,7 @@ func (s *localSource) Export() []domain.EnvVar {
 	exports := []domain.EnvVar{}
 	if s.dir != "" {
 		exports = append(exports, domain.EnvVar{
-			Name:  constants.CheckoutDirVar,
+			Name:  constants.ExportsCheckoutDir,
 			Value: s.dir,
 		})
 	}

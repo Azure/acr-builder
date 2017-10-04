@@ -32,14 +32,6 @@ var stockImgDependencies2 = []domain.ImageDependencies{
 	},
 }
 
-var stockImgDependencies3 = []domain.ImageDependencies{
-	{
-		Image:             "img3",
-		RuntimeDependency: "run3",
-		BuildDependencies: []string{"build3", "build3.1"},
-	},
-}
-
 type uniqueContextGenerator struct {
 	counter int
 }

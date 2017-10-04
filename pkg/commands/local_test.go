@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/domain"
 	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
 	testutils "github.com/Azure/acr-builder/tests/testCommon"
@@ -33,7 +34,7 @@ func TestLocalSourceParamHappy(t *testing.T) {
 		},
 		getWdErr: &testutils.NilError,
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_CHECKOUT_DIR", Value: "proj"},
+			{Name: constants.ExportsCheckoutDir, Value: "proj"},
 		}})
 }
 
@@ -43,7 +44,7 @@ func TestLocalSourceGetWdErr(t *testing.T) {
 		path:     "proj",
 		getWdErr: &getwdErr,
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_CHECKOUT_DIR", Value: "proj"},
+			{Name: constants.ExportsCheckoutDir, Value: "proj"},
 		},
 		expectedErr: "^Failed to get wd$",
 	})

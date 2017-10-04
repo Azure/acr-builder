@@ -1,13 +1,13 @@
-package builder
+package build
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/Azure/acr-builder/pkg/shell"
 	"github.com/Azure/acr-builder/pkg/workflow"
 
 	"github.com/Azure/acr-builder/pkg/commands"
@@ -15,8 +15,20 @@ import (
 	"github.com/Azure/acr-builder/pkg/domain"
 )
 
+const buildTimestampFormat = time.RFC3339
+
+// Builder is our main builder
+type Builder struct {
+	runner domain.Runner
+}
+
+// NewBuilder creates a builder
+func NewBuilder(runner domain.Runner) *Builder {
+	return &Builder{runner: runner}
+}
+
 // Run is the main body of the acr-builder
-func Run(buildNumber, composeFile, composeProjectDir,
+func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 	dockerfile, dockerImage, dockerContextDir,
 	dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
 	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
@@ -27,8 +39,7 @@ func Run(buildNumber, composeFile, composeProjectDir,
 		return nil, err
 	}
 
-	runner := shell.NewRunner()
-	request, err := createBuildRequest(runner, composeFile, composeProjectDir,
+	request, err := b.createBuildRequest(composeFile, composeProjectDir,
 		dockerfile, dockerImage, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
 		gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource,
@@ -39,11 +50,11 @@ func Run(buildNumber, composeFile, composeProjectDir,
 	}
 
 	buildWorkflow := compile(buildNumber, dockerRegistry, userDefined, request, push)
-	err = buildWorkflow.Run(runner)
+	err = buildWorkflow.Run(b.runner)
 	return buildWorkflow.GetOutputs().ImageDependencies, err
 }
 
-func createBuildRequest(runner domain.Runner, composeFile, composeProjectDir,
+func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 	dockerfile, dockerImage, dockerContextDir,
 	dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
 	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
@@ -89,7 +100,8 @@ func createBuildRequest(runner domain.Runner, composeFile, composeProjectDir,
 		// composeFile is not specified, maybe we should try dockerfile... unless we found the default docker-compose.y(a)ml
 		defaultComposeFileFound := false
 		if dockerfile == "" {
-			composeFile, err := commands.FindDefaultDockerComposeFile(runner)
+			// ISSUES: without source being obtained, we are not in the correct directory for scanning default compose file
+			composeFile, err := commands.FindDefaultDockerComposeFile(b.runner)
 			if err != nil && err != commands.ErrNoDefaultDockerfile {
 				// Note: do we really exit here? What does it mean when there's an error checking docker-compose file?
 				return nil, err
@@ -175,9 +187,10 @@ func compile(buildNumber, dockerRegistry string,
 
 	w := workflow.NewWorkflow()
 	rootContext := domain.NewContext(userDefined, []domain.EnvVar{
-		{Name: constants.BuildNumberVar, Value: buildNumber},
-		{Name: constants.DockerRegistryVar, Value: dockerRegistry},
-		{Name: constants.PushOnSuccessVar, Value: strconv.FormatBool(push)}})
+		{Name: constants.ExportsBuildNumber, Value: buildNumber},
+		{Name: constants.ExportsBuildTimestamp, Value: time.Now().UTC().Format(buildTimestampFormat)},
+		{Name: constants.ExportsDockerRegistry, Value: dockerRegistry},
+		{Name: constants.ExportsPushOnSuccess, Value: strconv.FormatBool(push)}})
 
 	for _, auth := range request.DockerCredentials {
 		w.ScheduleRun(rootContext, auth.Authenticate)

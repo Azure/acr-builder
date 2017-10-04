@@ -9,9 +9,12 @@ import (
 )
 
 func TestAppendContext(t *testing.T) {
-	os.Setenv("TestAppendContext1", "TestAppendContext.Value1")
-	os.Setenv("TestAppendContext2", "TestAppendContext.Value2")
-	os.Setenv("TestAppendContextDNE", "")
+	err := os.Setenv("TestAppendContext1", "TestAppendContext.Value1")
+	assert.Nil(t, err)
+	err = os.Setenv("TestAppendContext2", "TestAppendContext.Value2")
+	assert.Nil(t, err)
+	err = os.Setenv("TestAppendContextDNE", "")
+	assert.Nil(t, err)
 
 	userDefined := []EnvVar{
 		{

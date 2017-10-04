@@ -26,7 +26,10 @@ func init() {
 func TestChdir(t *testing.T) {
 	pwd, err := os.Getwd()
 	assert.Nil(t, err)
-	defer os.Chdir(pwd)
+	defer func() {
+		err := os.Chdir(pwd)
+		assert.Nil(t, err)
+	}()
 	err = fs.Chdir("..")
 	assert.Nil(t, err)
 	parent := filepath.Dir(pwd)
@@ -50,7 +53,10 @@ func TestIsDirEmpty(t *testing.T) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			err := os.Mkdir(emptyDirPathResolved, 0x777)
-			defer os.Remove(emptyDirPathResolved)
+			defer func() {
+				err := os.Remove(emptyDirPathResolved)
+				assert.Nil(t, err)
+			}()
 			if err != nil {
 				t.Errorf("Failed to create %s, test cannot continue", emptyDirPathResolved)
 				t.Fail()

@@ -119,15 +119,15 @@ func (t *dockerBuildTask) Build(runner domain.Runner) error {
 func (t *dockerBuildTask) Export() []domain.EnvVar {
 	return []domain.EnvVar{
 		{
-			Name:  constants.DockerfilePathVar,
+			Name:  constants.ExportsDockerfilePath,
 			Value: t.dockerfile,
 		},
 		{
-			Name:  constants.DockerBuildContextVar,
+			Name:  constants.ExportsDockerBuildContext,
 			Value: t.contextDir,
 		},
 		{
-			Name:  constants.DockerPushImageVar,
+			Name:  constants.ExportsDockerPushImage,
 			Value: t.pushTo,
 		},
 	}

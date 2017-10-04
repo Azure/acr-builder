@@ -14,21 +14,6 @@ var DockerComposeSupportedFilenames = []string{
 	"docker-compose.yaml",
 }
 
-// NewDockerComposeBuild creates a build target with defined docker-compose file
-func NewDockerComposeBuild(path, projectDir string, buildArgs []string) domain.BuildTarget {
-	return &dockerComposeBuildTask{
-		path:             path,
-		projectDirectory: projectDir,
-		buildArgs:        buildArgs,
-	}
-}
-
-type dockerComposeBuildTask struct {
-	path             string
-	projectDirectory string
-	buildArgs        []string
-}
-
 // ErrNoDefaultDockerfile means that no default docker file is found when running FindDefaultDockerComposeFile
 var ErrNoDefaultDockerfile = fmt.Errorf("No default docker-compose file found")
 
@@ -45,6 +30,21 @@ func FindDefaultDockerComposeFile(runner domain.Runner) (string, error) {
 		}
 	}
 	return "", ErrNoDefaultDockerfile
+}
+
+// NewDockerComposeBuild creates a build target with defined docker-compose file
+func NewDockerComposeBuild(path, projectDir string, buildArgs []string) domain.BuildTarget {
+	return &dockerComposeBuildTask{
+		path:             path,
+		projectDirectory: projectDir,
+		buildArgs:        buildArgs,
+	}
+}
+
+type dockerComposeBuildTask struct {
+	path             string
+	projectDirectory string
+	buildArgs        []string
 }
 
 func (t *dockerComposeBuildTask) ScanForDependencies(runner domain.Runner) ([]domain.ImageDependencies, error) {
@@ -83,7 +83,7 @@ func (t *dockerComposeBuildTask) Build(runner domain.Runner) error {
 func (t *dockerComposeBuildTask) Export() []domain.EnvVar {
 	return []domain.EnvVar{
 		{
-			Name:  constants.DockerComposeFileVar,
+			Name:  constants.ExportsDockerComposeFile,
 			Value: t.path,
 		},
 	}

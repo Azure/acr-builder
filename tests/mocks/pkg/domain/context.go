@@ -34,7 +34,7 @@ func (m *MockRunner) SetFileSystem(fs pkg_domain.FileSystem) {
 }
 
 func (m *MockRunner) UseDefaultFileSystem() {
-	m.fs = &pkg_domain.BuildContextAwareFileSystem{}
+	m.fs = pkg_domain.NewBuildContextAwareFileSystem(m.context)
 }
 
 func (m *MockRunner) SetContext(context *pkg_domain.BuilderContext) {

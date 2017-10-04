@@ -59,10 +59,10 @@ func TestXTokenFreshClone(t *testing.T) {
 			},
 		},
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_AUTH_TYPE", Value: "Git X Token"},
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "https://github.com/org/address.git"},
-			{Name: "ACR_BUILD_CHECKOUT_DIR", Value: "target_dir"},
-			{Name: "ACR_BUILD_GIT_BRANCH", Value: "git_branch"},
+			{Name: constants.ExportsGitAuthType, Value: "Git X Token"},
+			{Name: constants.ExportsGitSource, Value: "https://github.com/org/address.git"},
+			{Name: constants.ExportsCheckoutDir, Value: "target_dir"},
+			{Name: constants.ExportsGitBranch, Value: "git_branch"},
 		},
 	})
 }
@@ -104,11 +104,11 @@ func TestPATokenRefreshSuccessButFailedToReturn(t *testing.T) {
 			},
 		},
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_AUTH_TYPE", Value: "Git Personal Access Token"},
-			{Name: "ACR_BUILD_GIT_USER", Value: "user"},
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "https://github.com/org/address.git"},
-			{Name: "ACR_BUILD_CHECKOUT_DIR", Value: "target_dir"},
-			{Name: "ACR_BUILD_GIT_HEAD_REV", Value: "git_head_rev"},
+			{Name: constants.ExportsGitAuthType, Value: "Git Personal Access Token"},
+			{Name: constants.ExportsGitUser, Value: "user"},
+			{Name: constants.ExportsGitSource, Value: "https://github.com/org/address.git"},
+			{Name: constants.ExportsCheckoutDir, Value: "target_dir"},
+			{Name: constants.ExportsGitHeadRev, Value: "git_head_rev"},
 		},
 		expectedReturnErr: "^Error switching back$",
 	})
@@ -128,8 +128,8 @@ func TestNoAuthHappyClone(t *testing.T) {
 			},
 		},
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "test_address"},
-			{Name: "ACR_BUILD_GIT_BRANCH", Value: "git_branch"},
+			{Name: constants.ExportsGitSource, Value: "test_address"},
+			{Name: constants.ExportsGitBranch, Value: "git_branch"},
 		},
 	})
 }
@@ -165,8 +165,8 @@ func TestNoAuthHappyCheckout(t *testing.T) {
 			},
 		},
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "test_address"},
-			{Name: "ACR_BUILD_GIT_BRANCH", Value: "git_branch"},
+			{Name: constants.ExportsGitSource, Value: "test_address"},
+			{Name: constants.ExportsGitBranch, Value: "git_branch"},
 		},
 	})
 }
@@ -190,8 +190,8 @@ func TestNoAuthCloneWithHeadRevFailed(t *testing.T) {
 			},
 		},
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "test_address"},
-			{Name: "ACR_BUILD_GIT_HEAD_REV", Value: "git_head_rev"},
+			{Name: constants.ExportsGitSource, Value: "test_address"},
+			{Name: constants.ExportsGitHeadRev, Value: "git_head_rev"},
 		},
 		expectedErr: "^Failed checkout revision: git_head_rev, error: some err$",
 	})
@@ -205,9 +205,9 @@ func TestNoAuthCloneFailedToFindTargetDir(t *testing.T) {
 		expectedFSAccess: make(test_domain.FileSystemExpectations, 0).
 			AssertDirExists("target_dir", false, fmt.Errorf("Some lstat error")),
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "test_address"},
-			{Name: "ACR_BUILD_GIT_HEAD_REV", Value: "git_head_rev"},
-			{Name: "ACR_BUILD_CHECKOUT_DIR", Value: "target_dir"},
+			{Name: constants.ExportsGitSource, Value: "test_address"},
+			{Name: constants.ExportsGitHeadRev, Value: "git_head_rev"},
+			{Name: constants.ExportsCheckoutDir, Value: "target_dir"},
 		},
 		expectedErr: "^Error checking for source dir: target_dir, error: Some lstat error$",
 	})
@@ -221,9 +221,9 @@ func TestNoAuthCloneFailedToCheckTargetDirEmpty(t *testing.T) {
 		expectedFSAccess: make(test_domain.FileSystemExpectations, 0).
 			AssertIsDirEmpty("target_dir", false, fmt.Errorf("some io error")),
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "test_address"},
-			{Name: "ACR_BUILD_GIT_HEAD_REV", Value: "git_head_rev"},
-			{Name: "ACR_BUILD_CHECKOUT_DIR", Value: "target_dir"},
+			{Name: constants.ExportsGitSource, Value: "test_address"},
+			{Name: constants.ExportsGitHeadRev, Value: "git_head_rev"},
+			{Name: constants.ExportsCheckoutDir, Value: "target_dir"},
 		},
 		expectedErr: "^Error checking if source dir is empty: target_dir, error: some io error$",
 	})
@@ -251,9 +251,9 @@ func TestNoTokenChdirFailedAfterClone(t *testing.T) {
 			},
 		},
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "test_address"},
-			{Name: "ACR_BUILD_GIT_BRANCH", Value: "git_branch"},
-			{Name: "ACR_BUILD_CHECKOUT_DIR", Value: "target_dir"},
+			{Name: constants.ExportsGitSource, Value: "test_address"},
+			{Name: constants.ExportsGitBranch, Value: "git_branch"},
+			{Name: constants.ExportsCheckoutDir, Value: "target_dir"},
 		},
 		expectedErr: "^failed to chdir$",
 	})
@@ -274,9 +274,9 @@ func TestNoTokenChdirFailedBeforeRefresh(t *testing.T) {
 			},
 		},
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "test_address"},
-			{Name: "ACR_BUILD_GIT_BRANCH", Value: "git_branch"},
-			{Name: "ACR_BUILD_CHECKOUT_DIR", Value: "target_dir"},
+			{Name: constants.ExportsGitSource, Value: "test_address"},
+			{Name: constants.ExportsGitBranch, Value: "git_branch"},
+			{Name: constants.ExportsCheckoutDir, Value: "target_dir"},
 		},
 		expectedErr: "^failed to chdir$",
 	})
@@ -303,9 +303,9 @@ func TestNoTokenChdirFailedToClean(t *testing.T) {
 			},
 		},
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "test_address"},
-			{Name: "ACR_BUILD_GIT_BRANCH", Value: "git_branch"},
-			{Name: "ACR_BUILD_CHECKOUT_DIR", Value: "target_dir"},
+			{Name: constants.ExportsGitSource, Value: "test_address"},
+			{Name: constants.ExportsGitBranch, Value: "git_branch"},
+			{Name: constants.ExportsCheckoutDir, Value: "target_dir"},
 		},
 		expectedErr: "^Failed to clean repository: failed to clean$",
 	})
@@ -341,9 +341,9 @@ func TestNoTokenChdirFailedToCheckout(t *testing.T) {
 			},
 		},
 		expectedEnv: []domain.EnvVar{
-			{Name: "ACR_BUILD_GIT_SOURCE", Value: "test_address"},
-			{Name: "ACR_BUILD_GIT_BRANCH", Value: "git_branch"},
-			{Name: "ACR_BUILD_CHECKOUT_DIR", Value: "target_dir"},
+			{Name: constants.ExportsGitSource, Value: "test_address"},
+			{Name: constants.ExportsGitBranch, Value: "git_branch"},
+			{Name: constants.ExportsCheckoutDir, Value: "target_dir"},
 		},
 		expectedErr: "^Failed to clean fetch from remote: test_address, error: some network issue$",
 	})
