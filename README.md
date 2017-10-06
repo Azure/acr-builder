@@ -1,12 +1,16 @@
 ## ACR builder
 
 #### Build
-Run `docker build`
+
+Run `docker build --rm -t acr-builder .`. Note that acr-builder is intended to be used as a docker image.
 
 #### Usage
 
-TODO: add examples
+##### Example
 
+This project can be built using acr-builder itself, assuming you have run a valid acr builder image named `acr-builder`, running
+`./scripts/run.sh --docker-image acr-builder`
+Will rebuild the acr-docker image
 
 ##### Required Parameters
 `--docker-registry` Docker registry to push to. This parameter will populate the `ACR_BUILD_DOCKER_REGISTRY` reserved environment variable (see `Build Environment`)<br />

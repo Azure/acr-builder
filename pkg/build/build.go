@@ -49,7 +49,7 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 		return nil, err
 	}
 
-	buildWorkflow := compile(buildNumber, dockerRegistry, userDefined, request, push)
+	buildWorkflow := compileWorkflow(buildNumber, dockerRegistry, userDefined, request, push)
 	err = buildWorkflow.Run(b.runner)
 	return buildWorkflow.GetOutputs().ImageDependencies, err
 }
@@ -95,35 +95,34 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 		source.Source = commands.NewLocalSource(localSource)
 	}
 
+	// The following code block tries to determine which kind of build task to include
+	// Note: consider the following case
+	// (composeFile == "" && dockerImage == "" && dockerfile == "" && push == false)
+	// The only way for us to determine whether docker or docker-compose needs to be used
+	// is the scan in the source code. Existence of the source cannot be assume exist until
+	// the workflow checks out the source
+	// Currently the code will actually defaults to docker-compose task and try to proceed
 	var build domain.BuildTarget
-	if composeFile == "" {
-		// composeFile is not specified, maybe we should try dockerfile... unless we found the default docker-compose.y(a)ml
-		defaultComposeFileFound := false
+	if dockerImage != "" || dockerfile != "" {
 		if dockerfile == "" {
-			// ISSUES: without source being obtained, we are not in the correct directory for scanning default compose file
-			composeFile, err := commands.FindDefaultDockerComposeFile(b.runner)
-			if err != nil && err != commands.ErrNoDefaultDockerfile {
-				// Note: do we really exit here? What does it mean when there's an error checking docker-compose file?
-				return nil, err
-			}
-			defaultComposeFileFound = (composeFile != "")
+			logrus.Infof("Docker image is defined, dockerfile will be used for building")
 		}
-		if !defaultComposeFileFound {
-			if composeProjectDir != "" {
-				return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
-			}
-			var err error
-			build, err = commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, push, dockerRegistry, dockerImage)
-			if err != nil {
-				return nil, err
-			}
+		if composeProjectDir != "" {
+			return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
+		}
+		var err error
+		build, err = commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, push, dockerRegistry, dockerImage)
+		if err != nil {
+			return nil, err
 		}
 	}
 
+	// Use docker-compose as default
 	if build == nil {
 		if composeFile == "" {
-			logrus.Debugf("No dockerfile is provided, using docker-compose as default")
+			logrus.Infof("No dockerfile is provided as parameter, using docker-compose as default")
 		}
+		// sure, dockerfile and dockerImage shouldn't be empty here but it's just here for correctness
 		if dockerfile != "" || dockerImage != "" || dockerContextDir != "" {
 			return nil, fmt.Errorf("Parameters --%s, --%s, %s cannot be used in docker-compose scenario",
 				constants.ArgNameDockerfile, constants.ArgNameDockerImage, constants.ArgNameDockerContextDir)
@@ -181,10 +180,11 @@ type pushItem struct {
 	push    workflow.RunningTask
 }
 
-// compile takes a build request and populate it into workflow
-func compile(buildNumber, dockerRegistry string,
+// compileWorkflow takes a build request and populate it into workflow
+func compileWorkflow(buildNumber, dockerRegistry string,
 	userDefined []domain.EnvVar, request *domain.BuildRequest, push bool) *workflow.Workflow {
 
+	// create a workflow with root context with default variables
 	w := workflow.NewWorkflow()
 	rootContext := domain.NewContext(userDefined, []domain.EnvVar{
 		{Name: constants.ExportsBuildNumber, Value: buildNumber},
@@ -192,20 +192,30 @@ func compile(buildNumber, dockerRegistry string,
 		{Name: constants.ExportsDockerRegistry, Value: dockerRegistry},
 		{Name: constants.ExportsPushOnSuccess, Value: strconv.FormatBool(push)}})
 
+	// schedule docker authentications
 	for _, auth := range request.DockerCredentials {
 		w.ScheduleRun(rootContext, auth.Authenticate)
 	}
 
+	// push tasks (if any) will be put into an array and be added later
+	// because pushes need to be run at the end when all builds succeeds
 	pushItems := []pushItem{}
+
+	// iterate through the source targets
 	for _, sourceTarget := range request.Targets {
 		source := sourceTarget.Source
 		sourceContext := rootContext.Append(source.Export())
+		// schedule obtaining the source
 		w.ScheduleRun(sourceContext, source.Obtain)
+
+		// iterate through builds in the source
 		for _, build := range sourceTarget.Builds {
 			buildContext := sourceContext.Append(build.Export())
+			// schedule evaluations of dependencies
 			w.ScheduleEvaluation(buildContext, dependencyTask(build))
+			// schedule the build tasks
 			w.ScheduleRun(buildContext, build.Build)
-			// if push is enabled, add them last
+			// if push is enabled, add them to an array to be added last
 			if push {
 				pushItems = append(pushItems, pushItem{
 					context: buildContext,
@@ -213,9 +223,12 @@ func compile(buildNumber, dockerRegistry string,
 				})
 			}
 		}
+
+		// schedule the source return task
 		w.ScheduleRun(sourceContext, source.Return)
 	}
 
+	// add the push tasks if there's any
 	for _, item := range pushItems {
 		w.ScheduleRun(item.context, item.push)
 	}

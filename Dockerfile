@@ -1,18 +1,27 @@
-FROM golang:1.9.0-alpine3.6 as build
-
-RUN apk add --update --no-cache \
-        openssl \
-        ca-certificates \
-        file \
-        curl
+FROM golang:1.9.0-stretch as build
 
 ENV docker_compose_version 1.15.0
 RUN curl -L --fail https://github.com/docker/compose/releases/download/$docker_compose_version/run.sh -o /usr/local/bin/docker-compose &&\
-    chmod +x /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose &&\
+    go get -u github.com/kisielk/errcheck &&\
+    go get -u honnef.co/go/tools/cmd/megacheck &&\
+    go get -u github.com/golang/lint/golint
 
 WORKDIR /go/src/github.com/Azure/acr-builder
 COPY ./ /go/src/github.com/Azure/acr-builder
-RUN GOOS=linux GOARCH=amd64 go build
+RUN echo "Running Static Analysis tools..." &&\
+    echo "Running GoVet..." &&\
+    go vet $(go list ./... | grep -v /vendor/) &&\
+    echo "Running ErrCheck..." &&\
+    errcheck $(go list ./... | grep -v /vendor/) &&\
+    echo "Running MegaCheck..." &&\
+    megacheck $(go list ./... | grep -v /vendor/) &&\
+    echo "Running golint..." &&\
+    golint -set_exit_status $(go list ./... | grep -v '/vendor/' | grep -v '/tests/') &&\
+    echo "Running tests..." &&\
+    go test -cover $(go list ./... | grep -v /vendor/ | grep -v '/tests/') &&\
+    echo "Verification successful, building binaries..." &&\
+    GOOS=linux GOARCH=amd64 go build
 
 FROM docker:17.06.0-ce as output
 RUN apk add --update --no-cache \

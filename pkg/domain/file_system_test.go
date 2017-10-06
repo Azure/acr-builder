@@ -19,7 +19,7 @@ func init() {
 		{Name: "resource_root", Value: filepath.Join("..", "..", "tests", "resources")},
 		{Name: "docker_compose_project", Value: filepath.Join("${resource_root}", "docker-compose")},
 	}, []EnvVar{})
-	fs = &BuildContextAwareFileSystem{}
+	fs = NewBuildContextAwareFileSystem(&BuilderContext{})
 	fs.SetContext(sharedContext)
 }
 
@@ -33,7 +33,7 @@ func TestChdir(t *testing.T) {
 	err = fs.Chdir("..")
 	assert.Nil(t, err)
 	parent := filepath.Dir(pwd)
-	newWD, err := os.Getwd()
+	newWD, err := fs.Getwd()
 	assert.Nil(t, err)
 	assert.Equal(t, parent, newWD)
 }

@@ -7,12 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/domain"
 	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
 	testutils "github.com/Azure/acr-builder/tests/testCommon"
+	"github.com/stretchr/testify/assert"
 )
 
 type composeTestCase struct {

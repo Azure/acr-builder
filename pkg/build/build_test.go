@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -287,7 +288,7 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 		}
 		req.Targets = append(req.Targets, target)
 	}
-	workflow := compile(tc.buildNumber, tc.registry, tc.userDefined, req, tc.push)
+	workflow := compileWorkflow(tc.buildNumber, tc.registry, tc.userDefined, req, tc.push)
 	err := workflow.Run(runner)
 	assert.Nil(t, err)
 	outputs := workflow.GetOutputs()
@@ -425,7 +426,6 @@ func TestCreateBuildRequestNoParams(t *testing.T) {
 				},
 			},
 		},
-		files: make(test_domain.FileSystemExpectations, 0).AssertFileExists(commands.DockerComposeSupportedFilenames[0], true, nil),
 	})
 }
 
@@ -547,21 +547,20 @@ func TestCreateBuildRequestNoGitURL(t *testing.T) {
 	})
 }
 
-func TestCreateBuildRequestErrorFindingDockerComposeFile(t *testing.T) {
+func TestCreateBuildRequestDockerImageDefinedConflictingParameters(t *testing.T) {
 	testCreateBuildRequest(t, createBuildRequestTestCase{
-		files: make(test_domain.FileSystemExpectations, 0).
-			AssertFileExists(commands.DockerComposeSupportedFilenames[0], false, fmt.Errorf("boom")),
-		expectedError: "^Unexpected error while checking for default docker compose file: boom$",
+		dockerImage:       "someImage",
+		composeProjectDir: "some.compose.dir",
+		expectedError:     fmt.Sprintf("^Parameter --%s cannot be used for dockerfile build scenario$", constants.ArgNameDockerComposeProjectDir),
 	})
 }
 
-func TestCreateBuildRequestDockfileConflictingParameters(t *testing.T) {
+func TestCreateBuildRequestDockerComposeConflictingParameters(t *testing.T) {
 	testCreateBuildRequest(t, createBuildRequestTestCase{
-		composeProjectDir: "some.compose.dir",
-		files: make(test_domain.FileSystemExpectations, 0).
-			AssertFileExists(commands.DockerComposeSupportedFilenames[0], false, nil).
-			AssertFileExists(commands.DockerComposeSupportedFilenames[1], false, nil),
-		expectedError: fmt.Sprintf("^Parameter --%s cannot be used for dockerfile build scenario$", constants.ArgNameDockerComposeProjectDir),
+		composeFile:      "docker-compose.yml",
+		dockerContextDir: "some.dir",
+		expectedError: fmt.Sprintf("Parameters --%s, --%s, %s cannot be used in docker-compose scenario",
+			constants.ArgNameDockerfile, constants.ArgNameDockerImage, constants.ArgNameDockerContextDir),
 	})
 }
 
@@ -570,15 +569,6 @@ func TestCreateBuildRequestDockerBuildCreationError(t *testing.T) {
 		dockerfile:    "some.dockerfile",
 		push:          true,
 		expectedError: fmt.Sprintf("^When building with dockerfile, docker image name --%s is required for pushing$", constants.ArgNameDockerImage),
-	})
-}
-
-func TestCreateBuildRequestComposeFileConflictingParameters(t *testing.T) {
-	testCreateBuildRequest(t, createBuildRequestTestCase{
-		composeFile: "some.compose.file",
-		dockerImage: "some.docker.image",
-		expectedError: fmt.Sprintf("^Parameters --%s, --%s, %s cannot be used in docker-compose scenario$",
-			constants.ArgNameDockerfile, constants.ArgNameDockerImage, constants.ArgNameDockerContextDir),
 	})
 }
 
@@ -605,23 +595,82 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 	}
 }
 
-// func TestRunSimpleHappy(t *testing.T) {
-// 	runner := test_domain.NewMockRunner()
-// 	defer runner.AssertExpectations(t)
-// 	runner.UseDefaultFileSystem()
-// 	runner.PrepareCommandExpectation([]test_domain.CommandsExpectation{
-// 		{
-// 			Command: "docker",
-// 			Args:    []string{},
-// 		},
-// 	})
-// 	builder := NewBuilder(runner)
-// 	dependencies, err := builder.Run(
-// 		"buildNum-0", "", "", "", "", "", "", "", "debug-registry", "", "", "", "", "", "", "",
-// 		filepath.Join("..", "..", "tests", "resources", "docker-compose"), nil, nil, false,
-// 	)
-// 	testutils.AssertSameDependencies(t,
-// 		[]domain.ImageDependencies{testutils.MultistageExampleDependencies, testutils.HelloNodeExampleDependencies},
-// 		dependencies)
-// 	assert.Nil(t, err)
-// }
+type runTestCase struct {
+	buildNumber          string
+	composeFile          string
+	composeProjectDir    string
+	dockerfile           string
+	dockerImage          string
+	dockerContextDir     string
+	dockerUser           string
+	dockerPW             string
+	dockerRegistry       string
+	gitURL               string
+	gitCloneDir          string
+	gitBranch            string
+	gitHeadRev           string
+	gitPATokenUser       string
+	gitPAToken           string
+	gitXToken            string
+	localSource          string
+	buildEnvs            []string
+	buildArgs            []string
+	push                 bool
+	expectedCommands     []test_domain.CommandsExpectation
+	expectedDependencies []domain.ImageDependencies
+	expectedErr          string
+}
+
+func TestRunSimpleHappy(t *testing.T) {
+	testRun(t, runTestCase{
+		buildNumber:    "buildNum-0",
+		dockerRegistry: "unit-tests",
+		localSource:    filepath.Join("..", "..", "tests", "resources", "docker-compose"),
+		expectedCommands: []test_domain.CommandsExpectation{
+			{
+				Command: "docker-compose",
+				Args:    []string{"build", "--pull"},
+			},
+		},
+		expectedDependencies: []domain.ImageDependencies{
+			testutils.MultistageExampleDependencies,
+			testutils.HelloNodeExampleDependencies,
+		},
+	})
+}
+
+func TestRunParseEnvFailed(t *testing.T) {
+	testRun(t, runTestCase{
+		buildEnvs:   []string{"*invalid=value"},
+		expectedErr: "^Invalid environmental variable name: \\*invalid$",
+	})
+}
+
+func TestCreateBuildRequestFailed(t *testing.T) {
+	testRun(t, runTestCase{
+		dockerUser: "someUser",
+		expectedErr: fmt.Sprintf("^Please provide both --%s and --%s or neither$",
+			constants.ArgNameDockerUser, constants.ArgNameDockerPW),
+	})
+}
+
+func testRun(t *testing.T, tc runTestCase) {
+	runner := test_domain.NewMockRunner()
+	defer runner.AssertExpectations(t)
+	runner.UseDefaultFileSystem()
+	runner.PrepareCommandExpectation(tc.expectedCommands)
+	builder := NewBuilder(runner)
+	dependencies, err := builder.Run(tc.buildNumber, tc.composeFile, tc.composeProjectDir,
+		tc.dockerfile, tc.dockerImage, tc.dockerContextDir,
+		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
+		tc.gitURL, tc.gitCloneDir, tc.gitBranch, tc.gitHeadRev,
+		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
+		tc.localSource, tc.buildEnvs, tc.buildArgs, tc.push)
+	if tc.expectedErr != "" {
+		assert.NotNil(t, err)
+		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
+	} else {
+		assert.Nil(t, err)
+		testutils.AssertSameDependencies(t, tc.expectedDependencies, dependencies)
+	}
+}
