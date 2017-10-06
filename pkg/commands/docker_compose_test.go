@@ -44,7 +44,7 @@ func TestDockerComposeBuildAllArgs(t *testing.T) {
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
 				Command: "docker-compose",
-				Args:    []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--pull", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
+				Args:    []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
 			},
 		},
 	})
@@ -58,7 +58,7 @@ func TestDockerComposeBuildAllArgsError(t *testing.T) {
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
 				Command:  "docker-compose",
-				Args:     []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--pull", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
+				Args:     []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
 				ErrorMsg: "Build failed",
 			},
 		},
@@ -71,7 +71,7 @@ func TestDockerComposeBuildNoArgs(t *testing.T) {
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
 				Command: "docker-compose",
-				Args:    []string{"build", "--pull"},
+				Args:    []string{"build"},
 			},
 		},
 	})

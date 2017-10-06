@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +34,14 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 	dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
 	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
 	buildEnvs, buildArgs []string, push bool) ([]domain.ImageDependencies, error) {
+
+	if dockerRegistry == "" {
+		dockerRegistry = os.Getenv(constants.ExportsDockerRegistry)
+		if dockerRegistry == "" {
+			return nil, fmt.Errorf("Docker registry is needed, use --%s or environment variable %s to provide its value",
+				constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
+		}
+	}
 
 	userDefined, err := parseUserDefined(buildEnvs)
 	if err != nil {

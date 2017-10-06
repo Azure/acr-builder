@@ -62,23 +62,15 @@ func main() {
 	flag.BoolVar(&push, constants.ArgNamePush, false, "Push on success")
 	flag.Parse()
 
-	if push && dockerRegistry == "" {
-		logrus.Errorf("Registry needs to be provided if push is needed")
-		flag.CommandLine.Usage()
-		os.Exit(-1)
-	}
-
-	if gitHeadRev != "" && gitBranch != "" {
-		logrus.Infof("Both HEAD revision %s and branch %s are provided as parameter, HEAD will take precedence", gitHeadRev, gitBranch)
-	}
-
 	builder := build.NewBuilder(shell.NewRunner())
 	dep, err := builder.Run(buildNumber, composeFile, composeProjectDir,
 		dockerfile, dockerImage, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
 		gitURL, gitCloneDir, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 		localSource, buildEnvs, buildArgs, push)
+
 	if err != nil {
+		flag.CommandLine.Usage()
 		logrus.Error(err)
 		os.Exit(-1)
 	}

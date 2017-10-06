@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -629,7 +630,7 @@ func TestRunSimpleHappy(t *testing.T) {
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
 				Command: "docker-compose",
-				Args:    []string{"build", "--pull"},
+				Args:    []string{"build"},
 			},
 		},
 		expectedDependencies: []domain.ImageDependencies{
@@ -639,16 +640,27 @@ func TestRunSimpleHappy(t *testing.T) {
 	})
 }
 
+func TestRunNoRegistryGiven(t *testing.T) {
+	os.Clearenv()
+	testRun(t, runTestCase{
+		buildEnvs: []string{"*invalid=value"},
+		expectedErr: fmt.Sprintf("Docker registry is needed, use --%s or environment variable %s to provide its value",
+			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
+	})
+}
+
 func TestRunParseEnvFailed(t *testing.T) {
 	testRun(t, runTestCase{
-		buildEnvs:   []string{"*invalid=value"},
-		expectedErr: "^Invalid environmental variable name: \\*invalid$",
+		dockerRegistry: "unit-tests",
+		buildEnvs:      []string{"*invalid=value"},
+		expectedErr:    "^Invalid environmental variable name: \\*invalid$",
 	})
 }
 
 func TestCreateBuildRequestFailed(t *testing.T) {
 	testRun(t, runTestCase{
-		dockerUser: "someUser",
+		dockerRegistry: "unit-tests",
+		dockerUser:     "someUser",
 		expectedErr: fmt.Sprintf("^Please provide both --%s and --%s or neither$",
 			constants.ArgNameDockerUser, constants.ArgNameDockerPW),
 	})

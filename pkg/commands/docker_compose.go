@@ -67,7 +67,7 @@ func (t *dockerComposeBuildTask) Build(runner domain.Runner) error {
 	if t.path != "" {
 		args = append(args, "-f", t.path)
 	}
-	args = append(args, "build", "--pull")
+	args = append(args, "build")
 
 	if t.projectDirectory != "" {
 		args = append(args, "--project-directory", t.projectDirectory)
