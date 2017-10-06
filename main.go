@@ -70,7 +70,6 @@ func main() {
 		localSource, buildEnvs, buildArgs, push)
 
 	if err != nil {
-		flag.CommandLine.Usage()
 		logrus.Error(err)
 		os.Exit(-1)
 	}
