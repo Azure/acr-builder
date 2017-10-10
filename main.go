@@ -71,6 +71,9 @@ func main() {
 
 	if err != nil {
 		logrus.Error(err)
+		if len(os.Args) < 2 {
+			flag.CommandLine.Usage()
+		}
 		os.Exit(-1)
 	}
 
