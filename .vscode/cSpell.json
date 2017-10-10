@@ -14,6 +14,7 @@
         "grok",
         "stretchr",
         "unresolvable",
-        "azurecr"
+        "azurecr",
+        "testutils"
     ]
 }

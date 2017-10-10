@@ -23,6 +23,7 @@ func NewEnvVar(name string, value string) (*EnvVar, error) {
 
 // BuildRequest defines a acr-builder build
 type BuildRequest struct {
+	DockerRegistry    string
 	DockerCredentials []DockerCredential
 	Targets           []SourceTarget
 }

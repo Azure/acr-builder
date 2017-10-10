@@ -37,10 +37,6 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 
 	if dockerRegistry == "" {
 		dockerRegistry = os.Getenv(constants.ExportsDockerRegistry)
-		if dockerRegistry == "" {
-			return nil, fmt.Errorf("Docker registry is needed, use --%s or environment variable %s to provide its value",
-				constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
-		}
 	}
 
 	userDefined, err := parseUserDefined(buildEnvs)
@@ -58,7 +54,7 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 		return nil, err
 	}
 
-	buildWorkflow := compileWorkflow(buildNumber, dockerRegistry, userDefined, request, push)
+	buildWorkflow := compileWorkflow(buildNumber, userDefined, request, push)
 	err = buildWorkflow.Run(b.runner)
 	return buildWorkflow.GetOutputs().ImageDependencies, err
 }
@@ -136,11 +132,20 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 			return nil, fmt.Errorf("Parameters --%s, --%s, %s cannot be used in docker-compose scenario",
 				constants.ArgNameDockerfile, constants.ArgNameDockerImage, constants.ArgNameDockerContextDir)
 		}
+		if dockerRegistry == "" {
+			if push {
+				return nil, fmt.Errorf("Docker registry is needed, use --%s or environment variable %s to provide its value",
+					constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
+			}
+			dockerRegistry = constants.StubDockerRegistry
+			logrus.Infof("Registry name not provided, using stub value %s", dockerRegistry)
+		}
 		build = commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs)
 	}
 	source.Builds = append(source.Builds, build)
 
 	return &domain.BuildRequest{
+		DockerRegistry:    dockerRegistry,
 		DockerCredentials: dockerCreds,
 		Targets:           []domain.SourceTarget{source},
 	}, nil
@@ -190,7 +195,7 @@ type pushItem struct {
 }
 
 // compileWorkflow takes a build request and populate it into workflow
-func compileWorkflow(buildNumber, dockerRegistry string,
+func compileWorkflow(buildNumber string,
 	userDefined []domain.EnvVar, request *domain.BuildRequest, push bool) *workflow.Workflow {
 
 	// create a workflow with root context with default variables
@@ -198,7 +203,7 @@ func compileWorkflow(buildNumber, dockerRegistry string,
 	rootContext := domain.NewContext(userDefined, []domain.EnvVar{
 		{Name: constants.ExportsBuildNumber, Value: buildNumber},
 		{Name: constants.ExportsBuildTimestamp, Value: time.Now().UTC().Format(buildTimestampFormat)},
-		{Name: constants.ExportsDockerRegistry, Value: dockerRegistry},
+		{Name: constants.ExportsDockerRegistry, Value: request.DockerRegistry},
 		{Name: constants.ExportsPushOnSuccess, Value: strconv.FormatBool(push)}})
 
 	// schedule docker authentications

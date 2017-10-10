@@ -60,18 +60,28 @@ var MultiStageExampleTestEnv = []domain.EnvVar{
 	{Name: "DOCKERFILE", Value: "Dockerfile"},
 }
 
-// MultistageExampleDependencies links to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-multistage
-var MultistageExampleDependencies = domain.ImageDependencies{
-	Image:             TestsDockerRegistryName + "/hello-multistage",
-	RuntimeDependency: "alpine",
-	BuildDependencies: []string{"golang:alpine"},
+// MultistageExampleDependencies returns dependencies to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-multistage with default docker registry name
+var MultistageExampleDependencies = MultistageExampleDependenciesOn(TestsDockerRegistryName)
+
+// HelloNodeExampleDependencies returns dependencies to the project in  ${workspaceRoot}/tests/resources/docker-compose/hello-node
+var HelloNodeExampleDependencies = HelloNodeExampleDependenciesOn(TestsDockerRegistryName)
+
+// MultistageExampleDependenciesOn returns dependencies to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-multistage
+func MultistageExampleDependenciesOn(registry string) domain.ImageDependencies {
+	return domain.ImageDependencies{
+		Image:             registry + "/hello-multistage",
+		RuntimeDependency: "alpine",
+		BuildDependencies: []string{"golang:alpine"},
+	}
 }
 
-// HelloNodeExampleDependencies links to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-node
-var HelloNodeExampleDependencies = domain.ImageDependencies{
-	Image:             TestsDockerRegistryName + "/hello-node",
-	RuntimeDependency: "node:alpine",
-	BuildDependencies: []string{},
+// HelloNodeExampleDependenciesOn returns dependencies to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-node
+func HelloNodeExampleDependenciesOn(registry string) domain.ImageDependencies {
+	return domain.ImageDependencies{
+		Image:             registry + "/hello-node",
+		RuntimeDependency: "node:alpine",
+		BuildDependencies: []string{},
+	}
 }
 
 // AssertSameDependencies help determine two sets of dependencies are equivalent

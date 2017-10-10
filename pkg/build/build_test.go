@@ -251,7 +251,9 @@ func TestCompileNoPush(t *testing.T) {
 func testCompile(t *testing.T, tc *compileTestCase) {
 	runner := new(test_domain.MockRunner)
 	runner.UseDefaultFileSystem()
-	req := &domain.BuildRequest{}
+	req := &domain.BuildRequest{
+		DockerRegistry: tc.registry,
+	}
 	for i := range tc.creds {
 		cred := tc.creds[i]
 		credMock := new(test_domain.MockDockerCredential)
@@ -289,7 +291,7 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 		}
 		req.Targets = append(req.Targets, target)
 	}
-	workflow := compileWorkflow(tc.buildNumber, tc.registry, tc.userDefined, req, tc.push)
+	workflow := compileWorkflow(tc.buildNumber, tc.userDefined, req, tc.push)
 	err := workflow.Run(runner)
 	assert.Nil(t, err)
 	outputs := workflow.GetOutputs()
@@ -419,6 +421,7 @@ func TestCreateBuildRequestNoParams(t *testing.T) {
 	localSource := commands.NewLocalSource("")
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		expected: domain.BuildRequest{
+			DockerRegistry:    constants.StubDockerRegistry,
 			DockerCredentials: []domain.DockerCredential{},
 			Targets: []domain.SourceTarget{
 				{
@@ -462,6 +465,7 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 		dockerRegistry:   registry,
 		dockerImage:      imageName,
 		expected: domain.BuildRequest{
+			DockerRegistry:    registry,
 			DockerCredentials: []domain.DockerCredential{},
 			Targets: []domain.SourceTarget{
 				{
@@ -502,6 +506,7 @@ func TestCreateBuildRequestWithGitXTokenDockerCompose(t *testing.T) {
 		composeProjectDir: composeProjectDir,
 		buildArgs:         buildArgs,
 		expected: domain.BuildRequest{
+			DockerRegistry:    dockerRegistry,
 			DockerCredentials: []domain.DockerCredential{cred},
 			Targets: []domain.SourceTarget{
 				{
@@ -643,8 +648,28 @@ func TestRunSimpleHappy(t *testing.T) {
 func TestRunNoRegistryGiven(t *testing.T) {
 	os.Clearenv()
 	testRun(t, runTestCase{
-		buildEnvs: []string{"*invalid=value"},
-		expectedErr: fmt.Sprintf("Docker registry is needed, use --%s or environment variable %s to provide its value",
+		buildNumber: "buildNum-0",
+		localSource: filepath.Join("..", "..", "tests", "resources", "docker-compose"),
+		expectedCommands: []test_domain.CommandsExpectation{
+			{
+				Command: "docker-compose",
+				Args:    []string{"build"},
+			},
+		},
+		expectedDependencies: []domain.ImageDependencies{
+			testutils.MultistageExampleDependenciesOn(constants.StubDockerRegistry),
+			testutils.HelloNodeExampleDependenciesOn(constants.StubDockerRegistry),
+		},
+	})
+}
+
+func TestRunNoRegistryGivenPush(t *testing.T) {
+	os.Clearenv()
+	testRun(t, runTestCase{
+		push:        true,
+		buildNumber: "buildNum-0",
+		localSource: filepath.Join("..", "..", "tests", "resources", "docker-compose"),
+		expectedErr: fmt.Sprintf("^Docker registry is needed, use --%s or environment variable %s to provide its value$",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
 	})
 }

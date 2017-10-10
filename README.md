@@ -9,8 +9,8 @@ Run `docker build --rm -t acr-builder .`. Note that acr-builder is intended to b
 ##### Example
 
 This project can be built using acr-builder itself, assuming you have run a valid acr builder image named `acr-builder`, running
-`./scripts/run.sh --docker-registry stub`
-Will rebuild the acr-docker image as `stub/acr-builder`
+`./scripts/run.sh`
+Will rebuild the acr-docker image as `stub-registry/acr-builder`
 
 ##### Required Parameters
 `--docker-registry` Docker registry to push to. This parameter will populate the `ACR_BUILD_DOCKER_REGISTRY` reserved environment variable (see `Build Environment`)<br />
