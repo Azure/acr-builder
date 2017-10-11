@@ -28,7 +28,7 @@ const ArgNameGitXToken = "git-x-token"
 const ArgNameLocalSource = "local-source"
 
 // ArgNameDockerfile is the parameter name for dockerfile
-const ArgNameDockerfile = "dockerfile"
+const ArgNameDockerfile = "docker-file"
 
 // ArgNameDockerImage is the parameter name for docker image (registry url must be excluded from the image name parameter)
 const ArgNameDockerImage = "docker-image"

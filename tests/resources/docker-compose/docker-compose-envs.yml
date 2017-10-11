@@ -2,7 +2,7 @@ version: '2'
 services:
   hello-multistage:
     build: ./hello-multistage
-    image: ${ACR_BUILD_DOCKER_REGISTRY}/hello-multistage
+    image: ${ACR_BUILD_DOCKER_REGISTRY}hello-multistage
     args:
         ignore-me: BLA
 
@@ -10,4 +10,4 @@ services:
     build:
         context: ./hello-node
         dockerfile: $DOCKERFILE.alpine
-    image: ${ACR_BUILD_DOCKER_REGISTRY}/hello-node
+    image: ${ACR_BUILD_DOCKER_REGISTRY}hello-node

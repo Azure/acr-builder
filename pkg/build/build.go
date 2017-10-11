@@ -64,10 +64,25 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 	dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
 	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
 	buildArgs []string, push bool) (*domain.BuildRequest, error) {
+	if push && dockerRegistry == "" {
+		return nil, fmt.Errorf("Docker registry is needed for push, use --%s or environment variable %s to provide its value",
+			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
+	}
+
+	var registrySuffixed, registryNoSuffix string
+	if dockerRegistry != "" {
+		if strings.HasSuffix(dockerRegistry, "/") {
+			registrySuffixed = dockerRegistry
+			registryNoSuffix = dockerRegistry[: len(dockerRegistry)-1]
+		} else {
+			registrySuffixed = dockerRegistry + "/"
+			registryNoSuffix = dockerRegistry
+		}
+	}
 
 	dockerCreds := []domain.DockerCredential{}
 	if dockerUser != "" {
-		cred, err := commands.NewDockerUsernamePassword(dockerRegistry, dockerUser, dockerPW)
+		cred, err := commands.NewDockerUsernamePassword(registryNoSuffix, dockerUser, dockerPW)
 		if err != nil {
 			return nil, err
 		}
@@ -88,11 +103,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 				}
 			}
 		}
-		var err error
-		source.Source, err = commands.NewGitSource(gitURL, gitBranch, gitHeadRev, gitCloneDir, gitCred)
-		if err != nil {
-			return nil, err
-		}
+		source.Source = commands.NewGitSource(gitURL, gitBranch, gitHeadRev, gitCloneDir, gitCred)
 	} else {
 		if gitXToken != "" || gitPATokenUser != "" || gitPAToken != "" {
 			return nil, fmt.Errorf("Git credentials are given but --%s was not", constants.ArgNameGitURL)
@@ -115,11 +126,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 		if composeProjectDir != "" {
 			return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
 		}
-		var err error
-		build, err = commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, push, dockerRegistry, dockerImage)
-		if err != nil {
-			return nil, err
-		}
+		build = commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, registrySuffixed, dockerImage)
 	}
 
 	// Use docker-compose as default
@@ -132,20 +139,12 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 			return nil, fmt.Errorf("Parameters --%s, --%s, %s cannot be used in docker-compose scenario",
 				constants.ArgNameDockerfile, constants.ArgNameDockerImage, constants.ArgNameDockerContextDir)
 		}
-		if dockerRegistry == "" {
-			if push {
-				return nil, fmt.Errorf("Docker registry is needed, use --%s or environment variable %s to provide its value",
-					constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
-			}
-			dockerRegistry = constants.StubDockerRegistry
-			logrus.Infof("Registry name not provided, using stub value %s", dockerRegistry)
-		}
 		build = commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs)
 	}
 	source.Builds = append(source.Builds, build)
 
 	return &domain.BuildRequest{
-		DockerRegistry:    dockerRegistry,
+		DockerRegistry:    registrySuffixed,
 		DockerCredentials: dockerCreds,
 		Targets:           []domain.SourceTarget{source},
 	}, nil

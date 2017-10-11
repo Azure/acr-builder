@@ -5,16 +5,16 @@ import (
 	"testing"
 
 	"github.com/Azure/acr-builder/pkg/constants"
+	"github.com/Azure/acr-builder/tests/testCommon"
 
 	"github.com/Azure/acr-builder/pkg/domain"
-	testutils "github.com/Azure/acr-builder/tests/testCommon"
 )
 
 func TestParse(t *testing.T) {
 	testResourceDir := filepath.Join("..", "..", "tests", "resources", "docker-compose")
 	composeFile := filepath.Join(testResourceDir, "docker-compose-envs.yml")
 	env := domain.NewContext([]domain.EnvVar{
-		{Name: constants.ExportsDockerRegistry, Value: "unit-tests"},
+		{Name: constants.ExportsDockerRegistry, Value: testCommon.TestsDockerRegistryName},
 	}, []domain.EnvVar{
 		{Name: "DOCKERFILE", Value: "Dockerfile"},
 	})
@@ -23,8 +23,8 @@ func TestParse(t *testing.T) {
 		t.Error(err)
 		t.Fail()
 	}
-	testutils.AssertSameDependencies(t, []domain.ImageDependencies{
-		testutils.HelloNodeExampleDependencies,
-		testutils.MultistageExampleDependencies,
+	testCommon.AssertSameDependencies(t, []domain.ImageDependencies{
+		testCommon.HelloNodeExampleDependencies,
+		testCommon.MultistageExampleDependencies,
 	}, actualDependencies)
 }

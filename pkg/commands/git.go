@@ -21,19 +21,14 @@ type gitSource struct {
 }
 
 // NewGitSource create a SourceDescription that represents a git checkout
-func NewGitSource(address, branch, headRev, targetDir string, credential GitCredential) (domain.BuildSource, error) {
-	if branch == "" && headRev == "" {
-		// The reason I am enforcing the branch variable is because I am passing the branch name when checking out
-		// alternatively we can have checkout figuring out what default branch to use but I'm not supporting it for now
-		return nil, fmt.Errorf("Please provide a --%s or --%s parameter when using git source", constants.ArgNameGitBranch, constants.ArgNameGitHeadRev)
-	}
+func NewGitSource(address, branch, headRev, targetDir string, credential GitCredential) domain.BuildSource {
 	return &gitSource{
 		address:    address,
 		branch:     branch,
 		headRev:    headRev,
 		credential: credential,
 		targetDir:  targetDir,
-	}, nil
+	}
 }
 
 func (s *gitSource) Return(runner domain.Runner) error {
@@ -153,15 +148,25 @@ func (s *gitSource) checkout(runner domain.Runner) error {
 	if err := runner.ExecuteCmdWithObfuscation(obfuscator, "git", []string{"fetch", remote}); err != nil {
 		return fmt.Errorf("Failed to clean fetch from remote: %s, error: %s", obfuscated, err)
 	}
+
 	if s.headRev != "" {
 		return s.ensureHeadRev(runner)
 	}
-	if err := runner.ExecuteCmd("git", []string{"checkout", s.branch}); err != nil {
-		return fmt.Errorf("Failed checkout branch: %s, error: %s", env.Expand(s.branch), err)
+
+	if s.branch != "" {
+		if err := s.checkoutAt(runner, s.branch); err != nil {
+			return err
+		}
 	}
-	if err := runner.ExecuteCmdWithObfuscation(obfuscator, "git", []string{"pull", remote, s.branch}); err != nil {
+
+	pullArgs := []string{"pull", remote}
+	if s.branch != "" {
+		pullArgs = append(pullArgs, s.branch)
+	}
+	if err := runner.ExecuteCmdWithObfuscation(obfuscator, "git", pullArgs); err != nil {
 		return fmt.Errorf("Failed pull from branch: %s/%s, error: %s", obfuscated, env.Expand(s.branch), err)
 	}
+
 	return nil
 }
 
@@ -170,8 +175,13 @@ func (s *gitSource) ensureHeadRev(runner domain.Runner) error {
 	if s.branch != "" {
 		logrus.Infof("Ignoring branch %s since head rev %s is given...", env.Expand(s.branch), env.Expand(s.headRev))
 	}
-	if err := runner.ExecuteCmd("git", []string{"checkout", s.headRev}); err != nil {
-		return fmt.Errorf("Failed checkout revision: %s, error: %s", env.Expand(s.headRev), err)
+	return s.checkoutAt(runner, s.headRev)
+}
+
+func (s *gitSource) checkoutAt(runner domain.Runner, checkoutTarget string) error {
+	env := runner.GetContext()
+	if err := runner.ExecuteCmd("git", []string{"checkout", checkoutTarget}); err != nil {
+		return fmt.Errorf("Failed checkout git repository at: %s, error: %s", env.Expand(checkoutTarget), err)
 	}
 	return nil
 }

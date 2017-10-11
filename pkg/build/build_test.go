@@ -17,7 +17,6 @@ import (
 	"github.com/Azure/acr-builder/pkg/workflow"
 	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
 	"github.com/Azure/acr-builder/tests/testCommon"
-	testutils "github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -295,7 +294,7 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 	err := workflow.Run(runner)
 	assert.Nil(t, err)
 	outputs := workflow.GetOutputs()
-	testutils.AssertSameDependencies(t, tc.expectedDependencies, outputs.ImageDependencies)
+	testCommon.AssertSameDependencies(t, tc.expectedDependencies, outputs.ImageDependencies)
 }
 
 func verifyContextFromParameters(t *testing.T, expected []string, arg mock.Arguments) {
@@ -389,7 +388,7 @@ func testParseUserDefined(t *testing.T, tc parseUserDefinedTestCase) {
 		assert.Regexp(t, regexp.MustCompile(tc.expectedError), err.Error())
 	} else {
 		assert.Nil(t, err)
-		testutils.AssertSameEnv(t, tc.expected, env)
+		testCommon.AssertSameEnv(t, tc.expected, env)
 	}
 }
 
@@ -421,7 +420,6 @@ func TestCreateBuildRequestNoParams(t *testing.T) {
 	localSource := commands.NewLocalSource("")
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		expected: domain.BuildRequest{
-			DockerRegistry:    constants.StubDockerRegistry,
 			DockerCredentials: []domain.DockerCredential{},
 			Targets: []domain.SourceTarget{
 				{
@@ -445,13 +443,11 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 	buildArgs := []string{"k1=v1", "k2=v2"}
 	registry := "some.registry"
 	imageName := "some.image"
-	dockerBuildTarget, err := commands.NewDockerBuild(dockerfile, contextDir,
-		buildArgs, true, registry, imageName)
-	assert.Nil(t, err)
+	dockerBuildTarget := commands.NewDockerBuild(dockerfile, contextDir,
+		buildArgs, registry+"/", imageName)
 	gitCred, err := commands.NewGitPersonalAccessToken(gitUser, gitPassword)
 	assert.Nil(t, err)
-	gitSource, err := commands.NewGitSource(gitAddress, branch, headRev, targetDir, gitCred)
-	assert.Nil(t, err)
+	gitSource := commands.NewGitSource(gitAddress, branch, headRev, targetDir, gitCred)
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		gitPATokenUser:   gitUser,
 		gitPAToken:       gitPassword,
@@ -465,7 +461,7 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 		dockerRegistry:   registry,
 		dockerImage:      imageName,
 		expected: domain.BuildRequest{
-			DockerRegistry:    registry,
+			DockerRegistry:    registry + "/",
 			DockerCredentials: []domain.DockerCredential{},
 			Targets: []domain.SourceTarget{
 				{
@@ -491,8 +487,7 @@ func TestCreateBuildRequestWithGitXTokenDockerCompose(t *testing.T) {
 	buildArgs := []string{"k3=v3", "k4=v4"}
 	cred, err := commands.NewDockerUsernamePassword(dockerRegistry, dockerUser, dockerPW)
 	assert.Nil(t, err)
-	gitSource, err := commands.NewGitSource(gitAddress, branch, headRev, targetDir, commands.NewGitXToken(gitXToken))
-	assert.Nil(t, err)
+	gitSource := commands.NewGitSource(gitAddress, branch, headRev, targetDir, commands.NewGitXToken(gitXToken))
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		dockerRegistry:    dockerRegistry,
 		dockerUser:        dockerUser,
@@ -506,7 +501,7 @@ func TestCreateBuildRequestWithGitXTokenDockerCompose(t *testing.T) {
 		composeProjectDir: composeProjectDir,
 		buildArgs:         buildArgs,
 		expected: domain.BuildRequest{
-			DockerRegistry:    dockerRegistry,
+			DockerRegistry:    dockerRegistry + "/",
 			DockerCredentials: []domain.DockerCredential{cred},
 			Targets: []domain.SourceTarget{
 				{
@@ -538,14 +533,6 @@ func TestCreateBuildRequestNoGitPassword(t *testing.T) {
 	})
 }
 
-func TestCreateBuildRequestNoGitBranchOrRev(t *testing.T) {
-	testCreateBuildRequest(t, createBuildRequestTestCase{
-		gitURL: "some.git.url",
-		expectedError: fmt.Sprintf("^Please provide a --%s or --%s parameter when using git source$",
-			constants.ArgNameGitBranch, constants.ArgNameGitHeadRev),
-	})
-}
-
 func TestCreateBuildRequestNoGitURL(t *testing.T) {
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		gitPATokenUser: "some.git.user",
@@ -572,9 +559,10 @@ func TestCreateBuildRequestDockerComposeConflictingParameters(t *testing.T) {
 
 func TestCreateBuildRequestDockerBuildCreationError(t *testing.T) {
 	testCreateBuildRequest(t, createBuildRequestTestCase{
-		dockerfile:    "some.dockerfile",
-		push:          true,
-		expectedError: fmt.Sprintf("^When building with dockerfile, docker image name --%s is required for pushing$", constants.ArgNameDockerImage),
+		dockerfile: "some.dockerfile",
+		push:       true,
+		expectedError: fmt.Sprintf("^Docker registry is needed for push, use --%s or environment variable %s to provide its value$",
+			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
 	})
 }
 
@@ -630,7 +618,7 @@ type runTestCase struct {
 func TestRunSimpleHappy(t *testing.T) {
 	testRun(t, runTestCase{
 		buildNumber:    "buildNum-0",
-		dockerRegistry: "unit-tests",
+		dockerRegistry: testCommon.TestsDockerRegistryName,
 		localSource:    filepath.Join("..", "..", "tests", "resources", "docker-compose"),
 		expectedCommands: []test_domain.CommandsExpectation{
 			{
@@ -639,8 +627,8 @@ func TestRunSimpleHappy(t *testing.T) {
 			},
 		},
 		expectedDependencies: []domain.ImageDependencies{
-			testutils.MultistageExampleDependencies,
-			testutils.HelloNodeExampleDependencies,
+			testCommon.MultistageExampleDependencies,
+			testCommon.HelloNodeExampleDependencies,
 		},
 	})
 }
@@ -657,8 +645,8 @@ func TestRunNoRegistryGiven(t *testing.T) {
 			},
 		},
 		expectedDependencies: []domain.ImageDependencies{
-			testutils.MultistageExampleDependenciesOn(constants.StubDockerRegistry),
-			testutils.HelloNodeExampleDependenciesOn(constants.StubDockerRegistry),
+			testCommon.MultistageExampleDependenciesOn(""),
+			testCommon.HelloNodeExampleDependenciesOn(""),
 		},
 	})
 }
@@ -669,14 +657,14 @@ func TestRunNoRegistryGivenPush(t *testing.T) {
 		push:        true,
 		buildNumber: "buildNum-0",
 		localSource: filepath.Join("..", "..", "tests", "resources", "docker-compose"),
-		expectedErr: fmt.Sprintf("^Docker registry is needed, use --%s or environment variable %s to provide its value$",
+		expectedErr: fmt.Sprintf("^Docker registry is needed for push, use --%s or environment variable %s to provide its value$",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
 	})
 }
 
 func TestRunParseEnvFailed(t *testing.T) {
 	testRun(t, runTestCase{
-		dockerRegistry: "unit-tests",
+		dockerRegistry: testCommon.DotnetExampleTargetRegistryName,
 		buildEnvs:      []string{"*invalid=value"},
 		expectedErr:    "^Invalid environmental variable name: \\*invalid$",
 	})
@@ -684,7 +672,7 @@ func TestRunParseEnvFailed(t *testing.T) {
 
 func TestCreateBuildRequestFailed(t *testing.T) {
 	testRun(t, runTestCase{
-		dockerRegistry: "unit-tests",
+		dockerRegistry: testCommon.DotnetExampleTargetRegistryName,
 		dockerUser:     "someUser",
 		expectedErr: fmt.Sprintf("^Please provide both --%s and --%s or neither$",
 			constants.ArgNameDockerUser, constants.ArgNameDockerPW),
@@ -708,6 +696,6 @@ func testRun(t *testing.T, tc runTestCase) {
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
 	} else {
 		assert.Nil(t, err)
-		testutils.AssertSameDependencies(t, tc.expectedDependencies, dependencies)
+		testCommon.AssertSameDependencies(t, tc.expectedDependencies, dependencies)
 	}
 }

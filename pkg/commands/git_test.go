@@ -5,19 +5,13 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/Azure/acr-builder/tests/testCommon"
+
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/domain"
 	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
-	testutils "github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestNewGitSourceNoBranch(t *testing.T) {
-	_, err := NewGitSource("", "", "", "", nil)
-	assert.NotNil(t, err)
-	assert.Regexp(t, regexp.MustCompile(
-		fmt.Sprintf("^Please provide a --%s or --%s parameter when using git source$", constants.ArgNameGitBranch, constants.ArgNameGitHeadRev)), err.Error())
-}
 
 const gitSourceTestPwd = "get_test_wd"
 
@@ -38,13 +32,44 @@ type gitSourceTestCase struct {
 	expectedReturnErr string
 }
 
+func TestMinimalParams(t *testing.T) {
+	testGitSource(t, gitSourceTestCase{
+		address: "https://github.com/org/address.git",
+		expectedFSAccess: make(test_domain.FileSystemExpectations, 0).
+			AssertIsDirEmpty(".", false, nil),
+		expectedCommands: []test_domain.CommandsExpectation{
+			{
+				Command: "git",
+				Args:    []string{"clean", "-xdf"},
+			},
+			{
+				Command: "git",
+				Args:    []string{"reset", "--hard", "HEAD"},
+			},
+			{
+				Command:      "git",
+				Args:         []string{"fetch", "https://github.com/org/address.git"},
+				IsObfuscated: true,
+			},
+			{
+				Command:      "git",
+				Args:         []string{"pull", "https://github.com/org/address.git"},
+				IsObfuscated: true,
+			},
+		},
+		expectedEnv: []domain.EnvVar{
+			{Name: constants.ExportsGitSource, Value: "https://github.com/org/address.git"},
+		},
+	})
+}
+
 func TestXTokenFreshClone(t *testing.T) {
 	testGitSource(t, gitSourceTestCase{
 		creds:     NewGitXToken("token_value"),
 		address:   "https://github.com/org/address.git",
 		branch:    "git_branch",
 		targetDir: "target_dir",
-		getwdErr:  &testutils.NilError,
+		getwdErr:  &testCommon.NilError,
 		expectedChdir: []test_domain.ChdirExpectation{
 			{Path: "target_dir"},
 			{Path: gitSourceTestPwd},
@@ -77,7 +102,7 @@ func TestPATokenRefreshSuccessButFailedToReturn(t *testing.T) {
 		branch:    "git_branch",
 		headRev:   "git_head_rev",
 		targetDir: "target_dir",
-		getwdErr:  &testutils.NilError,
+		getwdErr:  &testCommon.NilError,
 		expectedChdir: []test_domain.ChdirExpectation{
 			{Path: "target_dir"},
 			{Path: gitSourceTestPwd, Err: fmt.Errorf("Error switching back")},
@@ -193,7 +218,7 @@ func TestNoAuthCloneWithHeadRevFailed(t *testing.T) {
 			{Name: constants.ExportsGitSource, Value: "test_address"},
 			{Name: constants.ExportsGitHeadRev, Value: "git_head_rev"},
 		},
-		expectedErr: "^Failed checkout revision: git_head_rev, error: some err$",
+		expectedErr: "^Failed checkout git repository at: git_head_rev, error: some err$",
 	})
 }
 
@@ -234,7 +259,7 @@ func TestNoTokenChdirFailedAfterClone(t *testing.T) {
 		address:   "test_address",
 		branch:    "git_branch",
 		targetDir: "target_dir",
-		getwdErr:  &testutils.NilError,
+		getwdErr:  &testCommon.NilError,
 		expectedChdir: []test_domain.ChdirExpectation{
 			{
 				Path: "target_dir",
@@ -264,7 +289,7 @@ func TestNoTokenChdirFailedBeforeRefresh(t *testing.T) {
 		address:   "test_address",
 		branch:    "git_branch",
 		targetDir: "target_dir",
-		getwdErr:  &testutils.NilError,
+		getwdErr:  &testCommon.NilError,
 		expectedFSAccess: make(test_domain.FileSystemExpectations, 0).
 			AssertIsDirEmpty("target_dir", false, nil),
 		expectedChdir: []test_domain.ChdirExpectation{
@@ -287,7 +312,7 @@ func TestNoTokenChdirFailedToClean(t *testing.T) {
 		address:   "test_address",
 		branch:    "git_branch",
 		targetDir: "target_dir",
-		getwdErr:  &testutils.NilError,
+		getwdErr:  &testCommon.NilError,
 		expectedFSAccess: make(test_domain.FileSystemExpectations, 0).
 			AssertIsDirEmpty("target_dir", false, nil),
 		expectedChdir: []test_domain.ChdirExpectation{
@@ -316,7 +341,7 @@ func TestNoTokenChdirFailedToCheckout(t *testing.T) {
 		address:   "test_address",
 		branch:    "git_branch",
 		targetDir: "target_dir",
-		getwdErr:  &testutils.NilError,
+		getwdErr:  &testCommon.NilError,
 		expectedFSAccess: make(test_domain.FileSystemExpectations, 0).
 			AssertIsDirEmpty("target_dir", false, nil),
 		expectedChdir: []test_domain.ChdirExpectation{
@@ -350,8 +375,7 @@ func TestNoTokenChdirFailedToCheckout(t *testing.T) {
 }
 
 func testGitSource(t *testing.T, tc gitSourceTestCase) {
-	source, err := NewGitSource(tc.address, tc.branch, tc.headRev, tc.targetDir, tc.creds)
-	assert.Nil(t, err)
+	source := NewGitSource(tc.address, tc.branch, tc.headRev, tc.targetDir, tc.creds)
 	runner := test_domain.NewMockRunner()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	fs := runner.GetFileSystem().(*test_domain.MockFileSystem)
@@ -363,8 +387,8 @@ func testGitSource(t *testing.T, tc gitSourceTestCase) {
 	defer fs.AssertExpectations(t)
 	defer runner.AssertExpectations(t)
 	exports := source.Export()
-	testutils.AssertSameEnv(t, tc.expectedEnv, exports)
-	err = source.Obtain(runner)
+	testCommon.AssertSameEnv(t, tc.expectedEnv, exports)
+	err := source.Obtain(runner)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
@@ -530,7 +554,7 @@ func TestCheckoutFail(t *testing.T) {
 				ErrorMsg: "checkout error",
 			},
 		},
-		expectedErr: "^Failed checkout branch: git_branch, error: checkout error$",
+		expectedErr: "^Failed checkout git repository at: git_branch, error: checkout error$",
 	})
 }
 
@@ -568,20 +592,18 @@ func testCheckout(t *testing.T, tc simpleGitOperationTestCase) {
 }
 
 func testSingleOperation(t *testing.T, tc simpleGitOperationTestCase, funcToTest func(domain.Runner, *gitSource) error) {
-	source, err := NewGitSource(tc.address, tc.branch, tc.headRev, tc.targetDir, tc.cred)
-	assert.Nil(t, err)
+	source := NewGitSource(tc.address, tc.branch, tc.headRev, tc.targetDir, tc.cred)
 	git := source.(*gitSource)
 	runner := test_domain.NewMockRunner()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	defer runner.AssertExpectations(t)
-	err = funcToTest(runner, git)
+	err := funcToTest(runner, git)
 	assert.NotNil(t, err)
 	assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
 }
 
 func TestCleanFailed(t *testing.T) {
-	source, err := NewGitSource("address", "branch", "", "", nil)
-	assert.Nil(t, err)
+	source := NewGitSource("address", "branch", "", "", nil)
 	git := source.(*gitSource)
 	runner := test_domain.NewMockRunner()
 	runner.PrepareCommandExpectation([]test_domain.CommandsExpectation{
@@ -595,7 +617,7 @@ func TestCleanFailed(t *testing.T) {
 			ErrorMsg: "permission denied",
 		},
 	})
-	err = git.clean(runner)
+	err := git.clean(runner)
 	assert.NotNil(t, err)
 	assert.Regexp(t, regexp.MustCompile("^Failed to discard local changes: permission denied$"), err.Error())
 }

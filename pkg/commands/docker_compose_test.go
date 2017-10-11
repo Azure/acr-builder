@@ -10,7 +10,7 @@ import (
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/domain"
 	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
-	testutils "github.com/Azure/acr-builder/tests/testCommon"
+	"github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -153,7 +153,7 @@ type composeScanForDependenciesRealFileTestCase struct {
 func TestComposeScanDependenciesHappy(t *testing.T) {
 	testComposeScanDependenciesRealFiles(t, composeScanForDependenciesRealFileTestCase{
 		path:                 filepath.Join("${project_root}", "docker-compose.yml"),
-		expectedDependencies: []domain.ImageDependencies{testutils.HelloNodeExampleDependencies, testutils.MultistageExampleDependencies},
+		expectedDependencies: []domain.ImageDependencies{testCommon.HelloNodeExampleDependencies, testCommon.MultistageExampleDependencies},
 	})
 }
 
@@ -170,7 +170,7 @@ func testComposeScanDependenciesRealFiles(t *testing.T, tc composeScanForDepende
 	defer runner.AssertExpectations(t)
 	runner.UseDefaultFileSystem()
 	runner.SetContext(domain.NewContext(
-		append(testutils.MultiStageExampleTestEnv,
+		append(testCommon.MultiStageExampleTestEnv,
 			domain.EnvVar{Name: "project_root", Value: filepath.Join("..", "..", "tests", "resources", "docker-compose")}),
 		[]domain.EnvVar{}))
 	task := NewDockerComposeBuild(tc.path, "", []string{})
@@ -180,7 +180,7 @@ func testComposeScanDependenciesRealFiles(t *testing.T, tc composeScanForDepende
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
 	} else {
 		assert.Nil(t, err)
-		testutils.AssertSameDependencies(t, tc.expectedDependencies, dep)
+		testCommon.AssertSameDependencies(t, tc.expectedDependencies, dep)
 	}
 }
 

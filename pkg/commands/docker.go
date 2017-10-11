@@ -46,23 +46,13 @@ func (u *dockerUsernamePassword) Authenticate(runner domain.Runner) error {
 
 // NewDockerBuild creates a build target with specified docker file and build parameters
 func NewDockerBuild(dockerfile, contextDir string,
-	buildArgs []string, shouldPush bool, registry, imageName string) (domain.BuildTarget, error) {
-
-	if shouldPush && imageName == "" {
-		return nil, fmt.Errorf("When building with dockerfile, docker image name --%s is required for pushing", constants.ArgNameDockerImage)
-	}
-	var pushTo string
-	if registry != "" {
-		pushTo = fmt.Sprintf("%s/%s", registry, imageName)
-	} else {
-		pushTo = ""
-	}
+	buildArgs []string, registry, imageName string) domain.BuildTarget {
 	return &dockerBuildTask{
 		dockerfile: dockerfile,
 		contextDir: contextDir,
 		buildArgs:  buildArgs,
-		pushTo:     pushTo,
-	}, nil
+		pushTo:     fmt.Sprintf("%s%s", registry, imageName),
+	}
 }
 
 type dockerBuildTask struct {

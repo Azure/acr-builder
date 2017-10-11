@@ -178,13 +178,15 @@ func (e FileSystemExpectations) AssertPwdEmpty(empty bool, err error) FileSystem
 }
 
 func (e FileSystemExpectations) AssertIsDirEmpty(path string, empty bool, err error) FileSystemExpectations {
-	return append(e,
-		FileSystemExpectation{
+	if path != "." {
+		e = append(e, FileSystemExpectation{
 			operation: "DoesDirExist",
 			path:      path,
 			assertion: true,
 			err:       nil,
-		},
+		})
+	}
+	return append(e,
 		FileSystemExpectation{
 			operation: "IsDirEmpty",
 			path:      path,

@@ -55,9 +55,9 @@ version: '2'
 services:
   hello:
     build: ./hello-builder
-    image: ${ACR_BUILD_DOCKER_REGISTRY}/hello-builder-1.0-${ACR_BUILD_BUILD_NUMBER}
+    image: ${ACR_BUILD_DOCKER_REGISTRY}hello-builder-1.0-${ACR_BUILD_BUILD_NUMBER}
 
   hello-multistage:
     build: ./hello-multistage
-    image: ${ACR_BUILD_DOCKER_REGISTRY}/hello-multistage:${ACR_BUILD_BUILD_NUMBER}
+    image: ${ACR_BUILD_DOCKER_REGISTRY}hello-multistage:${ACR_BUILD_BUILD_NUMBER}
 ```

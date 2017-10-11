@@ -8,7 +8,7 @@ import (
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/domain"
 	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
-	testutils "github.com/Azure/acr-builder/tests/testCommon"
+	"github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +32,7 @@ func TestLocalSourceParamHappy(t *testing.T) {
 			{Path: "proj"},
 			{Path: "home"},
 		},
-		getWdErr: &testutils.NilError,
+		getWdErr: &testCommon.NilError,
 		expectedEnv: []domain.EnvVar{
 			{Name: constants.ExportsCheckoutDir, Value: "proj"},
 		}})
@@ -60,7 +60,7 @@ func testLocalSource(t *testing.T, tc localSourceTestCase) {
 		fs.On("Getwd").Return("home", *tc.getWdErr).Once()
 	}
 	defer fs.AssertExpectations(t)
-	testutils.AssertSameEnv(t, tc.expectedEnv, source.Export())
+	testCommon.AssertSameEnv(t, tc.expectedEnv, source.Export())
 	err := source.Obtain(runner)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)

@@ -1,3 +1,5 @@
+## This dockerfile is just a test resource and is not buildable
+
 FROM microsoft/aspnetcore:2.0 AS base
 WORKDIR /app
 EXPOSE 80
