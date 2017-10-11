@@ -55,6 +55,7 @@ type dependenciesTestCase struct {
 	new                  []domain.ImageDependencies
 	err                  error
 	expectedDependencies []domain.ImageDependencies
+	expectedError        string
 }
 
 func TestDependenciesTaskEmpty(t *testing.T) {
@@ -79,10 +80,10 @@ func TestDependenciesTaskAppend2(t *testing.T) {
 
 func TestDependenciesTaskError(t *testing.T) {
 	testDependencies(t, dependenciesTestCase{
-		baseline:             stockImgDependencies1,
-		new:                  stockImgDependencies2,
-		err:                  fmt.Errorf("boom boom boom"),
-		expectedDependencies: stockImgDependencies1,
+		baseline:      stockImgDependencies1,
+		new:           stockImgDependencies2,
+		err:           fmt.Errorf("boom boom boom"),
+		expectedError: "^boom boom boom$",
 	})
 }
 
@@ -99,8 +100,13 @@ func testDependencies(t *testing.T, tc dependenciesTestCase) {
 	err := task(runner, outputs)
 	buildTarget.AssertExpectations(t)
 	runner.AssertExpectations(t)
-	assert.Nil(t, err)
-	assert.Equal(t, tc.expectedDependencies, outputs.ImageDependencies)
+	if tc.expectedError != "" {
+		assert.NotNil(t, err)
+		assert.Regexp(t, regexp.MustCompile(tc.expectedError), err.Error())
+	} else {
+		assert.Nil(t, err)
+		assert.Equal(t, tc.expectedDependencies, outputs.ImageDependencies)
+	}
 }
 
 type buildParameters struct {

@@ -73,7 +73,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 	if dockerRegistry != "" {
 		if strings.HasSuffix(dockerRegistry, "/") {
 			registrySuffixed = dockerRegistry
-			registryNoSuffix = dockerRegistry[: len(dockerRegistry)-1]
+			registryNoSuffix = dockerRegistry[:len(dockerRegistry)-1]
 		} else {
 			registrySuffixed = dockerRegistry + "/"
 			registryNoSuffix = dockerRegistry
@@ -178,11 +178,9 @@ func dependencyTask(build domain.BuildTarget) workflow.EvaluationTask {
 	return func(runner domain.Runner, outputContext *workflow.OutputContext) error {
 		dependencies, err := build.ScanForDependencies(runner)
 		if err != nil {
-			// build continues if dependency scan fails
-			logrus.Errorf("Failed to find dependency for build task, error: %s", err)
-		} else {
-			outputContext.ImageDependencies = append(outputContext.ImageDependencies, dependencies...)
+			return err
 		}
+		outputContext.ImageDependencies = append(outputContext.ImageDependencies, dependencies...)
 		return nil
 	}
 }
