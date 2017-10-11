@@ -50,6 +50,10 @@ func ResolveDockerfileDependencies(path string) (string, []string, error) {
 		}
 	}
 
+	if len(allOrigins) == 0 {
+		return "", nil, fmt.Errorf("Unexpected dockerfile format")
+	}
+
 	// note that origin variable now points to the runtime origin
 
 	buildtimeDependencies := make([]string, 0, len(allOrigins)-1)
