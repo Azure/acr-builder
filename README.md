@@ -8,14 +8,28 @@ Run `docker build --rm -t acr-builder .`. Note that acr-builder is intended to b
 
 ##### Example
 
-This project can be built using acr-builder itself, assuming you have run a valid acr builder image named `acr-builder`, running
-`./scripts/run.sh`
-Will rebuild the acr-docker image as `stub-registry/acr-builder`
+This project can be built using acr-builder itself, assuming you have run a valid acr builder image named `acr-builder`, running<br>
+```./scripts/run-build.sh```<br>
+Will rebuild the acr-docker image as `acr-builder`
+
+
+Note that the file `./scripts/run-build.sh` is a convenience script and can be run on its own. You should be able to run it on its own.
+
+Assuming you have the following:
+* ACR builder image named `acr-builder`
+* Your project has a `docker-compose.yml` or `Dockerfile` on its base directory
+* You are currently authenticated to a target registry named `<registry>`
+
+```
+./run-build.sh --local-source <source-dir> --push --docker-registry <registry>
+```
+On your project directory to build you project and push to desired registry.
 
 ##### Required Parameters
-`--docker-registry` Docker registry to push to. This parameter will populate the `ACR_BUILD_DOCKER_REGISTRY` reserved environment variable (see `Build Environment`)<br />
+
 
 ##### Conditional or Optional parameters
+`--docker-registry` Docker registry to push to. This parameter will populate the `ACR_BUILD_DOCKER_REGISTRY` reserved environment variable (see `Build Environment`) Registry is required if `--push` options is present<br />
 `--docker-user` Username for the docker registry specified above<br />
 `--docker-secret` Password or token for registry specified above<br />
 `--git-url` Git url to the project. Clone operation will be ignored if `--git-clone-to` folder exist and is not empty and this parameter will not be required<br />

@@ -2,11 +2,7 @@
 set -e
 
 if [[ -z "$ACR_BUILDER_IMAGE" ]]; then
-    if [[ ! -z "$ACR_BUILD_DOCKER_REGISTRY" ]]; then
-        ACR_BUILDER_IMAGE="${ACR_BUILD_DOCKER_REGISTRY}/acr-builder"
-    else
-        ACR_BUILDER_IMAGE="acr-builder"
-    fi
+    ACR_BUILDER_IMAGE="acr-builder"
 fi
 
 if [[ "$(docker images -q $ACR_BUILDER_IMAGE 2> /dev/null)" == "" ]]; then
@@ -14,4 +10,9 @@ if [[ "$(docker images -q $ACR_BUILDER_IMAGE 2> /dev/null)" == "" ]]; then
 	exit 1
 fi
 
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v `pwd`:/root/project -w /root/project $ACR_BUILDER_IMAGE "$@"
+
+if [[ -f "$HOME/.docker/config.json" ]]; then
+    mountDockerConfig="-v $HOME/.docker:/root/.docker"
+fi
+
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v `pwd`:/root/project $mountDockerConfig -w /root/project $ACR_BUILDER_IMAGE "$@"
