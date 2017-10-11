@@ -46,7 +46,7 @@ func (s *gitSource) Obtain(runner domain.Runner) error {
 	if exists, err := s.targetExists(runner); err != nil {
 		return err
 	} else if exists {
-		logrus.Infof("Directory %s exists, we will assume it's a valid git repository.", env.Expand(s.targetDir))
+		logrus.Debugf("Directory %s exists, we will assume it's a valid git repository.", env.Expand(s.targetDir))
 		tracker, err := ChdirWithTracking(runner, s.targetDir)
 		if err != nil {
 			return err
@@ -173,7 +173,7 @@ func (s *gitSource) checkout(runner domain.Runner) error {
 func (s *gitSource) ensureHeadRev(runner domain.Runner) error {
 	env := runner.GetContext()
 	if s.branch != "" {
-		logrus.Infof("Ignoring branch %s since head rev %s is given...", env.Expand(s.branch), env.Expand(s.headRev))
+		logrus.Debugf("Ignoring branch %s since head rev %s is given...", env.Expand(s.branch), env.Expand(s.headRev))
 	}
 	return s.checkoutAt(runner, s.headRev)
 }

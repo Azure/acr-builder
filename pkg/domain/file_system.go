@@ -47,7 +47,7 @@ func (r *BuildContextAwareFileSystem) Getwd() (string, error) {
 // Chdir changes current working directory for the runner
 func (r *BuildContextAwareFileSystem) Chdir(path string) error {
 	path = r.context.Expand(path)
-	logrus.Infof("Chdir to %s", path)
+	logrus.Debugf("Chdir to %s", path)
 	err := os.Chdir(path)
 	if err != nil {
 		return fmt.Errorf("Error chdir to %s", path)

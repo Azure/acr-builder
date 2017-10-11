@@ -47,6 +47,7 @@ On your project directory to build you project and push to desired registry.
 `--docker-build-arg` Build arguments to be passed to docker build or docker-compose build. This parameter can be specified multiple times.<br />
 `--build-env` Custom environment variables defined for the build process. This parameter can be specified multiple times. (For more details, see `Build Environment`)<br />
 `--push` Specify if push is required if build is successful<br />
+`--verbose` Enable verbose output for debugging<br />
 
 ##### Build Environment
 By setting environment variable with parameter `--build-env <VAR_NAME>=<VAR_VALUE>`, the builder would be aware of the environmental variables throughout the build and the environment will be set for all child processes. ACR builder has a set of reserved environment variables such as `ACR_BUILD_BUILD_NUMBER` and `ACR_BUILD_DOCKER_REGISTRY` mentioned in the parameters paragraph. The user will set them by passing in the optional parameters `--build-number` and `--docker-registry` and they cannot be override with `--build-env`

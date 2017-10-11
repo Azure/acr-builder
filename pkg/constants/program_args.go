@@ -59,3 +59,6 @@ const ArgNameBuildEnv = "build-env"
 
 // ArgNamePush is the parameter determining whether or not push should occur if the build would succeed. Default: false
 const ArgNamePush = "push"
+
+// ArgNameDebug is the parameter that enables debug logs
+const ArgNameDebug = "verbose"

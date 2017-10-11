@@ -44,7 +44,7 @@ func ResolveDockerfileDependencies(path string) (string, []string, error) {
 				originLookup[alias] = origin
 				// Just ignore the rest of the tokens...
 				if len(tokens) > 4 {
-					logrus.Infof("Ignoring chunks from FROM clause: %v", tokens[4:])
+					logrus.Debugf("Ignoring chunks from FROM clause: %v", tokens[4:])
 				}
 			}
 		}

@@ -121,7 +121,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 	var build domain.BuildTarget
 	if dockerImage != "" || dockerfile != "" {
 		if dockerfile == "" {
-			logrus.Infof("Docker image is defined, dockerfile will be used for building")
+			logrus.Debugf("Docker image is defined, dockerfile will be used for building")
 		}
 		if composeProjectDir != "" {
 			return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
@@ -132,7 +132,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 	// Use docker-compose as default
 	if build == nil {
 		if composeFile == "" {
-			logrus.Infof("No dockerfile is provided as parameter, using docker-compose as default")
+			logrus.Debugf("No dockerfile is provided as parameter, using docker-compose as default")
 		}
 		// sure, dockerfile and dockerImage shouldn't be empty here but it's just here for correctness
 		if dockerfile != "" || dockerImage != "" || dockerContextDir != "" {

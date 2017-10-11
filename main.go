@@ -38,7 +38,7 @@ func main() {
 	// if the program is launched in docker container, use option -v /var/run/docker.sock:/var/run/docker.sock -v ~/.docker:/root/.docker
 	var dockerUser, dockerPW, dockerRegistry string
 	var buildArgs, buildEnvs stringSlice
-	var push bool
+	var push, debug bool
 	var buildNumber string
 	flag.StringVar(&buildNumber, constants.ArgNameBuildNumber, "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.ExportsBuildNumber))
 	flag.StringVar(&gitURL, constants.ArgNameGitURL, "", "Git url to the project")
@@ -60,7 +60,12 @@ func main() {
 	flag.StringVar(&dockerPW, constants.ArgNameDockerPW, "", "Docker password or OAuth identity token.")
 	flag.Var(&buildEnvs, constants.ArgNameBuildEnv, "Custom environment variables defined for the build process")
 	flag.BoolVar(&push, constants.ArgNamePush, false, "Push on success")
+	flag.BoolVar(&debug, constants.ArgNameDebug, false, "Enable verbose output for debugging")
 	flag.Parse()
+
+	if debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
 
 	builder := build.NewBuilder(shell.NewRunner())
 	dep, err := builder.Run(buildNumber, composeFile, composeProjectDir,
