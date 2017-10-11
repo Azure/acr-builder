@@ -68,6 +68,9 @@ func (s *gitSource) Obtain(runner domain.Runner) error {
 			return err
 		}
 		s.tracker = tracker
+		if s.headRev != "" {
+			return s.ensureHeadRev(runner)
+		}
 	}
 	return nil
 }
@@ -120,9 +123,6 @@ func (s *gitSource) clone(runner domain.Runner) error {
 			target = env.Expand(s.targetDir)
 		}
 		return fmt.Errorf("Error cloning git source: %s to directory %s, error: %s", obfuscated, target, err)
-	}
-	if s.headRev != "" {
-		return s.ensureHeadRev(runner)
 	}
 	return nil
 }

@@ -208,16 +208,16 @@ func compileWorkflow(buildNumber string,
 		w.ScheduleRun(rootContext, auth.Authenticate)
 	}
 
-	// push tasks (if any) will be put into an array and be added later
-	// because pushes need to be run at the end when all builds succeeds
-	pushItems := []pushItem{}
-
 	// iterate through the source targets
 	for _, sourceTarget := range request.Targets {
 		source := sourceTarget.Source
 		sourceContext := rootContext.Append(source.Export())
 		// schedule obtaining the source
 		w.ScheduleRun(sourceContext, source.Obtain)
+
+		// push tasks (if any) will be put into an array and be added later
+		// because pushes need to be run at the end when all builds succeeds
+		pushItems := []pushItem{}
 
 		// iterate through builds in the source
 		for _, build := range sourceTarget.Builds {
@@ -235,13 +235,13 @@ func compileWorkflow(buildNumber string,
 			}
 		}
 
+		// add the push tasks if there's any
+		for _, item := range pushItems {
+			w.ScheduleRun(item.context, item.push)
+		}
+
 		// schedule the source return task
 		w.ScheduleRun(sourceContext, source.Return)
-	}
-
-	// add the push tasks if there's any
-	for _, item := range pushItems {
-		w.ScheduleRun(item.context, item.push)
 	}
 
 	return w
