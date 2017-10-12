@@ -16,8 +16,6 @@ import (
 	"github.com/Azure/acr-builder/pkg/domain"
 )
 
-const buildTimestampFormat = time.RFC3339
-
 // Builder is our main builder
 type Builder struct {
 	runner domain.Runner
@@ -33,30 +31,40 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 	dockerfile, dockerImage, dockerContextDir,
 	dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
 	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
-	buildEnvs, buildArgs []string, push bool) ([]domain.ImageDependencies, error) {
+	buildEnvs, buildArgs []string, push bool,
+) (dependencies []domain.ImageDependencies, duration time.Duration, err error) {
+	startTime := time.Now()
+	defer func() {
+		duration = time.Since(startTime)
+	}()
 
 	if dockerRegistry == "" {
 		dockerRegistry = os.Getenv(constants.ExportsDockerRegistry)
 	}
 
-	userDefined, err := parseUserDefined(buildEnvs)
+	var userDefined []domain.EnvVar
+	userDefined, err = parseUserDefined(buildEnvs)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	request, err := b.createBuildRequest(composeFile, composeProjectDir,
+	var request *domain.BuildRequest
+	request, err = b.createBuildRequest(composeFile, composeProjectDir,
 		dockerfile, dockerImage, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
 		gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource,
 		buildArgs, push)
 
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	buildWorkflow := compileWorkflow(buildNumber, userDefined, request, push)
 	err = buildWorkflow.Run(b.runner)
-	return buildWorkflow.GetOutputs().ImageDependencies, err
+	if err == nil {
+		dependencies = buildWorkflow.GetOutputs().ImageDependencies
+	}
+	return
 }
 
 func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
@@ -199,7 +207,7 @@ func compileWorkflow(buildNumber string,
 	w := workflow.NewWorkflow()
 	rootContext := domain.NewContext(userDefined, []domain.EnvVar{
 		{Name: constants.ExportsBuildNumber, Value: buildNumber},
-		{Name: constants.ExportsBuildTimestamp, Value: time.Now().UTC().Format(buildTimestampFormat)},
+		{Name: constants.ExportsBuildTimestamp, Value: time.Now().UTC().Format(constants.TimestampFormat)},
 		{Name: constants.ExportsDockerRegistry, Value: request.DockerRegistry},
 		{Name: constants.ExportsPushOnSuccess, Value: strconv.FormatBool(push)}})
 

@@ -68,7 +68,7 @@ func main() {
 	}
 
 	builder := build.NewBuilder(shell.NewRunner())
-	dep, err := builder.Run(buildNumber, composeFile, composeProjectDir,
+	dependencies, duration, err := builder.Run(buildNumber, composeFile, composeProjectDir,
 		dockerfile, dockerImage, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
 		gitURL, gitCloneDir, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
@@ -82,10 +82,11 @@ func main() {
 		os.Exit(-1)
 	}
 
-	output, err := json.Marshal(dep)
+	output, err := json.Marshal(dependencies)
 	if err != nil {
 		logrus.Errorf("Failed to serialize dependencies %s", err)
 		os.Exit(-1)
 	}
+	fmt.Printf("\nBuild duration: %s\n", duration)
 	fmt.Printf("\nACR Builder discovered the following dependencies:\n%s\n", string(output))
 }

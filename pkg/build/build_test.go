@@ -325,7 +325,7 @@ func assertSameContext(t *testing.T, expected []string, actual *domain.BuilderCo
 		assert.Nil(t, err)
 		if k == constants.ExportsBuildTimestamp {
 			timeStampFound = true
-			buildTime, err := time.Parse(buildTimestampFormat, v)
+			buildTime, err := time.Parse(constants.TimestampFormat, v)
 			assert.Nil(t, err, "Build time format incorrect")
 			assert.WithinDuration(t, time.Now(), buildTime, time.Second*1)
 		} else {
@@ -691,12 +691,16 @@ func testRun(t *testing.T, tc runTestCase) {
 	runner.UseDefaultFileSystem()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	builder := NewBuilder(runner)
-	dependencies, err := builder.Run(tc.buildNumber, tc.composeFile, tc.composeProjectDir,
+	startTime := time.Now()
+	dependencies, duration, err := builder.Run(tc.buildNumber, tc.composeFile, tc.composeProjectDir,
 		tc.dockerfile, tc.dockerImage, tc.dockerContextDir,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
 		tc.gitURL, tc.gitCloneDir, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
 		tc.localSource, tc.buildEnvs, tc.buildArgs, tc.push)
+	actualDuration := time.Since(startTime)
+	assert.True(t, actualDuration >= duration)
+	assert.True(t, duration+time.Millisecond >= actualDuration)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
