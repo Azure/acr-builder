@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/domain"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -108,7 +109,7 @@ func ResolveDockerComposeDependencies(env *domain.BuilderContext, projectDirecto
 		imageContext := filepath.Join(projectDirectory, contextDir)
 		var dockerfilePath string
 		if service.Build.Dockerfile == "" {
-			dockerfilePath = filepath.Join(imageContext, "Dockerfile")
+			dockerfilePath = filepath.Join(imageContext, constants.DefaultDockerfile)
 		} else {
 			dockerfilePath = filepath.Join(imageContext, env.Expand(service.Build.Dockerfile))
 		}

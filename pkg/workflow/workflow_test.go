@@ -165,9 +165,8 @@ func testRun(t *testing.T, tc runTestCase) {
 	w := NewWorkflow()
 	runner := new(test_domain.MockRunner)
 	runner.UseDefaultFileSystem()
-	for i := range tc.items {
-		m := tc.items[i] // at some point if we share variable things would blow up
-		m.schedule(t, w, runner)
+	for _, item := range tc.items {
+		item.schedule(t, w, runner)
 	}
 	err := w.Run(runner)
 	if tc.expectedError == "" {

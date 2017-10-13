@@ -10,10 +10,6 @@ import (
 	"github.com/Azure/acr-builder/pkg/grok"
 )
 
-// Vocabulary to be used to build commands
-
-const defaultDockerfilePath = "Dockerfile"
-
 // NewDockerUsernamePassword creates a authentication object with username and password
 func NewDockerUsernamePassword(registry string, username string, password string) (domain.DockerCredential, error) {
 	if (username == "") != (password == "") {
@@ -66,7 +62,7 @@ func (t *dockerBuildTask) ScanForDependencies(runner domain.Runner) ([]domain.Im
 	env := runner.GetContext()
 	var dockerfile string
 	if t.dockerfile == "" {
-		dockerfile = defaultDockerfilePath
+		dockerfile = constants.DefaultDockerfile
 	} else {
 		dockerfile = env.Expand(t.dockerfile)
 	}
@@ -75,7 +71,7 @@ func (t *dockerBuildTask) ScanForDependencies(runner domain.Runner) ([]domain.Im
 	runtime, buildtime, err := grok.ResolveDockerfileDependencies(dockerfile)
 	if err == nil {
 		dependencies = []domain.ImageDependencies{
-			domain.ImageDependencies{
+			{
 				Image:             env.Expand(t.pushTo),
 				RuntimeDependency: runtime,
 				BuildDependencies: buildtime,

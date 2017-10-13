@@ -8,19 +8,19 @@ import (
 	"github.com/Azure/acr-builder/pkg/grok"
 )
 
-// DockerComposeSupportedFilenames needs to always be in sync with docker compose's SUPPORTED_FILENAMES in config.py
-var DockerComposeSupportedFilenames = []string{
+// dockerComposeSupportedFilenames needs to always be in sync with docker compose's SUPPORTED_FILENAMES in config.py
+var dockerComposeSupportedFilenames = []string{
 	"docker-compose.yml",
 	"docker-compose.yaml",
 }
 
-// ErrNoDefaultDockerfile means that no default docker file is found when running FindDefaultDockerComposeFile
-var ErrNoDefaultDockerfile = fmt.Errorf("No default docker-compose file found")
+// errNoDefaultDockerfile means that no default docker file is found when running FindDefaultDockerComposeFile
+var errNoDefaultDockerfile = fmt.Errorf("No default docker-compose file found")
 
-// FindDefaultDockerComposeFile try and locate the default docker-compose file in the current working directory
-func FindDefaultDockerComposeFile(runner domain.Runner) (string, error) {
+// findDefaultDockerComposeFile try and locate the default docker-compose file in the current working directory
+func findDefaultDockerComposeFile(runner domain.Runner) (string, error) {
 	fs := runner.GetFileSystem()
-	for _, defaultFile := range DockerComposeSupportedFilenames {
+	for _, defaultFile := range dockerComposeSupportedFilenames {
 		exists, err := fs.DoesFileExist(defaultFile)
 		if err != nil {
 			return "", fmt.Errorf("Unexpected error while checking for default docker compose file: %s", err)
@@ -29,7 +29,7 @@ func FindDefaultDockerComposeFile(runner domain.Runner) (string, error) {
 			return defaultFile, nil
 		}
 	}
-	return "", ErrNoDefaultDockerfile
+	return "", errNoDefaultDockerfile
 }
 
 // NewDockerComposeBuild creates a build target with defined docker-compose file
@@ -54,7 +54,7 @@ func (t *dockerComposeBuildTask) ScanForDependencies(runner domain.Runner) ([]do
 		targetPath = env.Expand(t.path)
 	} else {
 		var err error
-		targetPath, err = FindDefaultDockerComposeFile(runner)
+		targetPath, err = findDefaultDockerComposeFile(runner)
 		if err != nil {
 			return []domain.ImageDependencies{}, err
 		}

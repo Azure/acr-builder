@@ -45,7 +45,6 @@ func (w *Workflow) GetOutputs() *OutputContext {
 // Run all items that are previously compiled in the workflow
 func (w *Workflow) Run(runner domain.Runner) error {
 	for _, item := range w.items {
-		//item := w.items[i]
 		runner.SetContext(item.context)
 		err := item.task(runner, &w.output)
 		if err != nil {

@@ -16,7 +16,7 @@ func TestResolveDockerfileDependencies(t *testing.T) {
 		assert.Failf(t, "Failed", "Scenario failed with unexpected error: %s", err)
 	}
 	testCommon.AssertSameDependencies(t, []domain.ImageDependencies{testCommon.DotnetExampleDependencies}, []domain.ImageDependencies{
-		domain.ImageDependencies{
+		{
 			Image:             testCommon.DotnetExampleDependencies.Image,
 			BuildDependencies: buildtimes,
 			RuntimeDependency: runtime,

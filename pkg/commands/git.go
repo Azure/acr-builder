@@ -246,13 +246,11 @@ func (s *gitSource) Export() []domain.EnvVar {
 			Name:  constants.ExportsGitHeadRev,
 			Value: s.headRev,
 		})
-	} else {
-		if s.branch != "" {
-			exports = append(exports, domain.EnvVar{
-				Name:  constants.ExportsGitBranch,
-				Value: s.branch,
-			})
-		}
+	} else if s.branch != "" {
+		exports = append(exports, domain.EnvVar{
+			Name:  constants.ExportsGitBranch,
+			Value: s.branch,
+		})
 	}
 	return append(exports,
 		domain.EnvVar{

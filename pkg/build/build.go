@@ -102,13 +102,11 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 		var gitCred commands.GitCredential
 		if gitXToken != "" {
 			gitCred = commands.NewGitXToken(gitXToken)
-		} else {
-			if gitPATokenUser != "" {
-				var err error
-				gitCred, err = commands.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
-				if err != nil {
-					return nil, err
-				}
+		} else if gitPATokenUser != "" {
+			var err error
+			gitCred, err = commands.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
+			if err != nil {
+				return nil, err
 			}
 		}
 		source.Source = commands.NewGitSource(gitURL, gitBranch, gitHeadRev, gitCloneDir, gitCred)

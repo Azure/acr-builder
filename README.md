@@ -39,11 +39,10 @@ On your project directory to build you project and push to desired registry.
 `--git-username` Git username<br />
 `--git-password` Git password<br />
 `--local-source` Local source directory. Specifying this parameter tells the builder no source control is used and it would use the specified directory as source<br />
-`--dockerfile` Dockerfile to be used for building<br />
+`--docker-file` Dockerfile to be used for building<br />
 `--docker-image` Image name to build to. It must be used alongside `--dockerfile` if push is required. Registry url must be excluded from the image name parameter.<br />
 `--docker-context-dir` Docker build context. Optional, to be used alongside `--dockerfile`<br />
 `--docker-compose-file` Docker Compose file to be invoked for build and push<br />
-`--dockerfile` Dockerfile to be used for building<br />
 `--docker-build-arg` Build arguments to be passed to docker build or docker-compose build. This parameter can be specified multiple times.<br />
 `--build-env` Custom environment variables defined for the build process. This parameter can be specified multiple times. (For more details, see `Build Environment`)<br />
 `--push` Specify if push is required if build is successful<br />
