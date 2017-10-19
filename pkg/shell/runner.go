@@ -1,7 +1,6 @@
 package shell
 
 import (
-	"io/ioutil"
 	"os/exec"
 	"strings"
 
@@ -12,110 +11,66 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Runner struct {
-	env   map[string]*domain.AbstractString
-	shell *Shell
+type shellRunner struct {
+	context *domain.BuilderContext
+	fs      *domain.BuildContextAwareFileSystem
 }
 
-func NewRunner(sh *Shell, env []domain.EnvVar) (domain.Runner, error) {
-	runner := &Runner{shell: sh, env: map[string]*domain.AbstractString{}}
-	return runner.AppendContext(env)
-}
-
-func (r *Runner) AppendContext(newEnv []domain.EnvVar) (domain.Runner, error) {
-	allVars := map[string]*domain.AbstractString{}
-	for k, v := range r.env {
-		allVars[k] = domain.Abstract(v.RawValue())
+// NewRunner creates a runner for a given shell with empty context
+func NewRunner() domain.Runner {
+	context := domain.NewContext([]domain.EnvVar{}, []domain.EnvVar{})
+	return &shellRunner{
+		context: context,
+		fs:      domain.NewBuildContextAwareFileSystem(context),
 	}
-	for _, v := range newEnv {
-		allVars[v.Name] = domain.Abstract(v.Value.RawValue())
-	}
-	err := reduceEnv(allVars)
-	if err != nil {
-		return nil, fmt.Errorf("Error evaluating the initial environments: %s", err)
-	}
-	return &Runner{
-		shell: r.shell,
-		env:   allVars,
-	}, nil
 }
 
-func (a *Runner) Resolve(value domain.AbstractString) string {
-	value.Resolve(a.env)
-	return value.EscapedValue()
+// GetFileSystem returns the file system the that runner is running under
+func (r *shellRunner) GetFileSystem() domain.FileSystem {
+	return r.fs
 }
 
-func (r *Runner) ExecuteCmd(cmdExe domain.AbstractString, cmdArgs ...domain.AbstractString) error {
+// GetContext return the current running context
+func (r *shellRunner) GetContext() *domain.BuilderContext {
+	return r.context
+}
+
+// SetContext updates the current running context
+func (r *shellRunner) SetContext(context *domain.BuilderContext) {
+	r.context = context
+	r.fs.SetContext(context)
+}
+
+// ExecuteCmdWithCustomLogging runs the given command but use custom logging logic
+// this method can be used to hide secrets passed in
+func (r *shellRunner) ExecuteCmdWithObfuscation(obfuscate func([]string), cmdExe string, cmdArgs []string) error {
+	return r.executeCmd(obfuscate, cmdExe, cmdArgs)
+}
+
+// ExecuteCmd runs the given command with default logging
+func (r *shellRunner) ExecuteCmd(cmdExe string, cmdArgs []string) error {
+	return r.executeCmd(nil, cmdExe, cmdArgs)
+}
+
+func (r *shellRunner) executeCmd(obfuscate func([]string), cmdExe string, cmdArgs []string) error {
 	resolvedArgs := make([]string, len(cmdArgs))
-	displayArgs := make([]string, len(cmdArgs))
 	for i, arg := range cmdArgs {
-		resolvedArgs[i] = r.Resolve(arg)
-		displayArgs[i] = arg.DisplayValue()
+		resolvedArgs[i] = r.context.Expand(arg)
 	}
-	cmd := exec.Command(r.Resolve(cmdExe), resolvedArgs...)
-	logrus.Infof("Running command %s %s", cmdExe.DisplayValue(), strings.Join(displayArgs, " "))
+	cmd := exec.Command(r.context.Expand(cmdExe), resolvedArgs...)
+	displayValues := resolvedArgs
+	if obfuscate != nil {
+		displayValues = make([]string, len(resolvedArgs))
+		copy(displayValues, resolvedArgs)
+		obfuscate(displayValues)
+	}
+	logrus.Infof("Running command %s %s", cmdExe, strings.Join(displayValues, " "))
 	return r.execute(cmd)
 }
 
-func (r *Runner) ExecuteString(cmdString domain.AbstractString) error {
-	cmd := exec.Command(r.shell.BootstrapExe, r.Resolve(cmdString))
-	logrus.Infof("Running predefined command %s", cmdString.DisplayValue())
-	return r.execute(cmd)
-}
-
-func (r *Runner) GetFileInfo(path domain.AbstractString) (os.FileInfo, error) {
-	resolved := r.Resolve(path)
-	return os.Stat(resolved)
-}
-
-func (r *Runner) Chdir(path domain.AbstractString) error {
-	dir := r.Resolve(path)
-	logrus.Infof("Chdir to %s", path.DisplayValue())
-	err := os.Chdir(dir)
-	if err != nil {
-		return fmt.Errorf("Error chdir to %s", dir)
-	}
-	return nil
-}
-
-func (r *Runner) DoesDirExist(path domain.AbstractString) (bool, error) {
-	return r.lookupPath(path, true)
-}
-
-func (r *Runner) DoesFileExist(path domain.AbstractString) (bool, error) {
-	return r.lookupPath(path, false)
-}
-
-func (r *Runner) IsDirEmpty(path domain.AbstractString) (bool, error) {
-	resolved := r.Resolve(path)
-	info, err := ioutil.ReadDir(resolved)
-	if err != nil {
-		return false, err
-	}
-	return len(info) == 0, nil
-}
-
-func (r *Runner) lookupPath(path domain.AbstractString, isDir bool) (bool, error) {
-	fileInfo, err := r.GetFileInfo(path)
-	if err == nil {
-		if fileInfo.IsDir() == isDir {
-			return true, nil
-		}
-		err = fmt.Errorf("Path is expected to be IsDir: %t", isDir)
-	} else if os.IsNotExist(err) {
-		err = nil
-	} else {
-		logrus.Warnf("Unexpected error while getting path: %s", path.RawValue())
-	}
-	return false, err
-}
-
-func (r *Runner) execute(cmd *exec.Cmd) error {
+func (r *shellRunner) execute(cmd *exec.Cmd) error {
 	cmd.Env = append(cmd.Env, os.Environ()...)
-	for k, v := range r.env {
-		// TODO: verify if space works
-		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v.EscapedValue()))
-	}
+	cmd.Env = append(cmd.Env, r.context.Export()...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -123,30 +78,7 @@ func (r *Runner) execute(cmd *exec.Cmd) error {
 		return fmt.Errorf("Failed to start command: %s", err)
 	}
 	if err := cmd.Wait(); err != nil {
-		// TODO: check if any stderr causes this to fail
 		return fmt.Errorf("Failed to run command: %s", err)
-	}
-	return nil
-}
-
-const MaxReduceLevel = 5
-
-func reduceEnv(env map[string]*domain.AbstractString) error {
-	replaced := true
-	levelCount := 0
-	for replaced {
-		if levelCount == MaxReduceLevel {
-			return fmt.Errorf("Variable nested for too many levels")
-		}
-		replaced = false
-		for k, v := range env {
-			found, err := v.ResolveWithCycleDetection(env, k)
-			if err != nil {
-				return err
-			}
-			replaced = replaced || found
-		}
-		levelCount++
 	}
 	return nil
 }

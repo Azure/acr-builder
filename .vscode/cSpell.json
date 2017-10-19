@@ -1,0 +1,19 @@
+{
+    "version": "0.1",
+    "language": "en",
+    "words": [
+        "aspnetcore",
+        "logrus",
+        "debugf",
+        "infof",
+        "warnf",
+        "errorf",
+        "failf",
+        "envs",
+        "auths",
+        "grok",
+        "stretchr",
+        "unresolvable",
+        "azurecr"
+    ]
+}
