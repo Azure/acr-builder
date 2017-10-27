@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/Azure/acr-builder/pkg/domain"
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,7 +15,7 @@ func TestResolveDockerfileDependencies(t *testing.T) {
 	if err != nil {
 		assert.Failf(t, "Failed", "Scenario failed with unexpected error: %s", err)
 	}
-	testCommon.AssertSameDependencies(t, []domain.ImageDependencies{testCommon.DotnetExampleDependencies}, []domain.ImageDependencies{
+	testCommon.AssertSameDependencies(t, []build.ImageDependencies{testCommon.DotnetExampleDependencies}, []build.ImageDependencies{
 		{
 			Image:             testCommon.DotnetExampleDependencies.Image,
 			BuildDependencies: buildtimes,

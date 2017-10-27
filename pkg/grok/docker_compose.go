@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
-	"github.com/Azure/acr-builder/pkg/domain"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -93,8 +93,8 @@ func readDockerComposeFile(path string) (*dockerCompose, error) {
 }
 
 // ResolveDockerComposeDependencies => given a compose file, resolve its dependencies
-func ResolveDockerComposeDependencies(env *domain.BuilderContext, projectDirectory string, composeFile string) ([]domain.ImageDependencies, error) {
-	result := []domain.ImageDependencies{}
+func ResolveDockerComposeDependencies(env *build.BuilderContext, projectDirectory string, composeFile string) ([]build.ImageDependencies, error) {
+	result := []build.ImageDependencies{}
 	compose, err := readDockerComposeFile(composeFile)
 	if err != nil {
 		return result, err
@@ -117,7 +117,7 @@ func ResolveDockerComposeDependencies(env *domain.BuilderContext, projectDirecto
 		if err != nil {
 			return nil, fmt.Errorf("Failed to list dependencies for dockerfile %s, error, %s", dockerfilePath, err)
 		}
-		result = append(result, domain.ImageDependencies{
+		result = append(result, build.ImageDependencies{
 			Image:             env.Expand(service.Image),
 			RuntimeDependency: runtime,
 			BuildDependencies: buildtime,

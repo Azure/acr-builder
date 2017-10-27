@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"testing"
 
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
-	"github.com/Azure/acr-builder/pkg/domain"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,7 +54,7 @@ func (g *MappedStringGenerator) Lookup(key string) string {
 const TestsDockerRegistryName = "unit-tests/"
 
 // MultiStageExampleTestEnv is the test env used for resolving docker-compose{-envs}.yml
-var MultiStageExampleTestEnv = []domain.EnvVar{
+var MultiStageExampleTestEnv = []build.EnvVar{
 	{Name: constants.ExportsDockerRegistry, Value: TestsDockerRegistryName},
 	// this is just a goofy entry to show that variable resolutions work
 	{Name: "DOCKERFILE", Value: "Dockerfile"},
@@ -67,8 +67,8 @@ var MultistageExampleDependencies = MultistageExampleDependenciesOn(TestsDockerR
 var HelloNodeExampleDependencies = HelloNodeExampleDependenciesOn(TestsDockerRegistryName)
 
 // MultistageExampleDependenciesOn returns dependencies to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-multistage
-func MultistageExampleDependenciesOn(registry string) domain.ImageDependencies {
-	return domain.ImageDependencies{
+func MultistageExampleDependenciesOn(registry string) build.ImageDependencies {
+	return build.ImageDependencies{
 		Image:             registry + "hello-multistage",
 		RuntimeDependency: "alpine",
 		BuildDependencies: []string{"golang:alpine"},
@@ -76,8 +76,8 @@ func MultistageExampleDependenciesOn(registry string) domain.ImageDependencies {
 }
 
 // HelloNodeExampleDependenciesOn returns dependencies to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-node
-func HelloNodeExampleDependenciesOn(registry string) domain.ImageDependencies {
-	return domain.ImageDependencies{
+func HelloNodeExampleDependenciesOn(registry string) build.ImageDependencies {
+	return build.ImageDependencies{
 		Image:             registry + "hello-node",
 		RuntimeDependency: "node:alpine",
 		BuildDependencies: []string{},
@@ -85,9 +85,9 @@ func HelloNodeExampleDependenciesOn(registry string) domain.ImageDependencies {
 }
 
 // AssertSameDependencies help determine two sets of dependencies are equivalent
-func AssertSameDependencies(t *testing.T, expectedList []domain.ImageDependencies, actual []domain.ImageDependencies) {
+func AssertSameDependencies(t *testing.T, expectedList []build.ImageDependencies, actual []build.ImageDependencies) {
 	assert.Equal(t, len(expectedList), len(actual), "Unexpected numbers of image dependencies")
-	expectedMap := map[string]domain.ImageDependencies{}
+	expectedMap := map[string]build.ImageDependencies{}
 	for _, entry := range expectedList {
 		expectedMap[entry.Image] = entry
 	}
@@ -110,14 +110,14 @@ const DotnetExampleTargetRegistryName = "registry"
 const DotnetExampleTargetImageName = "img"
 
 // DotnetExampleDependencies links to the project in ${workspaceRoot}/tests/resources/docker-dotnet
-var DotnetExampleDependencies = domain.ImageDependencies{
+var DotnetExampleDependencies = build.ImageDependencies{
 	Image:             DotnetExampleTargetRegistryName + "/" + DotnetExampleTargetImageName,
 	RuntimeDependency: "microsoft/aspnetcore:2.0",
 	BuildDependencies: []string{"microsoft/aspnetcore-build:2.0", "imaginary/cert-generator:1.0"},
 }
 
 // AssertSameEnv asserts two sets environment variable are the same
-func AssertSameEnv(t *testing.T, expected, actual []domain.EnvVar) {
+func AssertSameEnv(t *testing.T, expected, actual []build.EnvVar) {
 	assert.Equal(t, len(expected), len(actual))
 	env := map[string]string{}
 	for _, entry := range expected {
@@ -127,5 +127,13 @@ func AssertSameEnv(t *testing.T, expected, actual []domain.EnvVar) {
 		value, found := env[entry.Name]
 		assert.True(t, found, "key %s not found", entry.Name)
 		assert.Equal(t, value, entry.Value, "key %s, expected: %s, actual: %s", entry.Name, value, entry.Value)
+	}
+}
+
+// ReportOnError Reports an error when function fails
+func ReportOnError(t *testing.T, f func() error) {
+	err := f()
+	if err != nil {
+		t.Error(err.Error())
 	}
 }

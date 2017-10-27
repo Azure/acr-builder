@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"github.com/Azure/acr-builder/pkg/domain"
+	build "github.com/Azure/acr-builder/pkg"
 )
 
 // DirectoryTracker tracks switching of directories
@@ -10,7 +10,7 @@ type DirectoryTracker struct {
 }
 
 // ChdirWithTracking performs a chdir and return the tracking object
-func ChdirWithTracking(runner domain.Runner, chdir string) (*DirectoryTracker, error) {
+func ChdirWithTracking(runner build.Runner, chdir string) (*DirectoryTracker, error) {
 	if chdir == "" {
 		return nil, nil
 	}
@@ -27,7 +27,7 @@ func ChdirWithTracking(runner domain.Runner, chdir string) (*DirectoryTracker, e
 }
 
 // Return returns to the directory in affect when DirectoryTracker object is created
-func (t *DirectoryTracker) Return(runner domain.Runner) error {
+func (t *DirectoryTracker) Return(runner build.Runner) error {
 	fs := runner.GetFileSystem()
 	return fs.Chdir(t.path)
 }

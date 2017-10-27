@@ -5,8 +5,8 @@ const dockerDomainPrefix = acrBuildPrefix + "DOCKER_"
 const gitDomainPrefix = acrBuildPrefix + "GIT_"
 const dockerComposeDomainPrefix = acrBuildPrefix + "DOCKER_COMPOSE_"
 
-// ExportsCheckoutDir is the variable name for checkout dir
-const ExportsCheckoutDir = acrBuildPrefix + "CHECKOUT_DIR"
+// ExportsWorkingDir is the variable name for checkout dir
+const ExportsWorkingDir = acrBuildPrefix + "WORKING_DIR"
 
 // ExportsDockerfilePath is the variable name for docker file path
 const ExportsDockerfilePath = dockerDomainPrefix + "FILE"

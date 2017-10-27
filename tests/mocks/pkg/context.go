@@ -3,20 +3,20 @@ package domain
 import (
 	"fmt"
 
-	pkg_domain "github.com/Azure/acr-builder/pkg/domain"
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/stretchr/testify/mock"
 )
 
-var _ = (pkg_domain.Runner)((*MockRunner)(nil))
+var _ = (build.Runner)((*MockRunner)(nil))
 
 type MockRunner struct {
 	mock.Mock
-	context *pkg_domain.BuilderContext
-	fs      pkg_domain.FileSystem
+	context *build.BuilderContext
+	fs      build.FileSystem
 }
 
 func NewMockRunner() *MockRunner {
-	context := pkg_domain.NewContext([]pkg_domain.EnvVar{}, []pkg_domain.EnvVar{})
+	context := build.NewContext([]build.EnvVar{}, []build.EnvVar{})
 	fs := new(MockFileSystem)
 	fs.SetContext(context)
 	result := new(MockRunner)
@@ -25,27 +25,27 @@ func NewMockRunner() *MockRunner {
 	return result
 }
 
-func (m *MockRunner) GetFileSystem() pkg_domain.FileSystem {
+func (m *MockRunner) GetFileSystem() build.FileSystem {
 	return m.fs
 }
 
-func (m *MockRunner) SetFileSystem(fs pkg_domain.FileSystem) {
+func (m *MockRunner) SetFileSystem(fs build.FileSystem) {
 	m.fs = fs
 }
 
 func (m *MockRunner) UseDefaultFileSystem() {
-	m.fs = pkg_domain.NewBuildContextAwareFileSystem(m.context)
+	m.fs = build.NewContextAwareFileSystem(m.context)
 }
 
-func (m *MockRunner) SetContext(context *pkg_domain.BuilderContext) {
+func (m *MockRunner) SetContext(context *build.BuilderContext) {
 	m.context = context
-	fs, isAware := m.fs.(pkg_domain.BuildContextAware)
+	fs, isAware := m.fs.(build.ContextAware)
 	if isAware {
 		fs.SetContext(context)
 	}
 }
 
-func (m *MockRunner) GetContext() *pkg_domain.BuilderContext {
+func (m *MockRunner) GetContext() *build.BuilderContext {
 	return m.context
 }
 
@@ -87,19 +87,19 @@ func (m *MockRunner) PrepareCommandExpectation(commands []CommandsExpectation) {
 	}
 }
 
-var _ = (pkg_domain.BuildContextAware)((*MockFileSystem)(nil))
-var _ = (pkg_domain.FileSystem)((*MockFileSystem)(nil))
+var _ = (build.ContextAware)((*MockFileSystem)(nil))
+var _ = (build.FileSystem)((*MockFileSystem)(nil))
 
 type MockFileSystem struct {
 	mock.Mock
-	context *pkg_domain.BuilderContext
+	context *build.BuilderContext
 }
 
-func (m *MockFileSystem) GetContext() *pkg_domain.BuilderContext {
+func (m *MockFileSystem) GetContext() *build.BuilderContext {
 	return m.context
 }
 
-func (m *MockFileSystem) SetContext(context *pkg_domain.BuilderContext) {
+func (m *MockFileSystem) SetContext(context *build.BuilderContext) {
 	m.context = context
 }
 

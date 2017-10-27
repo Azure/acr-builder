@@ -1,4 +1,4 @@
-package domain
+package build
 
 import (
 	"fmt"
@@ -11,15 +11,15 @@ import (
 )
 
 var sharedContext *BuilderContext
-var fs *BuildContextAwareFileSystem
+var fs *ContextAwareFileSystem
 
 func init() {
 	sharedContext = NewContext([]EnvVar{
 		{Name: "dne_dir", Value: "???"},
-		{Name: "resource_root", Value: filepath.Join("..", "..", "tests", "resources")},
+		{Name: "resource_root", Value: filepath.Join("..", "tests", "resources")},
 		{Name: "docker_compose_project", Value: filepath.Join("${resource_root}", "docker-compose")},
 	}, []EnvVar{})
-	fs = NewBuildContextAwareFileSystem(&BuilderContext{})
+	fs = NewContextAwareFileSystem(&BuilderContext{})
 	fs.SetContext(sharedContext)
 }
 

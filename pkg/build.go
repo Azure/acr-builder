@@ -1,4 +1,4 @@
-package domain
+package build
 
 import (
 	"fmt"
@@ -21,8 +21,8 @@ func NewEnvVar(name string, value string) (*EnvVar, error) {
 	return &EnvVar{Name: name, Value: value}, nil
 }
 
-// BuildRequest defines a acr-builder build
-type BuildRequest struct {
+// Request defines a acr-builder build
+type Request struct {
 	DockerRegistry    string
 	DockerCredentials []DockerCredential
 	Targets           []SourceTarget
@@ -30,19 +30,19 @@ type BuildRequest struct {
 
 // SourceTarget defines a source and a set of BuildTargets to run
 type SourceTarget struct {
-	Source BuildSource
-	Builds []BuildTarget
+	Source Source
+	Builds []Target
 }
 
-// BuildSource defines where the source code is and how to fetch the code
-type BuildSource interface {
+// Source defines where the source code is and how to fetch the code
+type Source interface {
 	Obtain(runner Runner) error
 	Return(runner Runner) error
 	Export() []EnvVar
 }
 
-// BuildTarget is the build part of BuildTarget
-type BuildTarget interface {
+// Target is the build part of SourceTarget
+type Target interface {
 	// Build task can't be a generic tasks now because it needs to return ImageDependencies
 	// If we use docker events to figure out dependencies, we can make build tasks a generic task
 	Build(runner Runner) error

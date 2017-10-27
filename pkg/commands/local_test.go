@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"testing"
 
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
-	"github.com/Azure/acr-builder/pkg/domain"
-	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
+	test "github.com/Azure/acr-builder/tests/mocks/pkg"
 	"github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,10 +15,10 @@ import (
 type localSourceTestCase struct {
 	path           string
 	getWdErr       *error
-	expectedChdir  test_domain.ChdirExpectations
+	expectedChdir  test.ChdirExpectations
 	expectedErr    string
 	expectedRtnErr string
-	expectedEnv    []domain.EnvVar
+	expectedEnv    []build.EnvVar
 }
 
 func TestLocalSourceEmptyHappy(t *testing.T) {
@@ -28,13 +28,13 @@ func TestLocalSourceEmptyHappy(t *testing.T) {
 func TestLocalSourceParamHappy(t *testing.T) {
 	testLocalSource(t, localSourceTestCase{
 		path: "proj",
-		expectedChdir: []test_domain.ChdirExpectation{
+		expectedChdir: []test.ChdirExpectation{
 			{Path: "proj"},
 			{Path: "home"},
 		},
 		getWdErr: &testCommon.NilError,
-		expectedEnv: []domain.EnvVar{
-			{Name: constants.ExportsCheckoutDir, Value: "proj"},
+		expectedEnv: []build.EnvVar{
+			{Name: constants.ExportsWorkingDir, Value: "proj"},
 		}})
 }
 
@@ -43,8 +43,8 @@ func TestLocalSourceGetWdErr(t *testing.T) {
 	testLocalSource(t, localSourceTestCase{
 		path:     "proj",
 		getWdErr: &getwdErr,
-		expectedEnv: []domain.EnvVar{
-			{Name: constants.ExportsCheckoutDir, Value: "proj"},
+		expectedEnv: []build.EnvVar{
+			{Name: constants.ExportsWorkingDir, Value: "proj"},
 		},
 		expectedErr: "^Failed to get wd$",
 	})
@@ -52,9 +52,9 @@ func TestLocalSourceGetWdErr(t *testing.T) {
 
 func testLocalSource(t *testing.T, tc localSourceTestCase) {
 	source := NewLocalSource(tc.path)
-	runner := test_domain.NewMockRunner()
+	runner := test.NewMockRunner()
 	defer runner.AssertExpectations(t)
-	fs := runner.GetFileSystem().(*test_domain.MockFileSystem)
+	fs := runner.GetFileSystem().(*test.MockFileSystem)
 	fs.PrepareChdir(tc.expectedChdir)
 	if tc.getWdErr != nil {
 		fs.On("Getwd").Return("home", *tc.getWdErr).Once()

@@ -21,7 +21,7 @@ Assuming you have the following:
 * You are currently authenticated to a target registry named `<registry>`
 
 ```
-./run-build.sh --local-source <source-dir> --push --docker-registry <registry>
+./run-build.sh --working-dir <source-dir> --push --docker-registry <registry>
 ```
 On your project directory to build you project and push to desired registry.
 
@@ -31,14 +31,14 @@ On your project directory to build you project and push to desired registry.
 ##### Conditional or Optional parameters
 `--docker-registry` Docker registry to push to. This parameter will populate the `ACR_BUILD_DOCKER_REGISTRY` reserved environment variable (see `Build Environment`) Registry is required if `--push` options is present<br />
 `--docker-user` Username for the docker registry specified above<br />
-`--docker-secret` Password or token for registry specified above<br />
+`--docker-password` Password or token for registry specified above<br />
+`--archive` The URL of a tar.gz archive which contains the source code<br />
 `--git-url` Git url to the project. Clone operation will be ignored if `--git-clone-to` folder exist and is not empty and this parameter will not be required<br />
-`--git-clone-to` Directory to clone to. If the directory exists, we won't clone again and will just clean and pull the directory. The default value is `$HOME/acr-builder/src`<br />
 `--git-branch` The git branch to checkout. If it is not given, no checkout command would be performed<br />
 `--git-head-revision` Desired git HEAD revision, note that providing this parameter will cause the branch parameter to be ignored<br />
 `--git-username` Git username<br />
 `--git-password` Git password<br />
-`--local-source` Local source directory. Specifying this parameter tells the builder no source control is used and it would use the specified directory as source<br />
+`--working-dir` Working directory for the build.<br />
 `--docker-file` Dockerfile to be used for building<br />
 `--docker-image` Image name to build to. It must be used alongside `--dockerfile` if push is required. Registry url must be excluded from the image name parameter.<br />
 `--docker-context-dir` Docker build context. Optional, to be used alongside `--dockerfile`<br />

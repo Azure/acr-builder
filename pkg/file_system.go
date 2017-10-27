@@ -1,4 +1,4 @@
-package domain
+package build
 
 import (
 	"fmt"
@@ -17,35 +17,35 @@ type FileSystem interface {
 	IsDirEmpty(path string) (bool, error)
 }
 
-// BuildContextAware are any objects that are aware of build contexts
-type BuildContextAware interface {
+// ContextAware are any objects that are aware of build contexts
+type ContextAware interface {
 	SetContext(context *BuilderContext)
 	GetContext() *BuilderContext
 }
 
-// BuildContextAwareFileSystem is a collections of file sysetm operations
+// ContextAwareFileSystem is a collections of file sysetm operations
 // which will resolves the input with respect to BuilderContext
-type BuildContextAwareFileSystem struct {
+type ContextAwareFileSystem struct {
 	context *BuilderContext
 }
 
-// NewBuildContextAwareFileSystem creates a new file system with no context
-func NewBuildContextAwareFileSystem(context *BuilderContext) *BuildContextAwareFileSystem {
-	return &BuildContextAwareFileSystem{context: context}
+// NewContextAwareFileSystem creates a new file system with no context
+func NewContextAwareFileSystem(context *BuilderContext) *ContextAwareFileSystem {
+	return &ContextAwareFileSystem{context: context}
 }
 
 // SetContext changes the context that the file system uses
-func (r *BuildContextAwareFileSystem) SetContext(context *BuilderContext) {
+func (r *ContextAwareFileSystem) SetContext(context *BuilderContext) {
 	r.context = context
 }
 
 // Getwd gets the current working directory
-func (r *BuildContextAwareFileSystem) Getwd() (string, error) {
+func (r *ContextAwareFileSystem) Getwd() (string, error) {
 	return os.Getwd()
 }
 
 // Chdir changes current working directory for the runner
-func (r *BuildContextAwareFileSystem) Chdir(path string) error {
+func (r *ContextAwareFileSystem) Chdir(path string) error {
 	path = r.context.Expand(path)
 	logrus.Debugf("Chdir to %s", path)
 	err := os.Chdir(path)
@@ -56,17 +56,17 @@ func (r *BuildContextAwareFileSystem) Chdir(path string) error {
 }
 
 // DoesDirExist checks if a given directory exists
-func (r *BuildContextAwareFileSystem) DoesDirExist(path string) (bool, error) {
+func (r *ContextAwareFileSystem) DoesDirExist(path string) (bool, error) {
 	return r.lookupPath(path, true)
 }
 
 // DoesFileExist checks if a given file exists
-func (r *BuildContextAwareFileSystem) DoesFileExist(path string) (bool, error) {
+func (r *ContextAwareFileSystem) DoesFileExist(path string) (bool, error) {
 	return r.lookupPath(path, false)
 }
 
 // IsDirEmpty checks if given directory is empty
-func (r *BuildContextAwareFileSystem) IsDirEmpty(path string) (bool, error) {
+func (r *ContextAwareFileSystem) IsDirEmpty(path string) (bool, error) {
 	path = r.context.Expand(path)
 	info, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -75,7 +75,7 @@ func (r *BuildContextAwareFileSystem) IsDirEmpty(path string) (bool, error) {
 	return len(info) == 0, nil
 }
 
-func (r *BuildContextAwareFileSystem) lookupPath(path string, isDir bool) (bool, error) {
+func (r *ContextAwareFileSystem) lookupPath(path string, isDir bool) (bool, error) {
 	path = r.context.Expand(path)
 	fileInfo, err := os.Stat(path)
 	if err == nil {

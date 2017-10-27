@@ -1,4 +1,4 @@
-package build
+package driver
 
 import (
 	"fmt"
@@ -12,16 +12,16 @@ import (
 
 	"github.com/Azure/acr-builder/pkg/constants"
 
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/commands"
-	"github.com/Azure/acr-builder/pkg/domain"
 	"github.com/Azure/acr-builder/pkg/workflow"
-	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
+	test "github.com/Azure/acr-builder/tests/mocks/pkg"
 	"github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-var stockImgDependencies1 = []domain.ImageDependencies{
+var stockImgDependencies1 = []build.ImageDependencies{
 	{
 		Image:             "img1",
 		RuntimeDependency: "run1",
@@ -34,7 +34,7 @@ var stockImgDependencies1 = []domain.ImageDependencies{
 	},
 }
 
-var stockImgDependencies2 = []domain.ImageDependencies{
+var stockImgDependencies2 = []build.ImageDependencies{
 	{
 		Image:             "img2",
 		RuntimeDependency: "run2",
@@ -42,7 +42,7 @@ var stockImgDependencies2 = []domain.ImageDependencies{
 	},
 }
 
-var stockImgDependencies3 = []domain.ImageDependencies{
+var stockImgDependencies3 = []build.ImageDependencies{
 	{
 		Image:             "img3",
 		RuntimeDependency: "run3",
@@ -51,10 +51,10 @@ var stockImgDependencies3 = []domain.ImageDependencies{
 }
 
 type dependenciesTestCase struct {
-	baseline             []domain.ImageDependencies
-	new                  []domain.ImageDependencies
+	baseline             []build.ImageDependencies
+	new                  []build.ImageDependencies
 	err                  error
-	expectedDependencies []domain.ImageDependencies
+	expectedDependencies []build.ImageDependencies
 	expectedError        string
 }
 
@@ -88,10 +88,10 @@ func TestDependenciesTaskError(t *testing.T) {
 }
 
 func testDependencies(t *testing.T, tc dependenciesTestCase) {
-	runner := new(test_domain.MockRunner)
+	runner := new(test.MockRunner)
 	defer runner.AssertExpectations(t)
 	runner.UseDefaultFileSystem()
-	buildTarget := new(test_domain.MockBuildTarget)
+	buildTarget := new(test.MockBuildTarget)
 	buildTarget.On("ScanForDependencies", runner).Return(tc.new, tc.err).Once()
 	outputs := &workflow.OutputContext{
 		ImageDependencies: tc.baseline,
@@ -110,13 +110,13 @@ func testDependencies(t *testing.T, tc dependenciesTestCase) {
 }
 
 type buildParameters struct {
-	dependencies []domain.ImageDependencies
-	envVar       []domain.EnvVar
+	dependencies []build.ImageDependencies
+	envVar       []build.EnvVar
 	expectedEnv  []string
 }
 
 type sourceParameters struct {
-	envVar      []domain.EnvVar
+	envVar      []build.EnvVar
 	builds      []buildParameters
 	expectedEnv []string
 }
@@ -128,11 +128,11 @@ type dockerCredsParameters struct {
 type compileTestCase struct {
 	buildNumber          string
 	registry             string
-	userDefined          []domain.EnvVar
+	userDefined          []build.EnvVar
 	creds                []dockerCredsParameters
 	sources              []sourceParameters
 	push                 bool
-	expectedDependencies []domain.ImageDependencies
+	expectedDependencies []build.ImageDependencies
 }
 
 func newMultiSourceTestCase(push bool) *compileTestCase {
@@ -140,7 +140,7 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 	return &compileTestCase{
 		buildNumber: "TestCompileHappy-01",
 		registry:    "TestCompileHappy.azurecr.io",
-		userDefined: []domain.EnvVar{
+		userDefined: []build.EnvVar{
 			{Name: "k1", Value: gen.NextWithKey("k1")},
 			{Name: "k2", Value: gen.NextWithKey("k2")},
 		},
@@ -156,7 +156,7 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 		push: push,
 		sources: []sourceParameters{
 			{
-				envVar: []domain.EnvVar{
+				envVar: []build.EnvVar{
 					{Name: "s1.1", Value: gen.NextWithKey("s1.1")},
 					{Name: "s1.2", Value: gen.NextWithKey("s1.2")},
 				},
@@ -171,7 +171,7 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 				},
 				builds: []buildParameters{
 					{dependencies: stockImgDependencies1,
-						envVar: []domain.EnvVar{
+						envVar: []build.EnvVar{
 							{Name: "b1.1.1", Value: gen.NextWithKey("b1.1.1")},
 							{Name: "b1.1.2", Value: gen.NextWithKey("b1.1.2")},
 						},
@@ -188,7 +188,7 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 						},
 					},
 					{dependencies: stockImgDependencies2,
-						envVar: []domain.EnvVar{
+						envVar: []build.EnvVar{
 							{Name: "b1.2.1", Value: gen.NextWithKey("b1.2.1")},
 							{Name: "b1.2.2", Value: gen.NextWithKey("b1.2.2")},
 						},
@@ -207,7 +207,7 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 				},
 			},
 			{
-				envVar: []domain.EnvVar{
+				envVar: []build.EnvVar{
 					{Name: "s2.1", Value: gen.NextWithKey("s2.1")},
 					{Name: "s2.2", Value: gen.NextWithKey("s2.2")},
 				},
@@ -222,7 +222,7 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 				},
 				builds: []buildParameters{
 					{dependencies: stockImgDependencies3,
-						envVar: []domain.EnvVar{
+						envVar: []build.EnvVar{
 							{Name: "b2.1.1", Value: gen.NextWithKey("b2.1.1")},
 							{Name: "b2.1.2", Value: gen.NextWithKey("b2.1.2")},
 						},
@@ -254,24 +254,24 @@ func TestCompileNoPush(t *testing.T) {
 }
 
 func testCompile(t *testing.T, tc *compileTestCase) {
-	runner := new(test_domain.MockRunner)
+	runner := new(test.MockRunner)
 	runner.UseDefaultFileSystem()
-	req := &domain.BuildRequest{
+	req := &build.Request{
 		DockerRegistry: tc.registry,
 	}
 	for i := range tc.creds {
 		cred := tc.creds[i]
-		credMock := new(test_domain.MockDockerCredential)
+		credMock := new(test.MockDockerCredential)
 		req.DockerCredentials = append(req.DockerCredentials, credMock)
 		verifyContext(t, credMock.On("Authenticate", runner), cred.expectedEnv, nil)
 		defer credMock.AssertExpectations(t)
 	}
 	for i := range tc.sources {
 		source := tc.sources[i]
-		builds := []domain.BuildTarget{}
+		builds := []build.Target{}
 		for j := range source.builds {
 			build := source.builds[j]
-			buildMock := new(test_domain.MockBuildTarget)
+			buildMock := new(test.MockBuildTarget)
 			verifyContext(t, buildMock.On("Build", runner), build.expectedEnv, nil)
 			buildMock.On("Export").Return(build.envVar).Once()
 			scanDependencies := buildMock.On("ScanForDependencies", runner, mock.Anything)
@@ -285,12 +285,12 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 			builds = append(builds, buildMock)
 			defer buildMock.AssertExpectations(t)
 		}
-		sourceMock := new(test_domain.MockBuildSource)
+		sourceMock := new(test.MockBuildSource)
 		verifyContext(t, sourceMock.On("Obtain", runner), source.expectedEnv, nil)
 		verifyContext(t, sourceMock.On("Return", runner), source.expectedEnv, nil)
 		sourceMock.On("Export").Return(source.envVar).Once()
 		defer sourceMock.AssertExpectations(t)
-		target := domain.SourceTarget{
+		target := build.SourceTarget{
 			Source: sourceMock,
 			Builds: builds,
 		}
@@ -304,7 +304,7 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 }
 
 func verifyContextFromParameters(t *testing.T, expected []string, arg mock.Arguments) {
-	runner, ok := arg[0].(domain.Runner)
+	runner, ok := arg[0].(build.Runner)
 	assert.True(t, ok, "Cannot cast input to runner %s", reflect.TypeOf(arg[0]).Name)
 	env := runner.GetContext()
 	assertSameContext(t, expected, env)
@@ -317,7 +317,7 @@ func verifyContext(t *testing.T, call *mock.Call, expected []string, rtn error) 
 	}).Once()
 }
 
-func assertSameContext(t *testing.T, expected []string, actual *domain.BuilderContext) {
+func assertSameContext(t *testing.T, expected []string, actual *build.BuilderContext) {
 	actualEnv := map[string]bool{}
 	timeStampFound := false
 	for _, entry := range actual.Export() {
@@ -347,7 +347,7 @@ func assertSameContext(t *testing.T, expected []string, actual *domain.BuilderCo
 
 type parseUserDefinedTestCase struct {
 	input         []string
-	expected      []domain.EnvVar
+	expected      []build.EnvVar
 	expectedError string
 }
 
@@ -361,7 +361,7 @@ func TestParseUserDefinedSuccess(t *testing.T) {
 			"hello=world",
 			"foo=bar",
 		},
-		expected: []domain.EnvVar{
+		expected: []build.EnvVar{
 			{Name: "hello", Value: "world"},
 			{Name: "foo", Value: "bar"},
 		},
@@ -407,30 +407,30 @@ type createBuildRequestTestCase struct {
 	dockerUser        string
 	dockerPW          string
 	dockerRegistry    string
+	workingDir        string
 	gitURL            string
-	gitCloneDir       string
 	gitBranch         string
 	gitHeadRev        string
 	gitPATokenUser    string
 	gitPAToken        string
 	gitXToken         string
-	localSource       string
+	webArchive        string
 	buildArgs         []string
 	push              bool
-	files             test_domain.FileSystemExpectations
-	expected          domain.BuildRequest
+	files             test.FileSystemExpectations
+	expected          build.Request
 	expectedError     string
 }
 
 func TestCreateBuildRequestNoParams(t *testing.T) {
 	localSource := commands.NewLocalSource("")
 	testCreateBuildRequest(t, createBuildRequestTestCase{
-		expected: domain.BuildRequest{
-			DockerCredentials: []domain.DockerCredential{},
-			Targets: []domain.SourceTarget{
+		expected: build.Request{
+			DockerCredentials: []build.DockerCredential{},
+			Targets: []build.SourceTarget{
 				{
 					Source: localSource,
-					Builds: []domain.BuildTarget{commands.NewDockerComposeBuild("", "", nil)},
+					Builds: []build.Target{commands.NewDockerComposeBuild("", "", nil)},
 				},
 			},
 		},
@@ -460,19 +460,19 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 		gitURL:           gitAddress,
 		gitBranch:        branch,
 		gitHeadRev:       headRev,
-		gitCloneDir:      targetDir,
+		workingDir:       targetDir,
 		dockerfile:       dockerfile,
 		dockerContextDir: contextDir,
 		buildArgs:        buildArgs,
 		dockerRegistry:   registry,
 		dockerImage:      imageName,
-		expected: domain.BuildRequest{
+		expected: build.Request{
 			DockerRegistry:    registry + "/",
-			DockerCredentials: []domain.DockerCredential{},
-			Targets: []domain.SourceTarget{
+			DockerCredentials: []build.DockerCredential{},
+			Targets: []build.SourceTarget{
 				{
 					Source: gitSource,
-					Builds: []domain.BuildTarget{dockerBuildTarget},
+					Builds: []build.Target{dockerBuildTarget},
 				},
 			},
 		},
@@ -502,17 +502,17 @@ func TestCreateBuildRequestWithGitXTokenDockerCompose(t *testing.T) {
 		gitURL:            gitAddress,
 		gitBranch:         branch,
 		gitHeadRev:        headRev,
-		gitCloneDir:       targetDir,
+		workingDir:        targetDir,
 		composeFile:       composeFile,
 		composeProjectDir: composeProjectDir,
 		buildArgs:         buildArgs,
-		expected: domain.BuildRequest{
+		expected: build.Request{
 			DockerRegistry:    dockerRegistry + "/",
-			DockerCredentials: []domain.DockerCredential{cred},
-			Targets: []domain.SourceTarget{
+			DockerCredentials: []build.DockerCredential{cred},
+			Targets: []build.SourceTarget{
 				{
 					Source: gitSource,
-					Builds: []domain.BuildTarget{commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs)},
+					Builds: []build.Target{commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs)},
 				},
 			},
 		},
@@ -542,7 +542,8 @@ func TestCreateBuildRequestNoGitPassword(t *testing.T) {
 func TestCreateBuildRequestNoGitURL(t *testing.T) {
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		gitPATokenUser: "some.git.user",
-		expectedError:  fmt.Sprintf("^Git credentials are given but --%s was not$", constants.ArgNameGitURL),
+		expectedError: fmt.Sprintf("^Optional parameter %s is given for %s but none of the required parameters: \\[%s\\] were given$",
+			constants.ArgNameGitPATokenUser, constants.SourceNameGit, constants.ArgNameGitURL),
 	})
 }
 
@@ -573,18 +574,18 @@ func TestCreateBuildRequestDockerBuildCreationError(t *testing.T) {
 }
 
 func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
-	runner := test_domain.NewMockRunner()
+	runner := test.NewMockRunner()
 	defer runner.AssertExpectations(t)
-	fs := runner.GetFileSystem().(*test_domain.MockFileSystem)
+	fs := runner.GetFileSystem().(*test.MockFileSystem)
 	fs.PrepareFileSystem(tc.files)
 	defer fs.AssertExpectations(t)
 	builder := NewBuilder(runner)
 	req, err := builder.createBuildRequest(tc.composeFile, tc.composeProjectDir,
 		tc.dockerfile, tc.dockerImage, tc.dockerContextDir,
-		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
-		tc.gitURL, tc.gitCloneDir, tc.gitBranch, tc.gitHeadRev,
+		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.workingDir,
+		tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
-		tc.localSource, tc.buildArgs, tc.push)
+		tc.webArchive, tc.buildArgs, tc.push)
 
 	if tc.expectedError != "" {
 		assert.NotNil(t, err)
@@ -605,19 +606,19 @@ type runTestCase struct {
 	dockerUser           string
 	dockerPW             string
 	dockerRegistry       string
+	workingDir           string
 	gitURL               string
-	gitCloneDir          string
 	gitBranch            string
 	gitHeadRev           string
 	gitPATokenUser       string
 	gitPAToken           string
 	gitXToken            string
-	localSource          string
+	webArchive           string
 	buildEnvs            []string
 	buildArgs            []string
 	push                 bool
-	expectedCommands     []test_domain.CommandsExpectation
-	expectedDependencies []domain.ImageDependencies
+	expectedCommands     []test.CommandsExpectation
+	expectedDependencies []build.ImageDependencies
 	expectedErr          string
 }
 
@@ -625,14 +626,14 @@ func TestRunSimpleHappy(t *testing.T) {
 	testRun(t, runTestCase{
 		buildNumber:    "buildNum-0",
 		dockerRegistry: testCommon.TestsDockerRegistryName,
-		localSource:    filepath.Join("..", "..", "tests", "resources", "docker-compose"),
-		expectedCommands: []test_domain.CommandsExpectation{
+		workingDir:     filepath.Join("..", "..", "tests", "resources", "docker-compose"),
+		expectedCommands: []test.CommandsExpectation{
 			{
 				Command: "docker-compose",
 				Args:    []string{"build"},
 			},
 		},
-		expectedDependencies: []domain.ImageDependencies{
+		expectedDependencies: []build.ImageDependencies{
 			testCommon.MultistageExampleDependencies,
 			testCommon.HelloNodeExampleDependencies,
 		},
@@ -643,14 +644,14 @@ func TestRunNoRegistryGiven(t *testing.T) {
 	os.Clearenv()
 	testRun(t, runTestCase{
 		buildNumber: "buildNum-0",
-		localSource: filepath.Join("..", "..", "tests", "resources", "docker-compose"),
-		expectedCommands: []test_domain.CommandsExpectation{
+		workingDir:  filepath.Join("..", "..", "tests", "resources", "docker-compose"),
+		expectedCommands: []test.CommandsExpectation{
 			{
 				Command: "docker-compose",
 				Args:    []string{"build"},
 			},
 		},
-		expectedDependencies: []domain.ImageDependencies{
+		expectedDependencies: []build.ImageDependencies{
 			testCommon.MultistageExampleDependenciesOn(""),
 			testCommon.HelloNodeExampleDependenciesOn(""),
 		},
@@ -662,7 +663,7 @@ func TestRunNoRegistryGivenPush(t *testing.T) {
 	testRun(t, runTestCase{
 		push:        true,
 		buildNumber: "buildNum-0",
-		localSource: filepath.Join("..", "..", "tests", "resources", "docker-compose"),
+		workingDir:  filepath.Join("..", "..", "tests", "resources", "docker-compose"),
 		expectedErr: fmt.Sprintf("^Docker registry is needed for push, use --%s or environment variable %s to provide its value$",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
 	})
@@ -686,7 +687,7 @@ func TestCreateBuildRequestFailed(t *testing.T) {
 }
 
 func testRun(t *testing.T, tc runTestCase) {
-	runner := test_domain.NewMockRunner()
+	runner := test.NewMockRunner()
 	defer runner.AssertExpectations(t)
 	runner.UseDefaultFileSystem()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
@@ -695,9 +696,9 @@ func testRun(t *testing.T, tc runTestCase) {
 	dependencies, duration, err := builder.Run(tc.buildNumber, tc.composeFile, tc.composeProjectDir,
 		tc.dockerfile, tc.dockerImage, tc.dockerContextDir,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
-		tc.gitURL, tc.gitCloneDir, tc.gitBranch, tc.gitHeadRev,
+		tc.workingDir, tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
-		tc.localSource, tc.buildEnvs, tc.buildArgs, tc.push)
+		tc.webArchive, tc.buildEnvs, tc.buildArgs, tc.push)
 	actualDuration := time.Since(startTime)
 	assert.True(t, actualDuration >= duration)
 	assert.True(t, duration+time.Millisecond >= actualDuration)

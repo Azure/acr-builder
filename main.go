@@ -7,14 +7,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Azure/acr-builder/pkg/driver"
 	"github.com/Azure/acr-builder/pkg/shell"
 
-	"github.com/Azure/acr-builder/pkg/build"
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/sirupsen/logrus"
 )
-
-const defaultCloneDir = "$HOME/acr-builder/src"
 
 type stringSlice []string
 
@@ -30,9 +28,9 @@ func (i *stringSlice) Set(value string) error {
 func main() {
 	var composeFile, composeProjectDir string
 	var dockerfile, dockerImage, dockerContextDir string
-	var gitURL, gitCloneDir, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken string
-	var localSource string
-
+	var workingDir string
+	var gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken string
+	var webArchive string
 	// Untested code paths:
 	// required unless the host is properly logged in
 	// if the program is launched in docker container, use option -v /var/run/docker.sock:/var/run/docker.sock -v ~/.docker:/root/.docker
@@ -41,14 +39,14 @@ func main() {
 	var push, debug bool
 	var buildNumber string
 	flag.StringVar(&buildNumber, constants.ArgNameBuildNumber, "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.ExportsBuildNumber))
+	flag.StringVar(&workingDir, constants.ArgNameWorkingDir, "", "Working directory for the builder.")
 	flag.StringVar(&gitURL, constants.ArgNameGitURL, "", "Git url to the project")
-	flag.StringVar(&gitCloneDir, constants.ArgNameGitCloneTo, defaultCloneDir, "Directory to clone to. If the directory exists, we won't clone again and will just clean and pull the directory")
 	flag.StringVar(&gitBranch, constants.ArgNameGitBranch, "", "The git branch to checkout. If it is not given, no checkout command would be performed.")
 	flag.StringVar(&gitHeadRev, constants.ArgNameGitHeadRev, "", "Desired git HEAD revision, note that providing this parameter will cause the branch parameter to be ignored")
 	flag.StringVar(&gitPATokenUser, constants.ArgNameGitPATokenUser, "", "Git username for the personal access token.")
 	flag.StringVar(&gitPAToken, constants.ArgNameGitPAToken, "", "Git personal access token.")
 	flag.StringVar(&gitXToken, constants.ArgNameGitXToken, "", "Git OAuth x access token.")
-	flag.StringVar(&localSource, constants.ArgNameLocalSource, "", "Local source directory. Specifying this parameter tells the builder no source control is used and it would use the specified directory as source")
+	flag.StringVar(&webArchive, constants.ArgNameWebArchive, "", "Archive file of the source. Must be a web-url and in tar.gz format")
 	flag.StringVar(&composeFile, constants.ArgNameDockerComposeFile, "", "Path to the docker-compose file.")
 	flag.StringVar(&composeProjectDir, constants.ArgNameDockerComposeProjectDir, "", "The --project-directory parameter for docker-compose. The default is where the compose file is")
 	flag.StringVar(&dockerfile, constants.ArgNameDockerfile, "", "Dockerfile to build. If choosing to build a dockerfile")
@@ -67,12 +65,15 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
-	builder := build.NewBuilder(shell.NewRunner())
-	dependencies, duration, err := builder.Run(buildNumber, composeFile, composeProjectDir,
+	builder := driver.NewBuilder(shell.NewRunner())
+	dependencies, duration, err := builder.Run(
+		buildNumber, composeFile, composeProjectDir,
 		dockerfile, dockerImage, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
-		gitURL, gitCloneDir, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
-		localSource, buildEnvs, buildArgs, push)
+		workingDir,
+		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
+		webArchive,
+		buildEnvs, buildArgs, push)
 
 	if err != nil {
 		logrus.Error(err)

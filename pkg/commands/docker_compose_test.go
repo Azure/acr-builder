@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
-	"github.com/Azure/acr-builder/pkg/domain"
-	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
+	test "github.com/Azure/acr-builder/tests/mocks/pkg"
 	"github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,11 +19,11 @@ type composeTestCase struct {
 	projectDir       string
 	buildArgs        []string
 	expectedErr      string
-	expectedCommands []test_domain.CommandsExpectation
+	expectedCommands []test.CommandsExpectation
 }
 
 func testDockerComposeBuild(t *testing.T, tc composeTestCase) {
-	runner := test_domain.NewMockRunner()
+	runner := test.NewMockRunner()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	defer runner.AssertExpectations(t)
 	task := NewDockerComposeBuild(tc.path, tc.projectDir, tc.buildArgs)
@@ -41,7 +41,7 @@ func TestDockerComposeBuildAllArgs(t *testing.T) {
 		path:       filepath.Join("docker-compose", "docker-compose.yml"),
 		buildArgs:  []string{"arg1=value1", "arg2=value2"},
 		projectDir: "SomeProject",
-		expectedCommands: []test_domain.CommandsExpectation{
+		expectedCommands: []test.CommandsExpectation{
 			{
 				Command: "docker-compose",
 				Args:    []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
@@ -55,7 +55,7 @@ func TestDockerComposeBuildAllArgsError(t *testing.T) {
 		path:       filepath.Join("docker-compose", "docker-compose.yml"),
 		buildArgs:  []string{"arg1=value1", "arg2=value2"},
 		projectDir: "SomeProject",
-		expectedCommands: []test_domain.CommandsExpectation{
+		expectedCommands: []test.CommandsExpectation{
 			{
 				Command:  "docker-compose",
 				Args:     []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
@@ -68,7 +68,7 @@ func TestDockerComposeBuildAllArgsError(t *testing.T) {
 
 func TestDockerComposeBuildNoArgs(t *testing.T) {
 	testDockerComposeBuild(t, composeTestCase{
-		expectedCommands: []test_domain.CommandsExpectation{
+		expectedCommands: []test.CommandsExpectation{
 			{
 				Command: "docker-compose",
 				Args:    []string{"build"},
@@ -78,7 +78,7 @@ func TestDockerComposeBuildNoArgs(t *testing.T) {
 }
 
 func testDockerComposePush(t *testing.T, tc composeTestCase) {
-	runner := test_domain.NewMockRunner()
+	runner := test.NewMockRunner()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	defer runner.AssertExpectations(t)
 	task := NewDockerComposeBuild(tc.path, tc.projectDir, tc.buildArgs)
@@ -96,7 +96,7 @@ func TestDockerComposePushWithPath(t *testing.T) {
 		path:       filepath.Join("docker-compose", "docker-compose.yml"),
 		buildArgs:  []string{"arg1=value1", "arg2=value2"},
 		projectDir: "SomeProject",
-		expectedCommands: []test_domain.CommandsExpectation{
+		expectedCommands: []test.CommandsExpectation{
 			{
 				Command: "docker-compose",
 				Args:    []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "push"},
@@ -110,7 +110,7 @@ func TestDockerComposePushWithPathFailed(t *testing.T) {
 		path:       filepath.Join("docker-compose", "docker-compose.yml"),
 		buildArgs:  []string{"arg1=value1", "arg2=value2"},
 		projectDir: "SomeProject",
-		expectedCommands: []test_domain.CommandsExpectation{
+		expectedCommands: []test.CommandsExpectation{
 			{
 				Command:  "docker-compose",
 				Args:     []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "push"},
@@ -125,7 +125,7 @@ func TestDockerComposePushWithNoPath(t *testing.T) {
 	testDockerComposePush(t, composeTestCase{
 		buildArgs:  []string{"arg1=value1", "arg2=value2"},
 		projectDir: "SomeProject",
-		expectedCommands: []test_domain.CommandsExpectation{
+		expectedCommands: []test.CommandsExpectation{
 			{
 				Command: "docker-compose",
 				Args:    []string{"push"},
@@ -136,7 +136,7 @@ func TestDockerComposePushWithNoPath(t *testing.T) {
 
 func TestComposeBuildTaskExport(t *testing.T) {
 	exports := NewDockerComposeBuild("path", "project", []string{}).Export()
-	assert.Equal(t, []domain.EnvVar{
+	assert.Equal(t, []build.EnvVar{
 		{
 			Name:  constants.ExportsDockerComposeFile,
 			Value: "path",
@@ -147,13 +147,13 @@ func TestComposeBuildTaskExport(t *testing.T) {
 type composeScanForDependenciesRealFileTestCase struct {
 	path                 string
 	expectedErr          string
-	expectedDependencies []domain.ImageDependencies
+	expectedDependencies []build.ImageDependencies
 }
 
 func TestComposeScanDependenciesHappy(t *testing.T) {
 	testComposeScanDependenciesRealFiles(t, composeScanForDependenciesRealFileTestCase{
 		path:                 filepath.Join("${project_root}", "docker-compose.yml"),
-		expectedDependencies: []domain.ImageDependencies{testCommon.HelloNodeExampleDependencies, testCommon.MultistageExampleDependencies},
+		expectedDependencies: []build.ImageDependencies{testCommon.HelloNodeExampleDependencies, testCommon.MultistageExampleDependencies},
 	})
 }
 
@@ -166,13 +166,13 @@ func TestComposeScanDependenciesFailed(t *testing.T) {
 }
 
 func testComposeScanDependenciesRealFiles(t *testing.T, tc composeScanForDependenciesRealFileTestCase) {
-	runner := test_domain.NewMockRunner()
+	runner := test.NewMockRunner()
 	defer runner.AssertExpectations(t)
 	runner.UseDefaultFileSystem()
-	runner.SetContext(domain.NewContext(
+	runner.SetContext(build.NewContext(
 		append(testCommon.MultiStageExampleTestEnv,
-			domain.EnvVar{Name: "project_root", Value: filepath.Join("..", "..", "tests", "resources", "docker-compose")}),
-		[]domain.EnvVar{}))
+			build.EnvVar{Name: "project_root", Value: filepath.Join("..", "..", "tests", "resources", "docker-compose")}),
+		[]build.EnvVar{}))
 	task := NewDockerComposeBuild(tc.path, "", []string{})
 	dep, err := task.ScanForDependencies(runner)
 	if tc.expectedErr != "" {
@@ -185,13 +185,13 @@ func testComposeScanDependenciesRealFiles(t *testing.T, tc composeScanForDepende
 }
 
 type composeFileProbeTestCase struct {
-	files       test_domain.FileSystemExpectations
+	files       test.FileSystemExpectations
 	expectedErr string
 }
 
 func TestComposeFileProbeFailed(t *testing.T) {
 	testComposeFileProbe(t, composeFileProbeTestCase{
-		files: make(test_domain.FileSystemExpectations, 0).
+		files: make(test.FileSystemExpectations, 0).
 			AssertFileExists("docker-compose.yml", false, nil).
 			AssertFileExists("docker-compose.yaml", false, nil),
 		expectedErr: "^No default docker-compose file found$",
@@ -200,7 +200,7 @@ func TestComposeFileProbeFailed(t *testing.T) {
 
 func TestComposeFileProbeSucceed(t *testing.T) {
 	testComposeFileProbe(t, composeFileProbeTestCase{
-		files: make(test_domain.FileSystemExpectations, 0).
+		files: make(test.FileSystemExpectations, 0).
 			AssertFileExists("docker-compose.yml", false, nil).
 			AssertFileExists("docker-compose.yaml", true, nil),
 		expectedErr: "^Error opening docker-compose file docker-compose.yaml",
@@ -209,7 +209,7 @@ func TestComposeFileProbeSucceed(t *testing.T) {
 
 func TestComposeFileProbeFSError(t *testing.T) {
 	testComposeFileProbe(t, composeFileProbeTestCase{
-		files: make(test_domain.FileSystemExpectations, 0).
+		files: make(test.FileSystemExpectations, 0).
 			AssertFileExists("docker-compose.yml", false, nil).
 			AssertFileExists("docker-compose.yaml", true, fmt.Errorf("boom")),
 		expectedErr: "^Unexpected error while checking for default docker compose file: boom$",
@@ -217,9 +217,9 @@ func TestComposeFileProbeFSError(t *testing.T) {
 }
 
 func testComposeFileProbe(t *testing.T, tc composeFileProbeTestCase) {
-	runner := test_domain.NewMockRunner()
+	runner := test.NewMockRunner()
 	defer runner.AssertExpectations(t)
-	fs := runner.GetFileSystem().(*test_domain.MockFileSystem)
+	fs := runner.GetFileSystem().(*test.MockFileSystem)
 	fs.PrepareFileSystem(tc.files)
 	defer fs.AssertExpectations(t)
 	_, err := NewDockerComposeBuild("", "", []string{}).ScanForDependencies(runner)
