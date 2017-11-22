@@ -7,36 +7,36 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Azure/acr-builder/pkg/domain"
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/sirupsen/logrus"
 )
 
 type shellRunner struct {
-	context *domain.BuilderContext
-	fs      *domain.BuildContextAwareFileSystem
+	context *build.BuilderContext
+	fs      *build.ContextAwareFileSystem
 }
 
 // NewRunner creates a runner for a given shell with empty context
-func NewRunner() domain.Runner {
-	context := domain.NewContext([]domain.EnvVar{}, []domain.EnvVar{})
+func NewRunner() build.Runner {
+	context := build.NewContext([]build.EnvVar{}, []build.EnvVar{})
 	return &shellRunner{
 		context: context,
-		fs:      domain.NewBuildContextAwareFileSystem(context),
+		fs:      build.NewContextAwareFileSystem(context),
 	}
 }
 
 // GetFileSystem returns the file system the that runner is running under
-func (r *shellRunner) GetFileSystem() domain.FileSystem {
+func (r *shellRunner) GetFileSystem() build.FileSystem {
 	return r.fs
 }
 
 // GetContext return the current running context
-func (r *shellRunner) GetContext() *domain.BuilderContext {
+func (r *shellRunner) GetContext() *build.BuilderContext {
 	return r.context
 }
 
 // SetContext updates the current running context
-func (r *shellRunner) SetContext(context *domain.BuilderContext) {
+func (r *shellRunner) SetContext(context *build.BuilderContext) {
 	r.context = context
 	r.fs.SetContext(context)
 }

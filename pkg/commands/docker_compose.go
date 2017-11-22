@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
-	"github.com/Azure/acr-builder/pkg/domain"
 	"github.com/Azure/acr-builder/pkg/grok"
 )
 
@@ -18,7 +18,7 @@ var dockerComposeSupportedFilenames = []string{
 var errNoDefaultDockerfile = fmt.Errorf("No default docker-compose file found")
 
 // findDefaultDockerComposeFile try and locate the default docker-compose file in the current working directory
-func findDefaultDockerComposeFile(runner domain.Runner) (string, error) {
+func findDefaultDockerComposeFile(runner build.Runner) (string, error) {
 	fs := runner.GetFileSystem()
 	for _, defaultFile := range dockerComposeSupportedFilenames {
 		exists, err := fs.DoesFileExist(defaultFile)
@@ -33,7 +33,7 @@ func findDefaultDockerComposeFile(runner domain.Runner) (string, error) {
 }
 
 // NewDockerComposeBuild creates a build target with defined docker-compose file
-func NewDockerComposeBuild(path, projectDir string, buildArgs []string) domain.BuildTarget {
+func NewDockerComposeBuild(path, projectDir string, buildArgs []string) build.Target {
 	return &dockerComposeBuildTask{
 		path:             path,
 		projectDirectory: projectDir,
@@ -47,7 +47,7 @@ type dockerComposeBuildTask struct {
 	buildArgs        []string
 }
 
-func (t *dockerComposeBuildTask) ScanForDependencies(runner domain.Runner) ([]domain.ImageDependencies, error) {
+func (t *dockerComposeBuildTask) ScanForDependencies(runner build.Runner) ([]build.ImageDependencies, error) {
 	env := runner.GetContext()
 	var targetPath string
 	if t.path != "" {
@@ -56,13 +56,13 @@ func (t *dockerComposeBuildTask) ScanForDependencies(runner domain.Runner) ([]do
 		var err error
 		targetPath, err = findDefaultDockerComposeFile(runner)
 		if err != nil {
-			return []domain.ImageDependencies{}, err
+			return []build.ImageDependencies{}, err
 		}
 	}
 	return grok.ResolveDockerComposeDependencies(env, env.Expand(t.projectDirectory), targetPath)
 }
 
-func (t *dockerComposeBuildTask) Build(runner domain.Runner) error {
+func (t *dockerComposeBuildTask) Build(runner build.Runner) error {
 	args := []string{}
 	if t.path != "" {
 		args = append(args, "-f", t.path)
@@ -80,8 +80,8 @@ func (t *dockerComposeBuildTask) Build(runner domain.Runner) error {
 	return runner.ExecuteCmd("docker-compose", args)
 }
 
-func (t *dockerComposeBuildTask) Export() []domain.EnvVar {
-	return []domain.EnvVar{
+func (t *dockerComposeBuildTask) Export() []build.EnvVar {
+	return []build.EnvVar{
 		{
 			Name:  constants.ExportsDockerComposeFile,
 			Value: t.path,
@@ -89,7 +89,7 @@ func (t *dockerComposeBuildTask) Export() []domain.EnvVar {
 	}
 }
 
-func (t *dockerComposeBuildTask) Push(runner domain.Runner) error {
+func (t *dockerComposeBuildTask) Push(runner build.Runner) error {
 	args := []string{}
 	if t.path != "" {
 		args = append(args, "-f", t.path)

@@ -3,11 +3,11 @@ package constants
 // ArgNameBuildNumber is the parameter name for build number
 const ArgNameBuildNumber = "build-number"
 
+//ArgNameWorkingDir is the parameter name for the git clone target directory
+const ArgNameWorkingDir = "working-dir"
+
 // ArgNameGitURL is the parameter name for git URL
 const ArgNameGitURL = "git-url"
-
-//ArgNameGitCloneTo is the parameter name for the git clone target directory
-const ArgNameGitCloneTo = "git-clone-to"
 
 // ArgNameGitBranch is the parameter name for git branch
 const ArgNameGitBranch = "git-branch"
@@ -24,8 +24,8 @@ const ArgNameGitPAToken = "git-password"
 // ArgNameGitXToken is the parameter name for github x-oath-basic token
 const ArgNameGitXToken = "git-x-token"
 
-// ArgNameLocalSource is the parameter name for local source directory
-const ArgNameLocalSource = "local-source"
+// ArgNameWebArchive is the parameter name for web archives
+const ArgNameWebArchive = "archive"
 
 // ArgNameDockerfile is the parameter name for dockerfile
 const ArgNameDockerfile = "docker-file"

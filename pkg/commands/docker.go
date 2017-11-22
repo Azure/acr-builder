@@ -5,13 +5,13 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
-	"github.com/Azure/acr-builder/pkg/domain"
 	"github.com/Azure/acr-builder/pkg/grok"
 )
 
 // NewDockerUsernamePassword creates a authentication object with username and password
-func NewDockerUsernamePassword(registry string, username string, password string) (domain.DockerCredential, error) {
+func NewDockerUsernamePassword(registry string, username string, password string) (build.DockerCredential, error) {
 	if (username == "") != (password == "") {
 		return nil, fmt.Errorf("Please provide both --%s and --%s or neither", constants.ArgNameDockerUser, constants.ArgNameDockerPW)
 	}
@@ -28,7 +28,7 @@ type dockerUsernamePassword struct {
 	password string
 }
 
-func (u *dockerUsernamePassword) Authenticate(runner domain.Runner) error {
+func (u *dockerUsernamePassword) Authenticate(runner build.Runner) error {
 	return runner.ExecuteCmdWithObfuscation(func(args []string) {
 		for i := 0; i < len(args)-1; i++ {
 			if args[i] == "-p" {
@@ -42,7 +42,7 @@ func (u *dockerUsernamePassword) Authenticate(runner domain.Runner) error {
 
 // NewDockerBuild creates a build target with specified docker file and build parameters
 func NewDockerBuild(dockerfile, contextDir string,
-	buildArgs []string, registry, imageName string) domain.BuildTarget {
+	buildArgs []string, registry, imageName string) build.Target {
 	return &dockerBuildTask{
 		dockerfile: dockerfile,
 		contextDir: contextDir,
@@ -58,7 +58,7 @@ type dockerBuildTask struct {
 	pushTo     string
 }
 
-func (t *dockerBuildTask) ScanForDependencies(runner domain.Runner) ([]domain.ImageDependencies, error) {
+func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.ImageDependencies, error) {
 	env := runner.GetContext()
 	var dockerfile string
 	if t.dockerfile == "" {
@@ -67,10 +67,10 @@ func (t *dockerBuildTask) ScanForDependencies(runner domain.Runner) ([]domain.Im
 		dockerfile = env.Expand(t.dockerfile)
 	}
 
-	var dependencies []domain.ImageDependencies
+	var dependencies []build.ImageDependencies
 	runtime, buildtime, err := grok.ResolveDockerfileDependencies(dockerfile)
 	if err == nil {
-		dependencies = []domain.ImageDependencies{
+		dependencies = []build.ImageDependencies{
 			{
 				Image:             env.Expand(t.pushTo),
 				RuntimeDependency: runtime,
@@ -80,7 +80,7 @@ func (t *dockerBuildTask) ScanForDependencies(runner domain.Runner) ([]domain.Im
 	return dependencies, err
 }
 
-func (t *dockerBuildTask) Build(runner domain.Runner) error {
+func (t *dockerBuildTask) Build(runner build.Runner) error {
 	args := []string{"build"}
 	if t.dockerfile != "" {
 		args = append(args, "-f", t.dockerfile)
@@ -102,8 +102,8 @@ func (t *dockerBuildTask) Build(runner domain.Runner) error {
 	return runner.ExecuteCmd("docker", args)
 }
 
-func (t *dockerBuildTask) Export() []domain.EnvVar {
-	return []domain.EnvVar{
+func (t *dockerBuildTask) Export() []build.EnvVar {
+	return []build.EnvVar{
 		{
 			Name:  constants.ExportsDockerfilePath,
 			Value: t.dockerfile,
@@ -119,7 +119,7 @@ func (t *dockerBuildTask) Export() []domain.EnvVar {
 	}
 }
 
-func (t *dockerBuildTask) Push(runner domain.Runner) error {
+func (t *dockerBuildTask) Push(runner build.Runner) error {
 	if t.pushTo == "" {
 		return fmt.Errorf("No push target is defined")
 	}

@@ -1,4 +1,4 @@
-package build
+package driver
 
 import (
 	"fmt"
@@ -11,28 +11,30 @@ import (
 
 	"github.com/Azure/acr-builder/pkg/workflow"
 
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/commands"
 	"github.com/Azure/acr-builder/pkg/constants"
-	"github.com/Azure/acr-builder/pkg/domain"
 )
 
 // Builder is our main builder
 type Builder struct {
-	runner domain.Runner
+	runner build.Runner
 }
 
 // NewBuilder creates a builder
-func NewBuilder(runner domain.Runner) *Builder {
+func NewBuilder(runner build.Runner) *Builder {
 	return &Builder{runner: runner}
 }
 
 // Run is the main body of the acr-builder
 func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 	dockerfile, dockerImage, dockerContextDir,
-	dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
-	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
+	dockerUser, dockerPW, dockerRegistry,
+	workingDir,
+	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
+	webArchive string,
 	buildEnvs, buildArgs []string, push bool,
-) (dependencies []domain.ImageDependencies, duration time.Duration, err error) {
+) (dependencies []build.ImageDependencies, duration time.Duration, err error) {
 	startTime := time.Now()
 	defer func() {
 		duration = time.Since(startTime)
@@ -42,17 +44,19 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 		dockerRegistry = os.Getenv(constants.ExportsDockerRegistry)
 	}
 
-	var userDefined []domain.EnvVar
+	var userDefined []build.EnvVar
 	userDefined, err = parseUserDefined(buildEnvs)
 	if err != nil {
 		return
 	}
 
-	var request *domain.BuildRequest
+	var request *build.Request
 	request, err = b.createBuildRequest(composeFile, composeProjectDir,
 		dockerfile, dockerImage, dockerContextDir,
-		dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
-		gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource,
+		dockerUser, dockerPW, dockerRegistry,
+		workingDir,
+		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
+		webArchive,
 		buildArgs, push)
 
 	if err != nil {
@@ -69,9 +73,11 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 
 func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 	dockerfile, dockerImage, dockerContextDir,
-	dockerUser, dockerPW, dockerRegistry, gitURL, gitCloneDir, gitBranch,
-	gitHeadRev, gitPATokenUser, gitPAToken, gitXToken, localSource string,
-	buildArgs []string, push bool) (*domain.BuildRequest, error) {
+	dockerUser, dockerPW, dockerRegistry,
+	workingDir,
+	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
+	webArchive string,
+	buildArgs []string, push bool) (*build.Request, error) {
 	if push && dockerRegistry == "" {
 		return nil, fmt.Errorf("Docker registry is needed for push, use --%s or environment variable %s to provide its value",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
@@ -88,7 +94,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 		}
 	}
 
-	dockerCreds := []domain.DockerCredential{}
+	dockerCreds := []build.DockerCredential{}
 	if dockerUser != "" {
 		cred, err := commands.NewDockerUsernamePassword(registryNoSuffix, dockerUser, dockerPW)
 		if err != nil {
@@ -97,24 +103,9 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 		dockerCreds = append(dockerCreds, cred)
 	}
 
-	var source domain.SourceTarget
-	if gitURL != "" {
-		var gitCred commands.GitCredential
-		if gitXToken != "" {
-			gitCred = commands.NewGitXToken(gitXToken)
-		} else if gitPATokenUser != "" {
-			var err error
-			gitCred, err = commands.NewGitPersonalAccessToken(gitPATokenUser, gitPAToken)
-			if err != nil {
-				return nil, err
-			}
-		}
-		source.Source = commands.NewGitSource(gitURL, gitBranch, gitHeadRev, gitCloneDir, gitCred)
-	} else {
-		if gitXToken != "" || gitPATokenUser != "" || gitPAToken != "" {
-			return nil, fmt.Errorf("Git credentials are given but --%s was not", constants.ArgNameGitURL)
-		}
-		source.Source = commands.NewLocalSource(localSource)
+	source, err := getSource(workingDir, gitURL, gitBranch, gitHeadRev, gitXToken, gitPATokenUser, gitPAToken, webArchive)
+	if err != nil {
+		return nil, err
 	}
 
 	// The following code block tries to determine which kind of build task to include
@@ -124,7 +115,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 	// is the scan in the source code. Existence of the source cannot be assume exist until
 	// the workflow checks out the source
 	// Currently the code will actually defaults to docker-compose task and try to proceed
-	var build domain.BuildTarget
+	var target build.Target
 	if dockerImage != "" || dockerfile != "" {
 		if dockerfile == "" {
 			logrus.Debugf("Docker image is defined, dockerfile will be used for building")
@@ -132,11 +123,11 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 		if composeProjectDir != "" {
 			return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
 		}
-		build = commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, registrySuffixed, dockerImage)
+		target = commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, registrySuffixed, dockerImage)
 	}
 
 	// Use docker-compose as default
-	if build == nil {
+	if target == nil {
 		if composeFile == "" {
 			logrus.Debugf("No dockerfile is provided as parameter, using docker-compose as default")
 		}
@@ -145,25 +136,29 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 			return nil, fmt.Errorf("Parameters --%s, --%s, %s cannot be used in docker-compose scenario",
 				constants.ArgNameDockerfile, constants.ArgNameDockerImage, constants.ArgNameDockerContextDir)
 		}
-		build = commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs)
+		target = commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs)
 	}
-	source.Builds = append(source.Builds, build)
 
-	return &domain.BuildRequest{
+	return &build.Request{
 		DockerRegistry:    registrySuffixed,
 		DockerCredentials: dockerCreds,
-		Targets:           []domain.SourceTarget{source},
+		Targets: []build.SourceTarget{
+			{
+				Source: source,
+				Builds: []build.Target{target},
+			},
+		},
 	}, nil
 }
 
-func parseUserDefined(buildEnvs []string) ([]domain.EnvVar, error) {
-	userDefined := []domain.EnvVar{}
+func parseUserDefined(buildEnvs []string) ([]build.EnvVar, error) {
+	userDefined := []build.EnvVar{}
 	for _, env := range buildEnvs {
 		k, v, err := parseAssignment(env)
 		if err != nil {
 			return nil, fmt.Errorf("Error parsing build environment \"%s\"", err)
 		}
-		envVar, err := domain.NewEnvVar(k, v)
+		envVar, err := build.NewEnvVar(k, v)
 		if err != nil {
 			return nil, err
 		}
@@ -180,9 +175,9 @@ func parseAssignment(in string) (string, string, error) {
 	return values[0], values[1], nil
 }
 
-func dependencyTask(build domain.BuildTarget) workflow.EvaluationTask {
-	return func(runner domain.Runner, outputContext *workflow.OutputContext) error {
-		dependencies, err := build.ScanForDependencies(runner)
+func dependencyTask(target build.Target) workflow.EvaluationTask {
+	return func(runner build.Runner, outputContext *workflow.OutputContext) error {
+		dependencies, err := target.ScanForDependencies(runner)
 		if err != nil {
 			return err
 		}
@@ -193,17 +188,17 @@ func dependencyTask(build domain.BuildTarget) workflow.EvaluationTask {
 
 // a utility type used only for compile method
 type pushItem struct {
-	context *domain.BuilderContext
+	context *build.BuilderContext
 	push    workflow.RunningTask
 }
 
 // compileWorkflow takes a build request and populate it into workflow
 func compileWorkflow(buildNumber string,
-	userDefined []domain.EnvVar, request *domain.BuildRequest, push bool) *workflow.Workflow {
+	userDefined []build.EnvVar, request *build.Request, push bool) *workflow.Workflow {
 
 	// create a workflow with root context with default variables
 	w := workflow.NewWorkflow()
-	rootContext := domain.NewContext(userDefined, []domain.EnvVar{
+	rootContext := build.NewContext(userDefined, []build.EnvVar{
 		{Name: constants.ExportsBuildNumber, Value: buildNumber},
 		{Name: constants.ExportsBuildTimestamp, Value: time.Now().UTC().Format(constants.TimestampFormat)},
 		{Name: constants.ExportsDockerRegistry, Value: request.DockerRegistry},

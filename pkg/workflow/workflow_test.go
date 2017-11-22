@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/Azure/acr-builder/pkg/domain"
-	test_domain "github.com/Azure/acr-builder/tests/mocks/pkg/domain"
+	build "github.com/Azure/acr-builder/pkg"
+	test "github.com/Azure/acr-builder/tests/mocks/pkg"
 	"github.com/stretchr/testify/assert"
 )
 
-var stockImgDependencies1 = []domain.ImageDependencies{
+var stockImgDependencies1 = []build.ImageDependencies{
 	{
 		Image:             "img1",
 		RuntimeDependency: "run1",
@@ -24,7 +24,7 @@ var stockImgDependencies1 = []domain.ImageDependencies{
 	},
 }
 
-var stockImgDependencies2 = []domain.ImageDependencies{
+var stockImgDependencies2 = []build.ImageDependencies{
 	{
 		Image:             "img2",
 		RuntimeDependency: "run2",
@@ -38,26 +38,26 @@ type uniqueContextGenerator struct {
 
 var contextGen = &uniqueContextGenerator{}
 
-func (g *uniqueContextGenerator) New() *domain.BuilderContext {
-	systemGenerated := []domain.EnvVar{}
+func (g *uniqueContextGenerator) New() *build.BuilderContext {
+	systemGenerated := []build.EnvVar{}
 	for i := 0; i < g.counter; i++ {
-		systemGenerated = append(systemGenerated, domain.EnvVar{Name: "k" + strconv.Itoa(i) + strconv.Itoa(g.counter), Value: strconv.Itoa(g.counter)})
+		systemGenerated = append(systemGenerated, build.EnvVar{Name: "k" + strconv.Itoa(i) + strconv.Itoa(g.counter), Value: strconv.Itoa(g.counter)})
 	}
 	g.counter++
-	return domain.NewContext([]domain.EnvVar{}, systemGenerated)
+	return build.NewContext([]build.EnvVar{}, systemGenerated)
 }
 
 type scheduleTester interface {
-	schedule(t *testing.T, w *Workflow, expectedRunner domain.Runner)
+	schedule(t *testing.T, w *Workflow, expectedRunner build.Runner)
 }
 
 type runTester struct {
 	err error
 }
 
-func (m *runTester) schedule(t *testing.T, w *Workflow, expectedRunner domain.Runner) {
+func (m *runTester) schedule(t *testing.T, w *Workflow, expectedRunner build.Runner) {
 	expectedContext := contextGen.New()
-	w.ScheduleRun(expectedContext, func(runner domain.Runner) error {
+	w.ScheduleRun(expectedContext, func(runner build.Runner) error {
 		assert.Equal(t, expectedRunner, runner)
 		if m.err != nil {
 			return m.err
@@ -67,13 +67,13 @@ func (m *runTester) schedule(t *testing.T, w *Workflow, expectedRunner domain.Ru
 }
 
 type executionTester struct {
-	items []domain.ImageDependencies
+	items []build.ImageDependencies
 	err   error
 }
 
-func (m *executionTester) schedule(t *testing.T, w *Workflow, expectedRunner domain.Runner) {
+func (m *executionTester) schedule(t *testing.T, w *Workflow, expectedRunner build.Runner) {
 	expectedContext := contextGen.New()
-	w.ScheduleEvaluation(expectedContext, func(runner domain.Runner, outputContext *OutputContext) error {
+	w.ScheduleEvaluation(expectedContext, func(runner build.Runner, outputContext *OutputContext) error {
 		assert.Equal(t, expectedRunner, runner)
 		if m.err != nil {
 			return m.err
@@ -163,7 +163,7 @@ func TestRunWorkflowFailed2(t *testing.T) {
 
 func testRun(t *testing.T, tc runTestCase) {
 	w := NewWorkflow()
-	runner := new(test_domain.MockRunner)
+	runner := new(test.MockRunner)
 	runner.UseDefaultFileSystem()
 	for _, item := range tc.items {
 		item.schedule(t, w, runner)

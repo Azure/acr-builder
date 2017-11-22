@@ -6,10 +6,12 @@ import (
 	"strconv"
 	"strings"
 
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
-	"github.com/Azure/acr-builder/pkg/domain"
 	"github.com/sirupsen/logrus"
 )
+
+const defaultTargetDir = "src" // force targetDir to not be null so we never clone against .
 
 type gitSource struct {
 	address    string
@@ -21,7 +23,10 @@ type gitSource struct {
 }
 
 // NewGitSource create a SourceDescription that represents a git checkout
-func NewGitSource(address, branch, headRev, targetDir string, credential GitCredential) domain.BuildSource {
+func NewGitSource(address, branch, headRev, targetDir string, credential GitCredential) build.Source {
+	if targetDir == "" {
+		targetDir = defaultTargetDir
+	}
 	return &gitSource{
 		address:    address,
 		branch:     branch,
@@ -31,14 +36,14 @@ func NewGitSource(address, branch, headRev, targetDir string, credential GitCred
 	}
 }
 
-func (s *gitSource) Return(runner domain.Runner) error {
+func (s *gitSource) Return(runner build.Runner) error {
 	if s.tracker != nil {
 		return s.tracker.Return(runner)
 	}
 	return nil
 }
 
-func (s *gitSource) Obtain(runner domain.Runner) error {
+func (s *gitSource) Obtain(runner build.Runner) error {
 	if err := verifyGitVersion(); err != nil {
 		logrus.Errorf("Error verifying Git version: %s", err)
 	}
@@ -75,7 +80,7 @@ func (s *gitSource) Obtain(runner domain.Runner) error {
 	return nil
 }
 
-func (s *gitSource) targetExists(runner domain.Runner) (bool, error) {
+func (s *gitSource) targetExists(runner build.Runner) (bool, error) {
 	env := runner.GetContext()
 	fs := runner.GetFileSystem()
 	var targetDir string
@@ -99,7 +104,7 @@ func (s *gitSource) targetExists(runner domain.Runner) (bool, error) {
 	return !dirEmpty, nil
 }
 
-func (s *gitSource) clone(runner domain.Runner) error {
+func (s *gitSource) clone(runner build.Runner) error {
 	env := runner.GetContext()
 	args := []string{"clone"}
 	if s.branch != "" {
@@ -127,7 +132,7 @@ func (s *gitSource) clone(runner domain.Runner) error {
 	return nil
 }
 
-func (s *gitSource) clean(runner domain.Runner) error {
+func (s *gitSource) clean(runner build.Runner) error {
 	if err := runner.ExecuteCmd("git", []string{"clean", "-xdf"}); err != nil {
 		return fmt.Errorf("Failed to clean repository: %s", err)
 	}
@@ -138,7 +143,7 @@ func (s *gitSource) clean(runner domain.Runner) error {
 	return nil
 }
 
-func (s *gitSource) checkout(runner domain.Runner) error {
+func (s *gitSource) checkout(runner build.Runner) error {
 	env := runner.GetContext()
 	remote, obfuscated, err := s.toAuthAddress(runner)
 	if err != nil {
@@ -170,7 +175,7 @@ func (s *gitSource) checkout(runner domain.Runner) error {
 	return nil
 }
 
-func (s *gitSource) ensureHeadRev(runner domain.Runner) error {
+func (s *gitSource) ensureHeadRev(runner build.Runner) error {
 	env := runner.GetContext()
 	if s.branch != "" {
 		logrus.Debugf("Ignoring branch %s since head rev %s is given...", env.Expand(s.branch), env.Expand(s.headRev))
@@ -178,7 +183,7 @@ func (s *gitSource) ensureHeadRev(runner domain.Runner) error {
 	return s.checkoutAt(runner, s.headRev)
 }
 
-func (s *gitSource) checkoutAt(runner domain.Runner, checkoutTarget string) error {
+func (s *gitSource) checkoutAt(runner build.Runner, checkoutTarget string) error {
 	env := runner.GetContext()
 	if err := runner.ExecuteCmd("git", []string{"checkout", checkoutTarget}); err != nil {
 		return fmt.Errorf("Failed checkout git repository at: %s, error: %s", env.Expand(checkoutTarget), err)
@@ -228,39 +233,39 @@ func gitAddressObfuscator(address, obfuscation string) func(args []string) {
 	}
 }
 
-func (s *gitSource) Export() []domain.EnvVar {
-	var exports []domain.EnvVar
+func (s *gitSource) Export() []build.EnvVar {
+	var exports []build.EnvVar
 	if s.credential != nil {
 		exports = s.credential.Export()
 	} else {
-		exports = []domain.EnvVar{}
+		exports = []build.EnvVar{}
 	}
 	if s.targetDir != "" {
-		exports = append(exports, domain.EnvVar{
-			Name:  constants.ExportsCheckoutDir,
+		exports = append(exports, build.EnvVar{
+			Name:  constants.ExportsWorkingDir,
 			Value: s.targetDir,
 		})
 	}
 	if s.headRev != "" {
-		exports = append(exports, domain.EnvVar{
+		exports = append(exports, build.EnvVar{
 			Name:  constants.ExportsGitHeadRev,
 			Value: s.headRev,
 		})
 	} else if s.branch != "" {
-		exports = append(exports, domain.EnvVar{
+		exports = append(exports, build.EnvVar{
 			Name:  constants.ExportsGitBranch,
 			Value: s.branch,
 		})
 	}
 	return append(exports,
-		domain.EnvVar{
+		build.EnvVar{
 			Name:  constants.ExportsGitSource,
 			Value: s.address,
 		},
 	)
 }
 
-func (s *gitSource) toAuthAddress(runner domain.Runner) (string, string, error) {
+func (s *gitSource) toAuthAddress(runner build.Runner) (string, string, error) {
 	if s.credential != nil {
 		return s.credential.toAuthAddress(runner, s.address)
 	}
@@ -269,8 +274,8 @@ func (s *gitSource) toAuthAddress(runner domain.Runner) (string, string, error) 
 
 // GitCredential objects are ways git authenticates
 type GitCredential interface {
-	toAuthAddress(runner domain.Runner, address string) (string, string, error)
-	Export() []domain.EnvVar
+	toAuthAddress(runner build.Runner, address string) (string, string, error)
+	Export() []build.EnvVar
 }
 
 type gitPersonalAccessToken struct {
@@ -289,8 +294,8 @@ func NewGitPersonalAccessToken(user string, token string) (GitCredential, error)
 	}, nil
 }
 
-func (s *gitPersonalAccessToken) Export() []domain.EnvVar {
-	return []domain.EnvVar{
+func (s *gitPersonalAccessToken) Export() []build.EnvVar {
+	return []build.EnvVar{
 		{
 			Name:  constants.ExportsGitUser,
 			Value: s.user,
@@ -302,7 +307,7 @@ func (s *gitPersonalAccessToken) Export() []domain.EnvVar {
 	}
 }
 
-func (s *gitPersonalAccessToken) toAuthAddress(runner domain.Runner, address string) (authAddress, obfuscation string, err error) {
+func (s *gitPersonalAccessToken) toAuthAddress(runner build.Runner, address string) (authAddress, obfuscation string, err error) {
 	env := runner.GetContext()
 	userResolved := env.Expand(s.user)
 	tokenResolved := env.Expand(s.token)
@@ -323,7 +328,7 @@ func NewGitXToken(token string) GitCredential {
 	return &gitXToken{token: token}
 }
 
-func (s *gitXToken) toAuthAddress(runner domain.Runner, address string) (authAddress, obfuscation string, err error) {
+func (s *gitXToken) toAuthAddress(runner build.Runner, address string) (authAddress, obfuscation string, err error) {
 	env := runner.GetContext()
 	tokenResolved := env.Expand(s.token)
 	authAddress, err = insertAuth(runner, address, "x-access-token:"+tokenResolved)
@@ -334,8 +339,8 @@ func (s *gitXToken) toAuthAddress(runner domain.Runner, address string) (authAdd
 	return
 }
 
-func (s *gitXToken) Export() []domain.EnvVar {
-	return []domain.EnvVar{
+func (s *gitXToken) Export() []build.EnvVar {
+	return []build.EnvVar{
 		{
 			Name:  constants.ExportsGitAuthType,
 			Value: "Git X Token",
@@ -343,7 +348,7 @@ func (s *gitXToken) Export() []domain.EnvVar {
 	}
 }
 
-func insertAuth(runner domain.Runner, address string, authString string) (string, error) {
+func insertAuth(runner build.Runner, address string, authString string) (string, error) {
 	env := runner.GetContext()
 	addressResolved := env.Expand(address)
 	protocolDivider := "://"
