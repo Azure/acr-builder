@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -46,7 +47,7 @@ func testArchiveSource(t *testing.T, tc obtainTestCase) {
 	cleanup(tc.targetDir)
 	defer cleanup(tc.targetDir)
 	server := testCommon.StartStaticFileServer(t)
-	defer testCommon.ReportOnError(t, func() error { return server.Shutdown(nil) })
+	defer testCommon.ReportOnError(t, func() error { return server.Shutdown(context.TODO()) })
 	source := NewArchiveSource(tc.url, tc.targetDir)
 	runner := test.NewMockRunner()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
