@@ -3,11 +3,13 @@ package testCommon
 import (
 	"archive/tar"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 const staticFilePort = ":32764"
@@ -29,7 +31,28 @@ func StartStaticFileServer(t *testing.T) *http.Server {
 			t.Fail()
 		}
 	}()
+
+	err := WaitForServerReady(10)
+	if err != nil {
+		t.Fail()
+	}
+
 	return server
+}
+
+// WaitForServerReady waits for server ready until timeout
+func WaitForServerReady(timeoutInSeconds uint) error {
+
+	for i := uint(0); i < timeoutInSeconds; i++ {
+		time.Sleep(1 * time.Second)
+
+		_, err := http.Head(StaticFileHost)
+		if err == nil {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("Server was still not ready after %v seconds", timeoutInSeconds)
 }
 
 // staticFileArchiveHandler streams the docker-compose project to http response as tar.gz
