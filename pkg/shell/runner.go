@@ -1,6 +1,8 @@
 package shell
 
 import (
+	"bytes"
+	"io"
 	"os/exec"
 	"strings"
 
@@ -44,15 +46,22 @@ func (r *shellRunner) SetContext(context *build.BuilderContext) {
 // ExecuteCmdWithCustomLogging runs the given command but use custom logging logic
 // this method can be used to hide secrets passed in
 func (r *shellRunner) ExecuteCmdWithObfuscation(obfuscate func([]string), cmdExe string, cmdArgs []string) error {
-	return r.executeCmd(obfuscate, cmdExe, cmdArgs)
+	_, err := r.executeCmd(obfuscate, cmdExe, cmdArgs, false)
+	return err
 }
 
 // ExecuteCmd runs the given command with default logging
 func (r *shellRunner) ExecuteCmd(cmdExe string, cmdArgs []string) error {
-	return r.executeCmd(nil, cmdExe, cmdArgs)
+	_, err := r.executeCmd(nil, cmdExe, cmdArgs, false)
+	return err
 }
 
-func (r *shellRunner) executeCmd(obfuscate func([]string), cmdExe string, cmdArgs []string) error {
+// ExecuteCmd runs the given command with default logging
+func (r *shellRunner) QueryCmd(cmdExe string, cmdArgs []string) (string, error) {
+	return r.executeCmd(nil, cmdExe, cmdArgs, true)
+}
+
+func (r *shellRunner) executeCmd(obfuscate func([]string), cmdExe string, cmdArgs []string, readOutputs bool) (outputs string, err error) {
 	resolvedArgs := make([]string, len(cmdArgs))
 	for i, arg := range cmdArgs {
 		resolvedArgs[i] = r.context.Expand(arg)
@@ -65,14 +74,30 @@ func (r *shellRunner) executeCmd(obfuscate func([]string), cmdExe string, cmdArg
 		obfuscate(displayValues)
 	}
 	logrus.Infof("Running command %s %s", cmdExe, strings.Join(displayValues, " "))
-	return r.execute(cmd)
+	var output io.Writer
+	var buffer bytes.Buffer
+	if readOutputs {
+		output = &buffer
+	}
+	err = r.execute(cmd, output)
+	if err != nil {
+		return
+	}
+	if readOutputs {
+		outputs = buffer.String()
+	}
+	return
 }
 
-func (r *shellRunner) execute(cmd *exec.Cmd) error {
+func (r *shellRunner) execute(cmd *exec.Cmd, output io.Writer) error {
 	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, r.context.Export()...)
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
+	if output != nil {
+		cmd.Stdout = io.MultiWriter(os.Stdout, output)
+	} else {
+		cmd.Stdout = os.Stdout
+	}
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("Failed to start command: %s", err)

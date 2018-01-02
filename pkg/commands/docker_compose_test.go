@@ -152,8 +152,11 @@ type composeScanForDependenciesRealFileTestCase struct {
 
 func TestComposeScanDependenciesHappy(t *testing.T) {
 	testComposeScanDependenciesRealFiles(t, composeScanForDependenciesRealFileTestCase{
-		path:                 filepath.Join("${project_root}", "docker-compose.yml"),
-		expectedDependencies: []build.ImageDependencies{testCommon.HelloNodeExampleDependencies, testCommon.MultistageExampleDependencies},
+		path: filepath.Join("${project_root}", "docker-compose.yml"),
+		expectedDependencies: []build.ImageDependencies{
+			testCommon.HelloNodeExampleDependencies,
+			testCommon.MultistageExampleDependencies,
+		},
 	})
 }
 

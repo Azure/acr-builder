@@ -11,6 +11,7 @@ type Runner interface {
 	SetContext(context *BuilderContext)
 	GetContext() *BuilderContext
 	ExecuteCmd(cmdExe string, cmdArgs []string) error
+	QueryCmd(cmdExe string, cmdArgs []string) (string, error)
 	// Note: ExecuteCmdWithObfuscation allow obfuscating sensitive data such as
 	// authentication tokens or passwords not to be shown in logs
 	// However, passing these sensitive data through command lines are not

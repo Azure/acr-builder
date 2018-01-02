@@ -22,32 +22,16 @@ import (
 )
 
 var stockImgDependencies1 = []build.ImageDependencies{
-	{
-		Image:             "img1",
-		RuntimeDependency: "run1",
-		BuildDependencies: []string{},
-	},
-	{
-		Image:             "img1.2",
-		RuntimeDependency: "run1.2",
-		BuildDependencies: []string{"build1.2"},
-	},
+	*testCommon.DependenciesWithDigests(*testCommon.NewImageDependencies("img1", "run1", []string{})),
+	*testCommon.DependenciesWithDigests(*testCommon.NewImageDependencies("img1.2", "run1.2", []string{"build1.2"})),
 }
 
 var stockImgDependencies2 = []build.ImageDependencies{
-	{
-		Image:             "img2",
-		RuntimeDependency: "run2",
-		BuildDependencies: []string{"build2", "build2.1"},
-	},
+	*testCommon.DependenciesWithDigests(*testCommon.NewImageDependencies("img2", "run2", []string{"build2", "build2.1"})),
 }
 
 var stockImgDependencies3 = []build.ImageDependencies{
-	{
-		Image:             "img3",
-		RuntimeDependency: "run3",
-		BuildDependencies: []string{"build3", "build3.1"},
-	},
+	*testCommon.DependenciesWithDigests(*testCommon.NewImageDependencies("img3", "run3", []string{"build3", "build3.1"})),
 }
 
 type dependenciesTestCase struct {
@@ -133,6 +117,7 @@ type compileTestCase struct {
 	sources              []sourceParameters
 	push                 bool
 	expectedDependencies []build.ImageDependencies
+	queryCmdErr          map[string]error
 }
 
 func newMultiSourceTestCase(push bool) *compileTestCase {
@@ -259,18 +244,16 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 	req := &build.Request{
 		DockerRegistry: tc.registry,
 	}
-	for i := range tc.creds {
-		cred := tc.creds[i]
+	for _, cred := range tc.creds {
 		credMock := new(test.MockDockerCredential)
 		req.DockerCredentials = append(req.DockerCredentials, credMock)
 		verifyContext(t, credMock.On("Authenticate", runner), cred.expectedEnv, nil)
 		defer credMock.AssertExpectations(t)
 	}
-	for i := range tc.sources {
-		source := tc.sources[i]
+	for _, source := range tc.sources {
 		builds := []build.Target{}
-		for j := range source.builds {
-			build := source.builds[j]
+		for i := range source.builds {
+			build := source.builds[i] // do not use foreach loop here because `build` will be used in a closure
 			buildMock := new(test.MockBuildTarget)
 			verifyContext(t, buildMock.On("Build", runner), build.expectedEnv, nil)
 			buildMock.On("Export").Return(build.envVar).Once()
@@ -296,6 +279,7 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 		}
 		req.Targets = append(req.Targets, target)
 	}
+	runner.PrepareDigestQuery(tc.expectedDependencies, tc.queryCmdErr)
 	workflow := compileWorkflow(tc.buildNumber, tc.userDefined, req, tc.push)
 	err := workflow.Run(runner)
 	assert.Nil(t, err)
@@ -619,6 +603,7 @@ type runTestCase struct {
 	push                 bool
 	expectedCommands     []test.CommandsExpectation
 	expectedDependencies []build.ImageDependencies
+	queryCmdErr          map[string]error
 	expectedErr          string
 }
 
@@ -634,8 +619,8 @@ func TestRunSimpleHappy(t *testing.T) {
 			},
 		},
 		expectedDependencies: []build.ImageDependencies{
-			testCommon.MultistageExampleDependencies,
-			testCommon.HelloNodeExampleDependencies,
+			*testCommon.DependenciesWithDigests(testCommon.MultistageExampleDependencies),
+			*testCommon.DependenciesWithDigests(testCommon.HelloNodeExampleDependencies),
 		},
 	})
 }
@@ -652,8 +637,8 @@ func TestRunNoRegistryGiven(t *testing.T) {
 			},
 		},
 		expectedDependencies: []build.ImageDependencies{
-			testCommon.MultistageExampleDependenciesOn(""),
-			testCommon.HelloNodeExampleDependenciesOn(""),
+			*testCommon.DependenciesWithDigests(testCommon.MultistageExampleDependenciesOn("")),
+			*testCommon.DependenciesWithDigests(testCommon.HelloNodeExampleDependenciesOn("")),
 		},
 	})
 }
@@ -691,6 +676,7 @@ func testRun(t *testing.T, tc runTestCase) {
 	defer runner.AssertExpectations(t)
 	runner.UseDefaultFileSystem()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
+	runner.PrepareDigestQuery(tc.expectedDependencies, tc.queryCmdErr)
 	builder := NewBuilder(runner)
 	startTime := time.Now()
 	dependencies, duration, err := builder.Run(tc.buildNumber, tc.composeFile, tc.composeProjectDir,

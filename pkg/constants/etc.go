@@ -19,3 +19,9 @@ const SourceNameGit = "git repository"
 
 // SourceNameLocal is the name of local source
 const SourceNameLocal = "local directory"
+
+// DependencyTypeBuild denotes build time dependency
+const DependencyTypeBuild = "build"
+
+// DependencyTypeRuntime denotes runtime dependency
+const DependencyTypeRuntime = "runtime"

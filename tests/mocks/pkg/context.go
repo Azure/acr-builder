@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	build "github.com/Azure/acr-builder/pkg"
+	"github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -54,9 +55,35 @@ func (m *MockRunner) ExecuteCmd(cmdExe string, cmdArgs []string) error {
 	return values.Error(0)
 }
 
+func (m *MockRunner) QueryCmd(cmdExe string, cmdArgs []string) (string, error) {
+	values := m.Called(cmdExe, cmdArgs)
+	return values.String(0), values.Error(1)
+}
+
 func (m *MockRunner) ExecuteCmdWithObfuscation(obfuscate func([]string), cmdExe string, cmdArgs []string) error {
 	values := m.Called(obfuscate, cmdExe, cmdArgs)
 	return values.Error(0)
+}
+
+func (m *MockRunner) PrepareDigestQuery(
+	expectedDependencies []build.ImageDependencies,
+	queryCmdErr map[string]error) {
+	for _, expectedDep := range expectedDependencies {
+		m.addQuery(expectedDep.Image, queryCmdErr[expectedDep.Image.String()])
+		m.addQuery(expectedDep.Runtime, queryCmdErr[expectedDep.Runtime.String()])
+		for _, expectedBuildtime := range expectedDep.Buildtime {
+			m.addQuery(expectedBuildtime, queryCmdErr[expectedBuildtime.String()])
+		}
+	}
+}
+
+func (m *MockRunner) addQuery(reference *build.ImageReference, err error) {
+	refKey := reference.String()
+	var result string
+	if err == nil {
+		result = testCommon.GetDigest(refKey)
+	}
+	m.On("QueryCmd", "docker", []string{"image", "ls", "--digests", "--format", "\"{{ .Digest }}\"", refKey}).Return(result, err)
 }
 
 type CommandsExpectation struct {

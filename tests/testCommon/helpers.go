@@ -12,6 +12,9 @@ import (
 // NilError is a placeholder for mock objects to use when mocking a function that returns an error
 var NilError error
 
+// EmptyContext is an empty build context
+var EmptyContext = build.NewContext([]build.EnvVar{}, []build.EnvVar{})
+
 // StringGenerator generate unique string with given prefix
 type StringGenerator struct {
 	Prefix  string
@@ -68,38 +71,44 @@ var HelloNodeExampleDependencies = HelloNodeExampleDependenciesOn(TestsDockerReg
 
 // MultistageExampleDependenciesOn returns dependencies to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-multistage
 func MultistageExampleDependenciesOn(registry string) build.ImageDependencies {
-	return build.ImageDependencies{
-		Image:             registry + "hello-multistage",
-		RuntimeDependency: "alpine",
-		BuildDependencies: []string{"golang:alpine"},
-	}
+	return *NewImageDependencies(
+		registry+"hello-multistage",
+		"alpine",
+		[]string{"golang:alpine"},
+	)
 }
 
 // HelloNodeExampleDependenciesOn returns dependencies to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-node
 func HelloNodeExampleDependenciesOn(registry string) build.ImageDependencies {
-	return build.ImageDependencies{
-		Image:             registry + "hello-node",
-		RuntimeDependency: "node:alpine",
-		BuildDependencies: []string{},
-	}
+	return *NewImageDependencies(
+		registry+"hello-node",
+		"node:alpine",
+		[]string{},
+	)
 }
 
 // AssertSameDependencies help determine two sets of dependencies are equivalent
-func AssertSameDependencies(t *testing.T, expectedList []build.ImageDependencies, actual []build.ImageDependencies) {
-	assert.Equal(t, len(expectedList), len(actual), "Unexpected numbers of image dependencies")
+func AssertSameDependencies(t *testing.T, expectedList []build.ImageDependencies, actualList []build.ImageDependencies) {
+	assert.Equal(t, len(expectedList), len(actualList), "Unexpected numbers of image dependencies")
 	expectedMap := map[string]build.ImageDependencies{}
 	for _, entry := range expectedList {
-		expectedMap[entry.Image] = entry
+		expectedMap[entry.Image.String()] = entry
 	}
-
-	for _, entry := range actual {
-		expected, found := expectedMap[entry.Image]
+	for _, entry := range actualList {
+		expected, found := expectedMap[entry.Image.String()]
 		assert.True(t, found, "Unexpected image name: %s", entry.Image)
-		assert.Equal(t, expected.RuntimeDependency, entry.RuntimeDependency)
-		assert.Equal(t, len(expected.BuildDependencies), len(entry.BuildDependencies),
-			"Incorrect number of runtime dependencies. Expected: %v, Actual, %v", expected.BuildDependencies, entry.BuildDependencies)
-		assert.Subset(t, expected.BuildDependencies, entry.BuildDependencies,
-			"Expected dependencies. Expected: %v, Actual, %v", expected.BuildDependencies, entry.BuildDependencies)
+		assert.Equal(t, expected.Runtime, entry.Runtime)
+		assert.Equal(t, len(expected.Buildtime), len(entry.Buildtime),
+			"Incorrect number of dependencies. Expected: %v, Actual, %v", expected.Buildtime, entry.Buildtime)
+
+		expectSubMap := map[string]build.ImageReference{}
+		for _, buildtime := range expected.Buildtime {
+			expectSubMap[buildtime.String()] = *buildtime
+		}
+		for _, actualReference := range entry.Buildtime {
+			expectedBuildTime := expectSubMap[actualReference.String()]
+			assert.Equal(t, expectedBuildTime, *actualReference)
+		}
 	}
 }
 
@@ -109,12 +118,15 @@ const DotnetExampleTargetRegistryName = "registry"
 // DotnetExampleTargetImageName is a placeholder image name
 const DotnetExampleTargetImageName = "img"
 
+// DotnetExampleFullImageName is the image name for dotnet example
+const DotnetExampleFullImageName = DotnetExampleTargetRegistryName + "/" + DotnetExampleTargetImageName
+
 // DotnetExampleDependencies links to the project in ${workspaceRoot}/tests/resources/docker-dotnet
-var DotnetExampleDependencies = build.ImageDependencies{
-	Image:             DotnetExampleTargetRegistryName + "/" + DotnetExampleTargetImageName,
-	RuntimeDependency: "microsoft/aspnetcore:2.0",
-	BuildDependencies: []string{"microsoft/aspnetcore-build:2.0", "imaginary/cert-generator:1.0"},
-}
+var DotnetExampleDependencies = *NewImageDependencies(
+	DotnetExampleFullImageName,
+	"microsoft/aspnetcore:2.0",
+	[]string{"microsoft/aspnetcore-build:2.0", "imaginary/cert-generator:1.0"},
+)
 
 // AssertSameEnv asserts two sets environment variable are the same
 func AssertSameEnv(t *testing.T, expected, actual []build.EnvVar) {
@@ -136,4 +148,41 @@ func ReportOnError(t *testing.T, f func() error) {
 	if err != nil {
 		t.Error(err.Error())
 	}
+}
+
+// NewImageDependencies creates a image dependency object
+func NewImageDependencies(image string, runtime string, buildtimes []string) *build.ImageDependencies {
+	dep, err := build.NewImageDependencies(EmptyContext, image, runtime, buildtimes)
+	if err != nil {
+		panic(err)
+	}
+	return dep
+}
+
+// GetDigest gets the mock digest of a image
+func GetDigest(image string) string {
+	return "sha-" + image
+}
+
+// DependenciesWithDigests populate mock digest values for image dependencies
+func DependenciesWithDigests(original build.ImageDependencies) *build.ImageDependencies {
+	result := &build.ImageDependencies{
+		Image:   ImageReferenceWithDigest(original.Image),
+		Runtime: ImageReferenceWithDigest(original.Runtime),
+	}
+	for _, buildtime := range original.Buildtime {
+		result.Buildtime = append(result.Buildtime, ImageReferenceWithDigest(buildtime))
+	}
+	return result
+}
+
+// ImageReferenceWithDigest populate mock digest values for image
+func ImageReferenceWithDigest(original *build.ImageReference) *build.ImageReference {
+	imageName := original.String()
+	result, err := build.NewImageReference(imageName)
+	if err != nil {
+		panic("Failed to process " + imageName)
+	}
+	result.Digest = GetDigest(imageName)
+	return result
 }

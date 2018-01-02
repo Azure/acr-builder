@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 
@@ -66,18 +67,15 @@ func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.Imag
 	} else {
 		dockerfile = env.Expand(t.dockerfile)
 	}
-
-	var dependencies []build.ImageDependencies
-	runtime, buildtime, err := grok.ResolveDockerfileDependencies(dockerfile)
-	if err == nil {
-		dependencies = []build.ImageDependencies{
-			{
-				Image:             env.Expand(t.pushTo),
-				RuntimeDependency: runtime,
-				BuildDependencies: buildtime,
-			}}
+	runtime, buildtimes, err := grok.ResolveDockerfileDependencies(dockerfile)
+	if err != nil {
+		return nil, err
 	}
-	return dependencies, err
+	dep, err := build.NewImageDependencies(env, t.pushTo, runtime, buildtimes)
+	if err != nil {
+		return nil, err
+	}
+	return []build.ImageDependencies{*dep}, err
 }
 
 func (t *dockerBuildTask) Build(runner build.Runner) error {
@@ -124,4 +122,34 @@ func (t *dockerBuildTask) Push(runner build.Runner) error {
 		return fmt.Errorf("No push target is defined")
 	}
 	return runner.ExecuteCmd("docker", []string{"push", t.pushTo})
+}
+
+// PopulateDigests populates digests on dependencies
+func PopulateDigests(runner build.Runner, dependencies []build.ImageDependencies) error {
+	for _, entry := range dependencies {
+		if err := queryDigest(runner, entry.Image); err != nil {
+			return err
+		}
+		if err := queryDigest(runner, entry.Runtime); err != nil {
+			return err
+		}
+		for _, buildtime := range entry.Buildtime {
+			if err := queryDigest(runner, buildtime); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func queryDigest(runner build.Runner, reference *build.ImageReference) error {
+	refString := reference.String()
+	line, err := runner.QueryCmd("docker", []string{
+		"image", "ls", "--digests", "--format", "\"{{ .Digest }}\"", refString,
+	})
+	if err != nil {
+		return err
+	}
+	reference.Digest = strings.TrimSpace(line)
+	return nil
 }
