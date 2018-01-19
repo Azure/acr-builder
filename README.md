@@ -27,7 +27,7 @@ Run the following on your project directory to build the project and push to a d
 
 ##### Conditional or Optional parameters
 * `--docker-registry` The docker registry to push to. This parameter will populate the `ACR_BUILD_DOCKER_REGISTRY` reserved environment variable (see `Build Environment`). Registry is required if the `--push` option is present.
-* `--docker-user` The sername for the docker registry specified above.
+* `--docker-user` The username for the docker registry specified above.
 * `--docker-password` The password or token for registry specified above.
 * `--archive` The URL of a tar.gz archive which contains the source code.
 * `--git-url` The Git URL to the project. Clone operation will be ignored if the `--git-clone-to` folder exists and is not empty. In that case, this parameter will not be required.
