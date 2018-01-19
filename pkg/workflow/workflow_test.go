@@ -8,28 +8,17 @@ import (
 
 	build "github.com/Azure/acr-builder/pkg"
 	test "github.com/Azure/acr-builder/tests/mocks/pkg"
+	"github.com/Azure/acr-builder/tests/testCommon"
 	"github.com/stretchr/testify/assert"
 )
 
 var stockImgDependencies1 = []build.ImageDependencies{
-	{
-		Image:             "img1",
-		RuntimeDependency: "run1",
-		BuildDependencies: []string{},
-	},
-	{
-		Image:             "img1.2",
-		RuntimeDependency: "run1.2",
-		BuildDependencies: []string{"build1.2"},
-	},
+	*testCommon.NewImageDependencies("img1", "run1", []string{}),
+	*testCommon.NewImageDependencies("img1.2", "run1.2", []string{"build1.2"}),
 }
 
 var stockImgDependencies2 = []build.ImageDependencies{
-	{
-		Image:             "img2",
-		RuntimeDependency: "run2",
-		BuildDependencies: []string{"build2", "build2.1"},
-	},
+	*testCommon.NewImageDependencies("img2", "run2", []string{"build2", "build2.1"}),
 }
 
 type uniqueContextGenerator struct {

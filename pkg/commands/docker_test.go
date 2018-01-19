@@ -100,7 +100,7 @@ func TestDockerBuildHappy(t *testing.T) {
 			{
 				Command: "docker",
 				Args: []string{"build", "-f", filepath.Join("..", "..", "tests", "resources", "docker-dotnet", "Dockerfile"),
-					"-t", testCommon.DotnetExampleDependencies.Image, "--build-arg", "k1=v1", "--build-arg", "k2=v2", "contextDir"},
+					"-t", testCommon.DotnetExampleFullImageName, "--build-arg", "k1=v1", "--build-arg", "k2=v2", "contextDir"},
 			},
 		},
 	})

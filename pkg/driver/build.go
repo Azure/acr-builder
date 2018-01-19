@@ -186,6 +186,11 @@ func dependencyTask(target build.Target) workflow.EvaluationTask {
 	}
 }
 
+func digestsTask(runner build.Runner, outputContext *workflow.OutputContext) error {
+	err := commands.PopulateDigests(runner, outputContext.ImageDependencies)
+	return err
+}
+
 // a utility type used only for compile method
 type pushItem struct {
 	context *build.BuilderContext
@@ -234,6 +239,7 @@ func compileWorkflow(buildNumber string,
 					push:    build.Push,
 				})
 			}
+			w.ScheduleEvaluation(buildContext, digestsTask)
 		}
 
 		// add the push tasks if there's any
