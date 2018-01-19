@@ -62,7 +62,7 @@ type ImageReference struct {
 	reference  reference.Reference
 }
 
-// NewImageReference parse a path of a image and create a ImageReference object
+// NewImageReference parses a path of a image and creates a ImageReference object
 func NewImageReference(path string) (*ImageReference, error) {
 	ref, err := reference.Parse(path)
 	if err != nil {
@@ -80,7 +80,7 @@ func NewImageReference(path string) (*ImageReference, error) {
 	return result, nil
 }
 
-// String method convert the ImageReference to string
+// String method converts the ImageReference to string
 func (ref *ImageReference) String() string {
 	return ref.reference.String()
 }

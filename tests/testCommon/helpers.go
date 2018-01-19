@@ -164,7 +164,7 @@ func GetDigest(image string) string {
 	return "sha-" + image
 }
 
-// DependenciesWithDigests populate mock digest values for image dependencies
+// DependenciesWithDigests populates mock digest values for image dependencies
 func DependenciesWithDigests(original build.ImageDependencies) *build.ImageDependencies {
 	result := &build.ImageDependencies{
 		Image:   ImageReferenceWithDigest(original.Image),
@@ -176,7 +176,7 @@ func DependenciesWithDigests(original build.ImageDependencies) *build.ImageDepen
 	return result
 }
 
-// ImageReferenceWithDigest populate mock digest values for image
+// ImageReferenceWithDigest populates mock digest values for image
 func ImageReferenceWithDigest(original *build.ImageReference) *build.ImageReference {
 	imageName := original.String()
 	result, err := build.NewImageReference(imageName)

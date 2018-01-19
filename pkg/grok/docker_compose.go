@@ -113,7 +113,7 @@ func ResolveDockerComposeDependencies(env *build.BuilderContext, projectDirector
 		} else {
 			dockerfilePath = filepath.Join(imageContext, env.Expand(service.Build.Dockerfile))
 		}
-		runtime, buildtimes, err := ResolveDockerfileDependencies(dockerfilePath)
+		runtime, buildtime, err := ResolveDockerfileDependencies(dockerfilePath)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to list dependencies for dockerfile %s, error, %s", dockerfilePath, err)
 		}
@@ -121,7 +121,7 @@ func ResolveDockerComposeDependencies(env *build.BuilderContext, projectDirector
 		if image == "" {
 			image = serviceName
 		}
-		dependencies, err := build.NewImageDependencies(env, image, runtime, buildtimes)
+		dependencies, err := build.NewImageDependencies(env, image, runtime, buildtime)
 		if err != nil {
 			return nil, err
 		}
