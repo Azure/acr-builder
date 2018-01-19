@@ -67,11 +67,11 @@ func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.Imag
 	} else {
 		dockerfile = env.Expand(t.dockerfile)
 	}
-	runtime, buildtimes, err := grok.ResolveDockerfileDependencies(dockerfile)
+	runtime, buildtime, err := grok.ResolveDockerfileDependencies(dockerfile)
 	if err != nil {
 		return nil, err
 	}
-	dep, err := build.NewImageDependencies(env, t.pushTo, runtime, buildtimes)
+	dep, err := build.NewImageDependencies(env, t.pushTo, runtime, buildtime)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func PopulateDigests(runner build.Runner, dependencies []build.ImageDependencies
 func queryDigest(runner build.Runner, reference *build.ImageReference) error {
 	refString := reference.String()
 	line, err := runner.QueryCmd("docker", []string{
-		"image", "ls", "--digests", "--format", "\"{{ .Digest }}\"", refString,
+		"image", "ls", "--digests", "--format", "\"{{.Digest}}\"", refString,
 	})
 	if err != nil {
 		return err
