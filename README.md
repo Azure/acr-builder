@@ -1,12 +1,12 @@
-## ACR builder
+[![Build Status](https://travis-ci.org/Azure/acr-builder.svg?branch=master)](https://travis-ci.org/Azure/acr-builder)
 
-#### Build
+# ACR builder
+
+## Build
 
 Run `docker build --rm -t acr-builder .`. Note that acr-builder is intended to be used as a docker image.
 
-#### Usage
-
-##### Example
+### Example
 
 This project can be built using acr-builder itself, assuming you have a valid acr-builder image named `acr-builder`. Running `./scripts/run-build.sh` will rebuild the acr-docker image as `acr-builder`.
 
@@ -22,10 +22,10 @@ Run the following on your project directory to build the project and push to a d
 ./run-build.sh --working-dir <source-dir> --push --docker-registry <registry>
 ```
 
-##### Required Parameters
+### Required Parameters
+- N/A for now.
 
-
-##### Conditional or Optional parameters
+### Conditional or Optional parameters
 * `--docker-registry` The docker registry to push to. This parameter will populate the `ACR_BUILD_DOCKER_REGISTRY` reserved environment variable (see `Build Environment`). Registry is required if the `--push` option is present.
 * `--docker-user` The username for the docker registry specified above.
 * `--docker-password` The password or token for registry specified above.
@@ -45,7 +45,7 @@ Run the following on your project directory to build the project and push to a d
 * `--push` Specify if push is required if build is successful.
 * `--verbose` Enable verbose output for debugging.
 
-##### Build Environment
+### Build Environment
 You can set an environment variable with `--build-env <VAR_NAME>=<VAR_VALUE>` and the builder will be aware of an environment variable throughout the build (the same goes for all child processes). ACR builder has a set of reserved environment variables such as `ACR_BUILD_BUILD_NUMBER` and `ACR_BUILD_DOCKER_REGISTRY` mentioned in the parameters paragraph. You can set them by passing in the optional parameters `--build-number` and `--docker-registry` and they can't be overridden with `--build-env`.
 
 Furthermore, ACR builder also populates the following variables during build so the child process can make use of these values:
@@ -59,7 +59,7 @@ Furthermore, ACR builder also populates the following variables during build so 
 * `ACR_BUILD_GIT_HEAD_REV` SHA for current Git Head Revision.
 * `ACR_BUILD_PUSH_IMAGES` Indicates whether or not the current build will push on success.
 
-##### Compose File
+### Compose File
 In `docker-compose.yml`, the build image should be prefixed by the reserved environmental variable `ACR_BUILD_DOCKER_REGISTRY` so that it's pushed to the desired registry. You can also use the reserved `ACR_BUILD_BUILD_NUMBER` to postfix your image or tag.
 
 ```yaml
