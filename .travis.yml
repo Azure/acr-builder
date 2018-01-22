@@ -5,7 +5,7 @@ language: go
 services:
   - docker
 
-before_script:
+before_install:
   - docker build --rm -t acr-builder .
 
 notifications:
