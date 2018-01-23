@@ -1,5 +1,5 @@
 **/.dockerignore
-**/Dockerfile
+Dockerfile
 .git
 LICENSE
 Makefile
