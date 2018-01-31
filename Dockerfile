@@ -17,15 +17,18 @@ RUN echo "Running Static Analysis tools..." &&\
     echo "Running tests..." &&\
     go test -cover $(go list ./... | grep -v /vendor/ | grep -v '/tests/') &&\
     echo "Verification successful, building binaries..." &&\
-    GOOS=linux GOARCH=amd64 go build
+    GOOS=linux GOARCH=386 go build
 
-FROM docker/compose:1.16.1
+FROM docker:17.12.0-ce-git
 RUN apk add --update --no-cache \
-    docker \
-    git \
     openssh \
     openssl \
-    ca-certificates
+    ca-certificates \
+    python \
+    py-pip \
+    build-base \
+    && pip install docker-compose \
+    && rm -rf /var/cache/apk/*
 COPY --from=build /go/src/github.com/Azure/acr-builder/acr-builder /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/acr-builder"]
 CMD []
