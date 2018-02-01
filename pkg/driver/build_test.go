@@ -311,7 +311,7 @@ func assertSameContext(t *testing.T, expected []string, actual *build.BuilderCon
 			timeStampFound = true
 			buildTime, err := time.Parse(constants.TimestampFormat, v)
 			assert.Nil(t, err, "Build time format incorrect")
-			assert.WithinDuration(t, time.Now(), buildTime, time.Second*1)
+			assert.WithinDuration(t, time.Now(), buildTime, time.Minute*1)
 		} else {
 			actualEnv[entry] = true
 		}
