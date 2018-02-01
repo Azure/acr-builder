@@ -2,6 +2,7 @@ package testCommon
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	build "github.com/Azure/acr-builder/pkg"
@@ -159,9 +160,15 @@ func NewImageDependencies(image string, runtime string, buildtimes []string) *bu
 	return dep
 }
 
+// GetRepoDigests gets the mock RepoDigests of a image
+func GetRepoDigests(image string) string {
+	repo := strings.Split(image, ":")[0]
+	return "[\"" + repo + "@sha256:" + image + "\"]"
+}
+
 // GetDigest gets the mock digest of a image
 func GetDigest(image string) string {
-	return "sha-" + image
+	return "sha256:" + image
 }
 
 // DependenciesWithDigests populates mock digest values for image dependencies

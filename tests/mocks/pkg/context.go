@@ -81,9 +81,9 @@ func (m *MockRunner) addQuery(reference *build.ImageReference, err error) {
 	refKey := reference.String()
 	var result string
 	if err == nil {
-		result = testCommon.GetDigest(refKey)
+		result = testCommon.GetRepoDigests(refKey)
 	}
-	m.On("QueryCmd", "docker", []string{"image", "ls", "--digests", "--format", "\"{{.Digest}}\"", refKey}).Return(result, err)
+	m.On("QueryCmd", "docker", []string{"inspect", "--format", "\"{{json .RepoDigests}}\"", refKey}).Return(result, err)
 }
 
 type CommandsExpectation struct {

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -144,12 +145,40 @@ func PopulateDigests(runner build.Runner, dependencies []build.ImageDependencies
 
 func queryDigest(runner build.Runner, reference *build.ImageReference) error {
 	refString := reference.String()
-	line, err := runner.QueryCmd("docker", []string{
-		"image", "ls", "--digests", "--format", "\"{{.Digest}}\"", refString,
+	output, err := runner.QueryCmd("docker", []string{
+		"inspect", "--format", "\"{{json .RepoDigests}}\"", refString,
 	})
 	if err != nil {
 		return err
 	}
-	reference.Digest = strings.TrimSpace(line)
+
+	trimCharPredicate := func(c rune) bool {
+		return '\n' == c || '\r' == c || '"' == c || '\t' == c
+	}
+
+	reference.Digest = getRepoDigest(strings.TrimFunc(output, trimCharPredicate), reference)
 	return nil
+}
+
+func getRepoDigest(jsonContent string, reference *build.ImageReference) string {
+	// Input: ["docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], , docker
+	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
+
+	// Input: ["test.azurecr.io/docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], test.azurecr.io, docker
+	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
+
+	prefix := reference.Repository + "@"
+	if len(reference.Registry) > 0 {
+		prefix = reference.Registry + "/" + prefix
+	}
+	var digestList []string
+	_ = json.Unmarshal([]byte(jsonContent), &digestList)
+
+	for _, digest := range digestList {
+		if strings.HasPrefix(digest, prefix) {
+			return digest[len(prefix):]
+		}
+	}
+
+	return ""
 }
