@@ -191,10 +191,16 @@ func digestsTask(runner build.Runner, outputContext *workflow.OutputContext) err
 	return err
 }
 
-// a utility type used only for compile method
-type pushItem struct {
+// a utility type to hold RunningTask, used only for compile method
+type runningTaskItem struct {
 	context *build.BuilderContext
-	push    workflow.RunningTask
+	task    workflow.RunningTask
+}
+
+// a utility type to hold EvaluationTask, used only for compile method
+type evaluationTaskItem struct {
+	context *build.BuilderContext
+	task    workflow.EvaluationTask
 }
 
 // compileWorkflow takes a build request and populate it into workflow
@@ -222,8 +228,12 @@ func compileWorkflow(buildNumber string,
 		w.ScheduleRun(sourceContext, source.Obtain)
 
 		// push tasks (if any) will be put into an array and be added later
-		// because pushes need to be run at the end when all builds succeeds
-		pushItems := []pushItem{}
+		// because pushes need to be run at the end when all builds succeed
+		pushItems := []runningTaskItem{}
+
+		// digests tasks will be put into an array and be added at the end
+		// when all builds and pushs (if any) succeed
+		digestItems := []evaluationTaskItem{}
 
 		// iterate through builds in the source
 		for _, build := range sourceTarget.Builds {
@@ -234,17 +244,26 @@ func compileWorkflow(buildNumber string,
 			w.ScheduleRun(buildContext, build.Build)
 			// if push is enabled, add them to an array to be added last
 			if push {
-				pushItems = append(pushItems, pushItem{
+				pushItems = append(pushItems, runningTaskItem{
 					context: buildContext,
-					push:    build.Push,
+					task:    build.Push,
 				})
 			}
-			w.ScheduleEvaluation(buildContext, digestsTask)
+
+			digestItems = append(digestItems, evaluationTaskItem{
+				context: buildContext,
+				task:    digestsTask,
+			})
 		}
 
 		// add the push tasks if there's any
 		for _, item := range pushItems {
-			w.ScheduleRun(item.context, item.push)
+			w.ScheduleRun(item.context, item.task)
+		}
+
+		// add the digest tasks
+		for _, item := range digestItems {
+			w.ScheduleEvaluation(item.context, item.task)
 		}
 
 		// schedule the source return task
