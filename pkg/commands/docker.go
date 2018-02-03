@@ -167,12 +167,17 @@ func getRepoDigest(jsonContent string, reference *build.ImageReference) string {
 	// Input: ["test.azurecr.io/docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], test.azurecr.io, docker
 	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
 
+	// Input: Invalid
+	// Output: <empty>
+
 	prefix := reference.Repository + "@"
 	if len(reference.Registry) > 0 {
 		prefix = reference.Registry + "/" + prefix
 	}
 	var digestList []string
-	_ = json.Unmarshal([]byte(jsonContent), &digestList)
+	if err := json.Unmarshal([]byte(jsonContent), &digestList); err != nil {
+		logrus.Warnf("Error deserialize %s to json, error: %s", jsonContent, err)
+	}
 
 	for _, digest := range digestList {
 		if strings.HasPrefix(digest, prefix) {
@@ -180,5 +185,6 @@ func getRepoDigest(jsonContent string, reference *build.ImageReference) string {
 		}
 	}
 
+	logrus.Warnf("Unable to find digest for %s in %s", prefix, jsonContent)
 	return ""
 }

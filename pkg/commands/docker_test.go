@@ -180,3 +180,54 @@ func testDockerScanDependencies(t *testing.T, tc dockerDependenciesTestCase) {
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
 	}
 }
+
+type repoDigestTestcase struct {
+	jsonContent    string
+	reference      *build.ImageReference
+	expectedDigest string
+}
+
+func TestDockerGetRepoDigestSucceed(t *testing.T) {
+	testDockerGetRepoDigest(t, repoDigestTestcase{
+		jsonContent: "[\"registry2/repo2@sha256:testsha2\", \"registry1/repo1@sha256:testsha1\"]",
+		reference: &build.ImageReference{
+			Registry:   "registry1",
+			Repository: "repo1",
+		},
+		expectedDigest: "sha256:testsha1",
+	})
+
+	testDockerGetRepoDigest(t, repoDigestTestcase{
+		jsonContent: "[\"repo3@sha256:testsha3\"]",
+		reference: &build.ImageReference{
+			Registry:   "",
+			Repository: "repo3",
+		},
+		expectedDigest: "sha256:testsha3",
+	})
+}
+
+func TestDockerGetRepoDigestFailed(t *testing.T) {
+	testDockerGetRepoDigest(t, repoDigestTestcase{
+		jsonContent: "invalidjson",
+		reference: &build.ImageReference{
+			Registry:   "registry1",
+			Repository: "repo1",
+		},
+		expectedDigest: "",
+	})
+
+	testDockerGetRepoDigest(t, repoDigestTestcase{
+		jsonContent: "[\"registry2/repo2@sha256:testsha2\", \"registry1/repo1@sha256:testsha1\"]",
+		reference: &build.ImageReference{
+			Registry:   "registry3",
+			Repository: "repo3",
+		},
+		expectedDigest: "",
+	})
+}
+
+func testDockerGetRepoDigest(t *testing.T, tc repoDigestTestcase) {
+	actualDigest := getRepoDigest(tc.jsonContent, tc.reference)
+	assert.Equal(t, tc.expectedDigest, actualDigest)
+}
