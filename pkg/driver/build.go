@@ -120,6 +120,9 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 		if dockerfile == "" {
 			logrus.Debugf("Docker image is defined, dockerfile will be used for building")
 		}
+		if len(dockerImage) <= 0 {
+			return nil, fmt.Errorf("Image name not specified for docker file '%s'", dockerfile)
+		}
 		if composeProjectDir != "" {
 			return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
 		}
