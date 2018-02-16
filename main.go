@@ -80,13 +80,13 @@ func main() {
 		if len(os.Args) < 2 {
 			flag.CommandLine.Usage()
 		}
-		os.Exit(-1)
+		os.Exit(constants.GeneralErrorExitCode)
 	}
 
 	output, err := json.Marshal(dependencies)
 	if err != nil {
 		logrus.Errorf("Failed to serialize dependencies %s", err)
-		os.Exit(-1)
+		os.Exit(constants.GeneralErrorExitCode)
 	}
 	fmt.Printf("\nBuild duration: %s\n", duration)
 	fmt.Printf("\nACR Builder discovered the following dependencies:\n%s\n", string(output))
