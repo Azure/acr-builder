@@ -55,6 +55,9 @@ const (
 	// ArgNameDockerBuildArg is the parameter name for build args passed in to docker or docker-compose. This parameter is repeatable.
 	ArgNameDockerBuildArg = "docker-build-arg"
 
+	// ArgNameDockerSecretBuildArg is the parameter name for build args passed in to docker or docker-compose. The argument value contains secret which will be hidden from the log. This parameter is repeatable.
+	ArgNameDockerSecretBuildArg = "docker-secret-build-arg"
+
 	// ArgNameBuildEnv is the parameter name for build environment variables to be set. This parameter is repeatable
 	ArgNameBuildEnv = "build-env"
 

@@ -33,7 +33,7 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 	workingDir,
 	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 	webArchive string,
-	buildEnvs, buildArgs []string, push bool,
+	buildEnvs, buildArgs, buildSecretArgs []string, push bool,
 ) (dependencies []build.ImageDependencies, duration time.Duration, err error) {
 	startTime := time.Now()
 	defer func() {
@@ -57,7 +57,7 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 		workingDir,
 		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 		webArchive,
-		buildArgs, push)
+		buildArgs, buildSecretArgs, push)
 
 	if err != nil {
 		return
@@ -77,7 +77,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 	workingDir,
 	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 	webArchive string,
-	buildArgs []string, push bool) (*build.Request, error) {
+	buildArgs, buildSecretArgs []string, push bool) (*build.Request, error) {
 	if push && dockerRegistry == "" {
 		return nil, fmt.Errorf("Docker registry is needed for push, use --%s or environment variable %s to provide its value",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
@@ -126,7 +126,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 		if composeProjectDir != "" {
 			return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
 		}
-		target = commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, registrySuffixed, dockerImage)
+		target = commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, buildSecretArgs, registrySuffixed, dockerImage)
 	}
 
 	// Use docker-compose as default
@@ -139,7 +139,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 			return nil, fmt.Errorf("Parameters --%s, --%s, %s cannot be used in docker-compose scenario",
 				constants.ArgNameDockerfile, constants.ArgNameDockerImage, constants.ArgNameDockerContextDir)
 		}
-		target = commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs)
+		target = commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs, buildSecretArgs)
 	}
 
 	return &build.Request{

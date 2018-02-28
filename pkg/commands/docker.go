@@ -44,20 +44,22 @@ func (u *dockerUsernamePassword) Authenticate(runner build.Runner) error {
 
 // NewDockerBuild creates a build target with specified docker file and build parameters
 func NewDockerBuild(dockerfile, contextDir string,
-	buildArgs []string, registry, imageName string) build.Target {
+	buildArgs, buildSecretArgs []string, registry, imageName string) build.Target {
 	return &dockerBuildTask{
-		dockerfile: dockerfile,
-		contextDir: contextDir,
-		buildArgs:  buildArgs,
-		pushTo:     fmt.Sprintf("%s%s", registry, imageName),
+		dockerfile:      dockerfile,
+		contextDir:      contextDir,
+		buildArgs:       buildArgs,
+		buildSecretArgs: buildSecretArgs,
+		pushTo:          fmt.Sprintf("%s%s", registry, imageName),
 	}
 }
 
 type dockerBuildTask struct {
-	dockerfile string
-	contextDir string
-	buildArgs  []string
-	pushTo     string
+	dockerfile      string
+	contextDir      string
+	buildArgs       []string
+	buildSecretArgs []string
+	pushTo          string
 }
 
 func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.ImageDependencies, error) {
@@ -93,12 +95,34 @@ func (t *dockerBuildTask) Build(runner build.Runner) error {
 		args = append(args, "--build-arg", buildArg)
 	}
 
+	for _, buildSecretArg := range t.buildSecretArgs {
+		args = append(args, "--build-arg", buildSecretArg)
+	}
+
 	if t.contextDir != "" {
 		args = append(args, t.contextDir)
 	} else {
 		args = append(args, ".")
 	}
-	return runner.ExecuteCmd("docker", args)
+
+	return runner.ExecuteCmdWithObfuscation(func(args []string) {
+		if len(t.buildSecretArgs) > 0 {
+			for i := 0; i < len(args); i++ {
+				for j := 0; j < len(t.buildSecretArgs); j++ {
+					if args[i] == t.buildSecretArgs[j] {
+						index := strings.Index(args[i], "=")
+						if index >= 0 {
+							args[i] = args[i][:index+1] + constants.ObfuscationString
+						} else {
+							args[i] = constants.ObfuscationString
+						}
+						break
+					}
+				}
+			}
+		}
+
+	}, "docker", args)
 }
 
 func (t *dockerBuildTask) Export() []build.EnvVar {

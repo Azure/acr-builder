@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"strings"
 
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
@@ -33,11 +34,12 @@ func findDefaultDockerComposeFile(runner build.Runner) (string, error) {
 }
 
 // NewDockerComposeBuild creates a build target with defined docker-compose file
-func NewDockerComposeBuild(path, projectDir string, buildArgs []string) build.Target {
+func NewDockerComposeBuild(path, projectDir string, buildArgs, buildSecretArgs []string) build.Target {
 	return &dockerComposeBuildTask{
 		path:             path,
 		projectDirectory: projectDir,
 		buildArgs:        buildArgs,
+		buildSecretArgs:  buildSecretArgs,
 	}
 }
 
@@ -45,6 +47,7 @@ type dockerComposeBuildTask struct {
 	path             string
 	projectDirectory string
 	buildArgs        []string
+	buildSecretArgs  []string
 }
 
 func (t *dockerComposeBuildTask) ScanForDependencies(runner build.Runner) ([]build.ImageDependencies, error) {
@@ -77,7 +80,27 @@ func (t *dockerComposeBuildTask) Build(runner build.Runner) error {
 		args = append(args, "--build-arg", buildArg)
 	}
 
-	return runner.ExecuteCmd("docker-compose", args)
+	for _, buildSecretArg := range t.buildSecretArgs {
+		args = append(args, "--build-arg", buildSecretArg)
+	}
+
+	return runner.ExecuteCmdWithObfuscation(func(args []string) {
+		if len(t.buildSecretArgs) > 0 {
+			for i := 0; i < len(args); i++ {
+				for j := 0; j < len(t.buildSecretArgs); j++ {
+					if args[i] == t.buildSecretArgs[j] {
+						index := strings.Index(args[i], "=")
+						if index >= 0 {
+							args[i] = args[i][:index+1] + constants.ObfuscationString
+						} else {
+							args[i] = constants.ObfuscationString
+						}
+					}
+				}
+			}
+		}
+
+	}, "docker-compose", args)
 }
 
 func (t *dockerComposeBuildTask) Export() []build.EnvVar {
