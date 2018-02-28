@@ -189,19 +189,28 @@ type repoDigestTestcase struct {
 
 func TestDockerGetRepoDigestSucceed(t *testing.T) {
 	testDockerGetRepoDigest(t, repoDigestTestcase{
-		jsonContent: "[\"registry2/repo2@sha256:testsha2\", \"registry1/repo1@sha256:testsha1\"]",
+		jsonContent: "[\"user2/repo2@sha256:testsha2\", \"user1/repo1@sha256:testsha1\"]",
 		reference: &build.ImageReference{
-			Registry:   "registry1",
-			Repository: "repo1",
+			Registry:   build.DockerHubRegistry,
+			Repository: "user1/repo1",
 		},
 		expectedDigest: "sha256:testsha1",
 	})
 
 	testDockerGetRepoDigest(t, repoDigestTestcase{
-		jsonContent: "[\"repo3@sha256:testsha3\"]",
+		jsonContent: "[\"abc.azurecr.io/repo3@sha256:testsha3\"]",
 		reference: &build.ImageReference{
-			Registry:   "",
+			Registry:   "abc.azurecr.io",
 			Repository: "repo3",
+		},
+		expectedDigest: "sha256:testsha3",
+	})
+
+	testDockerGetRepoDigest(t, repoDigestTestcase{
+		jsonContent: "[\"abc.azurecr.io/group/repo3@sha256:testsha3\"]",
+		reference: &build.ImageReference{
+			Registry:   "abc.azurecr.io",
+			Repository: "group/repo3",
 		},
 		expectedDigest: "sha256:testsha3",
 	})

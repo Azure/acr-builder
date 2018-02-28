@@ -3,9 +3,13 @@ package build
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/docker/distribution/reference"
 )
+
+// DockerHubRegistry is the docker hub registry
+const DockerHubRegistry = "registry.hub.docker.com"
 
 // EnvVar defines an environmental variable
 type EnvVar struct {
@@ -71,8 +75,24 @@ func NewImageReference(path string) (*ImageReference, error) {
 	result := &ImageReference{
 		reference: ref,
 	}
+
 	if named, ok := ref.(reference.Named); ok {
-		result.Registry, result.Repository = reference.SplitHostname(named)
+		result.Registry = reference.Domain(named)
+
+		if strings.Contains(result.Registry, ".") {
+			// The domain is the registry, eg, registryname.azurecr.io
+			result.Repository = reference.Path(named)
+		} else {
+			// DockerHub
+			if result.Registry == "" {
+				result.Registry = DockerHubRegistry
+				result.Repository = reference.Path(named)
+			} else {
+				// The domain is the DockerHub user name
+				result.Registry = DockerHubRegistry
+				result.Repository = strings.Join([]string{reference.Domain(named), reference.Path(named)}, "/")
+			}
+		}
 	}
 	if tagged, ok := ref.(reference.Tagged); ok {
 		result.Tag = tagged.Tag()
