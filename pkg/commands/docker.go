@@ -105,24 +105,7 @@ func (t *dockerBuildTask) Build(runner build.Runner) error {
 		args = append(args, ".")
 	}
 
-	return runner.ExecuteCmdWithObfuscation(func(args []string) {
-		if len(t.buildSecretArgs) > 0 {
-			for i := 0; i < len(args); i++ {
-				for j := 0; j < len(t.buildSecretArgs); j++ {
-					if args[i] == t.buildSecretArgs[j] {
-						index := strings.Index(args[i], "=")
-						if index >= 0 {
-							args[i] = args[i][:index+1] + constants.ObfuscationString
-						} else {
-							args[i] = constants.ObfuscationString
-						}
-						break
-					}
-				}
-			}
-		}
-
-	}, "docker", args)
+	return runner.ExecuteCmdWithObfuscation(KeyValueArgumentObfuscator(t.buildSecretArgs), "docker", args)
 }
 
 func (t *dockerBuildTask) Export() []build.EnvVar {

@@ -41,7 +41,7 @@ Run the following on your project directory to build the project and push to a d
 * `--docker-context-dir` Docker build context. Optional, to be used alongside `--dockerfile`.
 * `--docker-compose-file` Docker Compose file to be invoked for build and push.
 * `--docker-build-arg` Build arguments to be passed to docker build or docker-compose build. This parameter can be specified multiple times.
-* `--docker-secret-build-arg` Build arguments to be passed to docker build or docker-compose build. The argument value contains secret which will be hidden from the log. This parameter can be specified multiple times.
+* `--docker-secret-build-arg` Build arguments to be passed to docker build or docker-compose build. The argument value contains a secret which will be hidden from the log. This parameter can be specified multiple times.
 * `--build-env` Custom environment variables defined for the build process. This parameter can be specified multiple times. (For more details, see `Build Environment`).
 * `--push` Specify if push is required if build is successful.
 * `--verbose` Enable verbose output for debugging.

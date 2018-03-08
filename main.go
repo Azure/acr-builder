@@ -53,7 +53,7 @@ func main() {
 	flag.StringVar(&dockerImage, constants.ArgNameDockerImage, "", "The image name to build to. This option is only available when building with dockerfile")
 	flag.StringVar(&dockerContextDir, constants.ArgNameDockerContextDir, "", "Context directory for docker build. This option is only available when building with dockerfile.")
 	flag.Var(&buildArgs, constants.ArgNameDockerBuildArg, "Build arguments to be passed to docker build or docker-compose build")
-	flag.Var(&buildSecretArgs, constants.ArgNameDockerSecretBuildArg, "Build arguments to be passed to docker build or docker-compose build. The argument value contains secret which will be hidden from the log.")
+	flag.Var(&buildSecretArgs, constants.ArgNameDockerSecretBuildArg, "Build arguments to be passed to docker build or docker-compose build. The argument value contains a secret which will be hidden from the log.")
 	flag.StringVar(&dockerRegistry, constants.ArgNameDockerRegistry, "", "Docker registry to push to")
 	flag.StringVar(&dockerUser, constants.ArgNameDockerUser, "", "Docker username.")
 	flag.StringVar(&dockerPW, constants.ArgNameDockerPW, "", "Docker password or OAuth identity token.")

@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"strings"
 
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
@@ -84,23 +83,7 @@ func (t *dockerComposeBuildTask) Build(runner build.Runner) error {
 		args = append(args, "--build-arg", buildSecretArg)
 	}
 
-	return runner.ExecuteCmdWithObfuscation(func(args []string) {
-		if len(t.buildSecretArgs) > 0 {
-			for i := 0; i < len(args); i++ {
-				for j := 0; j < len(t.buildSecretArgs); j++ {
-					if args[i] == t.buildSecretArgs[j] {
-						index := strings.Index(args[i], "=")
-						if index >= 0 {
-							args[i] = args[i][:index+1] + constants.ObfuscationString
-						} else {
-							args[i] = constants.ObfuscationString
-						}
-					}
-				}
-			}
-		}
-
-	}, "docker-compose", args)
+	return runner.ExecuteCmdWithObfuscation(KeyValueArgumentObfuscator(t.buildSecretArgs), "docker-compose", args)
 }
 
 func (t *dockerComposeBuildTask) Export() []build.EnvVar {
