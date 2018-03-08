@@ -18,6 +18,7 @@ type composeTestCase struct {
 	path             string
 	projectDir       string
 	buildArgs        []string
+	buildSecretArgs  []string
 	expectedErr      string
 	expectedCommands []test.CommandsExpectation
 }
@@ -26,7 +27,7 @@ func testDockerComposeBuild(t *testing.T, tc composeTestCase) {
 	runner := test.NewMockRunner()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	defer runner.AssertExpectations(t)
-	task := NewDockerComposeBuild(tc.path, tc.projectDir, tc.buildArgs)
+	task := NewDockerComposeBuild(tc.path, tc.projectDir, tc.buildArgs, tc.buildSecretArgs)
 	err := task.Build(runner)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
@@ -43,8 +44,9 @@ func TestDockerComposeBuildAllArgs(t *testing.T) {
 		projectDir: "SomeProject",
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command: "docker-compose",
-				Args:    []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
+				Command:      "docker-compose",
+				IsObfuscated: true,
+				Args:         []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
 			},
 		},
 	})
@@ -57,9 +59,10 @@ func TestDockerComposeBuildAllArgsError(t *testing.T) {
 		projectDir: "SomeProject",
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command:  "docker-compose",
-				Args:     []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
-				ErrorMsg: "Build failed",
+				Command:      "docker-compose",
+				IsObfuscated: true,
+				Args:         []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "build", "--project-directory", "SomeProject", "--build-arg", "arg1=value1", "--build-arg", "arg2=value2"},
+				ErrorMsg:     "Build failed",
 			},
 		},
 		expectedErr: "^Build failed$",
@@ -70,8 +73,9 @@ func TestDockerComposeBuildNoArgs(t *testing.T) {
 	testDockerComposeBuild(t, composeTestCase{
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command: "docker-compose",
-				Args:    []string{"build"},
+				Command:      "docker-compose",
+				IsObfuscated: true,
+				Args:         []string{"build"},
 			},
 		},
 	})
@@ -81,7 +85,7 @@ func testDockerComposePush(t *testing.T, tc composeTestCase) {
 	runner := test.NewMockRunner()
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	defer runner.AssertExpectations(t)
-	task := NewDockerComposeBuild(tc.path, tc.projectDir, tc.buildArgs)
+	task := NewDockerComposeBuild(tc.path, tc.projectDir, tc.buildArgs, tc.buildSecretArgs)
 	err := task.Push(runner)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
@@ -98,8 +102,9 @@ func TestDockerComposePushWithPath(t *testing.T) {
 		projectDir: "SomeProject",
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command: "docker-compose",
-				Args:    []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "push"},
+				Command:      "docker-compose",
+				IsObfuscated: false,
+				Args:         []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "push"},
 			},
 		},
 	})
@@ -112,9 +117,10 @@ func TestDockerComposePushWithPathFailed(t *testing.T) {
 		projectDir: "SomeProject",
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command:  "docker-compose",
-				Args:     []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "push"},
-				ErrorMsg: "Publish failed",
+				Command:      "docker-compose",
+				IsObfuscated: false,
+				Args:         []string{"-f", filepath.Join("docker-compose", "docker-compose.yml"), "push"},
+				ErrorMsg:     "Publish failed",
 			},
 		},
 		expectedErr: "^Publish failed$",
@@ -127,15 +133,16 @@ func TestDockerComposePushWithNoPath(t *testing.T) {
 		projectDir: "SomeProject",
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command: "docker-compose",
-				Args:    []string{"push"},
+				Command:      "docker-compose",
+				IsObfuscated: false,
+				Args:         []string{"push"},
 			},
 		},
 	})
 }
 
 func TestComposeBuildTaskExport(t *testing.T) {
-	exports := NewDockerComposeBuild("path", "project", []string{}).Export()
+	exports := NewDockerComposeBuild("path", "project", []string{}, []string{}).Export()
 	assert.Equal(t, []build.EnvVar{
 		{
 			Name:  constants.ExportsDockerComposeFile,
@@ -176,7 +183,7 @@ func testComposeScanDependenciesRealFiles(t *testing.T, tc composeScanForDepende
 		append(testCommon.MultiStageExampleTestEnv,
 			build.EnvVar{Name: "project_root", Value: filepath.Join("..", "..", "tests", "resources", "docker-compose")}),
 		[]build.EnvVar{}))
-	task := NewDockerComposeBuild(tc.path, "", []string{})
+	task := NewDockerComposeBuild(tc.path, "", []string{}, []string{})
 	dep, err := task.ScanForDependencies(runner)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
@@ -225,7 +232,7 @@ func testComposeFileProbe(t *testing.T, tc composeFileProbeTestCase) {
 	fs := runner.GetFileSystem().(*test.MockFileSystem)
 	fs.PrepareFileSystem(tc.files)
 	defer fs.AssertExpectations(t)
-	_, err := NewDockerComposeBuild("", "", []string{}).ScanForDependencies(runner)
+	_, err := NewDockerComposeBuild("", "", []string{}, []string{}).ScanForDependencies(runner)
 	assert.NotNil(t, err)
 	assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
 }

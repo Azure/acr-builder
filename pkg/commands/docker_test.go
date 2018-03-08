@@ -50,6 +50,7 @@ type dockerTestCase struct {
 	dockerfile           string
 	contextDir           string
 	buildArgs            []string
+	buildSecretArgs      []string
 	registry             string
 	imageName            string
 	expectedCommands     []test.CommandsExpectation
@@ -60,7 +61,7 @@ func testDockerBuild(t *testing.T, tc dockerTestCase) {
 	runner := new(test.MockRunner)
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	defer runner.AssertExpectations(t)
-	target := NewDockerBuild(tc.dockerfile, tc.contextDir, tc.buildArgs, tc.registry, tc.imageName)
+	target := NewDockerBuild(tc.dockerfile, tc.contextDir, tc.buildArgs, tc.buildSecretArgs, tc.registry, tc.imageName)
 	err := target.Build(runner)
 	if tc.expectedExecutionErr != "" {
 		assert.NotNil(t, err)
@@ -77,9 +78,10 @@ func TestDockerBuildMinimalParametersFailedEventually(t *testing.T) {
 	testDockerBuild(t, dockerTestCase{
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command:  "docker",
-				Args:     []string{"build", "."},
-				ErrorMsg: "docker build error",
+				Command:      "docker",
+				IsObfuscated: true,
+				Args:         []string{"build", "."},
+				ErrorMsg:     "docker build error",
 			},
 		},
 		expectedExecutionErr: "^docker build error$",
@@ -98,7 +100,8 @@ func TestDockerBuildHappy(t *testing.T) {
 		imageName:  testCommon.DotnetExampleTargetImageName,
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command: "docker",
+				Command:      "docker",
+				IsObfuscated: true,
 				Args: []string{"build", "-f", filepath.Join("..", "..", "tests", "resources", "docker-dotnet", "Dockerfile"),
 					"-t", testCommon.DotnetExampleFullImageName, "--build-arg", "k1=v1", "--build-arg", "k2=v2", "contextDir"},
 			},
@@ -107,7 +110,7 @@ func TestDockerBuildHappy(t *testing.T) {
 }
 
 func TestExport(t *testing.T) {
-	task := NewDockerBuild("myDockerfile", "myContextDir", []string{}, "myRegistry/", "myImage")
+	task := NewDockerBuild("myDockerfile", "myContextDir", []string{}, []string{}, "myRegistry/", "myImage")
 	exports := task.Export()
 	testCommon.AssertSameEnv(t, []build.EnvVar{
 		{Name: constants.ExportsDockerfilePath, Value: "myDockerfile"},
@@ -120,7 +123,7 @@ func testDockerPush(t *testing.T, tc dockerTestCase) {
 	runner := new(test.MockRunner)
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	defer runner.AssertExpectations(t)
-	target := NewDockerBuild(tc.dockerfile, tc.contextDir, tc.buildArgs, tc.registry, tc.imageName)
+	target := NewDockerBuild(tc.dockerfile, tc.contextDir, tc.buildArgs, tc.buildSecretArgs, tc.registry, tc.imageName)
 	err := target.Push(runner)
 	if tc.expectedExecutionErr != "" {
 		assert.NotNil(t, err)
@@ -170,7 +173,7 @@ func testDockerScanDependencies(t *testing.T, tc dockerDependenciesTestCase) {
 	runner.SetContext(build.NewContext([]build.EnvVar{
 		{Name: "project_root", Value: filepath.Join("..", "..", "tests", "resources", "docker-dotnet")},
 	}, []build.EnvVar{}))
-	target := NewDockerBuild(tc.path, "", []string{}, testCommon.DotnetExampleTargetRegistryName+"/", testCommon.DotnetExampleTargetImageName)
+	target := NewDockerBuild(tc.path, "", []string{}, []string{}, testCommon.DotnetExampleTargetRegistryName+"/", testCommon.DotnetExampleTargetImageName)
 	dependencies, err := target.ScanForDependencies(runner)
 	if tc.expectedErr == "" {
 		assert.Nil(t, err)

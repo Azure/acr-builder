@@ -400,6 +400,7 @@ type createBuildRequestTestCase struct {
 	gitXToken         string
 	webArchive        string
 	buildArgs         []string
+	buildSecretArgs   []string
 	push              bool
 	files             test.FileSystemExpectations
 	expected          build.Request
@@ -414,7 +415,7 @@ func TestCreateBuildRequestNoParams(t *testing.T) {
 			Targets: []build.SourceTarget{
 				{
 					Source: localSource,
-					Builds: []build.Target{commands.NewDockerComposeBuild("", "", nil)},
+					Builds: []build.Target{commands.NewDockerComposeBuild("", "", nil, nil)},
 				},
 			},
 		},
@@ -431,10 +432,11 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 	dockerfile := "some.dockerfile"
 	contextDir := "some.contextDir"
 	buildArgs := []string{"k1=v1", "k2=v2"}
+	buildSecretArgs := []string{"sk1=sv1", "sk2=sv2"}
 	registry := "some.registry"
 	imageName := "some.image"
 	dockerBuildTarget := commands.NewDockerBuild(dockerfile, contextDir,
-		buildArgs, registry+"/", imageName)
+		buildArgs, buildSecretArgs, registry+"/", imageName)
 	gitCred, err := commands.NewGitPersonalAccessToken(gitUser, gitPassword)
 	assert.Nil(t, err)
 	gitSource := commands.NewGitSource(gitAddress, branch, headRev, targetDir, gitCred)
@@ -448,6 +450,7 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 		dockerfile:       dockerfile,
 		dockerContextDir: contextDir,
 		buildArgs:        buildArgs,
+		buildSecretArgs:  buildSecretArgs,
 		dockerRegistry:   registry,
 		dockerImage:      imageName,
 		expected: build.Request{
@@ -475,6 +478,7 @@ func TestCreateBuildRequestWithGitXTokenDockerCompose(t *testing.T) {
 	composeFile := "some.composefile"
 	composeProjectDir := "some.projectdir"
 	buildArgs := []string{"k3=v3", "k4=v4"}
+	buildSecretArgs := []string{"sk1=sv1", "sk2=sv2"}
 	cred, err := commands.NewDockerUsernamePassword(dockerRegistry, dockerUser, dockerPW)
 	assert.Nil(t, err)
 	gitSource := commands.NewGitSource(gitAddress, branch, headRev, targetDir, commands.NewGitXToken(gitXToken))
@@ -490,13 +494,14 @@ func TestCreateBuildRequestWithGitXTokenDockerCompose(t *testing.T) {
 		composeFile:       composeFile,
 		composeProjectDir: composeProjectDir,
 		buildArgs:         buildArgs,
+		buildSecretArgs:   buildSecretArgs,
 		expected: build.Request{
 			DockerRegistry:    dockerRegistry + "/",
 			DockerCredentials: []build.DockerCredential{cred},
 			Targets: []build.SourceTarget{
 				{
 					Source: gitSource,
-					Builds: []build.Target{commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs)},
+					Builds: []build.Target{commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs, buildSecretArgs)},
 				},
 			},
 		},
@@ -569,7 +574,7 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.workingDir,
 		tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
-		tc.webArchive, tc.buildArgs, tc.push)
+		tc.webArchive, tc.buildArgs, tc.buildSecretArgs, tc.push)
 
 	if tc.expectedError != "" {
 		assert.NotNil(t, err)
@@ -600,6 +605,7 @@ type runTestCase struct {
 	webArchive           string
 	buildEnvs            []string
 	buildArgs            []string
+	buildSecretArgs      []string
 	push                 bool
 	expectedCommands     []test.CommandsExpectation
 	expectedDependencies []build.ImageDependencies
@@ -614,8 +620,9 @@ func TestRunSimpleHappy(t *testing.T) {
 		workingDir:     filepath.Join("..", "..", "tests", "resources", "docker-compose"),
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command: "docker-compose",
-				Args:    []string{"build"},
+				Command:      "docker-compose",
+				IsObfuscated: true,
+				Args:         []string{"build"},
 			},
 		},
 		expectedDependencies: []build.ImageDependencies{
@@ -632,8 +639,9 @@ func TestRunNoRegistryGiven(t *testing.T) {
 		workingDir:  filepath.Join("..", "..", "tests", "resources", "docker-compose"),
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command: "docker-compose",
-				Args:    []string{"build"},
+				Command:      "docker-compose",
+				IsObfuscated: true,
+				Args:         []string{"build"},
 			},
 		},
 		expectedDependencies: []build.ImageDependencies{
@@ -684,7 +692,7 @@ func testRun(t *testing.T, tc runTestCase) {
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
 		tc.workingDir, tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
-		tc.webArchive, tc.buildEnvs, tc.buildArgs, tc.push)
+		tc.webArchive, tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.push)
 	actualDuration := time.Since(startTime)
 	assert.True(t, actualDuration >= duration)
 	assert.True(t, duration+time.Millisecond >= actualDuration)

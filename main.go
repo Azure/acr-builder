@@ -35,7 +35,7 @@ func main() {
 	// required unless the host is properly logged in
 	// if the program is launched in docker container, use option -v /var/run/docker.sock:/var/run/docker.sock -v ~/.docker:/root/.docker
 	var dockerUser, dockerPW, dockerRegistry string
-	var buildArgs, buildEnvs stringSlice
+	var buildArgs, buildSecretArgs, buildEnvs stringSlice
 	var push, debug bool
 	var buildNumber string
 	flag.StringVar(&buildNumber, constants.ArgNameBuildNumber, "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.ExportsBuildNumber))
@@ -53,6 +53,7 @@ func main() {
 	flag.StringVar(&dockerImage, constants.ArgNameDockerImage, "", "The image name to build to. This option is only available when building with dockerfile")
 	flag.StringVar(&dockerContextDir, constants.ArgNameDockerContextDir, "", "Context directory for docker build. This option is only available when building with dockerfile.")
 	flag.Var(&buildArgs, constants.ArgNameDockerBuildArg, "Build arguments to be passed to docker build or docker-compose build")
+	flag.Var(&buildSecretArgs, constants.ArgNameDockerSecretBuildArg, "Build arguments to be passed to docker build or docker-compose build. The argument value contains a secret which will be hidden from the log.")
 	flag.StringVar(&dockerRegistry, constants.ArgNameDockerRegistry, "", "Docker registry to push to")
 	flag.StringVar(&dockerUser, constants.ArgNameDockerUser, "", "Docker username.")
 	flag.StringVar(&dockerPW, constants.ArgNameDockerPW, "", "Docker password or OAuth identity token.")
@@ -73,7 +74,7 @@ func main() {
 		workingDir,
 		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 		webArchive,
-		buildEnvs, buildArgs, push)
+		buildEnvs, buildArgs, buildSecretArgs, push)
 
 	if err != nil {
 		logrus.Error(err)

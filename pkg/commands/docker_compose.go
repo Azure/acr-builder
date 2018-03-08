@@ -33,11 +33,12 @@ func findDefaultDockerComposeFile(runner build.Runner) (string, error) {
 }
 
 // NewDockerComposeBuild creates a build target with defined docker-compose file
-func NewDockerComposeBuild(path, projectDir string, buildArgs []string) build.Target {
+func NewDockerComposeBuild(path, projectDir string, buildArgs, buildSecretArgs []string) build.Target {
 	return &dockerComposeBuildTask{
 		path:             path,
 		projectDirectory: projectDir,
 		buildArgs:        buildArgs,
+		buildSecretArgs:  buildSecretArgs,
 	}
 }
 
@@ -45,6 +46,7 @@ type dockerComposeBuildTask struct {
 	path             string
 	projectDirectory string
 	buildArgs        []string
+	buildSecretArgs  []string
 }
 
 func (t *dockerComposeBuildTask) ScanForDependencies(runner build.Runner) ([]build.ImageDependencies, error) {
@@ -77,7 +79,11 @@ func (t *dockerComposeBuildTask) Build(runner build.Runner) error {
 		args = append(args, "--build-arg", buildArg)
 	}
 
-	return runner.ExecuteCmd("docker-compose", args)
+	for _, buildSecretArg := range t.buildSecretArgs {
+		args = append(args, "--build-arg", buildSecretArg)
+	}
+
+	return runner.ExecuteCmdWithObfuscation(KeyValueArgumentObfuscator(t.buildSecretArgs), "docker-compose", args)
 }
 
 func (t *dockerComposeBuildTask) Export() []build.EnvVar {
