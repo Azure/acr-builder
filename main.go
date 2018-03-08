@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Azure/acr-builder/pkg/driver"
 	"github.com/Azure/acr-builder/pkg/shell"
@@ -89,6 +90,7 @@ func main() {
 		logrus.Errorf("Failed to serialize dependencies %s", err)
 		os.Exit(constants.GeneralErrorExitCode)
 	}
-	fmt.Printf("\nBuild duration: %s\n", duration)
+
+	fmt.Printf("\nBuild duration: %dms\n", int64(duration)/int64(time.Millisecond))
 	fmt.Printf("\nACR Builder discovered the following dependencies:\n%s\n", string(output))
 }
