@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	build "github.com/Azure/acr-builder/pkg"
@@ -24,23 +25,17 @@ func TestDockerUsernamePasswordAuthenticate(t *testing.T) {
 	m, err := NewDockerUsernamePassword("registry", "username", "password")
 	assert.Nil(t, err)
 	runner := test.NewMockRunner()
-	parameters := []string{"login", "-u", "username", "-p", "password", "registry"}
-	call := runner.On("ExecuteCmdWithObfuscation",
-		mock.Anything,
-		"docker",
-		parameters).Times(1)
-	call.Run(func(args mock.Arguments) {
-		assert.NotNil(t, args[0])
-		obfFunc, ok := args[0].(func([]string))
-		assert.True(t, ok)
-		obfFunc(parameters)
-		assert.Equal(t, []string{"login", "-u", "username", "-p", constants.ObfuscationString, "registry"}, parameters)
-		// this part is just to prove that things do not blow up on invalid data
-		invalidData := []string{"-p"}
-		obfFunc(invalidData)
-		assert.Equal(t, []string{"-p"}, invalidData)
-		call.ReturnArguments = []interface{}{fmt.Errorf("some error")}
-	})
+	parameters := []string{"login", "-u", "username", "--password-stdin", "registry"}
+	call := runner.On("ExecuteCmd", "docker", parameters, strings.NewReader("password\n")).Times(1)
+
+	call.Run(
+		func(args mock.Arguments) {
+			assert.NotNil(t, args[0])
+			assert.Equal(t, []string{"login", "-u", "username", "--password-stdin", "registry"}, parameters)
+			// this part is just to prove that things do not blow up on invalid data
+
+			call.ReturnArguments = []interface{}{fmt.Errorf("some error")}
+		})
 	err = m.Authenticate(runner)
 	assert.NotNil(t, err)
 	assert.Equal(t, "some error", err.Error())

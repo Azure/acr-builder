@@ -133,11 +133,11 @@ func (s *gitSource) clone(runner build.Runner) error {
 }
 
 func (s *gitSource) clean(runner build.Runner) error {
-	if err := runner.ExecuteCmd("git", []string{"clean", "-xdf"}); err != nil {
+	if err := runner.ExecuteCmd("git", []string{"clean", "-xdf"}, nil); err != nil {
 		return fmt.Errorf("Failed to clean repository: %s", err)
 	}
 	// reset shouldn't be necessary...
-	if err := runner.ExecuteCmd("git", []string{"reset", "--hard", "HEAD"}); err != nil {
+	if err := runner.ExecuteCmd("git", []string{"reset", "--hard", "HEAD"}, nil); err != nil {
 		return fmt.Errorf("Failed to discard local changes: %s", err)
 	}
 	return nil
@@ -185,7 +185,7 @@ func (s *gitSource) ensureHeadRev(runner build.Runner) error {
 
 func (s *gitSource) checkoutAt(runner build.Runner, checkoutTarget string) error {
 	env := runner.GetContext()
-	if err := runner.ExecuteCmd("git", []string{"checkout", checkoutTarget}); err != nil {
+	if err := runner.ExecuteCmd("git", []string{"checkout", checkoutTarget}, nil); err != nil {
 		return fmt.Errorf("Failed checkout git repository at: %s, error: %s", env.Expand(checkoutTarget), err)
 	}
 	return nil
