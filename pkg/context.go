@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -10,7 +11,7 @@ type Runner interface {
 	GetFileSystem() FileSystem
 	SetContext(context *BuilderContext)
 	GetContext() *BuilderContext
-	ExecuteCmd(cmdExe string, cmdArgs []string) error
+	ExecuteCmd(cmdExe string, cmdArgs []string, reader io.Reader) error
 	QueryCmd(cmdExe string, cmdArgs []string) (string, error)
 	// Note: ExecuteCmdWithObfuscation allow obfuscating sensitive data such as
 	// authentication tokens or passwords not to be shown in logs

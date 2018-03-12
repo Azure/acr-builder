@@ -4,12 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/grok"
+)
+
+const (
+	dockerLoginTimeout = time.Second * 30
 )
 
 // NewDockerUsernamePassword creates a authentication object with username and password
@@ -31,15 +36,19 @@ type dockerUsernamePassword struct {
 }
 
 func (u *dockerUsernamePassword) Authenticate(runner build.Runner) error {
-	return runner.ExecuteCmdWithObfuscation(func(args []string) {
-		for i := 0; i < len(args)-1; i++ {
-			if args[i] == "-p" {
-				args[i+1] = constants.ObfuscationString
-				return
-			}
-		}
-		logrus.Errorf("No password found, obfuscation not performed")
-	}, "docker", []string{"login", "-u", u.username, "-p", u.password, u.registry})
+	c := make(chan error, 1)
+
+	go func() {
+		c <- runner.ExecuteCmd("docker", []string{"login", "-u", u.username, "--password-stdin", u.registry}, strings.NewReader(u.password+"\n"))
+	}()
+
+	select {
+	case err := <-c:
+		return err
+	case <-time.After(dockerLoginTimeout):
+		err := fmt.Errorf("docker login timed out")
+		return err
+	}
 }
 
 // NewDockerBuild creates a build target with specified docker file and build parameters
@@ -129,7 +138,7 @@ func (t *dockerBuildTask) Push(runner build.Runner) error {
 	if t.pushTo == "" {
 		return fmt.Errorf("No push target is defined")
 	}
-	return runner.ExecuteCmd("docker", []string{"push", t.pushTo})
+	return runner.ExecuteCmd("docker", []string{"push", t.pushTo}, nil)
 }
 
 // PopulateDigests populates digests on dependencies

@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"io"
 
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/tests/testCommon"
@@ -50,8 +51,8 @@ func (m *MockRunner) GetContext() *build.BuilderContext {
 	return m.context
 }
 
-func (m *MockRunner) ExecuteCmd(cmdExe string, cmdArgs []string) error {
-	values := m.Called(cmdExe, cmdArgs)
+func (m *MockRunner) ExecuteCmd(cmdExe string, cmdArgs []string, reader io.Reader) error {
+	values := m.Called(cmdExe, cmdArgs, reader)
 	return values.Error(0)
 }
 
@@ -109,7 +110,7 @@ func (m *MockRunner) PrepareCommandExpectation(commands []CommandsExpectation) {
 			m.On("ExecuteCmdWithObfuscation", mock.Anything, cmd.Command, cmd.Args).Return(returnErr).Times(times)
 		} else {
 
-			m.On("ExecuteCmd", cmd.Command, cmd.Args).Return(returnErr).Times(times)
+			m.On("ExecuteCmd", cmd.Command, cmd.Args, mock.Anything).Return(returnErr).Times(times)
 		}
 	}
 }

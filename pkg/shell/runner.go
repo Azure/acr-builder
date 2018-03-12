@@ -46,23 +46,23 @@ func (r *shellRunner) SetContext(context *build.BuilderContext) {
 // ExecuteCmdWithCustomLogging runs the given command but use custom logging logic
 // this method can be used to hide secrets passed in
 func (r *shellRunner) ExecuteCmdWithObfuscation(obfuscate func([]string), cmdExe string, cmdArgs []string) error {
-	return r.executeCmd(obfuscate, cmdExe, cmdArgs, nil)
+	return r.executeCmd(obfuscate, cmdExe, cmdArgs, nil, nil)
 }
 
 // ExecuteCmd runs the given command with default logging
-func (r *shellRunner) ExecuteCmd(cmdExe string, cmdArgs []string) error {
-	return r.executeCmd(nil, cmdExe, cmdArgs, nil)
+func (r *shellRunner) ExecuteCmd(cmdExe string, cmdArgs []string, reader io.Reader) error {
+	return r.executeCmd(nil, cmdExe, cmdArgs, nil, reader)
 }
 
 // ExecuteCmd runs the given command with default logging
 func (r *shellRunner) QueryCmd(cmdExe string, cmdArgs []string) (string, error) {
 	var buffer bytes.Buffer
-	err := r.executeCmd(nil, cmdExe, cmdArgs, &buffer)
+	err := r.executeCmd(nil, cmdExe, cmdArgs, &buffer, nil)
 	returnValue := buffer.String()
 	return returnValue, err
 }
 
-func (r *shellRunner) executeCmd(obfuscate func([]string), cmdExe string, cmdArgs []string, outputWriter io.Writer) (err error) {
+func (r *shellRunner) executeCmd(obfuscate func([]string), cmdExe string, cmdArgs []string, outputWriter io.Writer, reader io.Reader) (err error) {
 	resolvedArgs := make([]string, len(cmdArgs))
 	for i, arg := range cmdArgs {
 		resolvedArgs[i] = r.context.Expand(arg)
@@ -75,24 +75,33 @@ func (r *shellRunner) executeCmd(obfuscate func([]string), cmdExe string, cmdArg
 		obfuscate(displayValues)
 	}
 	logrus.Infof("Running command %s %s", cmdExe, strings.Join(displayValues, " "))
-	return r.execute(cmd, outputWriter)
+	return r.execute(cmd, outputWriter, reader)
 }
 
-func (r *shellRunner) execute(cmd *exec.Cmd, outputWriter io.Writer) error {
+func (r *shellRunner) execute(cmd *exec.Cmd, outputWriter io.Writer, reader io.Reader) error {
 	cmd.Env = append(cmd.Env, os.Environ()...)
 	cmd.Env = append(cmd.Env, r.context.Export()...)
-	cmd.Stdin = os.Stdin
+
 	if outputWriter != nil {
 		cmd.Stdout = io.MultiWriter(os.Stdout, outputWriter)
 	} else {
 		cmd.Stdout = os.Stdout
 	}
 	cmd.Stderr = os.Stderr
+
+	if reader != nil {
+		cmd.Stdin = reader
+	} else {
+		cmd.Stdin = os.Stdin
+	}
+
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("Failed to start command: %s", err)
 	}
+
 	if err := cmd.Wait(); err != nil {
 		return fmt.Errorf("Failed to run command: %s", err)
 	}
+
 	return nil
 }

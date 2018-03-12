@@ -101,5 +101,5 @@ func (t *dockerComposeBuildTask) Push(runner build.Runner) error {
 		args = append(args, "-f", t.path)
 	}
 	args = append(args, "push")
-	return runner.ExecuteCmd("docker-compose", args)
+	return runner.ExecuteCmd("docker-compose", args, nil)
 }
