@@ -686,16 +686,12 @@ func testRun(t *testing.T, tc runTestCase) {
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	runner.PrepareDigestQuery(tc.expectedDependencies, tc.queryCmdErr)
 	builder := NewBuilder(runner)
-	startTime := time.Now()
-	dependencies, duration, err := builder.Run(tc.buildNumber, tc.composeFile, tc.composeProjectDir,
+	dependencies, err := builder.Run(tc.buildNumber, tc.composeFile, tc.composeProjectDir,
 		tc.dockerfile, tc.dockerImage, tc.dockerContextDir,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
 		tc.workingDir, tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
 		tc.webArchive, tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.push)
-	actualDuration := time.Since(startTime)
-	assert.True(t, actualDuration >= duration)
-	assert.True(t, duration+time.Millisecond >= actualDuration)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
