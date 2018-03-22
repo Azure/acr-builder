@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/Azure/acr-builder/pkg/driver"
 	"github.com/Azure/acr-builder/pkg/shell"
@@ -68,7 +67,7 @@ func main() {
 	}
 
 	builder := driver.NewBuilder(shell.NewRunner())
-	dependencies, duration, err := builder.Run(
+	dependencies, err := builder.Run(
 		buildNumber, composeFile, composeProjectDir,
 		dockerfile, dockerImage, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
@@ -91,6 +90,6 @@ func main() {
 		os.Exit(constants.GeneralErrorExitCode)
 	}
 
-	fmt.Printf("\nBuild duration: %dms\n", int64(duration)/int64(time.Millisecond))
 	fmt.Printf("\nACR Builder discovered the following dependencies:\n%s\n", string(output))
+	fmt.Println("\nBuild complete")
 }

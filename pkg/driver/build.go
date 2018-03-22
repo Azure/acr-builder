@@ -34,11 +34,7 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 	webArchive string,
 	buildEnvs, buildArgs, buildSecretArgs []string, push bool,
-) (dependencies []build.ImageDependencies, duration time.Duration, err error) {
-	startTime := time.Now()
-	defer func() {
-		duration = time.Since(startTime)
-	}()
+) (dependencies []build.ImageDependencies, err error) {
 
 	if dockerRegistry == "" {
 		dockerRegistry = os.Getenv(constants.ExportsDockerRegistry)
