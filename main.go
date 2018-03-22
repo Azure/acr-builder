@@ -91,4 +91,5 @@ func main() {
 	}
 
 	fmt.Printf("\nACR Builder discovered the following dependencies:\n%s\n", string(output))
+	fmt.Println("\nBuild complete")
 }
