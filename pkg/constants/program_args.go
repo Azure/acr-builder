@@ -37,12 +37,6 @@ const (
 	// ArgNameDockerContextDir is the parameter name for docker context directory
 	ArgNameDockerContextDir = "docker-context-dir"
 
-	// ArgNameDockerComposeFile is the parameter name for docker compose file used for build
-	ArgNameDockerComposeFile = "docker-compose-file"
-
-	// ArgNameDockerComposeProjectDir is the parameter name for docker compose project directory
-	ArgNameDockerComposeProjectDir = "docker-compose-project-dir"
-
 	// ArgNameDockerRegistry is the parameter name for docker registry to push to
 	ArgNameDockerRegistry = "docker-registry"
 
@@ -52,10 +46,10 @@ const (
 	// ArgNameDockerPW is the parameter name for docker password used for pushing
 	ArgNameDockerPW = "docker-password"
 
-	// ArgNameDockerBuildArg is the parameter name for build args passed in to docker or docker-compose. This parameter is repeatable.
+	// ArgNameDockerBuildArg is the parameter name for build args passed in to docker. This parameter is repeatable.
 	ArgNameDockerBuildArg = "docker-build-arg"
 
-	// ArgNameDockerSecretBuildArg is the parameter name for build args passed in to docker or docker-compose. The argument value contains a secret which will be hidden from the log. This parameter is repeatable.
+	// ArgNameDockerSecretBuildArg is the parameter name for build args passed in to docker. The argument value contains a secret which will be hidden from the log. This parameter is repeatable.
 	ArgNameDockerSecretBuildArg = "docker-secret-build-arg"
 
 	// ArgNameBuildEnv is the parameter name for build environment variables to be set. This parameter is repeatable

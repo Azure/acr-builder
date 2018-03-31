@@ -26,7 +26,6 @@ func (i *stringSlice) Set(value string) error {
 }
 
 func main() {
-	var composeFile, composeProjectDir string
 	var dockerfile, dockerImage, dockerContextDir string
 	var workingDir string
 	var gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken string
@@ -47,13 +46,11 @@ func main() {
 	flag.StringVar(&gitPAToken, constants.ArgNameGitPAToken, "", "Git personal access token.")
 	flag.StringVar(&gitXToken, constants.ArgNameGitXToken, "", "Git OAuth x access token.")
 	flag.StringVar(&webArchive, constants.ArgNameWebArchive, "", "Archive file of the source. Must be a web-url and in tar.gz format")
-	flag.StringVar(&composeFile, constants.ArgNameDockerComposeFile, "", "Path to the docker-compose file.")
-	flag.StringVar(&composeProjectDir, constants.ArgNameDockerComposeProjectDir, "", "The --project-directory parameter for docker-compose. The default is where the compose file is")
 	flag.StringVar(&dockerfile, constants.ArgNameDockerfile, "", "Dockerfile to build. If choosing to build a dockerfile")
 	flag.StringVar(&dockerImage, constants.ArgNameDockerImage, "", "The image name to build to. This option is only available when building with dockerfile")
 	flag.StringVar(&dockerContextDir, constants.ArgNameDockerContextDir, "", "Context directory for docker build. This option is only available when building with dockerfile.")
-	flag.Var(&buildArgs, constants.ArgNameDockerBuildArg, "Build arguments to be passed to docker build or docker-compose build")
-	flag.Var(&buildSecretArgs, constants.ArgNameDockerSecretBuildArg, "Build arguments to be passed to docker build or docker-compose build. The argument value contains a secret which will be hidden from the log.")
+	flag.Var(&buildArgs, constants.ArgNameDockerBuildArg, "Build arguments to be passed to docker build build")
+	flag.Var(&buildSecretArgs, constants.ArgNameDockerSecretBuildArg, "Build arguments to be passed to docker build build. The argument value contains a secret which will be hidden from the log.")
 	flag.StringVar(&dockerRegistry, constants.ArgNameDockerRegistry, "", "Docker registry to push to")
 	flag.StringVar(&dockerUser, constants.ArgNameDockerUser, "", "Docker username.")
 	flag.StringVar(&dockerPW, constants.ArgNameDockerPW, "", "Docker password or OAuth identity token.")
@@ -68,7 +65,7 @@ func main() {
 
 	builder := driver.NewBuilder(shell.NewRunner())
 	dependencies, err := builder.Run(
-		buildNumber, composeFile, composeProjectDir,
+		buildNumber,
 		dockerfile, dockerImage, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
 		workingDir,

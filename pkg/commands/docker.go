@@ -160,19 +160,22 @@ func PopulateDigests(runner build.Runner, dependencies []build.ImageDependencies
 }
 
 func queryDigest(runner build.Runner, reference *build.ImageReference) error {
-	refString := reference.String()
-	output, err := runner.QueryCmd("docker", []string{
-		"inspect", "--format", "\"{{json .RepoDigests}}\"", refString,
-	})
-	if err != nil {
-		return err
+	if reference != nil {
+		refString := reference.String()
+		output, err := runner.QueryCmd("docker", []string{
+			"inspect", "--format", "\"{{json .RepoDigests}}\"", refString,
+		})
+		if err != nil {
+			return err
+		}
+
+		trimCharPredicate := func(c rune) bool {
+			return '\n' == c || '\r' == c || '"' == c || '\t' == c
+		}
+
+		reference.Digest = getRepoDigest(strings.TrimFunc(output, trimCharPredicate), reference)
 	}
 
-	trimCharPredicate := func(c rune) bool {
-		return '\n' == c || '\r' == c || '"' == c || '\t' == c
-	}
-
-	reference.Digest = getRepoDigest(strings.TrimFunc(output, trimCharPredicate), reference)
 	return nil
 }
 

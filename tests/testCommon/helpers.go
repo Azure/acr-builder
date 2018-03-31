@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	build "github.com/Azure/acr-builder/pkg"
-	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,20 +56,13 @@ func (g *MappedStringGenerator) Lookup(key string) string {
 // TestsDockerRegistryName is the registry name used for testing
 const TestsDockerRegistryName = "unit-tests/"
 
-// MultiStageExampleTestEnv is the test env used for resolving docker-compose{-envs}.yml
-var MultiStageExampleTestEnv = []build.EnvVar{
-	{Name: constants.ExportsDockerRegistry, Value: TestsDockerRegistryName},
-	// this is just a goofy entry to show that variable resolutions work
-	{Name: "DOCKERFILE", Value: "Dockerfile"},
-}
-
-// MultistageExampleDependencies returns dependencies to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-multistage with default docker registry name
+// MultistageExampleDependencies returns dependencies to the project in ${workspaceRoot}/tests/resources/hello-multistage with default docker registry name
 var MultistageExampleDependencies = MultistageExampleDependenciesOn(TestsDockerRegistryName)
 
-// HelloNodeExampleDependencies returns dependencies to the project in  ${workspaceRoot}/tests/resources/docker-compose/hello-node
+// HelloNodeExampleDependencies returns dependencies to the project in  ${workspaceRoot}/tests/resources/hello-node
 var HelloNodeExampleDependencies = HelloNodeExampleDependenciesOn(TestsDockerRegistryName)
 
-// MultistageExampleDependenciesOn returns dependencies to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-multistage
+// MultistageExampleDependenciesOn returns dependencies to the project in ${workspaceRoot}/tests/resources/hello-multistage
 func MultistageExampleDependenciesOn(registry string) build.ImageDependencies {
 	return *NewImageDependencies(
 		registry+"hello-multistage",
@@ -79,7 +71,7 @@ func MultistageExampleDependenciesOn(registry string) build.ImageDependencies {
 	)
 }
 
-// HelloNodeExampleDependenciesOn returns dependencies to the project in ${workspaceRoot}/tests/resources/docker-compose/hello-node
+// HelloNodeExampleDependenciesOn returns dependencies to the project in ${workspaceRoot}/tests/resources/hello-node
 func HelloNodeExampleDependenciesOn(registry string) build.ImageDependencies {
 	return *NewImageDependencies(
 		registry+"hello-node",

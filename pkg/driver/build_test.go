@@ -383,28 +383,26 @@ func testParseUserDefined(t *testing.T, tc parseUserDefinedTestCase) {
 }
 
 type createBuildRequestTestCase struct {
-	composeFile       string
-	composeProjectDir string
-	dockerfile        string
-	dockerImage       string
-	dockerContextDir  string
-	dockerUser        string
-	dockerPW          string
-	dockerRegistry    string
-	workingDir        string
-	gitURL            string
-	gitBranch         string
-	gitHeadRev        string
-	gitPATokenUser    string
-	gitPAToken        string
-	gitXToken         string
-	webArchive        string
-	buildArgs         []string
-	buildSecretArgs   []string
-	push              bool
-	files             test.FileSystemExpectations
-	expected          build.Request
-	expectedError     string
+	dockerfile       string
+	dockerImage      string
+	dockerContextDir string
+	dockerUser       string
+	dockerPW         string
+	dockerRegistry   string
+	workingDir       string
+	gitURL           string
+	gitBranch        string
+	gitHeadRev       string
+	gitPATokenUser   string
+	gitPAToken       string
+	gitXToken        string
+	webArchive       string
+	buildArgs        []string
+	buildSecretArgs  []string
+	push             bool
+	files            test.FileSystemExpectations
+	expected         build.Request
+	expectedError    string
 }
 
 func TestCreateBuildRequestNoParams(t *testing.T) {
@@ -415,7 +413,7 @@ func TestCreateBuildRequestNoParams(t *testing.T) {
 			Targets: []build.SourceTarget{
 				{
 					Source: localSource,
-					Builds: []build.Target{commands.NewDockerComposeBuild("", "", nil, nil)},
+					Builds: []build.Target{commands.NewDockerBuild("", "", nil, nil, "", "")},
 				},
 			},
 		},
@@ -466,48 +464,6 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 	})
 }
 
-func TestCreateBuildRequestWithGitXTokenDockerCompose(t *testing.T) {
-	dockerRegistry := "some.dockerRegistry"
-	dockerUser := "some.dockerUser"
-	dockerPW := "some.********"
-	gitXToken := "some.x.token"
-	gitAddress := "some.git-repository"
-	branch := "some.branch"
-	headRev := "some.rev"
-	targetDir := "some.dir"
-	composeFile := "some.composefile"
-	composeProjectDir := "some.projectdir"
-	buildArgs := []string{"k3=v3", "k4=v4"}
-	buildSecretArgs := []string{"sk1=sv1", "sk2=sv2"}
-	cred, err := commands.NewDockerUsernamePassword(dockerRegistry, dockerUser, dockerPW)
-	assert.Nil(t, err)
-	gitSource := commands.NewGitSource(gitAddress, branch, headRev, targetDir, commands.NewGitXToken(gitXToken))
-	testCreateBuildRequest(t, createBuildRequestTestCase{
-		dockerRegistry:    dockerRegistry,
-		dockerUser:        dockerUser,
-		dockerPW:          dockerPW,
-		gitXToken:         gitXToken,
-		gitURL:            gitAddress,
-		gitBranch:         branch,
-		gitHeadRev:        headRev,
-		workingDir:        targetDir,
-		composeFile:       composeFile,
-		composeProjectDir: composeProjectDir,
-		buildArgs:         buildArgs,
-		buildSecretArgs:   buildSecretArgs,
-		expected: build.Request{
-			DockerRegistry:    dockerRegistry + "/",
-			DockerCredentials: []build.DockerCredential{cred},
-			Targets: []build.SourceTarget{
-				{
-					Source: gitSource,
-					Builds: []build.Target{commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs, buildSecretArgs)},
-				},
-			},
-		},
-	})
-}
-
 func TestCreateBuildRequestNoDockerPassword(t *testing.T) {
 	dockerRegistry := "some.dockerRegistry"
 	dockerUser := "some.dockerUser"
@@ -536,23 +492,6 @@ func TestCreateBuildRequestNoGitURL(t *testing.T) {
 	})
 }
 
-func TestCreateBuildRequestDockerImageDefinedConflictingParameters(t *testing.T) {
-	testCreateBuildRequest(t, createBuildRequestTestCase{
-		dockerImage:       "someImage",
-		composeProjectDir: "some.compose.dir",
-		expectedError:     fmt.Sprintf("^Parameter --%s cannot be used for dockerfile build scenario$", constants.ArgNameDockerComposeProjectDir),
-	})
-}
-
-func TestCreateBuildRequestDockerComposeConflictingParameters(t *testing.T) {
-	testCreateBuildRequest(t, createBuildRequestTestCase{
-		composeFile:      "docker-compose.yml",
-		dockerContextDir: "some.dir",
-		expectedError: fmt.Sprintf("Parameters --%s, --%s, %s cannot be used in docker-compose scenario",
-			constants.ArgNameDockerfile, constants.ArgNameDockerImage, constants.ArgNameDockerContextDir),
-	})
-}
-
 func TestCreateBuildRequestDockerBuildCreationError(t *testing.T) {
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		dockerfile: "some.dockerfile",
@@ -569,7 +508,7 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 	fs.PrepareFileSystem(tc.files)
 	defer fs.AssertExpectations(t)
 	builder := NewBuilder(runner)
-	req, err := builder.createBuildRequest(tc.composeFile, tc.composeProjectDir,
+	req, err := builder.createBuildRequest(
 		tc.dockerfile, tc.dockerImage, tc.dockerContextDir,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.workingDir,
 		tc.gitURL, tc.gitBranch, tc.gitHeadRev,
@@ -587,8 +526,6 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 
 type runTestCase struct {
 	buildNumber          string
-	composeFile          string
-	composeProjectDir    string
 	dockerfile           string
 	dockerImage          string
 	dockerContextDir     string
@@ -617,16 +554,34 @@ func TestRunSimpleHappy(t *testing.T) {
 	testRun(t, runTestCase{
 		buildNumber:    "buildNum-0",
 		dockerRegistry: testCommon.TestsDockerRegistryName,
-		workingDir:     filepath.Join("..", "..", "tests", "resources", "docker-compose"),
+		dockerImage:    "hello-multistage",
+		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-multistage"),
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command:      "docker-compose",
+				Command:      "docker",
 				IsObfuscated: true,
-				Args:         []string{"build"},
+				Args:         []string{"build", "-t", testCommon.TestsDockerRegistryName + "hello-multistage", "."},
 			},
 		},
 		expectedDependencies: []build.ImageDependencies{
 			*testCommon.DependenciesWithDigests(testCommon.MultistageExampleDependencies),
+		},
+	})
+
+	testRun(t, runTestCase{
+		buildNumber:    "buildNum-1",
+		dockerRegistry: testCommon.TestsDockerRegistryName,
+		dockerImage:    "hello-node",
+		dockerfile:     "Dockerfile.alpine",
+		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-node"),
+		expectedCommands: []test.CommandsExpectation{
+			{
+				Command:      "docker",
+				IsObfuscated: true,
+				Args:         []string{"build", "-f", "Dockerfile.alpine", "-t", testCommon.TestsDockerRegistryName + "hello-node", "."},
+			},
+		},
+		expectedDependencies: []build.ImageDependencies{
 			*testCommon.DependenciesWithDigests(testCommon.HelloNodeExampleDependencies),
 		},
 	})
@@ -636,17 +591,17 @@ func TestRunNoRegistryGiven(t *testing.T) {
 	os.Clearenv()
 	testRun(t, runTestCase{
 		buildNumber: "buildNum-0",
-		workingDir:  filepath.Join("..", "..", "tests", "resources", "docker-compose"),
+		dockerImage: "hello-multistage",
+		workingDir:  filepath.Join("..", "..", "tests", "resources", "hello-multistage"),
 		expectedCommands: []test.CommandsExpectation{
 			{
-				Command:      "docker-compose",
+				Command:      "docker",
 				IsObfuscated: true,
-				Args:         []string{"build"},
+				Args:         []string{"build", "-t", "hello-multistage", "."},
 			},
 		},
 		expectedDependencies: []build.ImageDependencies{
 			*testCommon.DependenciesWithDigests(testCommon.MultistageExampleDependenciesOn("")),
-			*testCommon.DependenciesWithDigests(testCommon.HelloNodeExampleDependenciesOn("")),
 		},
 	})
 }
@@ -656,9 +611,20 @@ func TestRunNoRegistryGivenPush(t *testing.T) {
 	testRun(t, runTestCase{
 		push:        true,
 		buildNumber: "buildNum-0",
-		workingDir:  filepath.Join("..", "..", "tests", "resources", "docker-compose"),
+		workingDir:  filepath.Join("..", "..", "tests", "resources", "hello-node"),
 		expectedErr: fmt.Sprintf("^Docker registry is needed for push, use --%s or environment variable %s to provide its value$",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
+	})
+}
+func TestRunNoImageGivenPush(t *testing.T) {
+	os.Clearenv()
+	testRun(t, runTestCase{
+		push:           true,
+		dockerRegistry: "testregistry",
+		buildNumber:    "buildNum-0",
+		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-node"),
+		expectedErr: fmt.Sprintf("Docker image is needed for push, use --%s or environment variable %s to provide its value",
+			constants.ArgNameDockerImage, constants.ExportsDockerPushImage),
 	})
 }
 
@@ -686,7 +652,7 @@ func testRun(t *testing.T, tc runTestCase) {
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	runner.PrepareDigestQuery(tc.expectedDependencies, tc.queryCmdErr)
 	builder := NewBuilder(runner)
-	dependencies, err := builder.Run(tc.buildNumber, tc.composeFile, tc.composeProjectDir,
+	dependencies, err := builder.Run(tc.buildNumber,
 		tc.dockerfile, tc.dockerImage, tc.dockerContextDir,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
 		tc.workingDir, tc.gitURL, tc.gitBranch, tc.gitHeadRev,

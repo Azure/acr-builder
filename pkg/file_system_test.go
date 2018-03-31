@@ -17,7 +17,7 @@ func init() {
 	sharedContext = NewContext([]EnvVar{
 		{Name: "dne_dir", Value: "???"},
 		{Name: "resource_root", Value: filepath.Join("..", "tests", "resources")},
-		{Name: "docker_compose_project", Value: filepath.Join("${resource_root}", "docker-compose")},
+		{Name: "test_project", Value: filepath.Join("${resource_root}", "hello-multistage")},
 	}, []EnvVar{})
 	fs = NewContextAwareFileSystem(&BuilderContext{})
 	fs.SetContext(sharedContext)
@@ -109,15 +109,15 @@ func TestIsDirEmpty(t *testing.T) {
 }
 
 func TestDoesFileOrDirExist(t *testing.T) {
-	file := filepath.Join("${docker_compose_project}", "docker-compose.yml")
-	dne := filepath.Join("${docker_compose_project}", "not_here")
+	file := filepath.Join("${test_project}", "Dockerfile")
+	dne := filepath.Join("${test_project}", "not_here")
 	testCase := []struct {
 		path     string
 		expected bool
 		isDir    bool
 	}{
 		{
-			path:     "${docker_compose_project}",
+			path:     "${test_project}",
 			expected: true,
 			isDir:    true,
 		},
