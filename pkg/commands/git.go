@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -74,10 +75,24 @@ func (s *gitSource) Obtain(runner build.Runner) error {
 		}
 		s.tracker = tracker
 		if s.headRev != "" {
-			return s.ensureHeadRev(runner)
+			err := s.ensureHeadRev(runner)
+			if err != nil {
+				return err
+			}
 		}
 	}
-	return nil
+
+	// NOTE: We need to export the GitHeadRev through os.env as Source.Export is called before Source.Obtain
+	// It's a limitation in Workflow engine and we need to review the design.
+	return s.exportGitHeadRev(runner)
+}
+
+func (s *gitSource) exportGitHeadRev(runner build.Runner) error {
+	rev, err := s.getHeadRev(runner)
+	if err == nil {
+		err = os.Setenv(constants.ExportsGitHeadRev, strings.TrimSpace(rev))
+	}
+	return err
 }
 
 func (s *gitSource) targetExists(runner build.Runner) (bool, error) {
@@ -191,6 +206,10 @@ func (s *gitSource) checkoutAt(runner build.Runner, checkoutTarget string) error
 	return nil
 }
 
+func (s *gitSource) getHeadRev(runner build.Runner) (string, error) {
+	return runner.QueryCmd("git", []string{"rev-parse", "--verify", "HEAD"})
+}
+
 func verifyGitVersion() error {
 	// NOTE: Git 2.13 is known to have a major security vulnerability
 	gitVerifyCmd := exec.Command("git", "--version")
@@ -246,12 +265,7 @@ func (s *gitSource) Export() []build.EnvVar {
 			Value: s.targetDir,
 		})
 	}
-	if s.headRev != "" {
-		exports = append(exports, build.EnvVar{
-			Name:  constants.ExportsGitHeadRev,
-			Value: s.headRev,
-		})
-	} else if s.branch != "" {
+	if s.branch != "" {
 		exports = append(exports, build.EnvVar{
 			Name:  constants.ExportsGitBranch,
 			Value: s.branch,

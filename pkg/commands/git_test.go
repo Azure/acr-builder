@@ -61,6 +61,11 @@ func TestMinimalParams(t *testing.T) {
 				Args:         []string{"pull", "https://github.com/org/address.git"},
 				IsObfuscated: true,
 			},
+			{
+				Command:     "git",
+				Args:        []string{"rev-parse", "--verify", "HEAD"},
+				QueryResult: "version1",
+			},
 		},
 		expectedEnv: []build.EnvVar{
 			{Name: constants.ExportsWorkingDir, Value: defaultTargetDir},
@@ -88,6 +93,11 @@ func TestXTokenFreshClone(t *testing.T) {
 				Args:         []string{"clone", "-b", "git_branch", "https://x-access-token:token_value@github.com/org/address.git", "target_dir"},
 				IsObfuscated: true,
 			},
+			{
+				Command:     "git",
+				Args:        []string{"rev-parse", "--verify", "HEAD"},
+				QueryResult: "version1",
+			},
 		},
 		expectedEnv: []build.EnvVar{
 			{Name: constants.ExportsGitAuthType, Value: "Git X Token"},
@@ -102,9 +112,8 @@ func TestPATokenRefreshSuccessButFailedToReturn(t *testing.T) {
 	creds, err := NewGitPersonalAccessToken("user", "password")
 	assert.Nil(t, err)
 	testGitSource(t, gitSourceTestCase{
-		creds:   creds,
-		address: "https://github.com/org/address.git",
-		// branch and head rev are both given, prefer headRev
+		creds:     creds,
+		address:   "https://github.com/org/address.git",
 		branch:    "git_branch",
 		headRev:   "git_head_rev",
 		targetDir: "target_dir",
@@ -133,13 +142,18 @@ func TestPATokenRefreshSuccessButFailedToReturn(t *testing.T) {
 				Command: "git",
 				Args:    []string{"checkout", "git_head_rev"},
 			},
+			{
+				Command:     "git",
+				Args:        []string{"rev-parse", "--verify", "HEAD"},
+				QueryResult: "version1",
+			},
 		},
 		expectedEnv: []build.EnvVar{
 			{Name: constants.ExportsGitAuthType, Value: "Git Personal Access Token"},
 			{Name: constants.ExportsGitUser, Value: "user"},
 			{Name: constants.ExportsGitSource, Value: "https://github.com/org/address.git"},
 			{Name: constants.ExportsWorkingDir, Value: "target_dir"},
-			{Name: constants.ExportsGitHeadRev, Value: "git_head_rev"},
+			{Name: constants.ExportsGitBranch, Value: "git_branch"},
 		},
 		expectedReturnErr: "^Error switching back$",
 	})
@@ -161,6 +175,11 @@ func TestNoAuthHappyClone(t *testing.T) {
 				Command:      "git",
 				Args:         []string{"clone", "-b", "git_branch", "test_address", defaultTargetDir},
 				IsObfuscated: true,
+			},
+			{
+				Command:     "git",
+				Args:        []string{"rev-parse", "--verify", "HEAD"},
+				QueryResult: "version1",
 			},
 		},
 		expectedEnv: []build.EnvVar{
@@ -205,6 +224,11 @@ func TestNoAuthHappyCheckout(t *testing.T) {
 				Args:         []string{"pull", "test_address", "git_branch"},
 				IsObfuscated: true,
 			},
+			{
+				Command:     "git",
+				Args:        []string{"rev-parse", "--verify", "HEAD"},
+				QueryResult: "versio1",
+			},
 		},
 		expectedEnv: []build.EnvVar{
 			{Name: constants.ExportsWorkingDir, Value: defaultTargetDir},
@@ -239,7 +263,6 @@ func TestNoAuthCloneWithHeadRevFailed(t *testing.T) {
 		expectedEnv: []build.EnvVar{
 			{Name: constants.ExportsWorkingDir, Value: defaultTargetDir},
 			{Name: constants.ExportsGitSource, Value: "test_address"},
-			{Name: constants.ExportsGitHeadRev, Value: "git_head_rev"},
 		},
 		expectedErr: "^Failed checkout git repository at: git_head_rev, error: some err$",
 	})
@@ -254,7 +277,6 @@ func TestNoAuthCloneFailedToFindTargetDir(t *testing.T) {
 			AssertDirExists("target_dir", false, fmt.Errorf("Some lstat error")),
 		expectedEnv: []build.EnvVar{
 			{Name: constants.ExportsGitSource, Value: "test_address"},
-			{Name: constants.ExportsGitHeadRev, Value: "git_head_rev"},
 			{Name: constants.ExportsWorkingDir, Value: "target_dir"},
 		},
 		expectedErr: "^Error checking for source dir: target_dir, error: Some lstat error$",
@@ -270,7 +292,6 @@ func TestNoAuthCloneFailedToCheckTargetDirEmpty(t *testing.T) {
 			AssertIsDirEmpty("target_dir", false, fmt.Errorf("some io error")),
 		expectedEnv: []build.EnvVar{
 			{Name: constants.ExportsGitSource, Value: "test_address"},
-			{Name: constants.ExportsGitHeadRev, Value: "git_head_rev"},
 			{Name: constants.ExportsWorkingDir, Value: "target_dir"},
 		},
 		expectedErr: "^Error checking if source dir is empty: target_dir, error: some io error$",

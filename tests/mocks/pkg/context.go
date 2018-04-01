@@ -94,6 +94,7 @@ type CommandsExpectation struct {
 	Times         *int
 	ErrorMsg      string
 	IsObfuscated  bool
+	QueryResult   string
 }
 
 func (m *MockRunner) PrepareCommandExpectation(commands []CommandsExpectation) {
@@ -106,10 +107,11 @@ func (m *MockRunner) PrepareCommandExpectation(commands []CommandsExpectation) {
 		if cmd.ErrorMsg != "" {
 			returnErr = fmt.Errorf(cmd.ErrorMsg)
 		}
-		if cmd.IsObfuscated {
+		if len(cmd.QueryResult) > 0 {
+			m.On("QueryCmd", cmd.Command, cmd.Args).Return(cmd.QueryResult, returnErr).Times(times)
+		} else if cmd.IsObfuscated {
 			m.On("ExecuteCmdWithObfuscation", mock.Anything, cmd.Command, cmd.Args).Return(returnErr).Times(times)
 		} else {
-
 			m.On("ExecuteCmd", cmd.Command, cmd.Args, mock.Anything).Return(returnErr).Times(times)
 		}
 	}
