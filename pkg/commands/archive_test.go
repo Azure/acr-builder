@@ -64,13 +64,13 @@ func testArchiveSource(t *testing.T, tc obtainTestCase) {
 	}
 	assert.Nil(t, err)
 
-	var projectDockerComposeFile string
+	var projectDockerFile string
 	if tc.targetDir == "" {
-		projectDockerComposeFile = "docker-compose.yml"
+		projectDockerFile = "Dockerfile"
 	} else {
-		projectDockerComposeFile = filepath.Join(tc.targetDir, "docker-compose.yml")
+		projectDockerFile = filepath.Join(tc.targetDir, "Dockerfile")
 	}
-	_, err = os.Stat(projectDockerComposeFile)
+	_, err = os.Stat(projectDockerFile)
 	assert.Nil(t, err)
 
 	exports := source.Export()

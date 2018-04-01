@@ -114,14 +114,24 @@ type ImageDependencies struct {
 
 // NewImageDependencies creates ImageDependencies with no references registered
 func NewImageDependencies(env *BuilderContext, image string, runtime string, buildtimes []string) (*ImageDependencies, error) {
-	image = env.Expand(image)
-	imageReference, err := NewImageReference(image)
-	if err != nil {
-		return nil, err
+
+	var dependencies *ImageDependencies
+	if len(image) > 0 {
+		image = env.Expand(image)
+		imageReference, err := NewImageReference(image)
+		if err != nil {
+			return nil, err
+		}
+		dependencies = &ImageDependencies{
+			Image: imageReference,
+		}
+	} else {
+		// we allow build without pushing image to registry so the image can be empty
+		dependencies = &ImageDependencies{
+			Image: nil,
+		}
 	}
-	dependencies := &ImageDependencies{
-		Image: imageReference,
-	}
+
 	runtimeDep, err := NewImageReference(env.Expand(runtime))
 	if err != nil {
 		return nil, err

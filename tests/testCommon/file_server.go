@@ -55,14 +55,14 @@ func WaitForServerReady(timeoutInSeconds uint) error {
 	return fmt.Errorf("Server was still not ready after %v seconds", timeoutInSeconds)
 }
 
-// staticFileArchiveHandler streams the docker-compose project to http response as tar.gz
+// staticFileArchiveHandler streams the hello-multistage project to http response as tar.gz
 // We hard code the archive file for now, because we only have 1 test scenario using it
 type staticFileArchiveHandler struct {
 	t *testing.T
 }
 
 func (h *staticFileArchiveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	projectRoot := filepath.Join(Config.ProjectRoot, "tests", "resources", "docker-compose")
+	projectRoot := filepath.Join(Config.ProjectRoot, "tests", "resources", "hello-multistage")
 	err := h.streamArchive(projectRoot, w)
 	if err != nil {
 		panic(err.Error())

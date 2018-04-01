@@ -24,10 +24,6 @@ RUN apk add --update --no-cache \
     openssh \
     openssl \
     ca-certificates \
-    python \
-    py-pip \
-    build-base \
-    && pip install docker-compose \
     && rm -rf /var/cache/apk/*
 COPY --from=build /go/src/github.com/Azure/acr-builder/acr-builder /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/acr-builder"]

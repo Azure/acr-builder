@@ -14,7 +14,7 @@ Note that the file `./scripts/run-build.sh` is a convenience script and can be r
 
 Assuming you have the following:
 * ACR builder image named `acr-builder`
-* Your project has a `docker-compose.yml` or `Dockerfile` on its base directory
+* Your project has a `Dockerfile` on its base directory
 * You are currently authenticated to a target registry named `<registry>`
 
 Run the following on your project directory to build the project and push to a desired registry:
@@ -39,9 +39,8 @@ Run the following on your project directory to build the project and push to a d
 * `--docker-file` Dockerfile to be used for building.
 * `--docker-image` Image name to build to. It must be used alongside `--dockerfile` if push is required. Registry URL must be excluded from the image name parameter.
 * `--docker-context-dir` Docker build context. Optional, to be used alongside `--dockerfile`.
-* `--docker-compose-file` Docker Compose file to be invoked for build and push.
-* `--docker-build-arg` Build arguments to be passed to docker build or docker-compose build. This parameter can be specified multiple times.
-* `--docker-secret-build-arg` Build arguments to be passed to docker build or docker-compose build. The argument value contains a secret which will be hidden from the log. This parameter can be specified multiple times.
+* `--docker-build-arg` Build arguments to be passed to docker build. This parameter can be specified multiple times.
+* `--docker-secret-build-arg` Build arguments to be passed to docker build. The argument value contains a secret which will be hidden from the log. This parameter can be specified multiple times.
 * `--build-env` Custom environment variables defined for the build process. This parameter can be specified multiple times. (For more details, see `Build Environment`).
 * `--push` Specify if push is required if build is successful.
 * `--verbose` Enable verbose output for debugging.
@@ -54,23 +53,7 @@ Furthermore, ACR builder also populates the following variables during build so 
 * `ACR_BUILD_NUMBER` Current build number.
 * `ACR_BUILD_TIMESTAMP` Timestamp of where the build start in ISO format.
 * `ACR_BUILD_SOURCE_DIR` Source directory on the current build system.
-* `ACR_BUILD_DOCKER_COMPOSE_FILE` Current docker compose file being used, relative to the source directory.
 * `ACR_BUILD_GIT_URL` Git URL.
 * `ACR_BUILD_GIT_BRANCH` Current Git branch.
 * `ACR_BUILD_GIT_HEAD_REV` SHA for current Git Head Revision.
 * `ACR_BUILD_PUSH_IMAGES` Indicates whether or not the current build will push on success.
-
-### Compose File
-In `docker-compose.yml`, the build image should be prefixed by the reserved environmental variable `ACR_BUILD_DOCKER_REGISTRY` so that it's pushed to the desired registry. You can also use the reserved `ACR_BUILD_BUILD_NUMBER` to postfix your image or tag.
-
-```yaml
-version: '2'
-services:
-  hello:
-    build: ./hello-builder
-    image: ${ACR_BUILD_DOCKER_REGISTRY}hello-builder-1.0-${ACR_BUILD_BUILD_NUMBER}
-
-  hello-multistage:
-    build: ./hello-multistage
-    image: ${ACR_BUILD_DOCKER_REGISTRY}hello-multistage:${ACR_BUILD_BUILD_NUMBER}
-```

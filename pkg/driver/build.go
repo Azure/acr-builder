@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/Azure/acr-builder/pkg/workflow"
 
 	build "github.com/Azure/acr-builder/pkg"
@@ -27,7 +25,7 @@ func NewBuilder(runner build.Runner) *Builder {
 }
 
 // Run is the main body of the acr-builder
-func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
+func (b *Builder) Run(buildNumber,
 	dockerfile, dockerImage, dockerContextDir,
 	dockerUser, dockerPW, dockerRegistry,
 	workingDir,
@@ -47,7 +45,7 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 	}
 
 	var request *build.Request
-	request, err = b.createBuildRequest(composeFile, composeProjectDir,
+	request, err = b.createBuildRequest(
 		dockerfile, dockerImage, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
 		workingDir,
@@ -67,7 +65,7 @@ func (b *Builder) Run(buildNumber, composeFile, composeProjectDir,
 	return
 }
 
-func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
+func (b *Builder) createBuildRequest(
 	dockerfile, dockerImage, dockerContextDir,
 	dockerUser, dockerPW, dockerRegistry,
 	workingDir,
@@ -77,6 +75,11 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 	if push && dockerRegistry == "" {
 		return nil, fmt.Errorf("Docker registry is needed for push, use --%s or environment variable %s to provide its value",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
+	}
+
+	if push && dockerImage == "" {
+		return nil, fmt.Errorf("Docker image is needed for push, use --%s or environment variable %s to provide its value",
+			constants.ArgNameDockerImage, constants.ExportsDockerPushImage)
 	}
 
 	var registrySuffixed, registryNoSuffix string
@@ -104,39 +107,7 @@ func (b *Builder) createBuildRequest(composeFile, composeProjectDir,
 		return nil, err
 	}
 
-	// The following code block tries to determine which kind of build task to include
-	// Note: consider the following case
-	// (composeFile == "" && dockerImage == "" && dockerfile == "" && push == false)
-	// The only way for us to determine whether docker or docker-compose needs to be used
-	// is the scan in the source code. Existence of the source cannot be assume exist until
-	// the workflow checks out the source
-	// Currently the code will actually defaults to docker-compose task and try to proceed
-	var target build.Target
-	if dockerImage != "" || dockerfile != "" {
-		if dockerfile == "" {
-			logrus.Debugf("Docker image is defined, dockerfile will be used for building")
-		}
-		if len(dockerImage) <= 0 {
-			return nil, fmt.Errorf("Image name not specified for docker file '%s'", dockerfile)
-		}
-		if composeProjectDir != "" {
-			return nil, fmt.Errorf("Parameter --%s cannot be used for dockerfile build scenario", constants.ArgNameDockerComposeProjectDir)
-		}
-		target = commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, buildSecretArgs, registrySuffixed, dockerImage)
-	}
-
-	// Use docker-compose as default
-	if target == nil {
-		if composeFile == "" {
-			logrus.Debugf("No dockerfile is provided as parameter, using docker-compose as default")
-		}
-		// sure, dockerfile and dockerImage shouldn't be empty here but it's just here for correctness
-		if dockerfile != "" || dockerImage != "" || dockerContextDir != "" {
-			return nil, fmt.Errorf("Parameters --%s, --%s, %s cannot be used in docker-compose scenario",
-				constants.ArgNameDockerfile, constants.ArgNameDockerImage, constants.ArgNameDockerContextDir)
-		}
-		target = commands.NewDockerComposeBuild(composeFile, composeProjectDir, buildArgs, buildSecretArgs)
-	}
+	target := commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, buildSecretArgs, registrySuffixed, dockerImage)
 
 	return &build.Request{
 		DockerRegistry:    registrySuffixed,
@@ -231,7 +202,7 @@ func compileWorkflow(buildNumber string,
 		pushItems := []runningTaskItem{}
 
 		// digests tasks will be put into an array and be added at the end
-		// when all builds and pushs (if any) succeed
+		// when all builds and pushes (if any) succeed
 		digestItems := []evaluationTaskItem{}
 
 		// iterate through builds in the source
