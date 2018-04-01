@@ -399,6 +399,8 @@ type createBuildRequestTestCase struct {
 	webArchive       string
 	buildArgs        []string
 	buildSecretArgs  []string
+	pull             bool
+	noCache          bool
 	push             bool
 	files            test.FileSystemExpectations
 	expected         build.Request
@@ -413,7 +415,7 @@ func TestCreateBuildRequestNoParams(t *testing.T) {
 			Targets: []build.SourceTarget{
 				{
 					Source: localSource,
-					Builds: []build.Target{commands.NewDockerBuild("", "", nil, nil, "", "")},
+					Builds: []build.Target{commands.NewDockerBuild("", "", nil, nil, "", "", false, false)},
 				},
 			},
 		},
@@ -433,8 +435,10 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 	buildSecretArgs := []string{"sk1=sv1", "sk2=sv2"}
 	registry := "some.registry"
 	imageName := "some.image"
+	pull := true
+	noCache := false
 	dockerBuildTarget := commands.NewDockerBuild(dockerfile, contextDir,
-		buildArgs, buildSecretArgs, registry+"/", imageName)
+		buildArgs, buildSecretArgs, registry+"/", imageName, pull, noCache)
 	gitCred, err := commands.NewGitPersonalAccessToken(gitUser, gitPassword)
 	assert.Nil(t, err)
 	gitSource := commands.NewGitSource(gitAddress, branch, headRev, targetDir, gitCred)
@@ -451,6 +455,8 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 		buildSecretArgs:  buildSecretArgs,
 		dockerRegistry:   registry,
 		dockerImage:      imageName,
+		pull:             pull,
+		noCache:          noCache,
 		expected: build.Request{
 			DockerRegistry:    registry + "/",
 			DockerCredentials: []build.DockerCredential{},
@@ -513,7 +519,7 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.workingDir,
 		tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
-		tc.webArchive, tc.buildArgs, tc.buildSecretArgs, tc.push)
+		tc.webArchive, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
 
 	if tc.expectedError != "" {
 		assert.NotNil(t, err)
@@ -543,6 +549,8 @@ type runTestCase struct {
 	buildEnvs            []string
 	buildArgs            []string
 	buildSecretArgs      []string
+	pull                 bool
+	noCache              bool
 	push                 bool
 	expectedCommands     []test.CommandsExpectation
 	expectedDependencies []build.ImageDependencies
@@ -583,6 +591,46 @@ func TestRunSimpleHappy(t *testing.T) {
 		},
 		expectedDependencies: []build.ImageDependencies{
 			*testCommon.DependenciesWithDigests(testCommon.HelloNodeExampleDependencies),
+		},
+	})
+}
+
+func TestRunPull(t *testing.T) {
+	testRun(t, runTestCase{
+		buildNumber:    "buildNum-0",
+		dockerRegistry: testCommon.TestsDockerRegistryName,
+		dockerImage:    "hello-multistage",
+		pull:           true,
+		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-multistage"),
+		expectedCommands: []test.CommandsExpectation{
+			{
+				Command:      "docker",
+				IsObfuscated: true,
+				Args:         []string{"build", "--pull", "-t", testCommon.TestsDockerRegistryName + "hello-multistage", "."},
+			},
+		},
+		expectedDependencies: []build.ImageDependencies{
+			*testCommon.DependenciesWithDigests(testCommon.MultistageExampleDependencies),
+		},
+	})
+}
+
+func TestRunNoCache(t *testing.T) {
+	testRun(t, runTestCase{
+		buildNumber:    "buildNum-0",
+		dockerRegistry: testCommon.TestsDockerRegistryName,
+		dockerImage:    "hello-multistage",
+		noCache:        true,
+		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-multistage"),
+		expectedCommands: []test.CommandsExpectation{
+			{
+				Command:      "docker",
+				IsObfuscated: true,
+				Args:         []string{"build", "--no-cache", "-t", testCommon.TestsDockerRegistryName + "hello-multistage", "."},
+			},
+		},
+		expectedDependencies: []build.ImageDependencies{
+			*testCommon.DependenciesWithDigests(testCommon.MultistageExampleDependencies),
 		},
 	})
 }
@@ -657,7 +705,7 @@ func testRun(t *testing.T, tc runTestCase) {
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
 		tc.workingDir, tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
-		tc.webArchive, tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.push)
+		tc.webArchive, tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
