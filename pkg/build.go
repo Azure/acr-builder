@@ -2,9 +2,11 @@ package build
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
+	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/docker/distribution/reference"
 )
 
@@ -66,6 +68,11 @@ type ImageReference struct {
 	reference  reference.Reference
 }
 
+// GitReference defines the reference to git source code
+type GitReference struct {
+	GitHeadRev string `json:"git-head-revision"`
+}
+
 // NewImageReference parses a path of a image and creates a ImageReference object
 func NewImageReference(path string) (*ImageReference, error) {
 	ref, err := reference.Parse(path)
@@ -110,6 +117,7 @@ type ImageDependencies struct {
 	Image     *ImageReference   `json:"image"`
 	Runtime   *ImageReference   `json:"runtime-dependency"`
 	Buildtime []*ImageReference `json:"buildtime-dependency"`
+	Git       *GitReference     `json:"git,omitempty"`
 }
 
 // NewImageDependencies creates ImageDependencies with no references registered
@@ -145,6 +153,16 @@ func NewImageDependencies(env *BuilderContext, image string, runtime string, bui
 		}
 		dependencies.Buildtime = append(dependencies.Buildtime, buildtimeDep)
 	}
+
+	// gitSource.Obtain will set the env. For other sources, it will be empty.
+	gitHeadRev := os.Getenv(constants.ExportsGitHeadRev)
+
+	if len(gitHeadRev) > 0 {
+		dependencies.Git = &GitReference{
+			GitHeadRev: gitHeadRev,
+		}
+	}
+
 	return dependencies, nil
 }
 
