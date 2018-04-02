@@ -31,7 +31,7 @@ func (b *Builder) Run(buildNumber,
 	workingDir,
 	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 	webArchive string,
-	buildEnvs, buildArgs, buildSecretArgs []string, push bool,
+	buildEnvs, buildArgs, buildSecretArgs []string, pull, noCache, push bool,
 ) (dependencies []build.ImageDependencies, err error) {
 
 	if dockerRegistry == "" {
@@ -51,7 +51,7 @@ func (b *Builder) Run(buildNumber,
 		workingDir,
 		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 		webArchive,
-		buildArgs, buildSecretArgs, push)
+		buildArgs, buildSecretArgs, pull, noCache, push)
 
 	if err != nil {
 		return
@@ -71,7 +71,7 @@ func (b *Builder) createBuildRequest(
 	workingDir,
 	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 	webArchive string,
-	buildArgs, buildSecretArgs []string, push bool) (*build.Request, error) {
+	buildArgs, buildSecretArgs []string, pull, noCache, push bool) (*build.Request, error) {
 	if push && dockerRegistry == "" {
 		return nil, fmt.Errorf("Docker registry is needed for push, use --%s or environment variable %s to provide its value",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
@@ -107,7 +107,7 @@ func (b *Builder) createBuildRequest(
 		return nil, err
 	}
 
-	target := commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, buildSecretArgs, registrySuffixed, dockerImage)
+	target := commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, buildSecretArgs, registrySuffixed, dockerImage, pull, noCache)
 
 	return &build.Request{
 		DockerRegistry:    registrySuffixed,

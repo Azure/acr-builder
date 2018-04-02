@@ -55,6 +55,12 @@ const (
 	// ArgNameBuildEnv is the parameter name for build environment variables to be set. This parameter is repeatable
 	ArgNameBuildEnv = "build-env"
 
+	// ArgNamePull is the parameter determining if attempting to pull a newer version of the base images. Default: false
+	ArgNamePull = "pull"
+
+	// ArgNameNoCache is the parameter determining if not using any cached layer when building the image. Default: false
+	ArgNameNoCache = "no-cache"
+
 	// ArgNamePush is the parameter determining whether or not push should occur if the build would succeed. Default: false
 	ArgNamePush = "push"
 
