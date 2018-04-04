@@ -92,7 +92,7 @@ func TestDockerBuildHappy(t *testing.T) {
 	testDockerBuild(t, dockerTestCase{
 		dockerfile: filepath.Join("..", "..", "tests", "resources", "docker-dotnet", "Dockerfile"),
 		contextDir: "contextDir",
-		buildArgs:  []string{"k1=v1", "k2=v2"},
+		buildArgs:  append(testCommon.DotnetExampleMinimalBuildArg, "k1=v1", "k2=v2"),
 		registry:   testCommon.DotnetExampleTargetRegistryName + "/",
 		imageName:  testCommon.DotnetExampleTargetImageName,
 		expectedCommands: []test.CommandsExpectation{
@@ -100,7 +100,7 @@ func TestDockerBuildHappy(t *testing.T) {
 				Command:      "docker",
 				IsObfuscated: true,
 				Args: []string{"build", "-f", filepath.Join("..", "..", "tests", "resources", "docker-dotnet", "Dockerfile"),
-					"-t", testCommon.DotnetExampleFullImageName, "--build-arg", "k1=v1", "--build-arg", "k2=v2", "contextDir"},
+					"-t", testCommon.DotnetExampleFullImageName, "--build-arg", testCommon.DotnetExampleMinimalBuildArg[0], "--build-arg", "k1=v1", "--build-arg", "k2=v2", "contextDir"},
 			},
 		},
 	})
@@ -170,7 +170,8 @@ func testDockerScanDependencies(t *testing.T, tc dockerDependenciesTestCase) {
 	runner.SetContext(build.NewContext([]build.EnvVar{
 		{Name: "project_root", Value: filepath.Join("..", "..", "tests", "resources", "docker-dotnet")},
 	}, []build.EnvVar{}))
-	target := NewDockerBuild(tc.path, "", []string{}, []string{}, testCommon.DotnetExampleTargetRegistryName+"/", testCommon.DotnetExampleTargetImageName, false, false)
+	target := NewDockerBuild(tc.path, "", testCommon.DotnetExampleMinimalBuildArg,
+		[]string{}, testCommon.DotnetExampleTargetRegistryName+"/", testCommon.DotnetExampleTargetImageName, false, false)
 	dependencies, err := target.ScanForDependencies(runner)
 	if tc.expectedErr == "" {
 		assert.Nil(t, err)

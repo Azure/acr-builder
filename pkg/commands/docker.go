@@ -83,7 +83,7 @@ func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.Imag
 	} else {
 		dockerfile = env.Expand(t.dockerfile)
 	}
-	runtime, buildtime, err := grok.ResolveDockerfileDependencies(dockerfile)
+	runtime, buildtime, err := grok.ResolveDockerfileDependencies(t.buildArgs, dockerfile)
 	if err != nil {
 		return nil, err
 	}

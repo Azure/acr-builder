@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/acr-builder/pkg/grok"
 	"github.com/Azure/acr-builder/pkg/workflow"
 
 	build "github.com/Azure/acr-builder/pkg"
@@ -124,7 +125,7 @@ func (b *Builder) createBuildRequest(
 func parseUserDefined(buildEnvs []string) ([]build.EnvVar, error) {
 	userDefined := []build.EnvVar{}
 	for _, env := range buildEnvs {
-		k, v, err := parseAssignment(env)
+		k, v, err := grok.ParseAssignment(env)
 		if err != nil {
 			return nil, fmt.Errorf("Error parsing build environment \"%s\"", err)
 		}
@@ -135,14 +136,6 @@ func parseUserDefined(buildEnvs []string) ([]build.EnvVar, error) {
 		userDefined = append(userDefined, *envVar)
 	}
 	return userDefined, nil
-}
-
-func parseAssignment(in string) (string, string, error) {
-	values := strings.SplitN(in, "=", 2)
-	if len(values) != 2 {
-		return "", "", fmt.Errorf("%s cannot be split into 2 tokens with '='", in)
-	}
-	return values[0], values[1], nil
 }
 
 func dependencyTask(target build.Target) workflow.EvaluationTask {
