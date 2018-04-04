@@ -1,13 +1,15 @@
 ## This dockerfile is just a test resource and is not buildable
-
-FROM microsoft/aspnetcore:2.0 AS base
+ARG runtime_version=2.0.6
+FROM microsoft/aspnetcore:${runtime_version} AS base
 WORKDIR /app
 EXPOSE 80
 
 FROM base AS secondary
 RUN nothing
 
-FROM microsoft/aspnetcore-build:2.0 AS builder
+ARG build_image
+ARG build_version=2.0
+FROM microsoft/$build_image:$build_version AS builder
 WORKDIR /src
 COPY *.sln ./
 COPY Web/Web.csproj Web/

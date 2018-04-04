@@ -117,9 +117,12 @@ const DotnetExampleFullImageName = DotnetExampleTargetRegistryName + "/" + Dotne
 // DotnetExampleDependencies links to the project in ${workspaceRoot}/tests/resources/docker-dotnet
 var DotnetExampleDependencies = *NewImageDependencies(
 	DotnetExampleFullImageName,
-	"microsoft/aspnetcore:2.0",
+	"microsoft/aspnetcore:2.0.6",
 	[]string{"microsoft/aspnetcore-build:2.0", "imaginary/cert-generator:1.0"},
 )
+
+// DotnetExampleMinimalBuildArg is the minimal build arg required for dotnet example
+var DotnetExampleMinimalBuildArg = []string{"build_image=aspnetcore-build"}
 
 // AssertSameEnv asserts two sets environment variable are the same
 func AssertSameEnv(t *testing.T, expected, actual []build.EnvVar) {

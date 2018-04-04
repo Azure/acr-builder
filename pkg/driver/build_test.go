@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/pkg/constants"
+	"github.com/Azure/acr-builder/pkg/grok"
 
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/commands"
@@ -305,7 +306,7 @@ func assertSameContext(t *testing.T, expected []string, actual *build.BuilderCon
 	actualEnv := map[string]bool{}
 	timeStampFound := false
 	for _, entry := range actual.Export() {
-		k, v, err := parseAssignment(entry)
+		k, v, err := grok.ParseAssignment(entry)
 		assert.Nil(t, err)
 		if k == constants.ExportsBuildTimestamp {
 			timeStampFound = true
