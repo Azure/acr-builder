@@ -17,7 +17,7 @@ import (
 	"github.com/Azure/acr-builder/pkg/constants"
 )
 
-var maxHeaderSize = 4
+const maxHeaderSize = 4
 
 // NOTE: only support .tar.gz for now
 var supportedArchiveHeaders = map[byte][]byte{
@@ -56,7 +56,11 @@ func (s *ArchiveSource) Obtain(runner build.Runner) error {
 	if err != nil && err != io.EOF {
 		return fmt.Errorf("Failed to peek context header: %s", err)
 	}
-	if !isSupportedArchive(peek) {
+	supported, err := isSupportedArchive(peek)
+	if err != nil {
+		return fmt.Errorf("Failed to read context header: %s", err)
+	}
+	if !supported {
 		return fmt.Errorf("Unexpected file format for %s", s.url)
 	}
 
@@ -157,7 +161,13 @@ func unTAR(baseDir string, r io.Reader) error {
 	}
 }
 
-func isSupportedArchive(source []byte) bool {
+func isSupportedArchive(source []byte) (bool, error) {
+	if len(source) < 1 {
+		return false, fmt.Errorf("Empty header")
+	}
 	header, found := supportedArchiveHeaders[source[0]]
-	return found && bytes.Equal(source[:len(header)], header)
+	if len(source) < len(header) {
+		return false, fmt.Errorf("Format of the file content cannot be determined. File header is corrupted")
+	}
+	return found && bytes.Equal(source[:len(header)], header), nil
 }
