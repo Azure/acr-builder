@@ -17,16 +17,12 @@ import (
 	"github.com/Azure/acr-builder/pkg/constants"
 )
 
-var maxHeaderSize = 512
-var supportedArchiveHeaders = map[byte][]byte{
-	// Bzip2
-	0x42: {0x42, 0x5A, 0x68},
+var maxHeaderSize = 4
 
+// NOTE: only support .tar.gz for now
+var supportedArchiveHeaders = map[byte][]byte{
 	// Gzip
 	0x1F: {0x1F, 0x8B, 0x08},
-
-	// Xz
-	0xFD: {0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00},
 }
 
 // ArchiveSource defines source in the form of an archive file
@@ -161,16 +157,7 @@ func unTAR(baseDir string, r io.Reader) error {
 	}
 }
 
-func isSupportedArchive(header []byte) bool {
-	if detectCompression(header) {
-		return true
-	}
-	r := tar.NewReader(bytes.NewBuffer(header))
-	_, err := r.Next()
-	return err == nil
-}
-
-func detectCompression(source []byte) bool {
+func isSupportedArchive(source []byte) bool {
 	header, found := supportedArchiveHeaders[source[0]]
 	return found && bytes.Equal(source[:len(header)], header)
 }
