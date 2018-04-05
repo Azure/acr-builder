@@ -54,12 +54,20 @@ func (u *dockerUsernamePassword) Authenticate(runner build.Runner) error {
 // NewDockerBuild creates a build target with specified docker file and build parameters
 func NewDockerBuild(dockerfile, contextDir string,
 	buildArgs, buildSecretArgs []string, registry, imageName string, pull, noCache bool) build.Target {
+
+	var pushTo string
+	// If imageName is empty, skip push.
+	// If registry is empty, it means push to DockerHub.
+	if len(imageName) > 0 {
+		pushTo = fmt.Sprintf("%s%s", registry, imageName)
+	}
+
 	return &dockerBuildTask{
 		dockerfile:      dockerfile,
 		contextDir:      contextDir,
 		buildArgs:       buildArgs,
 		buildSecretArgs: buildSecretArgs,
-		pushTo:          fmt.Sprintf("%s%s", registry, imageName),
+		pushTo:          pushTo,
 		pull:            pull,
 		noCache:         noCache,
 	}

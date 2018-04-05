@@ -85,10 +85,22 @@ func AssertSameDependencies(t *testing.T, expectedList []build.ImageDependencies
 	assert.Equal(t, len(expectedList), len(actualList), "Unexpected numbers of image dependencies")
 	expectedMap := map[string]build.ImageDependencies{}
 	for _, entry := range expectedList {
-		expectedMap[entry.Image.String()] = entry
+		if entry.Image != nil {
+			expectedMap[entry.Image.String()] = entry
+		} else {
+			expectedMap[""] = entry
+		}
 	}
 	for _, entry := range actualList {
-		expected, found := expectedMap[entry.Image.String()]
+		var expected build.ImageDependencies
+		var found bool
+
+		if entry.Image != nil {
+			expected, found = expectedMap[entry.Image.String()]
+		} else {
+			expected, found = expectedMap[""]
+		}
+
 		assert.True(t, found, "Unexpected image name: %s", entry.Image)
 		assert.Equal(t, expected.Runtime, entry.Runtime)
 		assert.Equal(t, len(expected.Buildtime), len(entry.Buildtime),
@@ -169,9 +181,12 @@ func GetDigest(image string) string {
 // DependenciesWithDigests populates mock digest values for image dependencies
 func DependenciesWithDigests(original build.ImageDependencies) *build.ImageDependencies {
 	result := &build.ImageDependencies{
-		Image:   ImageReferenceWithDigest(original.Image),
 		Runtime: ImageReferenceWithDigest(original.Runtime),
 	}
+	if original.Image != nil {
+		result.Image = ImageReferenceWithDigest(original.Image)
+	}
+
 	for _, buildtime := range original.Buildtime {
 		result.Buildtime = append(result.Buildtime, ImageReferenceWithDigest(buildtime))
 	}
