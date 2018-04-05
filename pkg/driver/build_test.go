@@ -636,6 +636,29 @@ func TestRunNoCache(t *testing.T) {
 	})
 }
 
+func TestRunNoImageGiven(t *testing.T) {
+	testRun(t, runTestCase{
+		buildNumber:    "buildNum-0",
+		dockerRegistry: testCommon.TestsDockerRegistryName,
+		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-multistage"),
+		expectedCommands: []test.CommandsExpectation{
+			{
+				Command:      "docker",
+				IsObfuscated: true,
+				Args:         []string{"build", "."},
+			},
+		},
+		expectedDependencies: []build.ImageDependencies{
+			*testCommon.DependenciesWithDigests(
+				*testCommon.NewImageDependencies(
+					"",
+					"alpine",
+					[]string{"golang:alpine"},
+				)),
+		},
+	})
+}
+
 func TestRunNoRegistryGiven(t *testing.T) {
 	os.Clearenv()
 	testRun(t, runTestCase{
@@ -665,6 +688,7 @@ func TestRunNoRegistryGivenPush(t *testing.T) {
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
 	})
 }
+
 func TestRunNoImageGivenPush(t *testing.T) {
 	os.Clearenv()
 	testRun(t, runTestCase{

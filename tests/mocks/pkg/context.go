@@ -70,7 +70,9 @@ func (m *MockRunner) PrepareDigestQuery(
 	expectedDependencies []build.ImageDependencies,
 	queryCmdErr map[string]error) {
 	for _, expectedDep := range expectedDependencies {
-		m.addQuery(expectedDep.Image, queryCmdErr[expectedDep.Image.String()])
+		if expectedDep.Image != nil {
+			m.addQuery(expectedDep.Image, queryCmdErr[expectedDep.Image.String()])
+		}
 		m.addQuery(expectedDep.Runtime, queryCmdErr[expectedDep.Runtime.String()])
 		for _, expectedBuildtime := range expectedDep.Buildtime {
 			m.addQuery(expectedBuildtime, queryCmdErr[expectedBuildtime.String()])
