@@ -2,6 +2,8 @@ package commands
 
 import (
 	"archive/tar"
+	"bufio"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -14,6 +16,13 @@ import (
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
 )
+
+var maxHeaderSize = 512
+var supportedArchiveHeaders = map[byte][]byte{
+	0x42: {0x42, 0x5A, 0x68},                   // Bzip2
+	0x1F: {0x1F, 0x8B, 0x08},                   // Gzip
+	0xFD: {0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00}, //Xz
+}
 
 // ArchiveSource defines source in the form of an archive file
 // Currently we only support tar.gz
@@ -41,11 +50,20 @@ func (s *ArchiveSource) Obtain(runner build.Runner) error {
 		}
 	}()
 
+	buf := bufio.NewReader(response.Body)
+	peek, err := buf.Peek(maxHeaderSize)
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("failed to peek context header: %s", err)
+	}
+	if !isSupportedArchive(peek) {
+		return fmt.Errorf("Unexpected file format for %s", s.url)
+	}
+
 	baseDir := s.targetDir
 	if baseDir == "" {
 		baseDir = "."
 	}
-	if err := unTAR(baseDir, response.Body); err != nil {
+	if err := unTAR(baseDir, buf); err != nil {
 		return fmt.Errorf("Failed to extract archive from %s, error: %s", s.url, err)
 	}
 
@@ -136,4 +154,18 @@ func unTAR(baseDir string, r io.Reader) error {
 			logrus.Debugf("Ignoring unexpected file %s, type: %d", header.Name, header.Typeflag)
 		}
 	}
+}
+
+func isSupportedArchive(header []byte) bool {
+	if detectCompression(header) {
+		return true
+	}
+	r := tar.NewReader(bytes.NewBuffer(header))
+	_, err := r.Next()
+	return err == nil
+}
+
+func detectCompression(source []byte) bool {
+	header, found := supportedArchiveHeaders[source[0]]
+	return found && bytes.Equal(source[0:len(header)], header)
 }

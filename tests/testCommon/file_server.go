@@ -19,10 +19,10 @@ const StaticFileHost = "http://localhost" + staticFilePort
 
 // StartStaticFileServer starts a file server, if error returned
 // is not null the caller should close it
-func StartStaticFileServer(t *testing.T) *http.Server {
+func StartStaticFileServer(t *testing.T, handler http.Handler) *http.Server {
 	server := &http.Server{
 		Addr:    staticFilePort,
-		Handler: &staticFileArchiveHandler{},
+		Handler: handler,
 	}
 	go func() {
 		err := server.ListenAndServe()
@@ -55,25 +55,26 @@ func WaitForServerReady(timeoutInSeconds uint) error {
 	return fmt.Errorf("Server was still not ready after %v seconds", timeoutInSeconds)
 }
 
-// staticFileArchiveHandler streams the hello-multistage project to http response as tar.gz
+// StaticArchiveHandler streams the hello-multistage project to http response as tar.gz
 // We hard code the archive file for now, because we only have 1 test scenario using it
-type staticFileArchiveHandler struct {
-	t *testing.T
+type StaticArchiveHandler struct {
+	T           *testing.T
+	ArchiveRoot string
 }
 
-func (h *staticFileArchiveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	projectRoot := filepath.Join(Config.ProjectRoot, "tests", "resources", "hello-multistage")
-	err := h.streamArchive(projectRoot, w)
+// ServeHTTP serves content of a directory
+func (h *StaticArchiveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	err := h.streamArchive(h.ArchiveRoot, w)
 	if err != nil {
 		panic(err.Error())
 	}
 }
 
-func (h *staticFileArchiveHandler) streamArchive(root string, w io.Writer) error {
+func (h *StaticArchiveHandler) streamArchive(root string, w io.Writer) error {
 	gw := gzip.NewWriter(w)
-	defer ReportOnError(h.t, gw.Close)
+	defer ReportOnError(h.T, gw.Close)
 	tw := tar.NewWriter(gw)
-	defer ReportOnError(h.t, tw.Close)
+	defer ReportOnError(h.T, tw.Close)
 
 	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -96,8 +97,21 @@ func (h *staticFileArchiveHandler) streamArchive(root string, w io.Writer) error
 		if err != nil {
 			return err
 		}
-		defer ReportOnError(h.t, file.Close)
+		defer ReportOnError(h.T, file.Close)
 		_, err = io.Copy(tw, file)
 		return err
 	})
+}
+
+// StaticContentHandler serves a fixed string
+type StaticContentHandler struct {
+	T       *testing.T
+	Content []byte
+}
+
+// ServeHTTP serves the static contents
+func (h *StaticContentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if _, err := w.Write(h.Content); err != nil {
+		panic(err)
+	}
 }
