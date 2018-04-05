@@ -24,15 +24,25 @@ func StartStaticFileServer(t *testing.T, handler http.Handler) *http.Server {
 		Addr:    staticFilePort,
 		Handler: handler,
 	}
+	startRetryN := 10
+	startRetryInterval := time.Second * 10
 	go func() {
-		err := server.ListenAndServe()
-		if err != nil && err != http.ErrServerClosed {
-			t.Errorf("Failed to start server: %s", err)
-			t.Fail()
+		retryCount := 0
+		// NOTE: Sometimes when a test ends and a server shutdown port still appears to be used
+		for retryCount < startRetryN {
+			err := server.ListenAndServe()
+			if err != nil && err != http.ErrServerClosed {
+				t.Errorf("Failed to start server: %s", err)
+				t.Fail()
+				break
+			}
+			time.Sleep(startRetryInterval)
+			retryCount++
 		}
 	}()
 
-	err := WaitForServerReady(10)
+	totalDuration := startRetryInterval * (time.Duration)(startRetryN)
+	err := waitForServerReady(totalDuration, time.Second)
 	if err != nil {
 		t.Fail()
 	}
@@ -40,10 +50,10 @@ func StartStaticFileServer(t *testing.T, handler http.Handler) *http.Server {
 	return server
 }
 
-// WaitForServerReady waits for server ready until timeout
-func WaitForServerReady(timeoutInSeconds uint) error {
+// waitForServerReady waits for server ready until timeout
+func waitForServerReady(timeout time.Duration, interval time.Duration) error {
 
-	for i := uint(0); i < timeoutInSeconds; i++ {
+	for remaining := timeout; remaining > 0; remaining -= interval {
 		time.Sleep(1 * time.Second)
 
 		_, err := http.Head(StaticFileHost)
@@ -52,7 +62,7 @@ func WaitForServerReady(timeoutInSeconds uint) error {
 		}
 	}
 
-	return fmt.Errorf("Server was still not ready after %v seconds", timeoutInSeconds)
+	return fmt.Errorf("Server was still not ready after %v seconds", timeout/time.Second)
 }
 
 // StaticArchiveHandler streams the hello-multistage project to http response as tar.gz

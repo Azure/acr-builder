@@ -19,9 +19,14 @@ import (
 
 var maxHeaderSize = 512
 var supportedArchiveHeaders = map[byte][]byte{
-	0x42: {0x42, 0x5A, 0x68},                   // Bzip2
-	0x1F: {0x1F, 0x8B, 0x08},                   // Gzip
-	0xFD: {0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00}, //Xz
+	// Bzip2
+	0x42: {0x42, 0x5A, 0x68},
+
+	// Gzip
+	0x1F: {0x1F, 0x8B, 0x08},
+
+	// Xz
+	0xFD: {0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00},
 }
 
 // ArchiveSource defines source in the form of an archive file
@@ -53,7 +58,7 @@ func (s *ArchiveSource) Obtain(runner build.Runner) error {
 	buf := bufio.NewReader(response.Body)
 	peek, err := buf.Peek(maxHeaderSize)
 	if err != nil && err != io.EOF {
-		return fmt.Errorf("failed to peek context header: %s", err)
+		return fmt.Errorf("Failed to peek context header: %s", err)
 	}
 	if !isSupportedArchive(peek) {
 		return fmt.Errorf("Unexpected file format for %s", s.url)
@@ -167,5 +172,5 @@ func isSupportedArchive(header []byte) bool {
 
 func detectCompression(source []byte) bool {
 	header, found := supportedArchiveHeaders[source[0]]
-	return found && bytes.Equal(source[0:len(header)], header)
+	return found && bytes.Equal(source[:len(header)], header)
 }
