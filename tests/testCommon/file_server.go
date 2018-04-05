@@ -32,12 +32,13 @@ func StartStaticFileServer(t *testing.T, handler http.Handler) *http.Server {
 		for retryCount < startRetryN {
 			err := server.ListenAndServe()
 			if err != nil && err != http.ErrServerClosed {
+				time.Sleep(startRetryInterval)
+				retryCount++
+			} else {
 				t.Errorf("Failed to start server: %s", err)
 				t.Fail()
 				break
 			}
-			time.Sleep(startRetryInterval)
-			retryCount++
 		}
 	}()
 
