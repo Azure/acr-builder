@@ -30,10 +30,10 @@ func StartStaticFileServer(t *testing.T, handler http.Handler) *http.Server {
 		retryCount := 0
 		started := false
 		// NOTE: Sometimes when a test ends and a server shutdown port still appears to be used
-		for !started && retryCount <= startRetryN {
+		for !started && retryCount < startRetryN {
 			err := server.ListenAndServe()
 			if err != nil && err != http.ErrServerClosed {
-				t.Errorf("Failed to start server: %s", err)
+				fmt.Fprintf(os.Stderr, "Failed to start server: %s\n", err)
 				time.Sleep(startRetryInterval)
 				retryCount++
 			} else {
