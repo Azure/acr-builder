@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/Azure/acr-builder/pkg/driver"
@@ -24,6 +25,11 @@ func (i *stringSlice) Set(value string) error {
 	*i = append(*i, value)
 	return nil
 }
+
+var (
+	help        = flag.Bool("help", false, "Prints the help message")
+	versionFlag = flag.Bool("version", false, "Prints the version of the runner")
+)
 
 func main() {
 	var dockerfile, dockerImage, dockerContextDir string
@@ -60,6 +66,20 @@ func main() {
 	flag.BoolVar(&push, constants.ArgNamePush, false, "Push on success")
 	flag.BoolVar(&debug, constants.ArgNameDebug, false, "Enable verbose output for debugging")
 	flag.Parse()
+
+	if *help {
+		flag.PrintDefaults()
+		return
+	}
+
+	if *versionFlag {
+		fmt.Printf(`%s:
+				go version  : %s
+				go compiler : %s
+				platform    : %s/%s
+			   `, os.Args[0], runtime.Version(), runtime.Compiler, runtime.GOOS, runtime.GOARCH)
+		return
+	}
 
 	if debug {
 		logrus.SetLevel(logrus.DebugLevel)
