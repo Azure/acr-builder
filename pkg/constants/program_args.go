@@ -32,7 +32,7 @@ const (
 	ArgNameDockerfile = "docker-file"
 
 	// ArgNameDockerImage is the parameter name for docker image (registry url must be excluded from the image name parameter)
-	ArgNameDockerImage = "docker-image"
+	ArgNameDockerImage = "t"
 
 	// ArgNameDockerContextDir is the parameter name for docker context directory
 	ArgNameDockerContextDir = "docker-context-dir"

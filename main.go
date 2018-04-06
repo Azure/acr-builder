@@ -32,7 +32,8 @@ var (
 )
 
 func main() {
-	var dockerfile, dockerImage, dockerContextDir string
+	var dockerfile, dockerContextDir string
+	var dockerImages stringSlice
 	var workingDir string
 	var gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken string
 	var webArchive string
@@ -53,7 +54,7 @@ func main() {
 	flag.StringVar(&gitXToken, constants.ArgNameGitXToken, "", "Git OAuth x access token.")
 	flag.StringVar(&webArchive, constants.ArgNameWebArchive, "", "Archive file of the source. Must be a web-url and in tar.gz format")
 	flag.StringVar(&dockerfile, constants.ArgNameDockerfile, "", "Dockerfile to build. If choosing to build a dockerfile")
-	flag.StringVar(&dockerImage, constants.ArgNameDockerImage, "", "The image name to build to. This option is only available when building with dockerfile")
+	flag.Var(&dockerImages, constants.ArgNameDockerImage, "The image names to build to. This option is only available when building with dockerfile")
 	flag.StringVar(&dockerContextDir, constants.ArgNameDockerContextDir, "", "Context directory for docker build. This option is only available when building with dockerfile.")
 	flag.Var(&buildArgs, constants.ArgNameDockerBuildArg, "Build arguments to be passed to docker build build")
 	flag.Var(&buildSecretArgs, constants.ArgNameDockerSecretBuildArg, "Build arguments to be passed to docker build build. The argument value contains a secret which will be hidden from the log.")
@@ -88,7 +89,7 @@ func main() {
 	builder := driver.NewBuilder(shell.NewRunner())
 	dependencies, err := builder.Run(
 		buildNumber,
-		dockerfile, dockerImage, dockerContextDir,
+		dockerfile, dockerImages, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
 		workingDir,
 		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,

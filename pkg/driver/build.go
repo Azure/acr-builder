@@ -26,8 +26,8 @@ func NewBuilder(runner build.Runner) *Builder {
 }
 
 // Run is the main body of the acr-builder
-func (b *Builder) Run(buildNumber,
-	dockerfile, dockerImage, dockerContextDir,
+func (b *Builder) Run(buildNumber string,
+	dockerfile string, dockerImages []string, dockerContextDir,
 	dockerUser, dockerPW, dockerRegistry,
 	workingDir,
 	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
@@ -47,7 +47,7 @@ func (b *Builder) Run(buildNumber,
 
 	var request *build.Request
 	request, err = b.createBuildRequest(
-		dockerfile, dockerImage, dockerContextDir,
+		dockerfile, dockerImages, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
 		workingDir,
 		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
@@ -67,7 +67,7 @@ func (b *Builder) Run(buildNumber,
 }
 
 func (b *Builder) createBuildRequest(
-	dockerfile, dockerImage, dockerContextDir,
+	dockerfile string, dockerImages []string, dockerContextDir,
 	dockerUser, dockerPW, dockerRegistry,
 	workingDir,
 	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
@@ -78,9 +78,9 @@ func (b *Builder) createBuildRequest(
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
 	}
 
-	if push && dockerImage == "" {
-		return nil, fmt.Errorf("Docker image is needed for push, use --%s or environment variable %s to provide its value",
-			constants.ArgNameDockerImage, constants.ExportsDockerPushImage)
+	if push && len(dockerImages) <= 0 {
+		return nil, fmt.Errorf("Docker image is needed for push, use --%s to provide its value",
+			constants.ArgNameDockerImage)
 	}
 
 	var registrySuffixed, registryNoSuffix string
@@ -108,7 +108,7 @@ func (b *Builder) createBuildRequest(
 		return nil, err
 	}
 
-	target := commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, buildSecretArgs, registrySuffixed, dockerImage, pull, noCache)
+	target := commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, buildSecretArgs, registrySuffixed, dockerImages, pull, noCache)
 
 	return &build.Request{
 		DockerRegistry:    registrySuffixed,
