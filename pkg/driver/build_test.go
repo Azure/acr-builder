@@ -416,7 +416,7 @@ func TestCreateBuildRequestNoParams(t *testing.T) {
 			Targets: []build.SourceTarget{
 				{
 					Source: localSource,
-					Builds: []build.Target{commands.NewDockerBuild("", "", nil, nil, "", "", false, false)},
+					Builds: []build.Target{commands.NewDockerBuild("", "", nil, nil, "", "", false, false, nil)},
 				},
 			},
 		},
@@ -439,7 +439,7 @@ func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
 	pull := true
 	noCache := false
 	dockerBuildTarget := commands.NewDockerBuild(dockerfile, contextDir,
-		buildArgs, buildSecretArgs, registry+"/", imageName, pull, noCache)
+		buildArgs, buildSecretArgs, registry+"/", imageName, pull, noCache, nil)
 	gitCred, err := commands.NewGitPersonalAccessToken(gitUser, gitPassword)
 	assert.Nil(t, err)
 	gitSource := commands.NewGitSource(gitAddress, branch, headRev, targetDir, gitCred)
@@ -520,7 +520,7 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.workingDir,
 		tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
-		tc.webArchive, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
+		tc.webArchive, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push, nil)
 
 	if tc.expectedError != "" {
 		assert.NotNil(t, err)
@@ -730,7 +730,7 @@ func testRun(t *testing.T, tc runTestCase) {
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
 		tc.workingDir, tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
-		tc.webArchive, tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
+		tc.webArchive, tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push, nil)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
