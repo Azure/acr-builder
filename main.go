@@ -22,7 +22,10 @@ func (i *stringSlice) String() string {
 }
 
 func (i *stringSlice) Set(value string) error {
-	*i = append(*i, value)
+	// Don't allow empty values
+	if value != "" {
+		*i = append(*i, value)
+	}
 	return nil
 }
 
