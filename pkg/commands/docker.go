@@ -53,7 +53,7 @@ func (u *dockerUsernamePassword) Authenticate(runner build.Runner) error {
 
 // NewDockerBuild creates a build target with specified docker file and build parameters
 func NewDockerBuild(dockerfile, contextDir string,
-	buildArgs, buildSecretArgs []string, registry, imageName string, pull, noCache bool) build.Target {
+	buildArgs, buildSecretArgs []string, registry, imageName string, pull, noCache bool, tags []string) build.Target {
 
 	var pushTo string
 	// If imageName is empty, skip push.
@@ -70,6 +70,7 @@ func NewDockerBuild(dockerfile, contextDir string,
 		pushTo:          pushTo,
 		pull:            pull,
 		noCache:         noCache,
+		tags:            tags,
 	}
 }
 
@@ -81,6 +82,7 @@ type dockerBuildTask struct {
 	pushTo          string
 	pull            bool
 	noCache         bool
+	tags            []string
 }
 
 func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.ImageDependencies, error) {
@@ -119,6 +121,11 @@ func (t *dockerBuildTask) Build(runner build.Runner) error {
 
 	if t.pushTo != "" {
 		args = append(args, "-t", t.pushTo)
+
+		// Append custom tags
+		for _, tag := range t.tags {
+			args = append(args, "-t", fmt.Sprintf("%s:%s", t.pushTo, tag))
+		}
 	}
 
 	for _, buildArg := range t.buildArgs {

@@ -41,6 +41,7 @@ func main() {
 	// if the program is launched in docker container, use option -v /var/run/docker.sock:/var/run/docker.sock -v ~/.docker:/root/.docker
 	var dockerUser, dockerPW, dockerRegistry string
 	var buildArgs, buildSecretArgs, buildEnvs stringSlice
+	var tags stringSlice
 	var pull, noCache, push, debug bool
 	var buildNumber string
 	flag.StringVar(&buildNumber, constants.ArgNameBuildNumber, "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.ExportsBuildNumber))
@@ -60,6 +61,7 @@ func main() {
 	flag.StringVar(&dockerRegistry, constants.ArgNameDockerRegistry, "", "Docker registry to push to")
 	flag.StringVar(&dockerUser, constants.ArgNameDockerUser, "", "Docker username.")
 	flag.StringVar(&dockerPW, constants.ArgNameDockerPW, "", "Docker password or OAuth identity token.")
+	flag.Var(&tags, "t", "Custom tags to create for the image during build")
 	flag.Var(&buildEnvs, constants.ArgNameBuildEnv, "Custom environment variables defined for the build process")
 	flag.BoolVar(&pull, constants.ArgNamePull, false, "Attempt to pull a newer version of the base images")
 	flag.BoolVar(&noCache, constants.ArgNameNoCache, false, "Not using any cached layer when building the image")
@@ -93,7 +95,7 @@ func main() {
 		workingDir,
 		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 		webArchive,
-		buildEnvs, buildArgs, buildSecretArgs, pull, noCache, push)
+		buildEnvs, buildArgs, buildSecretArgs, pull, noCache, push, tags)
 
 	if err != nil {
 		logrus.Error(err)
