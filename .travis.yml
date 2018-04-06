@@ -1,14 +1,28 @@
-sudo: required
+sudo: false
 
 language: go
 
-services:
-  - docker
+go:
+  - 1.9
+  - master
 
-before_install:
-  - docker build -t acr-builder .
+matrix:
+  # Allow failures if the code fails on unstable development versions of Go.
+  allow_failures:
+    - go: master
+  
+  # Don't block on tip tests. Mark the build as green if tests pass on stable versions.
+  fast_finish: true
 
-install: true
+install:
+  - go get github.com/golang/lint/golint
+  - go get honnef.co/go/tools/cmd/staticcheck
+  
+before_script:
+  - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/)
+
+script:
+  - make
 
 notifications:
   email: false
