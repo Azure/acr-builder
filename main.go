@@ -28,7 +28,7 @@ func (i *stringSlice) Set(value string) error {
 
 var (
 	help        = flag.Bool("help", false, "Prints the help message")
-	versionFlag = flag.Bool("version", false, "Prints the version of the runner")
+	versionFlag = flag.Bool("version", false, "Prints the version of the builder")
 )
 
 func main() {
