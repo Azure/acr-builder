@@ -53,13 +53,14 @@ func (u *dockerUsernamePassword) Authenticate(runner build.Runner) error {
 
 // NewDockerBuild creates a build target with specified docker file and build parameters
 func NewDockerBuild(dockerfile, contextDir string,
-	buildArgs, buildSecretArgs []string, registry, imageName string, pull, noCache bool) build.Target {
+	buildArgs, buildSecretArgs []string, registry string, imageNames []string, pull, noCache bool) build.Target {
 
-	var pushTo string
+	var pushTo []string
+
 	// If imageName is empty, skip push.
 	// If registry is empty, it means push to DockerHub.
-	if len(imageName) > 0 {
-		pushTo = fmt.Sprintf("%s%s", registry, imageName)
+	for _, imageName := range imageNames {
+		pushTo = append(pushTo, fmt.Sprintf("%s%s", registry, imageName))
 	}
 
 	return &dockerBuildTask{
@@ -78,7 +79,7 @@ type dockerBuildTask struct {
 	contextDir      string
 	buildArgs       []string
 	buildSecretArgs []string
-	pushTo          string
+	pushTo          []string
 	pull            bool
 	noCache         bool
 }
@@ -86,6 +87,7 @@ type dockerBuildTask struct {
 func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.ImageDependencies, error) {
 	env := runner.GetContext()
 	var dockerfile string
+	var dep []build.ImageDependencies
 	if t.dockerfile == "" {
 		dockerfile = constants.DefaultDockerfile
 	} else {
@@ -95,11 +97,27 @@ func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.Imag
 	if err != nil {
 		return nil, err
 	}
-	dep, err := build.NewImageDependencies(env, t.pushTo, runtime, buildtime)
-	if err != nil {
-		return nil, err
+
+	// Even though there's nothing to push to, we always invoke NewImageDependencies
+	// TODO: refactor this in the future to take in the full list as opposed to individual
+	// images.
+	if len(t.pushTo) <= 0 {
+		currDep, err := build.NewImageDependencies(env, "", runtime, buildtime)
+		if err != nil {
+			return nil, err
+		}
+		dep = append(dep, *currDep)
 	}
-	return []build.ImageDependencies{*dep}, err
+
+	for _, imageName := range t.pushTo {
+		currDep, err := build.NewImageDependencies(env, imageName, runtime, buildtime)
+		if err != nil {
+			return nil, err
+		}
+		dep = append(dep, *currDep)
+	}
+
+	return dep, err
 }
 
 func (t *dockerBuildTask) Build(runner build.Runner) error {
@@ -117,8 +135,8 @@ func (t *dockerBuildTask) Build(runner build.Runner) error {
 		args = append(args, "-f", t.dockerfile)
 	}
 
-	if t.pushTo != "" {
-		args = append(args, "-t", t.pushTo)
+	for _, imageName := range t.pushTo {
+		args = append(args, "-t", imageName)
 	}
 
 	for _, buildArg := range t.buildArgs {
@@ -148,18 +166,22 @@ func (t *dockerBuildTask) Export() []build.EnvVar {
 			Name:  constants.ExportsDockerBuildContext,
 			Value: t.contextDir,
 		},
-		{
-			Name:  constants.ExportsDockerPushImage,
-			Value: t.pushTo,
-		},
 	}
 }
 
 func (t *dockerBuildTask) Push(runner build.Runner) error {
-	if t.pushTo == "" {
+	if len(t.pushTo) <= 0 {
 		return fmt.Errorf("No push target is defined")
 	}
-	return runner.ExecuteCmd("docker", []string{"push", t.pushTo}, nil)
+
+	for _, imageName := range t.pushTo {
+		err := runner.ExecuteCmd("docker", []string{"push", imageName}, nil)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // PopulateDigests populates digests on dependencies

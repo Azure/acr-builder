@@ -14,9 +14,6 @@ const (
 	// ExportsDockerBuildContext is the docker build context directory
 	ExportsDockerBuildContext = dockerDomainPrefix + "CONTEXT"
 
-	// ExportsDockerPushImage is the image name to push to
-	ExportsDockerPushImage = dockerDomainPrefix + "PUSH_TO"
-
 	// ExportsDockerRegistry is the docker registry to push to
 	ExportsDockerRegistry = dockerDomainPrefix + "REGISTRY"
 

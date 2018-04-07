@@ -37,7 +37,7 @@ Run the following on your project directory to build the project and push to a d
 * `--git-password` Git password.
 * `--working-dir` Working directory for the build.
 * `--docker-file` Dockerfile to be used for building.
-* `--docker-image` Image name to build to. It must be used alongside `--dockerfile` if push is required. Registry URL must be excluded from the image name parameter.
+* `-t` Image name to build to. It must be used alongside `--dockerfile` if push is required. Registry URL must be excluded from the image name parameter.
 * `--docker-context-dir` Docker build context. Optional, to be used alongside `--dockerfile`.
 * `--docker-build-arg` Build arguments to be passed to docker build. This parameter can be specified multiple times.
 * `--docker-secret-build-arg` Build arguments to be passed to docker build. The argument value contains a secret which will be hidden from the log. This parameter can be specified multiple times.
