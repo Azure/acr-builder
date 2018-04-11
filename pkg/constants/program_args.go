@@ -7,6 +7,9 @@ const (
 	//ArgNameWorkingDir is the parameter name for the git clone target directory
 	ArgNameWorkingDir = "working-dir"
 
+	//ArgNameDockerContextString is the parameter name docker build context, it could be local path, git, or archive url
+	ArgNameDockerContextString = "context"
+
 	// ArgNameGitURL is the parameter name for git URL
 	ArgNameGitURL = "git-url"
 

@@ -29,6 +29,7 @@ func NewBuilder(runner build.Runner) *Builder {
 func (b *Builder) Run(buildNumber string,
 	dockerfile string, dockerImages []string, dockerContextDir,
 	dockerUser, dockerPW, dockerRegistry,
+	dockerContextString,
 	workingDir,
 	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 	webArchive string,
@@ -49,6 +50,7 @@ func (b *Builder) Run(buildNumber string,
 	request, err = b.createBuildRequest(
 		dockerfile, dockerImages, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
+		dockerContextString,
 		workingDir,
 		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 		webArchive,
@@ -69,6 +71,7 @@ func (b *Builder) Run(buildNumber string,
 func (b *Builder) createBuildRequest(
 	dockerfile string, dockerImages []string, dockerContextDir,
 	dockerUser, dockerPW, dockerRegistry,
+	dockerContextString,
 	workingDir,
 	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 	webArchive string,
@@ -103,7 +106,7 @@ func (b *Builder) createBuildRequest(
 		dockerCreds = append(dockerCreds, cred)
 	}
 
-	source, err := getSource(workingDir, gitURL, gitBranch, gitHeadRev, gitXToken, gitPATokenUser, gitPAToken, webArchive)
+	source, err := getSource(dockerContextString, workingDir, dockerfile, gitURL, gitBranch, gitHeadRev, gitXToken, gitPATokenUser, gitPAToken, webArchive)
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +204,7 @@ func compileWorkflow(buildNumber string,
 		// iterate through builds in the source
 		for _, build := range sourceTarget.Builds {
 			buildContext := sourceContext.Append(build.Export())
+			w.ScheduleRun(buildContext, build.Ensure)
 			// schedule evaluations of dependencies
 			w.ScheduleEvaluation(buildContext, dependencyTask(build))
 			// schedule the build tasks

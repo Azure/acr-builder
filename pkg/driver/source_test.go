@@ -16,7 +16,9 @@ import (
 // we will mainly test negative case
 
 type getSourceTestCase struct {
+	contextString  string
 	workingDir     string
+	dockerfile     string
 	gitURL         string
 	gitBranch      string
 	gitHeadRev     string
@@ -57,7 +59,7 @@ func TestGetSourceLocal(t *testing.T) {
 }
 
 func testGetSource(t *testing.T, tc getSourceTestCase) {
-	source, err := getSource(tc.workingDir,
+	source, err := getSource(tc.contextString, tc.workingDir, tc.dockerfile,
 		tc.gitURL, tc.gitBranch, tc.gitHeadRev, tc.gitXToken, tc.gitPATokenUser, tc.gitPAToken,
 		tc.webArchive)
 

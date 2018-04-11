@@ -27,6 +27,10 @@ func NewRunner() build.Runner {
 	}
 }
 
+func (r *shellRunner) GetStdin() io.Reader {
+	return os.Stdin
+}
+
 // GetFileSystem returns the file system the that runner is running under
 func (r *shellRunner) GetFileSystem() build.FileSystem {
 	return r.fs

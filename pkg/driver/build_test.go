@@ -256,6 +256,7 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 		for i := range source.builds {
 			build := source.builds[i] // do not use foreach loop here because `build` will be used in a closure
 			buildMock := new(test.MockBuildTarget)
+			verifyContext(t, buildMock.On("Ensure", runner), build.expectedEnv, nil)
 			verifyContext(t, buildMock.On("Build", runner), build.expectedEnv, nil)
 			buildMock.On("Export").Return(build.envVar).Once()
 			scanDependencies := buildMock.On("ScanForDependencies", runner, mock.Anything)
@@ -384,28 +385,29 @@ func testParseUserDefined(t *testing.T, tc parseUserDefinedTestCase) {
 }
 
 type createBuildRequestTestCase struct {
-	dockerfile       string
-	dockerImages     []string
-	dockerContextDir string
-	dockerUser       string
-	dockerPW         string
-	dockerRegistry   string
-	workingDir       string
-	gitURL           string
-	gitBranch        string
-	gitHeadRev       string
-	gitPATokenUser   string
-	gitPAToken       string
-	gitXToken        string
-	webArchive       string
-	buildArgs        []string
-	buildSecretArgs  []string
-	pull             bool
-	noCache          bool
-	push             bool
-	files            test.FileSystemExpectations
-	expected         build.Request
-	expectedError    string
+	dockerfile          string
+	dockerImages        []string
+	dockerContextDir    string
+	dockerUser          string
+	dockerPW            string
+	dockerRegistry      string
+	dockerContextString string
+	workingDir          string
+	gitURL              string
+	gitBranch           string
+	gitHeadRev          string
+	gitPATokenUser      string
+	gitPAToken          string
+	gitXToken           string
+	webArchive          string
+	buildArgs           []string
+	buildSecretArgs     []string
+	pull                bool
+	noCache             bool
+	push                bool
+	files               test.FileSystemExpectations
+	expected            build.Request
+	expectedError       string
 }
 
 func TestCreateBuildRequestNoParams(t *testing.T) {
@@ -517,7 +519,7 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 	builder := NewBuilder(runner)
 	req, err := builder.createBuildRequest(
 		tc.dockerfile, tc.dockerImages, tc.dockerContextDir,
-		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.workingDir,
+		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.dockerContextString, tc.workingDir,
 		tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
 		tc.webArchive, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
@@ -539,6 +541,7 @@ type runTestCase struct {
 	dockerUser           string
 	dockerPW             string
 	dockerRegistry       string
+	dockerContextString  string
 	workingDir           string
 	gitURL               string
 	gitBranch            string
@@ -728,6 +731,7 @@ func testRun(t *testing.T, tc runTestCase) {
 	dependencies, err := builder.Run(tc.buildNumber,
 		tc.dockerfile, tc.dockerImages, tc.dockerContextDir,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
+		tc.dockerContextString,
 		tc.workingDir, tc.gitURL, tc.gitBranch, tc.gitHeadRev,
 		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
 		tc.webArchive, tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)

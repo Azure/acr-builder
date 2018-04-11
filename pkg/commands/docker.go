@@ -11,6 +11,7 @@ import (
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/Azure/acr-builder/pkg/grok"
+	dockerbuild "github.com/docker/cli/cli/command/image/build"
 )
 
 const (
@@ -54,9 +55,7 @@ func (u *dockerUsernamePassword) Authenticate(runner build.Runner) error {
 // NewDockerBuild creates a build target with specified docker file and build parameters
 func NewDockerBuild(dockerfile, contextDir string,
 	buildArgs, buildSecretArgs []string, registry string, imageNames []string, pull, noCache bool) build.Target {
-
 	var pushTo []string
-
 	// If imageName is empty, skip push.
 	// If registry is empty, it means push to DockerHub.
 	for _, imageName := range imageNames {
@@ -92,12 +91,20 @@ type dockerBuildTask struct {
 	noCache         bool
 }
 
+func (t *dockerBuildTask) Ensure(runner build.Runner) error {
+	if t.dockerfile == constants.FromStdin {
+		t.dockerfile = dockerbuild.DefaultDockerfileName
+		return runner.GetFileSystem().WriteFile(t.dockerfile, runner.GetStdin())
+	}
+	return nil
+}
+
 func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.ImageDependencies, error) {
 	env := runner.GetContext()
 	var dockerfile string
 	var dep []build.ImageDependencies
 	if t.dockerfile == "" {
-		dockerfile = constants.DefaultDockerfile
+		dockerfile = dockerbuild.DefaultDockerfileName
 	} else {
 		dockerfile = env.Expand(t.dockerfile)
 	}

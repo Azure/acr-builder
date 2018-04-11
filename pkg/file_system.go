@@ -2,9 +2,11 @@ package build
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,6 +17,9 @@ type FileSystem interface {
 	DoesDirExist(path string) (bool, error)
 	DoesFileExist(path string) (bool, error)
 	IsDirEmpty(path string) (bool, error)
+	WriteFile(path string, source io.Reader) error
+	CreateTempDir() (string, error)
+	Cleanup()
 }
 
 // ContextAware are any objects that are aware of build contexts
@@ -26,7 +31,8 @@ type ContextAware interface {
 // ContextAwareFileSystem is a collections of file sysetm operations
 // which will resolves the input with respect to BuilderContext
 type ContextAwareFileSystem struct {
-	context *BuilderContext
+	context  *BuilderContext
+	tempDirs []string
 }
 
 // NewContextAwareFileSystem creates a new file system with no context
@@ -89,4 +95,51 @@ func (r *ContextAwareFileSystem) lookupPath(path string, isDir bool) (bool, erro
 		logrus.Warnf("Unexpected error while getting path: %s", path)
 	}
 	return false, err
+}
+
+// WriteFile writes stream from reader to path
+// NOTE:
+// 1. it assumes that the directory already exists
+// 2. it overwrites any existing file and will not create a backup
+func (r *ContextAwareFileSystem) WriteFile(path string, source io.Reader) error {
+	path = r.context.Expand(path)
+	f, err := os.Create(path)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to create %s", path)
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error closing file: %s", err)
+		}
+	}()
+	_, err = io.Copy(f, source)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to write %s", path)
+	}
+	return nil
+}
+
+// CreateTempDir creates a temp directory
+func (r *ContextAwareFileSystem) CreateTempDir() (tmpDir string, err error) {
+	tmpDir, err = ioutil.TempDir("", "acr-build-context-")
+	if err != nil {
+		return
+	}
+	r.tempDirs = append(r.tempDirs, tmpDir)
+	return
+}
+
+// Cleanup delete all resources allocated by this filesystem object such as temp directory
+func (r *ContextAwareFileSystem) Cleanup() {
+	for _, dir := range r.tempDirs {
+		err := os.RemoveAll(dir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to remove temp directory: %s, error: %s", dir, err)
+		}
+	}
+}
+
+// TempDirsCreated lists all temp dir created
+func (r *ContextAwareFileSystem) TempDirsCreated() []string {
+	return r.tempDirs
 }

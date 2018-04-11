@@ -1,4 +1,4 @@
-FROM golang:1.9.1-stretch as build
+FROM golang:1.10.1-stretch as build
 RUN go get -u github.com/kisielk/errcheck &&\
     go get -u honnef.co/go/tools/cmd/megacheck &&\
     go get -u github.com/golang/lint/golint

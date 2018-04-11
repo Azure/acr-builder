@@ -1,6 +1,7 @@
 package testCommon
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -117,6 +118,14 @@ func AssertSameDependencies(t *testing.T, expectedList []build.ImageDependencies
 	}
 }
 
+func AssertErrorPattern(t *testing.T, pattern string, err error) {
+	if pattern != "" {
+		assert.Regexp(t, regexp.MustCompile(pattern), err.Error())
+	} else {
+		assert.Nil(t, err)
+	}
+}
+
 // DotnetExampleTargetRegistryName is a placeholder registry name
 const DotnetExampleTargetRegistryName = "registry"
 
@@ -202,4 +211,19 @@ func ImageReferenceWithDigest(original *build.ImageReference) *build.ImageRefere
 	}
 	result.Digest = GetDigest(imageName)
 	return result
+}
+
+var ExpectedACRBuilderRelativePaths = []string{
+	"Dockerfile",
+	"CONTRIBUTING.md",
+	"Makefile",
+	"main.go",
+	"README.md",
+	"VERSION",
+	"LICENSE",
+}
+
+var ExpectedMultiStageExampleRelativePaths = []string{
+	"Dockerfile",
+	"program.go",
 }

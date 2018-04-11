@@ -38,6 +38,7 @@ var (
 func main() {
 	var dockerfile, dockerContextDir string
 	var dockerImages stringSlice
+	var dockerContextString string
 	var workingDir string
 	var gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken string
 	var webArchive string
@@ -49,6 +50,7 @@ func main() {
 	var pull, noCache, push, debug bool
 	var buildNumber string
 	flag.StringVar(&buildNumber, constants.ArgNameBuildNumber, "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.ExportsBuildNumber))
+	flag.StringVar(&dockerContextString, constants.ArgNameDockerContextString, "", "Working directory for the builder.")
 	flag.StringVar(&workingDir, constants.ArgNameWorkingDir, "", "Working directory for the builder.")
 	flag.StringVar(&gitURL, constants.ArgNameGitURL, "", "Git url to the project")
 	flag.StringVar(&gitBranch, constants.ArgNameGitBranch, "", "The git branch to checkout. If it is not given, no checkout command would be performed.")
@@ -90,7 +92,9 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
-	builder := driver.NewBuilder(shell.NewRunner())
+	runner := shell.NewRunner()
+	defer runner.GetFileSystem().Cleanup()
+	builder := driver.NewBuilder(runner)
 
 	normalizedDockerImages := getNormalizedDockerImageNames(dockerImages)
 
@@ -98,6 +102,7 @@ func main() {
 		buildNumber,
 		dockerfile, normalizedDockerImages, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
+		dockerContextString,
 		workingDir,
 		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
 		webArchive,

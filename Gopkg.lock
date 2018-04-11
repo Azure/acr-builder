@@ -2,10 +2,25 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/Azure/go-ansiterm"
+  packages = [
+    ".",
+    "winterm"
+  ]
+  revision = "d6e3b3328b783f23731bc4d058875b0371ff8109"
+
+[[projects]]
   name = "github.com/Microsoft/go-winio"
   packages = ["."]
   revision = "7da180ee92d8bd8bb8c37fc560e673e6557c392f"
   version = "v0.4.7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/Nvveen/Gotty"
+  packages = ["."]
+  revision = "cd527374f1e5bff4938207604a14f2e38a9cf512"
 
 [[projects]]
   branch = "master"
@@ -20,6 +35,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/docker/cli"
+  packages = ["cli/command/image/build"]
+  revision = "e5980c541ac84b3570922cb15af52a5065f96bae"
+
+[[projects]]
   name = "github.com/docker/distribution"
   packages = [
     "digestset",
@@ -31,14 +52,24 @@
   branch = "master"
   name = "github.com/docker/docker"
   packages = [
+    "builder/dockerignore",
+    "builder/remotecontext/git",
     "pkg/archive",
     "pkg/fileutils",
     "pkg/idtools",
     "pkg/ioutils",
+    "pkg/jsonmessage",
     "pkg/longpath",
     "pkg/mount",
     "pkg/pools",
-    "pkg/system"
+    "pkg/progress",
+    "pkg/streamformatter",
+    "pkg/stringid",
+    "pkg/symlink",
+    "pkg/system",
+    "pkg/term",
+    "pkg/term/windows",
+    "pkg/urlutil"
   ]
   revision = "61138fb5fc0f5fc1799cabfa86d28fb88a0f472c"
   source = "github.com/moby/moby"
@@ -124,9 +155,15 @@
   ]
   revision = "d38bf781f16e180a1b2ad82697d2f81d7b7ecfac"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/time"
+  packages = ["rate"]
+  revision = "fbb02b2291d28baffd63558aa44b4b56f178d650"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "220d13d4a2aad51a403375493b7c814aa7529f556f44d85d81af3442f77d71ad"
+  inputs-digest = "53ae7726aeb0068ecfc079ee51f54a4014dd62a26d5e2f13f173bfe4df797b08"
   solver-name = "gps-cdcl"
   solver-version = 1

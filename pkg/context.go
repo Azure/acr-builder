@@ -8,6 +8,7 @@ import (
 
 // Runner is used to run shell commands
 type Runner interface {
+	GetStdin() io.Reader
 	GetFileSystem() FileSystem
 	SetContext(context *BuilderContext)
 	GetContext() *BuilderContext

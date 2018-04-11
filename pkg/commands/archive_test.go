@@ -34,7 +34,7 @@ func TestObtainFromKnownLocation(t *testing.T) {
 			url: testCommon.StaticFileHost,
 			handler: &testCommon.StaticArchiveHandler{
 				T:           t,
-				ArchiveRoot: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-multistage"),
+				ArchiveRoot: testCommon.MultiStageExampleRoot,
 			},
 			targetDir: targetDir,
 			expectedChdir: []test.ChdirExpectation{

@@ -6,11 +6,11 @@ import (
 	"github.com/Azure/acr-builder/pkg/constants"
 )
 
-func getSource(workingDir,
+func getSource(dockerContextString, workingDir, dockerfile,
 	gitURL, gitBranch, gitHeadRev, gitXToken, gitPATokenUser, gitPAToken,
 	webArchive string) (source build.Source, err error) {
 
-	var webArchiveFactory, gitFactory, localFactory, selected *factory
+	var passthroughFactory, webArchiveFactory, gitFactory, localFactory, selected *factory
 	webArchiveFactory, err = newFactory(constants.SourceNameWebArchive,
 		func() (build.Source, error) {
 			return commands.NewArchiveSource(webArchive, workingDir), nil
@@ -53,6 +53,19 @@ func getSource(workingDir,
 		return
 	}
 
+	passthroughFactory, err = newFactory(constants.SourceNamePassThrough,
+		func() (build.Source, error) {
+			return commands.NewPassThroughSource(workingDir, dockerContextString, dockerfile)
+		},
+		[]parameter{
+			{name: constants.ArgNameDockerContextString, value: dockerContextString},
+		},
+		[]parameter{},
+	)
+	if err != nil {
+		return
+	}
+
 	localFactory, err = newFactory(constants.SourceNameLocal,
 		func() (build.Source, error) {
 			return commands.NewLocalSource(workingDir), nil
@@ -61,7 +74,7 @@ func getSource(workingDir,
 		return
 	}
 
-	selected, err = decide("sources", localFactory, gitFactory, webArchiveFactory)
+	selected, err = decide("sources", localFactory, passthroughFactory, gitFactory, webArchiveFactory)
 	if err != nil {
 		return
 	}

@@ -11,6 +11,11 @@ type MockBuildTarget struct {
 	mock.Mock
 }
 
+func (m *MockBuildTarget) Ensure(runner build.Runner) error {
+	values := m.Called(runner)
+	return values.Error(0)
+}
+
 func (m *MockBuildTarget) Build(runner build.Runner) error {
 	values := m.Called(runner)
 	return values.Error(0)

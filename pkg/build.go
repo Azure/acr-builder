@@ -53,6 +53,7 @@ type Source interface {
 type Target interface {
 	// Build task can't be a generic tasks now because it needs to return ImageDependencies
 	// If we use docker events to figure out dependencies, we can make build tasks a generic task
+	Ensure(runner Runner) error
 	Build(runner Runner) error
 	Push(runner Runner) error
 	ScanForDependencies(runner Runner) ([]ImageDependencies, error)
