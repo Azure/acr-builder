@@ -361,7 +361,6 @@ func FileInfoHeader(name string, fi os.FileInfo, link string) (*tar.Header, erro
 	if err != nil {
 		return nil, err
 	}
-	hdr.Format = tar.FormatPAX
 	hdr.ModTime = hdr.ModTime.Truncate(time.Second)
 	hdr.AccessTime = time.Time{}
 	hdr.ChangeTime = time.Time{}
@@ -1163,7 +1162,6 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 			if err != nil {
 				return err
 			}
-			hdr.Format = tar.FormatPAX
 			hdr.ModTime = hdr.ModTime.Truncate(time.Second)
 			hdr.AccessTime = time.Time{}
 			hdr.ChangeTime = time.Time{}
