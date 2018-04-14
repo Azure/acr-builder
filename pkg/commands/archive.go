@@ -1,20 +1,22 @@
 package commands
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 
 	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
+)
+
+const (
+	tempWorkingDir = "temp"
+	tempFileName   = "temp.tar.gz"
 )
 
 // ArchiveSource defines source in the form of an archive file
@@ -50,31 +52,43 @@ func (s *ArchiveSource) Obtain(runner build.Runner) error {
 
 	baseDir := s.targetDir
 	if baseDir == "" {
-		baseDir = "."
+		baseDir = tempWorkingDir
+	}
+
+	if err = fileutils.CreateIfNotExists(baseDir, true); err != nil {
+		return err
 	}
 
 	logrus.Infof("Base directory: %s", baseDir)
 
-	err = ioutil.WriteFile(baseDir, bytes, 0755)
-	if err != nil {
+	fn := tempFileName
+	logrus.Infof("Writing file: %s", fn)
+	if err = ioutil.WriteFile(fn, bytes, 0755); err != nil {
 		return err
 	}
 
-	tarArchive, err := os.Open(baseDir)
+	logrus.Infof("Opening tar: %s", fn)
+	tarArchive, err := os.Open(fn)
 	if err != nil {
 		return err
 	}
 	defer tarArchive.Close()
 
-	err = archive.Untar(tarArchive, baseDir, nil)
+	// Remove the temporary tar if possible.
+	_ = os.Remove(fn)
+
+	// TODO: clean up the untarred directory. It needs to be cleaned up
+	// after generating dependencies.
+	logrus.Infof("Untarring %s to %s", fn, baseDir)
+	if err = archive.Untar(tarArchive, baseDir, nil); err != nil {
+		return err
+	}
+
+	tracker, err := ChdirWithTracking(runner, baseDir)
 	if err != nil {
 		return err
 	}
 
-	tracker, err := ChdirWithTracking(runner, s.targetDir)
-	if err != nil {
-		return err
-	}
 	s.tracker = tracker
 	return err
 }
@@ -97,65 +111,4 @@ func (s *ArchiveSource) Export() []build.EnvVar {
 		})
 	}
 	return exports
-}
-
-func unTAR(baseDir string, r io.Reader) error {
-	gzr, err := gzip.NewReader(r)
-	defer func() {
-		err := gzr.Close()
-		if err != nil {
-			logrus.Warnf("Error closing gz archive, error: %s", err)
-		}
-	}()
-	if err != nil {
-		return err
-	}
-	tr := tar.NewReader(gzr)
-	for {
-		header, err := tr.Next()
-		switch {
-		case err == io.EOF:
-			return nil
-
-		case err != nil:
-			return err
-
-		case header == nil:
-			continue
-		}
-
-		target := filepath.Join(baseDir, header.Name)
-
-		// check the file type
-		switch header.Typeflag {
-
-		// if its a dir and it doesn't exist create it
-		case tar.TypeDir:
-			if _, err := os.Stat(target); err != nil {
-				if err := os.MkdirAll(target, 0755); err != nil {
-					return err
-				}
-			}
-
-		// if it's a file create it
-		case tar.TypeReg:
-			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-			if err != nil {
-				return err
-			}
-			defer func() {
-				err := f.Close()
-				if err != nil {
-					logrus.Warnf("Error closing file %s, error: %s", target, err)
-				}
-			}()
-			// copy over contents
-			if _, err := io.Copy(f, tr); err != nil {
-				return err
-			}
-
-		default:
-			logrus.Debugf("Ignoring unexpected file %s, type: %d", header.Name, header.Typeflag)
-		}
-	}
 }

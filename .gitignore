@@ -14,3 +14,6 @@ acr-builder
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
+
+# temp folder when downloading tars
+temp/
