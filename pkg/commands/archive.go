@@ -2,28 +2,20 @@ package commands
 
 import (
 	"archive/tar"
-	"bufio"
-	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 
+	"github.com/docker/docker/pkg/archive"
 	"github.com/sirupsen/logrus"
 
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
 )
-
-const maxHeaderSize = 4
-
-// NOTE: only support .tar.gz for now
-var supportedArchiveHeaders = map[byte][]byte{
-	// Gzip
-	0x1F: {0x1F, 0x8B, 0x08},
-}
 
 // ArchiveSource defines source in the form of an archive file
 // Currently we only support tar.gz
@@ -51,25 +43,32 @@ func (s *ArchiveSource) Obtain(runner build.Runner) error {
 		}
 	}()
 
-	buf := bufio.NewReader(response.Body)
-	peek, err := buf.Peek(maxHeaderSize)
-	if err != nil && err != io.EOF {
-		return fmt.Errorf("Failed to peek context header: %s", err)
-	}
-	supported, err := isSupportedArchive(peek)
+	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return fmt.Errorf("Failed to read context header: %s", err)
-	}
-	if !supported {
-		return fmt.Errorf("Unexpected file format for %s", s.url)
+		return err
 	}
 
 	baseDir := s.targetDir
 	if baseDir == "" {
 		baseDir = "."
 	}
-	if err := unTAR(baseDir, buf); err != nil {
-		return fmt.Errorf("Failed to extract archive from %s, error: %s", s.url, err)
+
+	logrus.Infof("Base directory: %s", baseDir)
+
+	err = ioutil.WriteFile(baseDir, bytes, 0755)
+	if err != nil {
+		return err
+	}
+
+	tarArchive, err := os.Open(baseDir)
+	if err != nil {
+		return err
+	}
+	defer tarArchive.Close()
+
+	err = archive.Untar(tarArchive, baseDir, nil)
+	if err != nil {
+		return err
 	}
 
 	tracker, err := ChdirWithTracking(runner, s.targetDir)
@@ -77,7 +76,7 @@ func (s *ArchiveSource) Obtain(runner build.Runner) error {
 		return err
 	}
 	s.tracker = tracker
-	return nil
+	return err
 }
 
 // Return chdir back, currently not delete the extacted source
@@ -159,15 +158,4 @@ func unTAR(baseDir string, r io.Reader) error {
 			logrus.Debugf("Ignoring unexpected file %s, type: %d", header.Name, header.Typeflag)
 		}
 	}
-}
-
-func isSupportedArchive(source []byte) (bool, error) {
-	if len(source) < 1 {
-		return false, fmt.Errorf("Empty header")
-	}
-	header, found := supportedArchiveHeaders[source[0]]
-	if len(source) < len(header) {
-		return false, fmt.Errorf("Format of the file content cannot be determined. File header is corrupted")
-	}
-	return found && bytes.Equal(source[:len(header)], header), nil
 }

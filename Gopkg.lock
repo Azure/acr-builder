@@ -2,6 +2,18 @@
 
 
 [[projects]]
+  name = "github.com/Microsoft/go-winio"
+  packages = ["."]
+  revision = "7da180ee92d8bd8bb8c37fc560e673e6557c392f"
+  version = "v0.4.7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/containerd/continuity"
+  packages = ["pathdriver"]
+  revision = "3e8f2ea4b190484acb976a5b378d373429639a1a"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -16,10 +28,56 @@
   revision = "277ed486c948042cab91ad367c379524f3b25e18"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/docker/docker"
+  packages = [
+    "pkg/archive",
+    "pkg/fileutils",
+    "pkg/idtools",
+    "pkg/ioutils",
+    "pkg/longpath",
+    "pkg/mount",
+    "pkg/pools",
+    "pkg/system"
+  ]
+  revision = "61138fb5fc0f5fc1799cabfa86d28fb88a0f472c"
+  source = "github.com/moby/moby"
+
+[[projects]]
+  name = "github.com/docker/go-units"
+  packages = ["."]
+  revision = "47565b4f722fb6ceae66b95f853feed578a4a51c"
+  version = "v0.3.3"
+
+[[projects]]
   name = "github.com/opencontainers/go-digest"
   packages = ["."]
   revision = "279bed98673dd5bef374d3b6e4b09e2af76183bf"
   version = "v1.0.0-rc1"
+
+[[projects]]
+  name = "github.com/opencontainers/image-spec"
+  packages = [
+    "specs-go",
+    "specs-go/v1"
+  ]
+  revision = "d60099175f88c47cd379c4738d158884749ed235"
+  version = "v1.0.1"
+
+[[projects]]
+  name = "github.com/opencontainers/runc"
+  packages = [
+    "libcontainer/system",
+    "libcontainer/user"
+  ]
+  revision = "baf6536d6259209c3edfa2b22237af82942d3dfa"
+  version = "v0.1.1"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -53,6 +111,12 @@
   revision = "0fcca4842a8d74bfddc2c96a073bd2a4d2a7a2e8"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = ["context"]
+  revision = "61147c48b25b599e5b561d2e9c4f3e1ef489ca41"
+
+[[projects]]
   name = "golang.org/x/sys"
   packages = [
     "unix",
@@ -60,14 +124,9 @@
   ]
   revision = "d38bf781f16e180a1b2ad82697d2f81d7b7ecfac"
 
-[[projects]]
-  name = "gopkg.in/yaml.v2"
-  packages = ["."]
-  revision = "1244d3ce02e3e1c16820ada0bae506b6c479f106"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "29e42ffa9a8211b2b36a929fa7d367ec44309dba9574f2a60917cd1a8fe89855"
+  inputs-digest = "220d13d4a2aad51a403375493b7c814aa7529f556f44d85d81af3442f77d71ad"
   solver-name = "gps-cdcl"
   solver-version = 1
