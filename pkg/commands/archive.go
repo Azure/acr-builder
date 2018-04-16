@@ -2,9 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/fileutils"
@@ -16,7 +14,6 @@ import (
 
 const (
 	tempWorkingDir = "temp"
-	tempFileName   = "temp.tar.gz"
 )
 
 // ArchiveSource defines source in the form of an archive file
@@ -45,11 +42,6 @@ func (s *ArchiveSource) Obtain(runner build.Runner) error {
 		}
 	}()
 
-	bytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
-
 	baseDir := s.targetDir
 	if baseDir == "" {
 		baseDir = tempWorkingDir
@@ -59,28 +51,10 @@ func (s *ArchiveSource) Obtain(runner build.Runner) error {
 		return err
 	}
 
-	logrus.Infof("Base directory: %s", baseDir)
-
-	fn := tempFileName
-	logrus.Infof("Writing file: %s", fn)
-	if err = ioutil.WriteFile(fn, bytes, 0755); err != nil {
-		return err
-	}
-
-	logrus.Infof("Opening tar: %s", fn)
-	tarArchive, err := os.Open(fn)
-	if err != nil {
-		return err
-	}
-	defer tarArchive.Close()
-
-	// Remove the temporary tar if possible.
-	_ = os.Remove(fn)
-
 	// TODO: clean up the untarred directory. It needs to be cleaned up
 	// after generating dependencies.
-	logrus.Infof("Untarring %s to %s", fn, baseDir)
-	if err = archive.Untar(tarArchive, baseDir, nil); err != nil {
+	logrus.Infof("Untarring to %s", baseDir)
+	if err = archive.Untar(response.Body, baseDir, nil); err != nil {
 		return err
 	}
 
