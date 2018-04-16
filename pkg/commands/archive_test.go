@@ -49,26 +49,6 @@ func TestObtainFromKnownLocation(t *testing.T) {
 	)
 }
 
-func TestObtainIncorrectFileFormat(t *testing.T) {
-	targetDir := filepath.Join(testCommon.Config.ProjectRoot, "tests", "workspace")
-	testArchiveSource(t,
-		obtainTestCase{
-			url: testCommon.StaticFileHost,
-			handler: &testCommon.StaticContentHandler{
-				T:       t,
-				Content: []byte("hello world"),
-			},
-			targetDir: targetDir,
-			expectedChdir: []test.ChdirExpectation{
-				{Path: targetDir},
-				{Path: "home"},
-			},
-			getWdErr:          &testCommon.NilError,
-			expectedObtainErr: "^Unexpected file format for .+",
-		},
-	)
-}
-
 func testArchiveSource(t *testing.T, tc obtainTestCase) {
 	cleanup(tc.targetDir)
 	defer cleanup(tc.targetDir)

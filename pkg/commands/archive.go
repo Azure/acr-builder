@@ -1,29 +1,23 @@
 package commands
 
 import (
-	"archive/tar"
-	"bufio"
-	"bytes"
-	"compress/gzip"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 
+	"github.com/docker/docker/pkg/archive"
+	"github.com/docker/docker/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
 )
 
-const maxHeaderSize = 4
-
-// NOTE: only support .tar.gz for now
-var supportedArchiveHeaders = map[byte][]byte{
-	// Gzip
-	0x1F: {0x1F, 0x8B, 0x08},
-}
+const (
+	tempWorkingDir = "temp"
+	tempFileName   = "temp.tar.gz"
+)
 
 // ArchiveSource defines source in the form of an archive file
 // Currently we only support tar.gz
@@ -51,33 +45,52 @@ func (s *ArchiveSource) Obtain(runner build.Runner) error {
 		}
 	}()
 
-	buf := bufio.NewReader(response.Body)
-	peek, err := buf.Peek(maxHeaderSize)
-	if err != nil && err != io.EOF {
-		return fmt.Errorf("Failed to peek context header: %s", err)
-	}
-	supported, err := isSupportedArchive(peek)
+	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return fmt.Errorf("Failed to read context header: %s", err)
-	}
-	if !supported {
-		return fmt.Errorf("Unexpected file format for %s", s.url)
+		return err
 	}
 
 	baseDir := s.targetDir
 	if baseDir == "" {
-		baseDir = "."
-	}
-	if err := unTAR(baseDir, buf); err != nil {
-		return fmt.Errorf("Failed to extract archive from %s, error: %s", s.url, err)
+		baseDir = tempWorkingDir
 	}
 
-	tracker, err := ChdirWithTracking(runner, s.targetDir)
+	if err = fileutils.CreateIfNotExists(baseDir, true); err != nil {
+		return err
+	}
+
+	logrus.Infof("Base directory: %s", baseDir)
+
+	fn := tempFileName
+	logrus.Infof("Writing file: %s", fn)
+	if err = ioutil.WriteFile(fn, bytes, 0755); err != nil {
+		return err
+	}
+
+	logrus.Infof("Opening tar: %s", fn)
+	tarArchive, err := os.Open(fn)
 	if err != nil {
 		return err
 	}
+	defer tarArchive.Close()
+
+	// Remove the temporary tar if possible.
+	_ = os.Remove(fn)
+
+	// TODO: clean up the untarred directory. It needs to be cleaned up
+	// after generating dependencies.
+	logrus.Infof("Untarring %s to %s", fn, baseDir)
+	if err = archive.Untar(tarArchive, baseDir, nil); err != nil {
+		return err
+	}
+
+	tracker, err := ChdirWithTracking(runner, baseDir)
+	if err != nil {
+		return err
+	}
+
 	s.tracker = tracker
-	return nil
+	return err
 }
 
 // Return chdir back, currently not delete the extacted source
@@ -98,76 +111,4 @@ func (s *ArchiveSource) Export() []build.EnvVar {
 		})
 	}
 	return exports
-}
-
-func unTAR(baseDir string, r io.Reader) error {
-	gzr, err := gzip.NewReader(r)
-	defer func() {
-		err := gzr.Close()
-		if err != nil {
-			logrus.Warnf("Error closing gz archive, error: %s", err)
-		}
-	}()
-	if err != nil {
-		return err
-	}
-	tr := tar.NewReader(gzr)
-	for {
-		header, err := tr.Next()
-		switch {
-		case err == io.EOF:
-			return nil
-
-		case err != nil:
-			return err
-
-		case header == nil:
-			continue
-		}
-
-		target := filepath.Join(baseDir, header.Name)
-
-		// check the file type
-		switch header.Typeflag {
-
-		// if its a dir and it doesn't exist create it
-		case tar.TypeDir:
-			if _, err := os.Stat(target); err != nil {
-				if err := os.MkdirAll(target, 0755); err != nil {
-					return err
-				}
-			}
-
-		// if it's a file create it
-		case tar.TypeReg:
-			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-			if err != nil {
-				return err
-			}
-			defer func() {
-				err := f.Close()
-				if err != nil {
-					logrus.Warnf("Error closing file %s, error: %s", target, err)
-				}
-			}()
-			// copy over contents
-			if _, err := io.Copy(f, tr); err != nil {
-				return err
-			}
-
-		default:
-			logrus.Debugf("Ignoring unexpected file %s, type: %d", header.Name, header.Typeflag)
-		}
-	}
-}
-
-func isSupportedArchive(source []byte) (bool, error) {
-	if len(source) < 1 {
-		return false, fmt.Errorf("Empty header")
-	}
-	header, found := supportedArchiveHeaders[source[0]]
-	if len(source) < len(header) {
-		return false, fmt.Errorf("Format of the file content cannot be determined. File header is corrupted")
-	}
-	return found && bytes.Equal(source[:len(header)], header), nil
 }
