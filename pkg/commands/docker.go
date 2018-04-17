@@ -233,7 +233,7 @@ func getRepoDigest(jsonContent string, reference *build.ImageReference) string {
 	// Output: <empty>
 
 	prefix := reference.Repository + "@"
-	if len(reference.Registry) > 0 && reference.Registry != build.DockerHubRegistry {
+	if len(reference.Registry) > 0 {
 		prefix = reference.Registry + "/" + prefix
 	}
 	var digestList []string

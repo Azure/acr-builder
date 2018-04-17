@@ -10,9 +10,6 @@ import (
 	"github.com/docker/distribution/reference"
 )
 
-// DockerHubRegistry is the docker hub registry
-const DockerHubRegistry = "registry.hub.docker.com"
-
 // EnvVar defines an environmental variable
 type EnvVar struct {
 	Name  string
@@ -92,11 +89,10 @@ func NewImageReference(path string) (*ImageReference, error) {
 		} else {
 			// DockerHub
 			if result.Registry == "" {
-				result.Registry = DockerHubRegistry
 				result.Repository = reference.Path(named)
 			} else {
 				// The domain is the DockerHub user name
-				result.Registry = DockerHubRegistry
+				result.Registry = ""
 				result.Repository = strings.Join([]string{reference.Domain(named), reference.Path(named)}, "/")
 			}
 		}
