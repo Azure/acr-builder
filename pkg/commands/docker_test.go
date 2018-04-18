@@ -192,7 +192,7 @@ func TestDockerGetRepoDigestSucceed(t *testing.T) {
 	testDockerGetRepoDigest(t, repoDigestTestcase{
 		jsonContent: "[\"user2/repo2@sha256:testsha2\", \"user1/repo1@sha256:testsha1\"]",
 		reference: &build.ImageReference{
-			Registry:   "",
+			Registry:   build.DockerHubRegistry,
 			Repository: "user1/repo1",
 		},
 		expectedDigest: "sha256:testsha1",
