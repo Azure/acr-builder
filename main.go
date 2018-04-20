@@ -107,7 +107,7 @@ func main() {
 		os.Exit(constants.GeneralErrorExitCode)
 	}
 
-	output, err := json.Marshal(dependencies)
+	output, err := json.MarshalIndent(dependencies, "", "    ")
 	if err != nil {
 		logrus.Errorf("Failed to serialize dependencies %s", err)
 		os.Exit(constants.GeneralErrorExitCode)
