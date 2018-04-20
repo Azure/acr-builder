@@ -103,6 +103,14 @@ func NewImageReference(path string) (*ImageReference, error) {
 	}
 	if tagged, ok := ref.(reference.Tagged); ok {
 		result.Tag = tagged.Tag()
+	} else {
+		// Append the "latest" Tag if the path doesn't have a tag AND
+		// it isn't a manifest. E.g., the path is "golang"
+		// In this case we don't want the user to receive automatic
+		// updates since they've specified an absolute digest.
+		if !strings.Contains(path, "@") {
+			result.Tag = "latest"
+		}
 	}
 	return result, nil
 }
