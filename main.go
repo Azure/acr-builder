@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 
+	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/driver"
 	"github.com/Azure/acr-builder/pkg/shell"
 
@@ -90,9 +91,12 @@ func main() {
 	}
 
 	builder := driver.NewBuilder(shell.NewRunner())
+
+	normalizedDockerImages := getNormalizedDockerImageNames(dockerImages)
+
 	dependencies, err := builder.Run(
 		buildNumber,
-		dockerfile, dockerImages, dockerContextDir,
+		dockerfile, normalizedDockerImages, dockerContextDir,
 		dockerUser, dockerPW, dockerRegistry,
 		workingDir,
 		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
@@ -115,4 +119,22 @@ func main() {
 
 	fmt.Printf("\nACR Builder discovered the following dependencies:\n%s\n", string(output))
 	fmt.Println("\nBuild complete")
+}
+
+// getNormalizedDockerImageNames normalizes the list of docker images
+// and removes any duplicates.
+func getNormalizedDockerImageNames(dockerImages []string) []string {
+	dict := map[string]bool{}
+	normalizedDockerImages := []string{}
+	for _, d := range dockerImages {
+		d := build.NormalizeImageTag(d)
+		if dict[d] {
+			continue
+		}
+
+		dict[d] = true
+		normalizedDockerImages = append(normalizedDockerImages, d)
+	}
+
+	return normalizedDockerImages
 }
