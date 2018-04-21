@@ -26,4 +26,10 @@ const (
 
 	// DependencyTypeRuntime denotes runtime dependency
 	DependencyTypeRuntime = "runtime"
+
+	// NoBaseImageSpecifierLatest is the symbol used by the FROM
+	// command to specify that no base image is to be used.
+	// Note that :latest is not valid in the FROM clause, but we're
+	// always appending :latest to tags during processing.
+	NoBaseImageSpecifierLatest = "scratch:latest"
 )
