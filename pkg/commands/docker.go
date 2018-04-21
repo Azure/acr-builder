@@ -205,6 +205,14 @@ func PopulateDigests(runner build.Runner, dependencies []build.ImageDependencies
 func queryDigest(runner build.Runner, reference *build.ImageReference) error {
 	if reference != nil {
 		refString := reference.String()
+
+		// refString will always have the tag specified at this point.
+		// For "scratch", we have to compare it against "scratch:latest" even though
+		// scratch:latest isn't valid in a FROM clause.
+		if refString == build.NormalizeImageTag(constants.NoBaseImageSpecifier) {
+			return nil
+		}
+
 		output, err := runner.QueryCmd("docker", []string{
 			"inspect", "--format", "\"{{json .RepoDigests}}\"", refString,
 		})

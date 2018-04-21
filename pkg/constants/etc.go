@@ -26,4 +26,8 @@ const (
 
 	// DependencyTypeRuntime denotes runtime dependency
 	DependencyTypeRuntime = "runtime"
+
+	// NoBaseImageSpecifier is the symbol used by the FROM
+	// command to specify that no base image is to be used.
+	NoBaseImageSpecifier = "scratch"
 )
