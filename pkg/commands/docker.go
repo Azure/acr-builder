@@ -209,7 +209,7 @@ func queryDigest(runner build.Runner, reference *build.ImageReference) error {
 		// refString will always have the tag specified at this point.
 		// For "scratch", we have to compare it against "scratch:latest" even though
 		// scratch:latest isn't valid in a FROM clause.
-		if refString == build.NormalizeImageTag(constants.NoBaseImageSpecifier) {
+		if refString == constants.NoBaseImageSpecifierLatest {
 			return nil
 		}
 
