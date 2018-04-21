@@ -126,7 +126,7 @@ func NewImageDependencies(env *BuilderContext, image string, runtime string, bui
 	var dependencies *ImageDependencies
 	if len(image) > 0 {
 		image = env.Expand(image)
-		imageReference, err := NewImageReference(image)
+		imageReference, err := NewImageReference(normalizeImageTag(image))
 		if err != nil {
 			return nil, err
 		}
@@ -140,14 +140,25 @@ func NewImageDependencies(env *BuilderContext, image string, runtime string, bui
 		}
 	}
 
-	runtimeDep, err := NewImageReference(env.Expand(runtime))
+	runtimeDep, err := NewImageReference(normalizeImageTag(env.Expand(runtime)))
 	if err != nil {
 		return nil, err
 	}
 	dependencies.Runtime = runtimeDep
 
+	dict := map[string]bool{}
 	for _, buildtime := range buildtimes {
-		buildtimeDep, err := NewImageReference(env.Expand(buildtime))
+		bt := normalizeImageTag(env.Expand(buildtime))
+
+		// If we've already processed the tag after normalization, skip dependency
+		// generation. I.e., they specify "golang" and "golang:latest"
+		if dict[bt] {
+			continue
+		}
+
+		dict[bt] = true
+
+		buildtimeDep, err := NewImageReference(bt)
 		if err != nil {
 			return nil, err
 		}
@@ -169,4 +180,13 @@ func NewImageDependencies(env *BuilderContext, image string, runtime string, bui
 // DockerCredential denote how to authenticate to a docker registry
 type DockerCredential interface {
 	Authenticate(runner Runner) error
+}
+
+// normalizeImageTag adds "latest" to the image if the specified image
+// has no tag and it's not referenced by digest.
+func normalizeImageTag(img string) string {
+	if !strings.Contains(img, "@") && !strings.Contains(img, ":") {
+		return fmt.Sprintf("%s:latest", img)
+	}
+	return img
 }
