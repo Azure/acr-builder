@@ -245,9 +245,7 @@ func getRepoDigest(jsonContent string, reference *build.ImageReference) string {
 	// we'll fail to query the digest, since image names aren't prefixed with "library/"
 	if strings.HasPrefix(prefix, "library/") && reference.Registry == build.DockerHubRegistry {
 		prefix = prefix[8:]
-	}
-
-	if len(reference.Registry) > 0 && reference.Registry != build.DockerHubRegistry {
+	} else if len(reference.Registry) > 0 && reference.Registry != build.DockerHubRegistry {
 		prefix = reference.Registry + "/" + prefix
 	}
 
