@@ -241,9 +241,16 @@ func getRepoDigest(jsonContent string, reference *build.ImageReference) string {
 	// Output: <empty>
 
 	prefix := reference.Repository + "@"
+	// If the reference has "library/" prefixed, we have to remove it - otherwise
+	// we'll fail to query the digest, since image names aren't prefixed with "library/"
+	if strings.HasPrefix(prefix, "library/") && reference.Registry == build.DockerHubRegistry {
+		prefix = prefix[8:]
+	}
+
 	if len(reference.Registry) > 0 && reference.Registry != build.DockerHubRegistry {
 		prefix = reference.Registry + "/" + prefix
 	}
+
 	var digestList []string
 	if err := json.Unmarshal([]byte(jsonContent), &digestList); err != nil {
 		logrus.Warnf("Error deserialize %s to json, error: %s", jsonContent, err)
