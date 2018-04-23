@@ -93,7 +93,7 @@ func NewImageReference(path string) (*ImageReference, error) {
 			// DockerHub
 			if result.Registry == "" {
 				result.Registry = DockerHubRegistry
-				result.Repository = reference.Path(named)
+				result.Repository = strings.Join([]string{"library", reference.Path(named)}, "/")
 			} else {
 				// The domain is the DockerHub user name
 				result.Registry = DockerHubRegistry
@@ -149,6 +149,14 @@ func NewImageDependencies(env *BuilderContext, image string, runtime string, bui
 	dict := map[string]bool{}
 	for _, buildtime := range buildtimes {
 		bt := NormalizeImageTag(env.Expand(buildtime))
+
+		// If the image is prefixed with "library/", remove it for comparisons.
+		// "library/" will be added again during image reference generation.
+		// This prevents duplicate dependencies when reading "library/golang" and
+		// "golang" from the Dockerfile.
+		if strings.HasPrefix(bt, "library/") {
+			bt = bt[8:]
+		}
 
 		// If we've already processed the tag after normalization, skip dependency
 		// generation. I.e., they specify "golang" and "golang:latest"
