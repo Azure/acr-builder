@@ -60,7 +60,15 @@ func NewDockerBuild(dockerfile, contextDir string,
 	// If imageName is empty, skip push.
 	// If registry is empty, it means push to DockerHub.
 	for _, imageName := range imageNames {
-		pushTo = append(pushTo, fmt.Sprintf("%s%s", registry, imageName))
+		pushTarget := imageName
+
+		// If the registry's specified and the image name is already prefixed with
+		// the registry's name, don't prefix the registry name again.
+		if registry != "" && !strings.HasPrefix(imageName, registry) {
+			pushTarget = fmt.Sprintf("%s%s", registry, imageName)
+		}
+
+		pushTo = append(pushTo, pushTarget)
 	}
 
 	return &dockerBuildTask{
