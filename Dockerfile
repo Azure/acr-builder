@@ -1,7 +1,9 @@
 FROM golang:1.9.1-stretch as build
 RUN go get -u github.com/kisielk/errcheck &&\
-    go get -u honnef.co/go/tools/cmd/megacheck &&\
-    go get -u github.com/golang/lint/golint
+    go get -u honnef.co/go/tools/cmd/megacheck
+RUN mkdir -p $GOPATH/src/golang.org/x \
+  && git clone https://github.com/golang/lint.git $GOPATH/src/golang.org/x/lint \
+  && go get -u golang.org/x/lint/golint
 
 WORKDIR /go/src/github.com/Azure/acr-builder
 COPY ./ /go/src/github.com/Azure/acr-builder
