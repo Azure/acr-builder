@@ -16,8 +16,8 @@ matrix:
 
 install:
   - go get github.com/golang/lint/golint
-  - go get honnef.co/go/tools/cmd/staticcheck
-  
+  - mkdir -p $GOPATH/src/golang.org/x && git clone https://github.com/golang/lint.git $GOPATH/src/golang.org/x/lint && go get -u golang.org/x/lint/golint
+
 before_script:
   - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/)
 
