@@ -147,6 +147,19 @@ func TestDockerPushHappy(t *testing.T) {
 	})
 }
 
+// TestDockerPushHappy_AvoidDuplicatePrefixes verifies that we don't
+// prefix an image name with the registry name if it already has it as a prefix.
+func TestDockerPushHappy_AvoidDuplicatePrefixes(t *testing.T) {
+	testDockerPush(t, dockerTestCase{
+		registry:   "myRegistry/",
+		imageNames: []string{"myRegistry/myImage"},
+		expectedCommands: []test.CommandsExpectation{{
+			Command: "docker",
+			Args:    []string{"push", "myRegistry/myImage"},
+		}},
+	})
+}
+
 type dockerDependenciesTestCase struct {
 	path        string
 	expectedErr string
