@@ -15,7 +15,7 @@ matrix:
   fast_finish: true
 
 install:
-  - go get github.com/golang/lint/golint
+  - mkdir -p $GOPATH/src/golang.org/x && git clone https://github.com/golang/lint.git $GOPATH/src/golang.org/x/lint && go get -u golang.org/x/lint/golint
   - go get honnef.co/go/tools/cmd/staticcheck
   
 before_script:
