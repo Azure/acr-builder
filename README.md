@@ -36,13 +36,15 @@ Run the following on your project directory to build the project and push to a d
 * `--git-username` Git username.
 * `--git-password` Git password.
 * `--working-dir` Working directory for the build.
-* `--docker-file` Dockerfile to be used for building.
+* `--docker-file` Dockerfile to be used for building. If specified, the argument value can be a full path or a relative path to the source repository root. Otherwise, `Dockerfile` will be used.
 * `-t` Image name to build to. It must be used alongside `--dockerfile` if push is required. Registry URL must be excluded from the image name parameter.
-* `--docker-context-dir` Docker build context. Optional, to be used alongside `--dockerfile`.
+* `--docker-context-dir` The path of docker build context folder. If specified, the argument value can be a full path or a relative path to the source repository root.
 * `--docker-build-arg` Build arguments to be passed to docker build. This parameter can be specified multiple times.
 * `--docker-secret-build-arg` Build arguments to be passed to docker build. The argument value contains a secret which will be hidden from the log. This parameter can be specified multiple times.
 * `--build-env` Custom environment variables defined for the build process. This parameter can be specified multiple times. (For more details, see `Build Environment`).
 * `--push` Specify if push is required if build is successful.
+* `--pull` Attempt to pull a newer version of the base images if it's already cached locally.
+* `--no-cache` Not using any cached layer when building the image.
 * `--verbose` Enable verbose output for debugging.
 
 ### Build Environment
