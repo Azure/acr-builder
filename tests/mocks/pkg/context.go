@@ -90,6 +90,10 @@ func (m *MockRunner) PrepareDigestQuery(
 	}
 }
 
+func (m *MockRunner) PrepareGitSHAQuery(value string, err error) {
+	m.On("QueryCmd", "git", []string{"rev-parse", "--verify", "HEAD"}).Return(value, err).Once()
+}
+
 func (m *MockRunner) addQuery(reference *build.ImageReference, err error) {
 	refKey := reference.String()
 	var result string

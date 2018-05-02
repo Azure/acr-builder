@@ -170,6 +170,7 @@ func ReportOnError(t *testing.T, f func() error) {
 // NewImageDependencies creates a image dependency object
 func NewImageDependencies(image string, runtime string, buildtimes []string) *build.ImageDependencies {
 	dep, err := build.NewImageDependencies(EmptyContext, image, runtime, buildtimes)
+	dep.Git = &build.GitReference{}
 	if err != nil {
 		panic(err)
 	}

@@ -22,27 +22,25 @@ import (
 	"github.com/pkg/errors"
 )
 
-// NewPassThroughSource creates a new passthrough source
-func NewPassThroughSource(workingDir, context, dockerfile string) (build.Source, error) {
-	if workingDir != "" {
-		fmt.Fprintf(os.Stderr, "Docker context %s is given. Working dir parameter %s is ignored", context, workingDir)
-	}
-	return &PassThroughSource{
+// NewDockerSource creates a new passthrough source
+func NewDockerSource(context, dockerfile string) build.Source {
+	return &DockerSource{
 		context:    context,
 		dockerfile: dockerfile,
-	}, nil
+	}
 }
 
-// PassThroughSource is a source we can pass directly into docker
-type PassThroughSource struct {
+// DockerSource is a source we can pass directly into docker
+type DockerSource struct {
 	// context is the literal string representing docker build context. It can be a directory, archive url, git url or "-"
 	context    string
 	dockerfile string
 	tracker    *DirectoryTracker
+	gitHeadRev string
 }
 
 // Obtain obtains the source
-func (s *PassThroughSource) Obtain(runner build.Runner) (err error) {
+func (s *DockerSource) Obtain(runner build.Runner) (err error) {
 	runContext := runner.GetContext()
 	context := runContext.Expand(s.context)
 	dockerfile := runContext.Expand(s.dockerfile)
@@ -50,7 +48,7 @@ func (s *PassThroughSource) Obtain(runner build.Runner) (err error) {
 		return fmt.Errorf("invalid argument: can't use stdin for both build context and dockerfile")
 	}
 	var workingDir string
-	workingDir, err = ensureContext(runner, context, dockerfile)
+	workingDir, err = s.ensureContext(runner, context, dockerfile)
 	if err != nil {
 		return
 	}
@@ -61,7 +59,7 @@ func (s *PassThroughSource) Obtain(runner build.Runner) (err error) {
 }
 
 // Return returns the source
-func (s *PassThroughSource) Return(runner build.Runner) error {
+func (s *DockerSource) Return(runner build.Runner) error {
 	if s.tracker != nil {
 		return s.tracker.Return(runner)
 	}
@@ -69,20 +67,41 @@ func (s *PassThroughSource) Return(runner build.Runner) error {
 }
 
 // Export exports the source
-func (s *PassThroughSource) Export() []build.EnvVar {
+func (s *DockerSource) Export() []build.EnvVar {
 	return []build.EnvVar{
 		{Name: constants.ExportsDockerBuildContext, Value: s.context},
 	}
 }
 
+// Remark makes a remark to the dependencies
+func (s *DockerSource) Remark(runner build.Runner, dependencies *build.ImageDependencies) {
+	if len(s.gitHeadRev) > 0 {
+		dependencies.Git = &build.GitReference{
+			GitHeadRev: s.gitHeadRev,
+		}
+	}
+}
+
 // see docker cli image.runbuild
-func ensureContext(runner build.Runner, context, dockerfile string) (workingDir string, err error) {
-	if context == constants.FromStdin {
-		return ensureContextFromReader(runner, runner.GetStdin(), workingDir, dockerfile)
+func (s *DockerSource) ensureContext(runner build.Runner, context, dockerfile string) (workingDir string, err error) {
+	if context == "" {
+		return "", nil
+	} else if context == constants.FromStdin {
+		return s.ensureContextFromReader(runner, runner.GetStdin(), workingDir, dockerfile)
 	} else if urlutil.IsGitURL(context) {
-		return ensureContextFromGitURL(context)
+		workingDir, err := s.ensureContextFromGitURL(context)
+		if err != nil {
+			return "", err
+		}
+		sha, queryErr := runner.QueryCmd("git", []string{"rev-parse", "--verify", "HEAD"})
+		if queryErr != nil {
+			fmt.Fprintf(os.Stderr, "Error querying for git head rev: %s, output will not contain git head revision SHA", queryErr)
+		} else {
+			s.gitHeadRev = sha
+		}
+		return workingDir, err
 	} else if urlutil.IsURL(context) {
-		return ensureContextFromURL(runner, os.Stdout, workingDir, context, dockerfile)
+		return s.ensureContextFromURL(runner, os.Stdout, workingDir, context, dockerfile)
 	}
 	var isDir bool
 	isDir, err = runner.GetFileSystem().DoesDirExist(context)
@@ -100,7 +119,7 @@ func ensureContext(runner build.Runner, context, dockerfile string) (workingDir 
 const archiveHeaderSize = 512
 
 // see dockerbuild.GetContextFromReader
-func ensureContextFromReader(runner build.Runner, r io.Reader, workingDir, dockerfile string) (tempDir string, err error) {
+func (s *DockerSource) ensureContextFromReader(runner build.Runner, r io.Reader, workingDir, dockerfile string) (tempDir string, err error) {
 	buf := bufio.NewReader(r)
 	var magic []byte
 	magic, err = buf.Peek(archiveHeaderSize)
@@ -133,7 +152,7 @@ func ensureContextFromReader(runner build.Runner, r io.Reader, workingDir, docke
 }
 
 // see dockerbuild.GetContextFromGitURL
-func ensureContextFromGitURL(gitURL string) (string, error) {
+func (s *DockerSource) ensureContextFromGitURL(gitURL string) (string, error) {
 	if _, err := exec.LookPath("git"); err != nil {
 		return "", errors.Wrapf(err, "unable to find 'git'")
 	}
@@ -145,8 +164,8 @@ func ensureContextFromGitURL(gitURL string) (string, error) {
 }
 
 // see dockerbuild.GetContextFromGitURL
-func ensureContextFromURL(runner build.Runner, out io.Writer, workingDir, remoteURL, dockerfile string) (string, error) {
-	response, err := getWithStatusError(remoteURL)
+func (s *DockerSource) ensureContextFromURL(runner build.Runner, out io.Writer, workingDir, remoteURL, dockerfile string) (string, error) {
+	response, err := s.getWithStatusError(remoteURL)
 	if err != nil {
 		return "", errors.Errorf("unable to download remote context %s: %v", remoteURL, err)
 	}
@@ -158,10 +177,10 @@ func ensureContextFromURL(runner build.Runner, out io.Writer, workingDir, remote
 			fmt.Fprintf(os.Stderr, "Failed to close http response from url: %s, error: %s", remoteURL, err)
 		}
 	}(response)
-	return ensureContextFromReader(runner, progReader, workingDir, dockerfile)
+	return s.ensureContextFromReader(runner, progReader, workingDir, dockerfile)
 }
 
-func getWithStatusError(url string) (resp *http.Response, err error) {
+func (s *DockerSource) getWithStatusError(url string) (resp *http.Response, err error) {
 	if resp, err = http.Get(url); err != nil {
 		return nil, err
 	}

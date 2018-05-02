@@ -142,6 +142,9 @@ func (h *FixedResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	if h.ErrorMessage != "" {
 		http.Error(w, h.ErrorMessage, h.StatusCode)
 	} else {
-		w.Write(h.Body)
+		_, err := w.Write(h.Body)
+		if err != nil {
+			panic(err)
+		}
 	}
 }

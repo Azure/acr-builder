@@ -52,6 +52,10 @@ func (m *MockBuildSource) Return(runner build.Runner) error {
 	return values.Error(0)
 }
 
+func (m *MockBuildSource) Remark(runner build.Runner, dependencies *build.ImageDependencies) {
+	m.Called(runner, dependencies)
+}
+
 func (m *MockBuildSource) Export() []build.EnvVar {
 	values := m.Called()
 	return values.Get(0).([]build.EnvVar)
