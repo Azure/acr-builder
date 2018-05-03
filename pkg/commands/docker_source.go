@@ -7,9 +7,11 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	build "github.com/Azure/acr-builder/pkg"
 	"github.com/Azure/acr-builder/pkg/constants"
@@ -30,6 +32,15 @@ func NewDockerSource(context, dockerfile string) build.Source {
 	}
 }
 
+type dockerSourceType int
+
+const (
+	dockerSourceLocal dockerSourceType = iota
+	dockerSourceGit
+	dockerSourceDockerfile
+	dockerSourceArchive
+)
+
 // DockerSource is a source we can pass directly into docker
 type DockerSource struct {
 	// context is the literal string representing docker build context. It can be a directory, archive url, git url or "-"
@@ -40,22 +51,32 @@ type DockerSource struct {
 }
 
 // Obtain obtains the source
-func (s *DockerSource) Obtain(runner build.Runner) (err error) {
+func (s *DockerSource) Obtain(runner build.Runner) error {
 	runContext := runner.GetContext()
 	context := runContext.Expand(s.context)
 	dockerfile := runContext.Expand(s.dockerfile)
 	if context == constants.FromStdin && dockerfile == constants.FromStdin {
 		return fmt.Errorf("invalid argument: can't use stdin for both build context and dockerfile")
 	}
-	var workingDir string
-	workingDir, err = s.ensureContext(runner, context, dockerfile)
+	sourceType, workingDir, err := s.ensureContext(runner, context, dockerfile)
 	if err != nil {
-		return
+		return err
 	}
 	if workingDir != "" {
 		s.tracker, err = ChdirWithTracking(runner, workingDir)
+		if err != nil {
+			return err
+		}
 	}
-	return
+	if sourceType == dockerSourceGit {
+		sha, queryErr := runner.QueryCmd("git", []string{"rev-parse", "--verify", "HEAD"})
+		if queryErr != nil {
+			fmt.Fprintf(os.Stderr, "Error querying for git head rev: %s, output will not contain git head revision SHA", queryErr)
+		} else {
+			s.gitHeadRev = sha
+		}
+	}
+	return nil
 }
 
 // Return returns the source
@@ -83,23 +104,16 @@ func (s *DockerSource) Remark(runner build.Runner, dependencies *build.ImageDepe
 }
 
 // see docker cli image.runbuild
-func (s *DockerSource) ensureContext(runner build.Runner, context, dockerfile string) (workingDir string, err error) {
+func (s *DockerSource) ensureContext(runner build.Runner, context, dockerfile string) (sourceType dockerSourceType, workingDir string, err error) {
 	if context == "" {
-		return "", nil
+		sourceType = dockerSourceLocal
+		return
 	} else if context == constants.FromStdin {
 		return s.ensureContextFromReader(runner, runner.GetStdin(), workingDir, dockerfile)
-	} else if urlutil.IsGitURL(context) {
-		workingDir, err := s.ensureContextFromGitURL(context)
-		if err != nil {
-			return "", err
-		}
-		sha, queryErr := runner.QueryCmd("git", []string{"rev-parse", "--verify", "HEAD"})
-		if queryErr != nil {
-			fmt.Fprintf(os.Stderr, "Error querying for git head rev: %s, output will not contain git head revision SHA", queryErr)
-		} else {
-			s.gitHeadRev = sha
-		}
-		return workingDir, err
+	} else if urlutil.IsGitURL(context) || isVstsGitURL(context) {
+		workingDir, err = s.ensureContextFromGitURL(context)
+		sourceType = dockerSourceGit
+		return
 	} else if urlutil.IsURL(context) {
 		return s.ensureContextFromURL(runner, os.Stdout, workingDir, context, dockerfile)
 	}
@@ -110,16 +124,18 @@ func (s *DockerSource) ensureContext(runner build.Runner, context, dockerfile st
 		return
 	}
 	if isDir {
+		sourceType = dockerSourceLocal
 		workingDir = context
 		return
 	}
-	return "", fmt.Errorf("Unable to determine context type for context \"%s\". Dependency scanning will NOT work as expected", context)
+	err = fmt.Errorf("Unable to determine context type for context \"%s\". Dependency scanning will NOT work as expected", context)
+	return
 }
 
 const archiveHeaderSize = 512
 
 // see dockerbuild.GetContextFromReader
-func (s *DockerSource) ensureContextFromReader(runner build.Runner, r io.Reader, workingDir, dockerfile string) (tempDir string, err error) {
+func (s *DockerSource) ensureContextFromReader(runner build.Runner, r io.Reader, workingDir, dockerfile string) (sourceType dockerSourceType, tempDir string, err error) {
 	buf := bufio.NewReader(r)
 	var magic []byte
 	magic, err = buf.Peek(archiveHeaderSize)
@@ -134,12 +150,12 @@ func (s *DockerSource) ensureContextFromReader(runner build.Runner, r io.Reader,
 	}
 
 	if dockerbuild.IsArchive(magic) {
+		sourceType = dockerSourceArchive
 		err = archive.Untar(buf, tempDir, nil)
 		return
 	}
 
-	// TODO: input stream should be read as dockerfile otherwise, populating it to
-	// the location where the build task would pick up
+	sourceType = dockerSourceDockerfile
 	if dockerfile == "" {
 		dockerfile = dockerbuild.DefaultDockerfileName
 	} else if dockerfile == "-" {
@@ -164,10 +180,10 @@ func (s *DockerSource) ensureContextFromGitURL(gitURL string) (string, error) {
 }
 
 // see dockerbuild.GetContextFromGitURL
-func (s *DockerSource) ensureContextFromURL(runner build.Runner, out io.Writer, workingDir, remoteURL, dockerfile string) (string, error) {
+func (s *DockerSource) ensureContextFromURL(runner build.Runner, out io.Writer, workingDir, remoteURL, dockerfile string) (dockerSourceType, string, error) {
 	response, err := s.getWithStatusError(remoteURL)
 	if err != nil {
-		return "", errors.Errorf("unable to download remote context %s: %v", remoteURL, err)
+		return 0, "", errors.Errorf("unable to download remote context %s: %v", remoteURL, err)
 	}
 	progressOutput := streamformatter.NewProgressOutput(out)
 	progReader := progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", fmt.Sprintf("Downloading build context from remote url: %s", remoteURL))
@@ -198,4 +214,12 @@ func (s *DockerSource) getWithStatusError(url string) (resp *http.Response, err 
 		return nil, errors.Wrapf(err, msg+": error reading body")
 	}
 	return nil, fmt.Errorf(msg+": %s", bytes.TrimSpace(body))
+}
+
+func isVstsGitURL(s string) bool {
+	url, err := url.Parse(strings.ToLower(s))
+	if err != nil {
+		return false
+	}
+	return url.Scheme == "https" && strings.HasSuffix(url.Host, ".visualstudio.com") && strings.Contains(url.Path, "/_git/") && len(url.Query()) == 0
 }

@@ -212,3 +212,15 @@ func TestWebDockerfile(t *testing.T) {
 		},
 	})
 }
+
+func TestIsVstsGitURL(t *testing.T) {
+	assert.True(t, isVstsGitURL("https://tenant.visualstudio.com/org/team/_git/project"))
+	assert.True(t, isVstsGitURL("https://tenant.visualstudio.com/org/team/_git/project:src"))
+	assert.True(t, isVstsGitURL("https://token@tenant.visualstudio.com/org/team/_git/project#master"))
+	assert.True(t, isVstsGitURL("https://user:password@tenant.visualstudio.com/org/team/_git/project#master:src"))
+	assert.False(t, isVstsGitURL("https://tenant.visualstudio.com/org/team/_git/project?path=src"))
+	assert.False(t, isVstsGitURL(""))
+	assert.False(t, isVstsGitURL("a"))
+	assert.False(t, isVstsGitURL("https://"))
+	assert.False(t, isVstsGitURL("https://bing.com"))
+}

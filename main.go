@@ -35,9 +35,6 @@ var (
 	versionFlag = flag.Bool("version", false, "Prints the version of the builder")
 )
 
-// TODO: parse VSTS url
-// TODO: parse pull request / working dir from git url
-// TODO: understand tokens in git url
 func main() {
 	var dockerfile, dockerContextString string
 	var dockerImages stringSlice
