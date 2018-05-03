@@ -62,7 +62,7 @@ func (r *shellRunner) ExecuteCmd(cmdExe string, cmdArgs []string, reader io.Read
 func (r *shellRunner) QueryCmd(cmdExe string, cmdArgs []string) (string, error) {
 	var buffer bytes.Buffer
 	err := r.executeCmd(nil, cmdExe, cmdArgs, &buffer, nil)
-	returnValue := buffer.String()
+	returnValue := strings.TrimSpace(buffer.String())
 	return returnValue, err
 }
 
