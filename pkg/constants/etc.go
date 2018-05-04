@@ -18,9 +18,6 @@ const (
 	// SourceNameLocal is the name of local source
 	SourceNameLocal = "local directory"
 
-	// SourceNamePassThrough is a pass-through build context. We pass the context dir directly to docker and do nothing with the source
-	SourceNamePassThrough = "docker build context"
-
 	// DependencyTypeBuild denotes build time dependency
 	DependencyTypeBuild = "build"
 

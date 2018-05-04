@@ -109,7 +109,7 @@ func (r *ContextAwareFileSystem) WriteFile(path string, source io.Reader) error 
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error closing file: %s", err)
+			logrus.Errorf("Error closing file: %s", err)
 		}
 	}()
 	_, err = io.Copy(f, source)
@@ -134,7 +134,7 @@ func (r *ContextAwareFileSystem) Cleanup() {
 	for _, dir := range r.tempDirs {
 		err := os.RemoveAll(dir)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to remove temp directory: %s, error: %s", dir, err)
+			logrus.Errorf("Failed to remove temp directory: %s, error: %s", dir, err)
 		}
 	}
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/docker/docker/pkg/streamformatter"
 	"github.com/docker/docker/pkg/urlutil"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // NewDockerSource creates a new passthrough source
@@ -71,7 +72,7 @@ func (s *DockerSource) Obtain(runner build.Runner) error {
 	if sourceType == dockerSourceGit {
 		sha, queryErr := runner.QueryCmd("git", []string{"rev-parse", "--verify", "HEAD"})
 		if queryErr != nil {
-			fmt.Fprintf(os.Stderr, "Error querying for git head rev: %s, output will not contain git head revision SHA", queryErr)
+			logrus.Errorf("Error querying for git head rev: %s, output will not contain git head revision SHA", queryErr)
 		} else {
 			s.gitHeadRev = sha
 		}
@@ -161,7 +162,7 @@ func (s *DockerSource) ensureContextFromReader(runner build.Runner, r io.Reader,
 	} else if dockerfile == "-" {
 		dockerfile = dockerbuild.DefaultDockerfileName
 		// Following the same undesirable behavior from docker cli in the special case "echo $dockerfile | docker build -f - $docker_file_url"
-		fmt.Fprintf(os.Stderr, "Warning: Dockerfile from context stream would be overwritten by stdin")
+		logrus.Errorf("Warning: Dockerfile from context stream would be overwritten by stdin")
 	}
 	err = fs.WriteFile(filepath.Join(tempDir, dockerfile), buf)
 	return
@@ -190,7 +191,7 @@ func (s *DockerSource) ensureContextFromURL(runner build.Runner, out io.Writer, 
 	defer func(response *http.Response) {
 		err := response.Body.Close()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to close http response from url: %s, error: %s", remoteURL, err)
+			logrus.Errorf("Failed to close http response from url: %s, error: %s", remoteURL, err)
 		}
 	}(response)
 	return s.ensureContextFromReader(runner, progReader, workingDir, dockerfile)
@@ -200,6 +201,7 @@ func (s *DockerSource) getWithStatusError(url string) (resp *http.Response, err 
 	if resp, err = http.Get(url); err != nil {
 		return nil, err
 	}
+	// Anything under 400 are considered non-error and we will try to parse the body
 	if resp.StatusCode < 400 {
 		return resp, nil
 	}
@@ -207,7 +209,7 @@ func (s *DockerSource) getWithStatusError(url string) (resp *http.Response, err 
 	body, err := ioutil.ReadAll(resp.Body)
 	defer func(resp *http.Response) {
 		if err := resp.Body.Close(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error closing response body: %s", err)
+			logrus.Errorf("Error closing response body: %s", err)
 		}
 	}(resp)
 	if err != nil {
