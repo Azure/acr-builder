@@ -29,16 +29,9 @@ Run the following on your project directory to build the project and push to a d
 * `--docker-registry` The docker registry to push to. This parameter will populate the `ACR_BUILD_DOCKER_REGISTRY` reserved environment variable (see `Build Environment`). Registry is required if the `--push` option is present.
 * `--docker-user` The username for the docker registry specified above.
 * `--docker-password` The password or token for registry specified above.
-* `--archive` The URL of a tar.gz archive which contains the source code.
-* `--git-url` The Git URL to the project. Clone operation will be ignored if the `--git-clone-to` folder exists and is not empty. In that case, this parameter will not be required.
-* `--git-branch` The Git branch to checkout. If it is not given, no checkout command would be performed.
-* `--git-head-revision` Desired Git HEAD revision, note that providing this parameter will cause the branch parameter to be ignored.
-* `--git-username` Git username.
-* `--git-password` Git password.
-* `--working-dir` Working directory for the build.
-* `--docker-file` Dockerfile to be used for building. If specified, the argument value can be a full path or a relative path to the source repository root. Otherwise, `Dockerfile` will be used.
+* `-f` Dockerfile to be used for building. If specified, the argument value can be a full path or a relative path to the source repository root. Otherwise, `Dockerfile` will be used.
 * `-t` Image name to build to. It must be used alongside `--dockerfile` if push is required. Registry URL must be excluded from the image name parameter.
-* `--docker-context-dir` The path of docker build context folder. If specified, the argument value can be a full path or a relative path to the source repository root.
+* `-c` Docker build context
 * `--docker-build-arg` Build arguments to be passed to docker build. This parameter can be specified multiple times.
 * `--docker-secret-build-arg` Build arguments to be passed to docker build. The argument value contains a secret which will be hidden from the log. This parameter can be specified multiple times.
 * `--build-env` Custom environment variables defined for the build process. This parameter can be specified multiple times. (For more details, see `Build Environment`).
@@ -54,8 +47,4 @@ Furthermore, ACR builder also populates the following variables during build so 
 
 * `ACR_BUILD_NUMBER` Current build number.
 * `ACR_BUILD_TIMESTAMP` Timestamp of where the build start in ISO format.
-* `ACR_BUILD_SOURCE_DIR` Source directory on the current build system.
-* `ACR_BUILD_GIT_URL` Git URL.
-* `ACR_BUILD_GIT_BRANCH` Current Git branch.
-* `ACR_BUILD_GIT_HEAD_REV` SHA for current Git Head Revision.
 * `ACR_BUILD_PUSH_IMAGES` Indicates whether or not the current build will push on success.

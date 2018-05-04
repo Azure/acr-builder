@@ -78,17 +78,18 @@ type StaticArchiveHandler struct {
 
 // ServeHTTP serves content of a directory
 func (h *StaticArchiveHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	err := h.streamArchive(h.ArchiveRoot, w)
+	err := StreamArchiveFromDir(h.T, h.ArchiveRoot, w)
 	if err != nil {
 		panic(err.Error())
 	}
 }
 
-func (h *StaticArchiveHandler) streamArchive(root string, w io.Writer) error {
+// StreamArchiveFromDir takes a directory and create a tar.gz out of it
+func StreamArchiveFromDir(t *testing.T, root string, w io.Writer) error {
 	gw := gzip.NewWriter(w)
-	defer ReportOnError(h.T, gw.Close)
+	defer ReportOnError(t, gw.Close)
 	tw := tar.NewWriter(gw)
-	defer ReportOnError(h.T, tw.Close)
+	defer ReportOnError(t, tw.Close)
 
 	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -111,7 +112,7 @@ func (h *StaticArchiveHandler) streamArchive(root string, w io.Writer) error {
 		if err != nil {
 			return err
 		}
-		defer ReportOnError(h.T, file.Close)
+		defer ReportOnError(t, file.Close)
 		_, err = io.Copy(tw, file)
 		return err
 	})
@@ -127,5 +128,23 @@ type StaticContentHandler struct {
 func (h *StaticContentHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write(h.Content); err != nil {
 		panic(err)
+	}
+}
+
+// FixedResponseHandler serves a fix response
+type FixedResponseHandler struct {
+	Body         []byte
+	ErrorMessage string
+	StatusCode   int
+}
+
+func (h *FixedResponseHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.ErrorMessage != "" {
+		http.Error(w, h.ErrorMessage, h.StatusCode)
+	} else {
+		_, err := w.Write(h.Body)
+		if err != nil {
+			panic(err)
+		}
 	}
 }

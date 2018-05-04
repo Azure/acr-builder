@@ -27,11 +27,9 @@ func NewBuilder(runner build.Runner) *Builder {
 
 // Run is the main body of the acr-builder
 func (b *Builder) Run(buildNumber string,
-	dockerfile string, dockerImages []string, dockerContextDir,
+	dockerfile string, dockerImages []string,
 	dockerUser, dockerPW, dockerRegistry,
-	workingDir,
-	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
-	webArchive string,
+	dockerContextString string,
 	buildEnvs, buildArgs, buildSecretArgs []string, pull, noCache, push bool,
 ) (dependencies []build.ImageDependencies, err error) {
 
@@ -47,11 +45,9 @@ func (b *Builder) Run(buildNumber string,
 
 	var request *build.Request
 	request, err = b.createBuildRequest(
-		dockerfile, dockerImages, dockerContextDir,
+		dockerfile, dockerImages,
 		dockerUser, dockerPW, dockerRegistry,
-		workingDir,
-		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
-		webArchive,
+		dockerContextString,
 		buildArgs, buildSecretArgs, pull, noCache, push)
 
 	if err != nil {
@@ -67,11 +63,9 @@ func (b *Builder) Run(buildNumber string,
 }
 
 func (b *Builder) createBuildRequest(
-	dockerfile string, dockerImages []string, dockerContextDir,
+	dockerfile string, dockerImages []string,
 	dockerUser, dockerPW, dockerRegistry,
-	workingDir,
-	gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
-	webArchive string,
+	dockerContextString string,
 	buildArgs, buildSecretArgs []string, pull, noCache, push bool) (*build.Request, error) {
 	if push && dockerRegistry == "" {
 		return nil, fmt.Errorf("Docker registry is needed for push, use --%s or environment variable %s to provide its value",
@@ -103,12 +97,8 @@ func (b *Builder) createBuildRequest(
 		dockerCreds = append(dockerCreds, cred)
 	}
 
-	source, err := getSource(workingDir, gitURL, gitBranch, gitHeadRev, gitXToken, gitPATokenUser, gitPAToken, webArchive)
-	if err != nil {
-		return nil, err
-	}
-
-	target := commands.NewDockerBuild(dockerfile, dockerContextDir, buildArgs, buildSecretArgs, registrySuffixed, dockerImages, pull, noCache)
+	source := commands.NewDockerSource(dockerContextString, dockerfile)
+	target := commands.NewDockerBuild(dockerfile, buildArgs, buildSecretArgs, registrySuffixed, dockerImages, pull, noCache)
 
 	return &build.Request{
 		DockerRegistry:    registrySuffixed,
@@ -138,9 +128,12 @@ func parseUserDefined(buildEnvs []string) ([]build.EnvVar, error) {
 	return userDefined, nil
 }
 
-func dependencyTask(target build.Target) workflow.EvaluationTask {
+func dependencyTask(source build.Source, target build.Target) workflow.EvaluationTask {
 	return func(runner build.Runner, outputContext *workflow.OutputContext) error {
 		dependencies, err := target.ScanForDependencies(runner)
+		for i := range dependencies {
+			source.Remark(runner, &dependencies[i])
+		}
 		if err != nil {
 			return err
 		}
@@ -201,8 +194,9 @@ func compileWorkflow(buildNumber string,
 		// iterate through builds in the source
 		for _, build := range sourceTarget.Builds {
 			buildContext := sourceContext.Append(build.Export())
+			w.ScheduleRun(buildContext, build.Ensure)
 			// schedule evaluations of dependencies
-			w.ScheduleEvaluation(buildContext, dependencyTask(build))
+			w.ScheduleEvaluation(buildContext, dependencyTask(sourceTarget.Source, build))
 			// schedule the build tasks
 			w.ScheduleRun(buildContext, build.Build)
 			// if push is enabled, add them to an array to be added last

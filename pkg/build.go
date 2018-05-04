@@ -2,11 +2,9 @@ package build
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 
-	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/docker/distribution/reference"
 )
 
@@ -45,6 +43,7 @@ type SourceTarget struct {
 // Source defines where the source code is and how to fetch the code
 type Source interface {
 	Obtain(runner Runner) error
+	Remark(runner Runner, dependencies *ImageDependencies)
 	Return(runner Runner) error
 	Export() []EnvVar
 }
@@ -53,6 +52,7 @@ type Source interface {
 type Target interface {
 	// Build task can't be a generic tasks now because it needs to return ImageDependencies
 	// If we use docker events to figure out dependencies, we can make build tasks a generic task
+	Ensure(runner Runner) error
 	Build(runner Runner) error
 	Push(runner Runner) error
 	ScanForDependencies(runner Runner) ([]ImageDependencies, error)
@@ -154,9 +154,7 @@ func NewImageDependencies(env *BuilderContext, image string, runtime string, bui
 		// "library/" will be added again during image reference generation.
 		// This prevents duplicate dependencies when reading "library/golang" and
 		// "golang" from the Dockerfile.
-		if strings.HasPrefix(bt, "library/") {
-			bt = bt[8:]
-		}
+		bt = strings.TrimPrefix(bt, "library/")
 
 		// If we've already processed the tag after normalization, skip dependency
 		// generation. I.e., they specify "golang" and "golang:latest"
@@ -172,16 +170,6 @@ func NewImageDependencies(env *BuilderContext, image string, runtime string, bui
 		}
 		dependencies.Buildtime = append(dependencies.Buildtime, buildtimeDep)
 	}
-
-	// gitSource.Obtain will set the env. For other sources, it will be empty.
-	gitHeadRev := os.Getenv(constants.ExportsGitHeadRev)
-
-	if len(gitHeadRev) > 0 {
-		dependencies.Git = &GitReference{
-			GitHeadRev: gitHeadRev,
-		}
-	}
-
 	return dependencies, nil
 }
 

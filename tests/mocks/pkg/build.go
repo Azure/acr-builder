@@ -11,6 +11,11 @@ type MockBuildTarget struct {
 	mock.Mock
 }
 
+func (m *MockBuildTarget) Ensure(runner build.Runner) error {
+	values := m.Called(runner)
+	return values.Error(0)
+}
+
 func (m *MockBuildTarget) Build(runner build.Runner) error {
 	values := m.Called(runner)
 	return values.Error(0)
@@ -45,6 +50,10 @@ func (m *MockBuildSource) Obtain(runner build.Runner) error {
 func (m *MockBuildSource) Return(runner build.Runner) error {
 	values := m.Called(runner)
 	return values.Error(0)
+}
+
+func (m *MockBuildSource) Remark(runner build.Runner, dependencies *build.ImageDependencies) {
+	m.Called(runner, dependencies)
 }
 
 func (m *MockBuildSource) Export() []build.EnvVar {

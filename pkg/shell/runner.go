@@ -27,6 +27,10 @@ func NewRunner() build.Runner {
 	}
 }
 
+func (r *shellRunner) GetStdin() io.Reader {
+	return os.Stdin
+}
+
 // GetFileSystem returns the file system the that runner is running under
 func (r *shellRunner) GetFileSystem() build.FileSystem {
 	return r.fs
@@ -58,7 +62,7 @@ func (r *shellRunner) ExecuteCmd(cmdExe string, cmdArgs []string, reader io.Read
 func (r *shellRunner) QueryCmd(cmdExe string, cmdArgs []string) (string, error) {
 	var buffer bytes.Buffer
 	err := r.executeCmd(nil, cmdExe, cmdArgs, &buffer, nil)
-	returnValue := buffer.String()
+	returnValue := strings.TrimSpace(buffer.String())
 	return returnValue, err
 }
 

@@ -76,12 +76,14 @@ func testDependencies(t *testing.T, tc dependenciesTestCase) {
 	runner := new(test.MockRunner)
 	defer runner.AssertExpectations(t)
 	runner.UseDefaultFileSystem()
+	buildSource := new(test.MockBuildSource)
+	buildSource.On("Remark", runner, mock.Anything).Return()
 	buildTarget := new(test.MockBuildTarget)
 	buildTarget.On("ScanForDependencies", runner).Return(tc.new, tc.err).Once()
 	outputs := &workflow.OutputContext{
 		ImageDependencies: tc.baseline,
 	}
-	task := dependencyTask(buildTarget)
+	task := dependencyTask(buildSource, buildTarget)
 	err := task(runner, outputs)
 	buildTarget.AssertExpectations(t)
 	runner.AssertExpectations(t)
@@ -256,6 +258,7 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 		for i := range source.builds {
 			build := source.builds[i] // do not use foreach loop here because `build` will be used in a closure
 			buildMock := new(test.MockBuildTarget)
+			verifyContext(t, buildMock.On("Ensure", runner), build.expectedEnv, nil)
 			verifyContext(t, buildMock.On("Build", runner), build.expectedEnv, nil)
 			buildMock.On("Export").Return(build.envVar).Once()
 			scanDependencies := buildMock.On("ScanForDependencies", runner, mock.Anything)
@@ -272,6 +275,7 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 		sourceMock := new(test.MockBuildSource)
 		verifyContext(t, sourceMock.On("Obtain", runner), source.expectedEnv, nil)
 		verifyContext(t, sourceMock.On("Return", runner), source.expectedEnv, nil)
+		sourceMock.On("Remark", runner, mock.Anything)
 		sourceMock.On("Export").Return(source.envVar).Once()
 		defer sourceMock.AssertExpectations(t)
 		target := build.SourceTarget{
@@ -384,80 +388,58 @@ func testParseUserDefined(t *testing.T, tc parseUserDefinedTestCase) {
 }
 
 type createBuildRequestTestCase struct {
-	dockerfile       string
-	dockerImages     []string
-	dockerContextDir string
-	dockerUser       string
-	dockerPW         string
-	dockerRegistry   string
-	workingDir       string
-	gitURL           string
-	gitBranch        string
-	gitHeadRev       string
-	gitPATokenUser   string
-	gitPAToken       string
-	gitXToken        string
-	webArchive       string
-	buildArgs        []string
-	buildSecretArgs  []string
-	pull             bool
-	noCache          bool
-	push             bool
-	files            test.FileSystemExpectations
-	expected         build.Request
-	expectedError    string
+	dockerfile          string
+	dockerImages        []string
+	dockerUser          string
+	dockerPW            string
+	dockerRegistry      string
+	dockerContextString string
+	buildArgs           []string
+	buildSecretArgs     []string
+	pull                bool
+	noCache             bool
+	push                bool
+	files               test.FileSystemExpectations
+	expected            build.Request
+	expectedError       string
 }
 
 func TestCreateBuildRequestNoParams(t *testing.T) {
-	localSource := commands.NewLocalSource("")
+	localSource := commands.NewDockerSource("", "")
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		expected: build.Request{
 			DockerCredentials: []build.DockerCredential{},
 			Targets: []build.SourceTarget{
 				{
 					Source: localSource,
-					Builds: []build.Target{commands.NewDockerBuild("", "", nil, nil, "", nil, false, false)},
+					Builds: []build.Target{commands.NewDockerBuild("", nil, nil, "", nil, false, false)},
 				},
 			},
 		},
 	})
 }
 
-func TestCreateBuildRequestWithGitPATokenDockerfile(t *testing.T) {
-	gitUser := "some.git.user"
-	gitPassword := "some.git.pw"
-	gitAddress := "some.git-repository"
-	branch := "some.branch"
-	headRev := "some.rev"
-	targetDir := "some.dir"
+func TestCreateGitBuildRequest(t *testing.T) {
 	dockerfile := "some.dockerfile"
-	contextDir := "some.contextDir"
+	giturl := "http://github.com/myorg/myproject.git"
 	buildArgs := []string{"k1=v1", "k2=v2"}
 	buildSecretArgs := []string{"sk1=sv1", "sk2=sv2"}
 	registry := "some.registry"
 	imageNames := []string{"some.image"}
 	pull := true
 	noCache := false
-	dockerBuildTarget := commands.NewDockerBuild(dockerfile, contextDir,
+	dockerBuildTarget := commands.NewDockerBuild(dockerfile,
 		buildArgs, buildSecretArgs, registry+"/", imageNames, pull, noCache)
-	gitCred, err := commands.NewGitPersonalAccessToken(gitUser, gitPassword)
-	assert.Nil(t, err)
-	gitSource := commands.NewGitSource(gitAddress, branch, headRev, targetDir, gitCred)
+	gitSource := commands.NewDockerSource(giturl, dockerfile)
 	testCreateBuildRequest(t, createBuildRequestTestCase{
-		gitPATokenUser:   gitUser,
-		gitPAToken:       gitPassword,
-		gitURL:           gitAddress,
-		gitBranch:        branch,
-		gitHeadRev:       headRev,
-		workingDir:       targetDir,
-		dockerfile:       dockerfile,
-		dockerContextDir: contextDir,
-		buildArgs:        buildArgs,
-		buildSecretArgs:  buildSecretArgs,
-		dockerRegistry:   registry,
-		dockerImages:     imageNames,
-		pull:             pull,
-		noCache:          noCache,
+		dockerfile:          dockerfile,
+		dockerContextString: giturl,
+		buildArgs:           buildArgs,
+		buildSecretArgs:     buildSecretArgs,
+		dockerRegistry:      registry,
+		dockerImages:        imageNames,
+		pull:                pull,
+		noCache:             noCache,
 		expected: build.Request{
 			DockerRegistry:    registry + "/",
 			DockerCredentials: []build.DockerCredential{},
@@ -482,23 +464,6 @@ func TestCreateBuildRequestNoDockerPassword(t *testing.T) {
 	})
 }
 
-func TestCreateBuildRequestNoGitPassword(t *testing.T) {
-	testCreateBuildRequest(t, createBuildRequestTestCase{
-		gitURL:         "some.git.url",
-		gitPATokenUser: "some.git.user",
-		expectedError: fmt.Sprintf("^Please provide both --%s and --%s or neither$",
-			constants.ArgNameGitPATokenUser, constants.ArgNameGitPAToken),
-	})
-}
-
-func TestCreateBuildRequestNoGitURL(t *testing.T) {
-	testCreateBuildRequest(t, createBuildRequestTestCase{
-		gitPATokenUser: "some.git.user",
-		expectedError: fmt.Sprintf("^Optional parameter %s is given for %s but none of the required parameters: \\[%s\\] were given$",
-			constants.ArgNameGitPATokenUser, constants.SourceNameGit, constants.ArgNameGitURL),
-	})
-}
-
 func TestCreateBuildRequestDockerBuildCreationError(t *testing.T) {
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		dockerfile: "some.dockerfile",
@@ -516,11 +481,9 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 	defer fs.AssertExpectations(t)
 	builder := NewBuilder(runner)
 	req, err := builder.createBuildRequest(
-		tc.dockerfile, tc.dockerImages, tc.dockerContextDir,
-		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.workingDir,
-		tc.gitURL, tc.gitBranch, tc.gitHeadRev,
-		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
-		tc.webArchive, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
+		tc.dockerfile, tc.dockerImages,
+		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.dockerContextString,
+		tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
 
 	if tc.expectedError != "" {
 		assert.NotNil(t, err)
@@ -535,18 +498,10 @@ type runTestCase struct {
 	buildNumber          string
 	dockerfile           string
 	dockerImages         []string
-	dockerContextDir     string
 	dockerUser           string
 	dockerPW             string
 	dockerRegistry       string
-	workingDir           string
-	gitURL               string
-	gitBranch            string
-	gitHeadRev           string
-	gitPATokenUser       string
-	gitPAToken           string
-	gitXToken            string
-	webArchive           string
+	dockerContextString  string
 	buildEnvs            []string
 	buildArgs            []string
 	buildSecretArgs      []string
@@ -561,10 +516,10 @@ type runTestCase struct {
 
 func TestRunSimpleHappy(t *testing.T) {
 	testRun(t, runTestCase{
-		buildNumber:    "buildNum-0",
-		dockerRegistry: testCommon.TestsDockerRegistryName,
-		dockerImages:   []string{"hello-multistage"},
-		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-multistage"),
+		buildNumber:         "buildNum-0",
+		dockerRegistry:      testCommon.TestsDockerRegistryName,
+		dockerImages:        []string{"hello-multistage"},
+		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-multistage"),
 		expectedCommands: []test.CommandsExpectation{
 			{
 				Command:      "docker",
@@ -578,11 +533,11 @@ func TestRunSimpleHappy(t *testing.T) {
 	})
 
 	testRun(t, runTestCase{
-		buildNumber:    "buildNum-1",
-		dockerRegistry: testCommon.TestsDockerRegistryName,
-		dockerImages:   []string{"hello-node"},
-		dockerfile:     "Dockerfile.alpine",
-		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-node"),
+		buildNumber:         "buildNum-1",
+		dockerRegistry:      testCommon.TestsDockerRegistryName,
+		dockerImages:        []string{"hello-node"},
+		dockerfile:          "Dockerfile.alpine",
+		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-node"),
 		expectedCommands: []test.CommandsExpectation{
 			{
 				Command:      "docker",
@@ -598,11 +553,11 @@ func TestRunSimpleHappy(t *testing.T) {
 
 func TestRunPull(t *testing.T) {
 	testRun(t, runTestCase{
-		buildNumber:    "buildNum-0",
-		dockerRegistry: testCommon.TestsDockerRegistryName,
-		dockerImages:   []string{"hello-multistage"},
-		pull:           true,
-		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-multistage"),
+		buildNumber:         "buildNum-0",
+		dockerRegistry:      testCommon.TestsDockerRegistryName,
+		dockerImages:        []string{"hello-multistage"},
+		pull:                true,
+		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-multistage"),
 		expectedCommands: []test.CommandsExpectation{
 			{
 				Command:      "docker",
@@ -618,11 +573,11 @@ func TestRunPull(t *testing.T) {
 
 func TestRunNoCache(t *testing.T) {
 	testRun(t, runTestCase{
-		buildNumber:    "buildNum-0",
-		dockerRegistry: testCommon.TestsDockerRegistryName,
-		dockerImages:   []string{"hello-multistage"},
-		noCache:        true,
-		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-multistage"),
+		buildNumber:         "buildNum-0",
+		dockerRegistry:      testCommon.TestsDockerRegistryName,
+		dockerImages:        []string{"hello-multistage"},
+		noCache:             true,
+		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-multistage"),
 		expectedCommands: []test.CommandsExpectation{
 			{
 				Command:      "docker",
@@ -638,9 +593,9 @@ func TestRunNoCache(t *testing.T) {
 
 func TestRunNoImageGiven(t *testing.T) {
 	testRun(t, runTestCase{
-		buildNumber:    "buildNum-0",
-		dockerRegistry: testCommon.TestsDockerRegistryName,
-		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-multistage"),
+		buildNumber:         "buildNum-0",
+		dockerRegistry:      testCommon.TestsDockerRegistryName,
+		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-multistage"),
 		expectedCommands: []test.CommandsExpectation{
 			{
 				Command:      "docker",
@@ -662,9 +617,9 @@ func TestRunNoImageGiven(t *testing.T) {
 func TestRunNoRegistryGiven(t *testing.T) {
 	os.Clearenv()
 	testRun(t, runTestCase{
-		buildNumber:  "buildNum-0",
-		dockerImages: []string{"hello-multistage"},
-		workingDir:   filepath.Join("..", "..", "tests", "resources", "hello-multistage"),
+		buildNumber:         "buildNum-0",
+		dockerImages:        []string{"hello-multistage"},
+		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-multistage"),
 		expectedCommands: []test.CommandsExpectation{
 			{
 				Command:      "docker",
@@ -681,9 +636,9 @@ func TestRunNoRegistryGiven(t *testing.T) {
 func TestRunNoRegistryGivenPush(t *testing.T) {
 	os.Clearenv()
 	testRun(t, runTestCase{
-		push:        true,
-		buildNumber: "buildNum-0",
-		workingDir:  filepath.Join("..", "..", "tests", "resources", "hello-node"),
+		push:                true,
+		buildNumber:         "buildNum-0",
+		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-node"),
 		expectedErr: fmt.Sprintf("^Docker registry is needed for push, use --%s or environment variable %s to provide its value$",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
 	})
@@ -692,10 +647,10 @@ func TestRunNoRegistryGivenPush(t *testing.T) {
 func TestRunNoImageGivenPush(t *testing.T) {
 	os.Clearenv()
 	testRun(t, runTestCase{
-		push:           true,
-		dockerRegistry: "testregistry",
-		buildNumber:    "buildNum-0",
-		workingDir:     filepath.Join("..", "..", "tests", "resources", "hello-node"),
+		push:                true,
+		dockerRegistry:      "testregistry",
+		buildNumber:         "buildNum-0",
+		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-node"),
 		expectedErr: fmt.Sprintf("Docker image is needed for push, use --%s to provide its value",
 			constants.ArgNameDockerImage),
 	})
@@ -726,11 +681,10 @@ func testRun(t *testing.T, tc runTestCase) {
 	runner.PrepareDigestQuery(tc.expectedDependencies, tc.queryCmdErr)
 	builder := NewBuilder(runner)
 	dependencies, err := builder.Run(tc.buildNumber,
-		tc.dockerfile, tc.dockerImages, tc.dockerContextDir,
+		tc.dockerfile, tc.dockerImages,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
-		tc.workingDir, tc.gitURL, tc.gitBranch, tc.gitHeadRev,
-		tc.gitPATokenUser, tc.gitPAToken, tc.gitXToken,
-		tc.webArchive, tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
+		tc.dockerContextString,
+		tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())

@@ -17,6 +17,9 @@ type TestConfig struct {
 // Config is the instance of test config object loaded form default locations
 var Config TestConfig
 
+// MultiStageExampleRoot is the multistage example's root
+var MultiStageExampleRoot string
+
 func init() {
 	projectRoot, err := getProjectRoot()
 	if err != nil {
@@ -29,6 +32,7 @@ func init() {
 	}
 	configPtr.ProjectRoot = projectRoot
 	Config = *configPtr
+	MultiStageExampleRoot = filepath.Join(Config.ProjectRoot, "tests", "resources", "hello-multistage")
 }
 
 func loadFrom(location string) (*TestConfig, error) {

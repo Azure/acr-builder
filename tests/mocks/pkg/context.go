@@ -15,6 +15,7 @@ type MockRunner struct {
 	mock.Mock
 	context *build.BuilderContext
 	fs      build.FileSystem
+	reader  io.ReadCloser
 }
 
 func NewMockRunner() *MockRunner {
@@ -25,6 +26,15 @@ func NewMockRunner() *MockRunner {
 	result.context = context
 	result.fs = fs
 	return result
+}
+
+func (m *MockRunner) CreateStdinPipeWriter() (writer io.WriteCloser) {
+	m.reader, writer = io.Pipe()
+	return
+}
+
+func (m *MockRunner) GetStdin() io.Reader {
+	return m.reader
 }
 
 func (m *MockRunner) GetFileSystem() build.FileSystem {
@@ -80,6 +90,10 @@ func (m *MockRunner) PrepareDigestQuery(
 	}
 }
 
+func (m *MockRunner) PrepareGitSHAQuery(value string, err error) {
+	m.On("QueryCmd", "git", []string{"rev-parse", "--verify", "HEAD"}).Return(value, err).Once()
+}
+
 func (m *MockRunner) addQuery(reference *build.ImageReference, err error) {
 	refKey := reference.String()
 	var result string
@@ -87,6 +101,13 @@ func (m *MockRunner) addQuery(reference *build.ImageReference, err error) {
 		result = testCommon.GetRepoDigests(refKey)
 	}
 	m.On("QueryCmd", "docker", []string{"inspect", "--format", "\"{{json .RepoDigests}}\"", refKey}).Return(result, err)
+}
+
+func (m *MockRunner) Close() error {
+	if m.reader != nil {
+		return m.reader.Close()
+	}
+	return nil
 }
 
 type CommandsExpectation struct {
@@ -170,6 +191,20 @@ func (m *MockFileSystem) PrepareChdir(expectations ChdirExpectations) {
 	for _, exp := range expectations {
 		m.On("Chdir", exp.Path).Return(exp.Err).Once()
 	}
+}
+
+func (m *MockFileSystem) WriteFile(path string, source io.Reader) error {
+	values := m.Called(m.context.Expand(path), source)
+	return values.Error(0)
+}
+
+func (m *MockFileSystem) CreateTempDir() (string, error) {
+	values := m.Called()
+	return values.String(0), values.Error(1)
+}
+
+func (m *MockFileSystem) Cleanup() {
+	m.Called()
 }
 
 type FileSystemExpectations []FileSystemExpectation

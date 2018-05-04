@@ -9,9 +9,6 @@ const (
 	// TimestampFormat is the common timestamp format ACR Builder uses
 	TimestampFormat = time.RFC3339
 
-	// DefaultDockerfile is the name of the default dockerfile
-	DefaultDockerfile = "Dockerfile"
-
 	// SourceNameWebArchive is the name of the web archive source
 	SourceNameWebArchive = "web archive"
 
@@ -27,8 +24,10 @@ const (
 	// DependencyTypeRuntime denotes runtime dependency
 	DependencyTypeRuntime = "runtime"
 
-	// NoBaseImageSpecifierLatest is the symbol used by the FROM
-	// command to specify that no base image is to be used.
+	// FromStdin denotes when context or dockerfile is to be read from stdin
+	FromStdin = "-"
+
+	// NoBaseImageSpecifierLatest is the empty base image
 	// Note that :latest is not valid in the FROM clause, but we're
 	// always appending :latest to tags during processing.
 	NoBaseImageSpecifierLatest = "scratch:latest"

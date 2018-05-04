@@ -36,11 +36,8 @@ var (
 )
 
 func main() {
-	var dockerfile, dockerContextDir string
+	var dockerfile, dockerContextString string
 	var dockerImages stringSlice
-	var workingDir string
-	var gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken string
-	var webArchive string
 	// Untested code paths:
 	// required unless the host is properly logged in
 	// if the program is launched in docker container, use option -v /var/run/docker.sock:/var/run/docker.sock -v ~/.docker:/root/.docker
@@ -49,17 +46,9 @@ func main() {
 	var pull, noCache, push, debug bool
 	var buildNumber string
 	flag.StringVar(&buildNumber, constants.ArgNameBuildNumber, "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.ExportsBuildNumber))
-	flag.StringVar(&workingDir, constants.ArgNameWorkingDir, "", "Working directory for the builder.")
-	flag.StringVar(&gitURL, constants.ArgNameGitURL, "", "Git url to the project")
-	flag.StringVar(&gitBranch, constants.ArgNameGitBranch, "", "The git branch to checkout. If it is not given, no checkout command would be performed.")
-	flag.StringVar(&gitHeadRev, constants.ArgNameGitHeadRev, "", "Desired git HEAD revision, note that providing this parameter will cause the branch parameter to be ignored")
-	flag.StringVar(&gitPATokenUser, constants.ArgNameGitPATokenUser, "", "Git username for the personal access token.")
-	flag.StringVar(&gitPAToken, constants.ArgNameGitPAToken, "", "Git personal access token.")
-	flag.StringVar(&gitXToken, constants.ArgNameGitXToken, "", "Git OAuth x access token.")
-	flag.StringVar(&webArchive, constants.ArgNameWebArchive, "", "Archive file of the source. Must be a web-url and in tar.gz format")
+	flag.StringVar(&dockerContextString, constants.ArgNameDockerContextString, "", "Working directory for the builder.")
 	flag.StringVar(&dockerfile, constants.ArgNameDockerfile, "", "Dockerfile to build. If choosing to build a dockerfile")
 	flag.Var(&dockerImages, constants.ArgNameDockerImage, "The image names to build to. This option is only available when building with dockerfile")
-	flag.StringVar(&dockerContextDir, constants.ArgNameDockerContextDir, "", "Context directory for docker build. This option is only available when building with dockerfile.")
 	flag.Var(&buildArgs, constants.ArgNameDockerBuildArg, "Build arguments to be passed to docker build build")
 	flag.Var(&buildSecretArgs, constants.ArgNameDockerSecretBuildArg, "Build arguments to be passed to docker build build. The argument value contains a secret which will be hidden from the log.")
 	flag.StringVar(&dockerRegistry, constants.ArgNameDockerRegistry, "", "Docker registry to push to")
@@ -90,17 +79,17 @@ func main() {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 
-	builder := driver.NewBuilder(shell.NewRunner())
+	runner := shell.NewRunner()
+	defer runner.GetFileSystem().Cleanup()
+	builder := driver.NewBuilder(runner)
 
 	normalizedDockerImages := getNormalizedDockerImageNames(dockerImages)
 
 	dependencies, err := builder.Run(
 		buildNumber,
-		dockerfile, normalizedDockerImages, dockerContextDir,
+		dockerfile, normalizedDockerImages,
 		dockerUser, dockerPW, dockerRegistry,
-		workingDir,
-		gitURL, gitBranch, gitHeadRev, gitPATokenUser, gitPAToken, gitXToken,
-		webArchive,
+		dockerContextString,
 		buildEnvs, buildArgs, buildSecretArgs, pull, noCache, push)
 
 	if err != nil {

@@ -4,38 +4,14 @@ const (
 	// ArgNameBuildNumber is the parameter name for build number
 	ArgNameBuildNumber = "build-number"
 
-	//ArgNameWorkingDir is the parameter name for the git clone target directory
-	ArgNameWorkingDir = "working-dir"
-
-	// ArgNameGitURL is the parameter name for git URL
-	ArgNameGitURL = "git-url"
-
-	// ArgNameGitBranch is the parameter name for git branch
-	ArgNameGitBranch = "git-branch"
-
-	// ArgNameGitHeadRev is the parameter name for head revision
-	ArgNameGitHeadRev = "git-head-revision"
-
-	// ArgNameGitPATokenUser is the parameter name for username for git username
-	ArgNameGitPATokenUser = "git-username"
-
-	// ArgNameGitPAToken is the parameter name for git password
-	ArgNameGitPAToken = "git-password"
-
-	// ArgNameGitXToken is the parameter name for github x-oath-basic token
-	ArgNameGitXToken = "git-x-token"
-
-	// ArgNameWebArchive is the parameter name for web archives
-	ArgNameWebArchive = "archive"
+	//ArgNameDockerContextString is the parameter name docker build context, it could be local path, git, or archive url
+	ArgNameDockerContextString = "c"
 
 	// ArgNameDockerfile is the parameter name for dockerfile
-	ArgNameDockerfile = "docker-file"
+	ArgNameDockerfile = "f"
 
 	// ArgNameDockerImage is the parameter name for docker image (registry url must be excluded from the image name parameter)
 	ArgNameDockerImage = "t"
-
-	// ArgNameDockerContextDir is the parameter name for docker context directory
-	ArgNameDockerContextDir = "docker-context-dir"
 
 	// ArgNameDockerRegistry is the parameter name for docker registry to push to
 	ArgNameDockerRegistry = "docker-registry"
