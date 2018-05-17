@@ -26,7 +26,7 @@ GO_LDFLAGS_STATIC=-ldflags "-w $(CTIMEVAR) -extldflags -static"
 # List the GOOS and GOARCH to build
 GOOSARCHES = linux/amd64
 
-all: clean build fmt lint test staticcheck vet
+all: clean build fmt lint test staticcheck vet errcheck
 
 cbuild: clean build ## Runs a clean and a build
 
@@ -48,6 +48,11 @@ static: ## Builds a static executable
 fmt: ## Verifies `gofmt` passes
 	@echo "+ $@"
 	@gofmt -s -l . | grep -v '.pb.go:' | grep -v vendor | tee /dev/stderr
+
+.PHONY: errcheck
+errcheck: ## Verifies `errcheck` passes
+	@echo "+ $@"
+	@errcheck ./... | grep -v vendor | tee /dev/stderr
 
 .PHONY: lint
 lint: ## Verifies `golint` passes
