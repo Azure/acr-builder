@@ -56,8 +56,13 @@ func cloneGitRepo(repo gitRepo) (checkoutDir string, err error) {
 		return "", errors.Wrapf(err, "failed add origin repo at %s: %s", repo.remote, out)
 	}
 
-	if output, err := gitWithinDir(root, fetch...); err != nil {
-		return "", errors.Wrapf(err, "error fetching: %s", output)
+	if _, err := gitWithinDir(root, fetch...); err != nil {
+		// Fall back to full fetch if shallow fetch fails.
+		// It's mainly for the scenario if the reference is a git commit,
+		// eg, https://github.com/abc.git#bcaf8913695e5ad57868c8c82af58f9e699e7f59
+		if output2, err2 := gitWithinDir(root, "fetch", "origin"); err2 != nil {
+			return "", errors.Wrapf(err, "error fetching: %s", output2)
+		}
 	}
 
 	checkoutDir, err = checkoutGit(root, repo.ref, repo.subdir)
