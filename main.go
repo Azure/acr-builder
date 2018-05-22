@@ -44,8 +44,6 @@ func main() {
 	var dockerUser, dockerPW, dockerRegistry string
 	var buildArgs, buildSecretArgs, buildEnvs stringSlice
 	var pull, noCache, push, debug bool
-	var buildNumber string
-	flag.StringVar(&buildNumber, constants.ArgNameBuildNumber, "0", fmt.Sprintf("Build number, this argument would set the reserved %s build environment.", constants.ExportsBuildNumber))
 	flag.StringVar(&dockerContextString, constants.ArgNameDockerContextString, "", "Working directory for the builder.")
 	flag.StringVar(&dockerfile, constants.ArgNameDockerfile, "", "Dockerfile to build. If choosing to build a dockerfile")
 	flag.Var(&dockerImages, constants.ArgNameDockerImage, "The image names to build to. This option is only available when building with dockerfile")
@@ -86,7 +84,6 @@ func main() {
 	normalizedDockerImages := getNormalizedDockerImageNames(dockerImages)
 
 	dependencies, err := builder.Run(
-		buildNumber,
 		dockerfile, normalizedDockerImages,
 		dockerUser, dockerPW, dockerRegistry,
 		dockerContextString,

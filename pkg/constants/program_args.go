@@ -1,8 +1,6 @@
 package constants
 
 const (
-	// ArgNameBuildNumber is the parameter name for build number
-	ArgNameBuildNumber = "build-number"
 
 	//ArgNameDockerContextString is the parameter name docker build context, it could be local path, git, or archive url
 	ArgNameDockerContextString = "c"
