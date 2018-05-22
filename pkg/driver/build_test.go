@@ -113,7 +113,6 @@ type dockerCredsParameters struct {
 }
 
 type compileTestCase struct {
-	buildNumber          string
 	registry             string
 	userDefined          []build.EnvVar
 	creds                []dockerCredsParameters
@@ -126,15 +125,13 @@ type compileTestCase struct {
 func newMultiSourceTestCase(push bool) *compileTestCase {
 	gen := testCommon.NewMappedGenerator("value")
 	return &compileTestCase{
-		buildNumber: "TestCompileHappy-01",
-		registry:    "TestCompileHappy.azurecr.io",
+		registry: "TestCompileHappy.azurecr.io",
 		userDefined: []build.EnvVar{
 			{Name: "k1", Value: gen.NextWithKey("k1")},
 			{Name: "k2", Value: gen.NextWithKey("k2")},
 		},
 		creds: []dockerCredsParameters{
 			{expectedEnv: []string{
-				constants.ExportsBuildNumber + "=TestCompileHappy-01",
 				constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
 				constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 				"k1=" + gen.Lookup("k1"),
@@ -149,7 +146,6 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 					{Name: "s1.2", Value: gen.NextWithKey("s1.2")},
 				},
 				expectedEnv: []string{
-					constants.ExportsBuildNumber + "=TestCompileHappy-01",
 					constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
 					constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 					"k1=" + gen.Lookup("k1"),
@@ -164,7 +160,6 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 							{Name: "b1.1.2", Value: gen.NextWithKey("b1.1.2")},
 						},
 						expectedEnv: []string{
-							constants.ExportsBuildNumber + "=TestCompileHappy-01",
 							constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
 							constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 							"k1=" + gen.Lookup("k1"),
@@ -181,7 +176,6 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 							{Name: "b1.2.2", Value: gen.NextWithKey("b1.2.2")},
 						},
 						expectedEnv: []string{
-							constants.ExportsBuildNumber + "=TestCompileHappy-01",
 							constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
 							constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 							"k1=" + gen.Lookup("k1"),
@@ -200,7 +194,6 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 					{Name: "s2.2", Value: gen.NextWithKey("s2.2")},
 				},
 				expectedEnv: []string{
-					constants.ExportsBuildNumber + "=TestCompileHappy-01",
 					constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
 					constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 					"k1=" + gen.Lookup("k1"),
@@ -215,7 +208,6 @@ func newMultiSourceTestCase(push bool) *compileTestCase {
 							{Name: "b2.1.2", Value: gen.NextWithKey("b2.1.2")},
 						},
 						expectedEnv: []string{
-							constants.ExportsBuildNumber + "=TestCompileHappy-01",
 							constants.ExportsDockerRegistry + "=TestCompileHappy.azurecr.io",
 							constants.ExportsPushOnSuccess + "=" + strconv.FormatBool(push),
 							"k1=" + gen.Lookup("k1"),
@@ -285,7 +277,7 @@ func testCompile(t *testing.T, tc *compileTestCase) {
 		req.Targets = append(req.Targets, target)
 	}
 	runner.PrepareDigestQuery(tc.expectedDependencies, tc.queryCmdErr)
-	workflow := compileWorkflow(tc.buildNumber, tc.userDefined, req, tc.push)
+	workflow := compileWorkflow(tc.userDefined, req, tc.push)
 	err := workflow.Run(runner)
 	assert.Nil(t, err)
 	outputs := workflow.GetOutputs()
@@ -495,7 +487,6 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 }
 
 type runTestCase struct {
-	buildNumber          string
 	dockerfile           string
 	dockerImages         []string
 	dockerUser           string
@@ -516,7 +507,6 @@ type runTestCase struct {
 
 func TestRunSimpleHappy(t *testing.T) {
 	testRun(t, runTestCase{
-		buildNumber:         "buildNum-0",
 		dockerRegistry:      testCommon.TestsDockerRegistryName,
 		dockerImages:        []string{"hello-multistage"},
 		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-multistage"),
@@ -533,7 +523,6 @@ func TestRunSimpleHappy(t *testing.T) {
 	})
 
 	testRun(t, runTestCase{
-		buildNumber:         "buildNum-1",
 		dockerRegistry:      testCommon.TestsDockerRegistryName,
 		dockerImages:        []string{"hello-node"},
 		dockerfile:          "Dockerfile.alpine",
@@ -553,7 +542,6 @@ func TestRunSimpleHappy(t *testing.T) {
 
 func TestRunPull(t *testing.T) {
 	testRun(t, runTestCase{
-		buildNumber:         "buildNum-0",
 		dockerRegistry:      testCommon.TestsDockerRegistryName,
 		dockerImages:        []string{"hello-multistage"},
 		pull:                true,
@@ -573,7 +561,6 @@ func TestRunPull(t *testing.T) {
 
 func TestRunNoCache(t *testing.T) {
 	testRun(t, runTestCase{
-		buildNumber:         "buildNum-0",
 		dockerRegistry:      testCommon.TestsDockerRegistryName,
 		dockerImages:        []string{"hello-multistage"},
 		noCache:             true,
@@ -593,7 +580,6 @@ func TestRunNoCache(t *testing.T) {
 
 func TestRunNoImageGiven(t *testing.T) {
 	testRun(t, runTestCase{
-		buildNumber:         "buildNum-0",
 		dockerRegistry:      testCommon.TestsDockerRegistryName,
 		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-multistage"),
 		expectedCommands: []test.CommandsExpectation{
@@ -617,7 +603,6 @@ func TestRunNoImageGiven(t *testing.T) {
 func TestRunNoRegistryGiven(t *testing.T) {
 	os.Clearenv()
 	testRun(t, runTestCase{
-		buildNumber:         "buildNum-0",
 		dockerImages:        []string{"hello-multistage"},
 		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-multistage"),
 		expectedCommands: []test.CommandsExpectation{
@@ -637,7 +622,6 @@ func TestRunNoRegistryGivenPush(t *testing.T) {
 	os.Clearenv()
 	testRun(t, runTestCase{
 		push:                true,
-		buildNumber:         "buildNum-0",
 		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-node"),
 		expectedErr: fmt.Sprintf("^Docker registry is needed for push, use --%s or environment variable %s to provide its value$",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
@@ -649,7 +633,6 @@ func TestRunNoImageGivenPush(t *testing.T) {
 	testRun(t, runTestCase{
 		push:                true,
 		dockerRegistry:      "testregistry",
-		buildNumber:         "buildNum-0",
 		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-node"),
 		expectedErr: fmt.Sprintf("Docker image is needed for push, use --%s to provide its value",
 			constants.ArgNameDockerImage),
@@ -680,7 +663,7 @@ func testRun(t *testing.T, tc runTestCase) {
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	runner.PrepareDigestQuery(tc.expectedDependencies, tc.queryCmdErr)
 	builder := NewBuilder(runner)
-	dependencies, err := builder.Run(tc.buildNumber,
+	dependencies, err := builder.Run(
 		tc.dockerfile, tc.dockerImages,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
 		tc.dockerContextString,

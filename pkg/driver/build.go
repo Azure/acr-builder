@@ -26,7 +26,7 @@ func NewBuilder(runner build.Runner) *Builder {
 }
 
 // Run is the main body of the acr-builder
-func (b *Builder) Run(buildNumber string,
+func (b *Builder) Run(
 	dockerfile string, dockerImages []string,
 	dockerUser, dockerPW, dockerRegistry,
 	dockerContextString string,
@@ -54,7 +54,7 @@ func (b *Builder) Run(buildNumber string,
 		return
 	}
 
-	buildWorkflow := compileWorkflow(buildNumber, userDefined, request, push)
+	buildWorkflow := compileWorkflow(userDefined, request, push)
 	err = buildWorkflow.Run(b.runner)
 	if err == nil {
 		dependencies = buildWorkflow.GetOutputs().ImageDependencies
@@ -160,13 +160,11 @@ type evaluationTaskItem struct {
 }
 
 // compileWorkflow takes a build request and populate it into workflow
-func compileWorkflow(buildNumber string,
-	userDefined []build.EnvVar, request *build.Request, push bool) *workflow.Workflow {
+func compileWorkflow(userDefined []build.EnvVar, request *build.Request, push bool) *workflow.Workflow {
 
 	// create a workflow with root context with default variables
 	w := workflow.NewWorkflow()
 	rootContext := build.NewContext(userDefined, []build.EnvVar{
-		{Name: constants.ExportsBuildNumber, Value: buildNumber},
 		{Name: constants.ExportsBuildTimestamp, Value: time.Now().UTC().Format(constants.TimestampFormat)},
 		{Name: constants.ExportsDockerRegistry, Value: request.DockerRegistry},
 		{Name: constants.ExportsPushOnSuccess, Value: strconv.FormatBool(push)}})

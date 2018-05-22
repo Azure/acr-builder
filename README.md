@@ -41,10 +41,9 @@ Run the following on your project directory to build the project and push to a d
 * `--verbose` Enable verbose output for debugging.
 
 ### Build Environment
-You can set an environment variable with `--build-env <VAR_NAME>=<VAR_VALUE>` and the builder will be aware of an environment variable throughout the build (the same goes for all child processes). ACR builder has a set of reserved environment variables such as `ACR_BUILD_BUILD_NUMBER` and `ACR_BUILD_DOCKER_REGISTRY` mentioned in the parameters paragraph. You can set them by passing in the optional parameters `--build-number` and `--docker-registry` and they can't be overridden with `--build-env`.
+You can set an environment variable with `--build-env <VAR_NAME>=<VAR_VALUE>` and the builder will be aware of an environment variable throughout the build (the same goes for all child processes). ACR builder has a set of reserved environment variables such as `ACR_BUILD_DOCKER_REGISTRY` mentioned in the parameters paragraph. You can set them by passing in the optional parameter `--docker-registry` and they can't be overridden with `--build-env`.
 
 Furthermore, ACR builder also populates the following variables during build so the child process can make use of these values:
 
-* `ACR_BUILD_NUMBER` Current build number.
 * `ACR_BUILD_TIMESTAMP` Timestamp of where the build start in ISO format.
 * `ACR_BUILD_PUSH_IMAGES` Indicates whether or not the current build will push on success.

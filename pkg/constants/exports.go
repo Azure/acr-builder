@@ -16,9 +16,6 @@ const (
 	// ExportsPushOnSuccess is the boolean value denoting whether the build will push on success
 	ExportsPushOnSuccess = acrBuildPrefix + "PUSH_ON_SUCCESS"
 
-	// ExportsBuildNumber is the current build number
-	ExportsBuildNumber = acrBuildPrefix + "NUMBER"
-
 	// ExportsBuildTimestamp is the timestamp when the build started in ISO format
 	ExportsBuildTimestamp = acrBuildPrefix + "TIMESTAMP"
 )
