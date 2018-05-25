@@ -187,7 +187,7 @@ func (s *DockerSource) ensureContextFromURL(runner build.Runner, out io.Writer, 
 		return 0, "", errors.Errorf("unable to download remote context %s: %v", remoteURL, err)
 	}
 	progressOutput := streamformatter.NewProgressOutput(out)
-	progReader := progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", fmt.Sprintf("Downloading build context from remote url: %s", remoteURL))
+	progReader := progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", "Downloading build context")
 	defer func(response *http.Response) {
 		err := response.Body.Close()
 		if err != nil {
