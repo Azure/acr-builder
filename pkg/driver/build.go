@@ -2,7 +2,6 @@ package driver
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -30,13 +29,8 @@ func (b *Builder) Run(
 	dockerfile string, dockerImages []string,
 	dockerUser, dockerPW, dockerRegistry,
 	dockerContextString string,
-	buildEnvs, buildArgs, buildSecretArgs []string, pull, noCache, push bool,
+	buildEnvs, buildArgs, buildSecretArgs []string, isolation string, pull, noCache, push bool,
 ) (dependencies []build.ImageDependencies, err error) {
-
-	if dockerRegistry == "" {
-		dockerRegistry = os.Getenv(constants.ExportsDockerRegistry)
-	}
-
 	var userDefined []build.EnvVar
 	userDefined, err = parseUserDefined(buildEnvs)
 	if err != nil {
@@ -48,7 +42,7 @@ func (b *Builder) Run(
 		dockerfile, dockerImages,
 		dockerUser, dockerPW, dockerRegistry,
 		dockerContextString,
-		buildArgs, buildSecretArgs, pull, noCache, push)
+		buildArgs, buildSecretArgs, isolation, pull, noCache, push)
 
 	if err != nil {
 		return
@@ -66,15 +60,15 @@ func (b *Builder) createBuildRequest(
 	dockerfile string, dockerImages []string,
 	dockerUser, dockerPW, dockerRegistry,
 	dockerContextString string,
-	buildArgs, buildSecretArgs []string, pull, noCache, push bool) (*build.Request, error) {
+	buildArgs, buildSecretArgs []string, isolation string, pull, noCache, push bool) (*build.Request, error) {
 	if push && dockerRegistry == "" {
-		return nil, fmt.Errorf("Docker registry is needed for push, use --%s or environment variable %s to provide its value",
-			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
+		return nil, fmt.Errorf("Docker registry is needed for push, use --%s to provide its value", "docker-registry")
 	}
 
+	// TODO: remove this string matching for errors
 	if push && len(dockerImages) <= 0 {
 		return nil, fmt.Errorf("Docker image is needed for push, use --%s to provide its value",
-			constants.ArgNameDockerImage)
+			"t")
 	}
 
 	var registrySuffixed, registryNoSuffix string
@@ -98,7 +92,7 @@ func (b *Builder) createBuildRequest(
 	}
 
 	source := commands.NewDockerSource(dockerContextString, dockerfile)
-	target := commands.NewDockerBuild(dockerfile, buildArgs, buildSecretArgs, registrySuffixed, dockerImages, pull, noCache)
+	target := commands.NewDockerBuild(dockerfile, buildArgs, buildSecretArgs, registrySuffixed, dockerImages, isolation, pull, noCache)
 
 	return &build.Request{
 		DockerRegistry:    registrySuffixed,

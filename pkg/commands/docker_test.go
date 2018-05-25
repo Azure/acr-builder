@@ -18,7 +18,8 @@ import (
 func TestNewDockerUsernamePasswordFailed(t *testing.T) {
 	_, err := NewDockerUsernamePassword("registry", "", "password")
 	assert.NotNil(t, err)
-	assert.Equal(t, fmt.Errorf("Please provide both --%s and --%s or neither", constants.ArgNameDockerUser, constants.ArgNameDockerPW), err)
+	// TODO: remove this string matching for errors
+	assert.Equal(t, fmt.Errorf("Please provide both --%s and --%s or neither", "docker-user", "docker-password"), err)
 }
 
 func TestDockerUsernamePasswordAuthenticate(t *testing.T) {
@@ -47,6 +48,7 @@ type dockerTestCase struct {
 	buildSecretArgs      []string
 	registry             string
 	imageNames           []string
+	isolation            string
 	pull                 bool
 	noCache              bool
 	expectedCommands     []test.CommandsExpectation
@@ -57,7 +59,7 @@ func testDockerBuild(t *testing.T, tc dockerTestCase) {
 	runner := new(test.MockRunner)
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	defer runner.AssertExpectations(t)
-	target := NewDockerBuild(tc.dockerfile, tc.buildArgs, tc.buildSecretArgs, tc.registry, tc.imageNames, tc.pull, tc.noCache)
+	target := NewDockerBuild(tc.dockerfile, tc.buildArgs, tc.buildSecretArgs, tc.registry, tc.imageNames, tc.isolation, tc.pull, tc.noCache)
 	err := target.Build(runner)
 	if tc.expectedExecutionErr != "" {
 		assert.NotNil(t, err)
@@ -106,7 +108,7 @@ func TestDockerBuildHappy(t *testing.T) {
 
 func TestExport(t *testing.T) {
 	imageNames := []string{"myImage"}
-	task := NewDockerBuild("myDockerfile", []string{}, []string{}, "myRegistry/", imageNames, false, false)
+	task := NewDockerBuild("myDockerfile", []string{}, []string{}, "myRegistry/", imageNames, "", false, false)
 	exports := task.Export()
 	testCommon.AssertSameEnv(t, []build.EnvVar{
 		{Name: constants.ExportsDockerfilePath, Value: "myDockerfile"},
@@ -117,7 +119,7 @@ func testDockerPush(t *testing.T, tc dockerTestCase) {
 	runner := new(test.MockRunner)
 	runner.PrepareCommandExpectation(tc.expectedCommands)
 	defer runner.AssertExpectations(t)
-	target := NewDockerBuild(tc.dockerfile, tc.buildArgs, tc.buildSecretArgs, tc.registry, tc.imageNames, tc.pull, tc.noCache)
+	target := NewDockerBuild(tc.dockerfile, tc.buildArgs, tc.buildSecretArgs, tc.registry, tc.imageNames, tc.isolation, tc.pull, tc.noCache)
 	err := target.Push(runner)
 	if tc.expectedExecutionErr != "" {
 		assert.NotNil(t, err)
@@ -181,7 +183,7 @@ func testDockerScanDependencies(t *testing.T, tc dockerDependenciesTestCase) {
 		{Name: "project_root", Value: filepath.Join("..", "..", "tests", "resources", "docker-dotnet")},
 	}, []build.EnvVar{}))
 	target := NewDockerBuild(tc.path, testCommon.DotnetExampleMinimalBuildArg,
-		[]string{}, testCommon.DotnetExampleTargetRegistryName+"/", []string{testCommon.DotnetExampleTargetImageName}, false, false)
+		[]string{}, testCommon.DotnetExampleTargetRegistryName+"/", []string{testCommon.DotnetExampleTargetImageName}, "", false, false)
 	dependencies, err := target.ScanForDependencies(runner)
 	if tc.expectedErr == "" {
 		assert.Nil(t, err)
@@ -202,7 +204,7 @@ func TestDockerGetRepoDigestSucceed(t *testing.T) {
 	testDockerGetRepoDigest(t, repoDigestTestcase{
 		jsonContent: "[\"user2/repo2@sha256:testsha2\", \"user1/repo1@sha256:testsha1\"]",
 		reference: &build.ImageReference{
-			Registry:   build.DockerHubRegistry,
+			Registry:   constants.DockerHubRegistry,
 			Repository: "user1/repo1",
 		},
 		expectedDigest: "sha256:testsha1",

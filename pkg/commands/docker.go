@@ -21,7 +21,8 @@ const (
 // NewDockerUsernamePassword creates a authentication object with username and password
 func NewDockerUsernamePassword(registry string, username string, password string) (build.DockerCredential, error) {
 	if (username == "") != (password == "") {
-		return nil, fmt.Errorf("Please provide both --%s and --%s or neither", constants.ArgNameDockerUser, constants.ArgNameDockerPW)
+		// TODO: remove this string matching for errors
+		return nil, fmt.Errorf("Please provide both --%s and --%s or neither", "docker-user", "docker-password")
 	}
 	return &dockerUsernamePassword{
 		registry: registry,
@@ -54,7 +55,7 @@ func (u *dockerUsernamePassword) Authenticate(runner build.Runner) error {
 
 // NewDockerBuild creates a build target with specified docker file and build parameters
 func NewDockerBuild(dockerfile string,
-	buildArgs, buildSecretArgs []string, registry string, imageNames []string, pull, noCache bool) build.Target {
+	buildArgs, buildSecretArgs []string, registry string, imageNames []string, isolation string, pull, noCache bool) build.Target {
 	var pushTo []string
 	// If imageName is empty, skip push.
 	// If registry is empty, it means push to DockerHub.
@@ -75,6 +76,7 @@ func NewDockerBuild(dockerfile string,
 		buildArgs:       buildArgs,
 		buildSecretArgs: buildSecretArgs,
 		pushTo:          pushTo,
+		isolation:       isolation,
 		pull:            pull,
 		noCache:         noCache,
 	}
@@ -85,6 +87,7 @@ type dockerBuildTask struct {
 	buildArgs       []string
 	buildSecretArgs []string
 	pushTo          []string
+	isolation       string
 	pull            bool
 	noCache         bool
 }
@@ -135,6 +138,11 @@ func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.Imag
 
 func (t *dockerBuildTask) Build(runner build.Runner) error {
 	args := []string{"build"}
+
+	if t.isolation != "" {
+		isolationString := fmt.Sprintf("--isolation=%s", t.isolation)
+		args = append(args, isolationString)
+	}
 
 	if t.pull {
 		args = append(args, "--pull")
@@ -248,9 +256,9 @@ func getRepoDigest(jsonContent string, reference *build.ImageReference) string {
 	prefix := reference.Repository + "@"
 	// If the reference has "library/" prefixed, we have to remove it - otherwise
 	// we'll fail to query the digest, since image names aren't prefixed with "library/"
-	if strings.HasPrefix(prefix, "library/") && reference.Registry == build.DockerHubRegistry {
+	if strings.HasPrefix(prefix, "library/") && reference.Registry == constants.DockerHubRegistry {
 		prefix = prefix[8:]
-	} else if len(reference.Registry) > 0 && reference.Registry != build.DockerHubRegistry {
+	} else if len(reference.Registry) > 0 && reference.Registry != constants.DockerHubRegistry {
 		prefix = reference.Registry + "/" + prefix
 	}
 

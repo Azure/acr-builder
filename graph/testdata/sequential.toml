@@ -1,0 +1,17 @@
+stepTimeout = 30
+totalTimeout = 90
+push = ["push1", "push2", "push3"]
+
+[[secrets]]
+akv = "someAKV"
+secretEnv = "someAkvSecretEnv"
+
+[[step]]
+id = "git-clone"
+timeout = 5
+run = "alpine/git:latest clone https://github.com/Azure/acr-builder.git"
+
+[[step]]
+id = "acr-builder"
+run = "docker:18.05.0-ce-git build -f Dockerfile ."
+workDir = "acr-builder"

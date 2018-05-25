@@ -1,0 +1,7 @@
+stepTimeout = 60
+totalTimeout = 600
+cloneURL = "https://github.com/Azure/acr-builder.git"
+dockerFile = "Dockerfile"
+dockerContext = "."
+builderImage = "docker:18.05.0-ce-git"
+partTwo = false

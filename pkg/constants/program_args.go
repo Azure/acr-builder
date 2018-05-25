@@ -32,6 +32,9 @@ const (
 	// ArgNamePull is the parameter determining if attempting to pull a newer version of the base images. Default: false
 	ArgNamePull = "pull"
 
+	// ArgNameIsolation is the parameter name for specifying isolation technology for container. This option is useful for running docker containers in Windows.Supported values are default, process and hyperv
+	ArgNameIsolation = "isolation"
+
 	// ArgNameNoCache is the parameter determining if not using any cached layer when building the image. Default: false
 	ArgNameNoCache = "no-cache"
 

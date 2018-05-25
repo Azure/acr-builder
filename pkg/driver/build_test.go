@@ -388,6 +388,7 @@ type createBuildRequestTestCase struct {
 	dockerContextString string
 	buildArgs           []string
 	buildSecretArgs     []string
+	isolation           string
 	pull                bool
 	noCache             bool
 	push                bool
@@ -404,7 +405,7 @@ func TestCreateBuildRequestNoParams(t *testing.T) {
 			Targets: []build.SourceTarget{
 				{
 					Source: localSource,
-					Builds: []build.Target{commands.NewDockerBuild("", nil, nil, "", nil, false, false)},
+					Builds: []build.Target{commands.NewDockerBuild("", nil, nil, "", nil, "", false, false)},
 				},
 			},
 		},
@@ -421,7 +422,7 @@ func TestCreateGitBuildRequest(t *testing.T) {
 	pull := true
 	noCache := false
 	dockerBuildTarget := commands.NewDockerBuild(dockerfile,
-		buildArgs, buildSecretArgs, registry+"/", imageNames, pull, noCache)
+		buildArgs, buildSecretArgs, registry+"/", imageNames, "", pull, noCache)
 	gitSource := commands.NewDockerSource(giturl, dockerfile)
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		dockerfile:          dockerfile,
@@ -451,17 +452,19 @@ func TestCreateBuildRequestNoDockerPassword(t *testing.T) {
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		dockerRegistry: dockerRegistry,
 		dockerUser:     dockerUser,
+		// TODO: remove this string matching for errors
 		expectedError: fmt.Sprintf("^Please provide both --%s and --%s or neither$",
-			constants.ArgNameDockerUser, constants.ArgNameDockerPW),
+			"docker-user", "docker-password"),
 	})
 }
 
 func TestCreateBuildRequestDockerBuildCreationError(t *testing.T) {
+
+	// TODO: remove this string matching for errors
 	testCreateBuildRequest(t, createBuildRequestTestCase{
-		dockerfile: "some.dockerfile",
-		push:       true,
-		expectedError: fmt.Sprintf("^Docker registry is needed for push, use --%s or environment variable %s to provide its value$",
-			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
+		dockerfile:    "some.dockerfile",
+		push:          true,
+		expectedError: fmt.Sprintf("^Docker registry is needed for push, use --%s to provide its value$", "docker-registry"),
 	})
 }
 
@@ -475,7 +478,7 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 	req, err := builder.createBuildRequest(
 		tc.dockerfile, tc.dockerImages,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.dockerContextString,
-		tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
+		tc.buildArgs, tc.buildSecretArgs, tc.isolation, tc.pull, tc.noCache, tc.push)
 
 	if tc.expectedError != "" {
 		assert.NotNil(t, err)
@@ -496,6 +499,7 @@ type runTestCase struct {
 	buildEnvs            []string
 	buildArgs            []string
 	buildSecretArgs      []string
+	isolation            string
 	pull                 bool
 	noCache              bool
 	push                 bool
@@ -620,22 +624,23 @@ func TestRunNoRegistryGiven(t *testing.T) {
 
 func TestRunNoRegistryGivenPush(t *testing.T) {
 	os.Clearenv()
+	// TODO: remove this string matching for errors
 	testRun(t, runTestCase{
 		push:                true,
 		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-node"),
-		expectedErr: fmt.Sprintf("^Docker registry is needed for push, use --%s or environment variable %s to provide its value$",
-			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry),
+		expectedErr:         fmt.Sprintf("^Docker registry is needed for push, use --%s to provide its value$", "docker-registry"),
 	})
 }
 
 func TestRunNoImageGivenPush(t *testing.T) {
 	os.Clearenv()
+	// TODO: remove this string matching for errors
 	testRun(t, runTestCase{
 		push:                true,
 		dockerRegistry:      "testregistry",
 		dockerContextString: filepath.Join(testCommon.Config.ProjectRoot, "tests", "resources", "hello-node"),
 		expectedErr: fmt.Sprintf("Docker image is needed for push, use --%s to provide its value",
-			constants.ArgNameDockerImage),
+			"t"),
 	})
 }
 
@@ -651,8 +656,9 @@ func TestCreateBuildRequestFailed(t *testing.T) {
 	testRun(t, runTestCase{
 		dockerRegistry: testCommon.DotnetExampleTargetRegistryName,
 		dockerUser:     "someUser",
+		// TODO: remove this string matching for errors
 		expectedErr: fmt.Sprintf("^Please provide both --%s and --%s or neither$",
-			constants.ArgNameDockerUser, constants.ArgNameDockerPW),
+			"docker-user", "docker-password"),
 	})
 }
 
@@ -667,7 +673,7 @@ func testRun(t *testing.T, tc runTestCase) {
 		tc.dockerfile, tc.dockerImages,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
 		tc.dockerContextString,
-		tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
+		tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.isolation, tc.pull, tc.noCache, tc.push)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())

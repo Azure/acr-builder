@@ -1,0 +1,22 @@
+## Explicit context
+# [[step]]
+# run = "alpine/git clone https://github.com/Azure/acr-builder.git"
+
+# ## TODO: no way to get dependencies / SHA from this situation.
+# [[step]]
+# run = "build -f Dockerfile ."
+# workDir = "acr-builder"
+
+## Inferred context
+
+
+# [[step]]
+# run = "build -f Dockerfile -t {{.Build.ID}}:latest https://github.com/Azure/acr-builder.git"
+# contextDir = "acr-builder"
+
+[[step]]
+run = "build https://acrbuild.blob.core.windows.net/public/aspnetcore-helloworld.tar.gz -f HelloWorld/Dockerfile -t {{.Build.ID}}:latest"
+contextDir = "acr-builder"
+
+# [[step]]
+# run = "bash ls -la"

@@ -3,7 +3,7 @@ PREFIX?=$(shell pwd)
 BINDIR := /usr/local/bin
 
 # Setup name variables for the package/tool
-NAME := acr-builder
+NAME := rally
 PKG := $(NAME)
 
 # Set any default go build tags

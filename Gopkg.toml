@@ -1,3 +1,8 @@
+[prune]
+  non-go = true
+  go-tests = true
+  unused-packages = true
+
 [[constraint]]
   name = "github.com/sirupsen/logrus"
   version = "1.0.4"
@@ -11,7 +16,18 @@
   source = "github.com/moby/moby"
   branch = "master"
 
-[prune]
-  non-go = true
-  go-tests = true
-  unused-packages = true
+[[constraint]]
+  name = "github.com/spf13/cobra"
+  version = "0.0.3"
+
+[[constraint]]
+  name = "github.com/BurntSushi/toml"
+  version = "0.3.0"
+
+[[constraint]]
+  name = "github.com/google/uuid"
+  version = "0.2.0"
+
+[[constraint]]
+  name = "github.com/Masterminds/sprig"
+  version = "2.15.0"

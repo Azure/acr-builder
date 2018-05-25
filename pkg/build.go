@@ -5,11 +5,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/docker/distribution/reference"
 )
-
-// DockerHubRegistry is the docker hub registry
-const DockerHubRegistry = "registry.hub.docker.com"
 
 // EnvVar defines an environmental variable
 type EnvVar struct {
@@ -92,11 +90,11 @@ func NewImageReference(path string) (*ImageReference, error) {
 		} else {
 			// DockerHub
 			if result.Registry == "" {
-				result.Registry = DockerHubRegistry
+				result.Registry = constants.DockerHubRegistry
 				result.Repository = strings.Join([]string{"library", reference.Path(named)}, "/")
 			} else {
 				// The domain is the DockerHub user name
-				result.Registry = DockerHubRegistry
+				result.Registry = constants.DockerHubRegistry
 				result.Repository = strings.Join([]string{reference.Domain(named), reference.Path(named)}, "/")
 			}
 		}

@@ -2,8 +2,10 @@ package commands
 
 import (
 	"strings"
+)
 
-	"github.com/Azure/acr-builder/pkg/constants"
+const (
+	obfuscationString = "*************"
 )
 
 // KeyValueArgumentObfuscator returns a function to scan the argument list and replace the secret argument value with the obfuscation string
@@ -15,9 +17,9 @@ func KeyValueArgumentObfuscator(secretArgs []string) func(args []string) {
 					if args[i] == secretArgs[j] {
 						index := strings.Index(args[i], "=")
 						if index >= 0 {
-							args[i] = args[i][:index+1] + constants.ObfuscationString
+							args[i] = args[i][:index+1] + obfuscationString
 						} else {
-							args[i] = constants.ObfuscationString
+							args[i] = obfuscationString
 						}
 						break
 					}
