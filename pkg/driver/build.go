@@ -30,7 +30,7 @@ func (b *Builder) Run(
 	dockerfile string, dockerImages []string,
 	dockerUser, dockerPW, dockerRegistry,
 	dockerContextString string,
-	buildEnvs, buildArgs, buildSecretArgs []string, pull, noCache, push bool,
+	buildEnvs, buildArgs, buildSecretArgs []string, hypervIsolation, pull, noCache, push bool,
 ) (dependencies []build.ImageDependencies, err error) {
 
 	if dockerRegistry == "" {
@@ -48,7 +48,7 @@ func (b *Builder) Run(
 		dockerfile, dockerImages,
 		dockerUser, dockerPW, dockerRegistry,
 		dockerContextString,
-		buildArgs, buildSecretArgs, pull, noCache, push)
+		buildArgs, buildSecretArgs, hypervIsolation, pull, noCache, push)
 
 	if err != nil {
 		return
@@ -66,7 +66,7 @@ func (b *Builder) createBuildRequest(
 	dockerfile string, dockerImages []string,
 	dockerUser, dockerPW, dockerRegistry,
 	dockerContextString string,
-	buildArgs, buildSecretArgs []string, pull, noCache, push bool) (*build.Request, error) {
+	buildArgs, buildSecretArgs []string, hypervIsolation, pull, noCache, push bool) (*build.Request, error) {
 	if push && dockerRegistry == "" {
 		return nil, fmt.Errorf("Docker registry is needed for push, use --%s or environment variable %s to provide its value",
 			constants.ArgNameDockerRegistry, constants.ExportsDockerRegistry)
@@ -98,7 +98,7 @@ func (b *Builder) createBuildRequest(
 	}
 
 	source := commands.NewDockerSource(dockerContextString, dockerfile)
-	target := commands.NewDockerBuild(dockerfile, buildArgs, buildSecretArgs, registrySuffixed, dockerImages, pull, noCache)
+	target := commands.NewDockerBuild(dockerfile, buildArgs, buildSecretArgs, registrySuffixed, dockerImages, hypervIsolation, pull, noCache)
 
 	return &build.Request{
 		DockerRegistry:    registrySuffixed,

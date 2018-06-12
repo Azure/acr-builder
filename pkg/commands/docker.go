@@ -54,7 +54,7 @@ func (u *dockerUsernamePassword) Authenticate(runner build.Runner) error {
 
 // NewDockerBuild creates a build target with specified docker file and build parameters
 func NewDockerBuild(dockerfile string,
-	buildArgs, buildSecretArgs []string, registry string, imageNames []string, pull, noCache bool) build.Target {
+	buildArgs, buildSecretArgs []string, registry string, imageNames []string, hypervIsolation, pull, noCache bool) build.Target {
 	var pushTo []string
 	// If imageName is empty, skip push.
 	// If registry is empty, it means push to DockerHub.
@@ -75,6 +75,7 @@ func NewDockerBuild(dockerfile string,
 		buildArgs:       buildArgs,
 		buildSecretArgs: buildSecretArgs,
 		pushTo:          pushTo,
+		hypervIsolation: hypervIsolation,
 		pull:            pull,
 		noCache:         noCache,
 	}
@@ -85,6 +86,7 @@ type dockerBuildTask struct {
 	buildArgs       []string
 	buildSecretArgs []string
 	pushTo          []string
+	hypervIsolation bool
 	pull            bool
 	noCache         bool
 }
@@ -135,6 +137,10 @@ func (t *dockerBuildTask) ScanForDependencies(runner build.Runner) ([]build.Imag
 
 func (t *dockerBuildTask) Build(runner build.Runner) error {
 	args := []string{"build"}
+
+	if t.hypervIsolation {
+		args = append(args, "--isolation=hyperv")
+	}
 
 	if t.pull {
 		args = append(args, "--pull")

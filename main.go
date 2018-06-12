@@ -43,7 +43,7 @@ func main() {
 	// if the program is launched in docker container, use option -v /var/run/docker.sock:/var/run/docker.sock -v ~/.docker:/root/.docker
 	var dockerUser, dockerPW, dockerRegistry string
 	var buildArgs, buildSecretArgs, buildEnvs stringSlice
-	var pull, noCache, push, debug bool
+	var hypervIsolation, pull, noCache, push, debug bool
 	flag.StringVar(&dockerContextString, constants.ArgNameDockerContextString, "", "Working directory for the builder.")
 	flag.StringVar(&dockerfile, constants.ArgNameDockerfile, "", "Dockerfile to build. If choosing to build a dockerfile")
 	flag.Var(&dockerImages, constants.ArgNameDockerImage, "The image names to build to. This option is only available when building with dockerfile")
@@ -54,6 +54,7 @@ func main() {
 	flag.StringVar(&dockerPW, constants.ArgNameDockerPW, "", "Docker password or OAuth identity token.")
 	flag.Var(&buildEnvs, constants.ArgNameBuildEnv, "Custom environment variables defined for the build process")
 	flag.BoolVar(&pull, constants.ArgNamePull, false, "Attempt to pull a newer version of the base images")
+	flag.BoolVar(&hypervIsolation, constants.ArgNameHypervIsolation, false, "Build using Hyper-V hypervisor partition based isolation")
 	flag.BoolVar(&noCache, constants.ArgNameNoCache, false, "Not using any cached layer when building the image")
 	flag.BoolVar(&push, constants.ArgNamePush, false, "Push on success")
 	flag.BoolVar(&debug, constants.ArgNameDebug, false, "Enable verbose output for debugging")
@@ -87,7 +88,7 @@ func main() {
 		dockerfile, normalizedDockerImages,
 		dockerUser, dockerPW, dockerRegistry,
 		dockerContextString,
-		buildEnvs, buildArgs, buildSecretArgs, pull, noCache, push)
+		buildEnvs, buildArgs, buildSecretArgs, hypervIsolation, pull, noCache, push)
 
 	if err != nil {
 		logrus.Error(err)

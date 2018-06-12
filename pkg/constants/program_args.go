@@ -32,6 +32,9 @@ const (
 	// ArgNamePull is the parameter determining if attempting to pull a newer version of the base images. Default: false
 	ArgNamePull = "pull"
 
+	// ArgNameHypervIsolation is the parameter determining if docker build uses Hyper-V hypervisor partition-based isolation. This is used for building docker images on Windows. Default: false
+	ArgNameHypervIsolation = "hyperv-isolation"
+
 	// ArgNameNoCache is the parameter determining if not using any cached layer when building the image. Default: false
 	ArgNameNoCache = "no-cache"
 
