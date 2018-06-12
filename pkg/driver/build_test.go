@@ -388,6 +388,7 @@ type createBuildRequestTestCase struct {
 	dockerContextString string
 	buildArgs           []string
 	buildSecretArgs     []string
+	isolation           string
 	pull                bool
 	noCache             bool
 	push                bool
@@ -404,7 +405,7 @@ func TestCreateBuildRequestNoParams(t *testing.T) {
 			Targets: []build.SourceTarget{
 				{
 					Source: localSource,
-					Builds: []build.Target{commands.NewDockerBuild("", nil, nil, "", nil, false, false)},
+					Builds: []build.Target{commands.NewDockerBuild("", nil, nil, "", nil, "", false, false)},
 				},
 			},
 		},
@@ -421,7 +422,7 @@ func TestCreateGitBuildRequest(t *testing.T) {
 	pull := true
 	noCache := false
 	dockerBuildTarget := commands.NewDockerBuild(dockerfile,
-		buildArgs, buildSecretArgs, registry+"/", imageNames, pull, noCache)
+		buildArgs, buildSecretArgs, registry+"/", imageNames, "", pull, noCache)
 	gitSource := commands.NewDockerSource(giturl, dockerfile)
 	testCreateBuildRequest(t, createBuildRequestTestCase{
 		dockerfile:          dockerfile,
@@ -475,7 +476,7 @@ func testCreateBuildRequest(t *testing.T, tc createBuildRequestTestCase) {
 	req, err := builder.createBuildRequest(
 		tc.dockerfile, tc.dockerImages,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry, tc.dockerContextString,
-		tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
+		tc.buildArgs, tc.buildSecretArgs, tc.isolation, tc.pull, tc.noCache, tc.push)
 
 	if tc.expectedError != "" {
 		assert.NotNil(t, err)
@@ -496,6 +497,7 @@ type runTestCase struct {
 	buildEnvs            []string
 	buildArgs            []string
 	buildSecretArgs      []string
+	isolation            string
 	pull                 bool
 	noCache              bool
 	push                 bool
@@ -667,7 +669,7 @@ func testRun(t *testing.T, tc runTestCase) {
 		tc.dockerfile, tc.dockerImages,
 		tc.dockerUser, tc.dockerPW, tc.dockerRegistry,
 		tc.dockerContextString,
-		tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.pull, tc.noCache, tc.push)
+		tc.buildEnvs, tc.buildArgs, tc.buildSecretArgs, tc.isolation, tc.pull, tc.noCache, tc.push)
 	if tc.expectedErr != "" {
 		assert.NotNil(t, err)
 		assert.Regexp(t, regexp.MustCompile(tc.expectedErr), err.Error())
