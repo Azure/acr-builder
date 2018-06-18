@@ -1,13 +1,11 @@
 package cmder
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"strings"
 	"sync"
 
 	"github.com/Azure/acr-builder/util"
@@ -120,23 +118,4 @@ func (c *Cmder) Stop() util.Errors {
 	}
 
 	return errors
-}
-
-// GetDockerVersions returns the Docker version for client and server.
-func (c *Cmder) GetDockerVersions(ctx context.Context) (string, string, error) {
-	// TODO: Refactor - move to builder?
-
-	cmd := []string{"docker", "version", "--format", "{{.Client.Version}}"}
-	var cBuf bytes.Buffer
-	if err := c.Run(ctx, cmd, nil, &cBuf, os.Stderr, ""); err != nil {
-		return "", "", err
-	}
-
-	cmd = []string{"docker", "version", "--format", "{{.Server.Version}}"}
-	var sBuf bytes.Buffer
-	if err := c.Run(ctx, cmd, nil, &sBuf, os.Stderr, ""); err != nil {
-		return "", "", err
-	}
-
-	return strings.TrimSpace(cBuf.String()), strings.TrimSpace(sBuf.String()), nil
 }

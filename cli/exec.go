@@ -80,15 +80,6 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 
 	ctx := context.Background()
 
-	if !e.dryRun {
-		clientVersion, serverVersion, err := cmder.GetDockerVersions(ctx)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("Using Docker client version: %s, server version: %s\n", clientVersion, serverVersion)
-	}
-
 	j, err := templating.LoadJob(e.templatePath)
 	if err != nil {
 		return fmt.Errorf("Failed to load job at path %s. Err: %v", e.templatePath, err)

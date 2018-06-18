@@ -18,7 +18,7 @@ import (
 )
 
 const buildLongDesc = `
-This command can be used to build Dockerfiles.
+This command can be used to build images.
 `
 
 type buildCmd struct {
@@ -66,7 +66,6 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringVarP(&r.registryUserName, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&r.registryPassword, "password", "p", "", "the password to use when logging into the registry")
 
-	// TODO: support for Windows isolation
 	f.StringVar(&r.isolation, "isolation", "default", "the isolation to use")
 	f.BoolVar(&r.pull, "pull", false, "attempt to pull a newer version of the base images")
 	f.BoolVar(&r.noCache, "no-cache", false, "true to ignore all cached layers when building the image")
@@ -90,7 +89,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	cmder := cmder.NewCmder(false)
 
 	defaultStep := &graph.Step{
-		ID:  "DefaultStep",
+		ID:  "Build",
 		Run: b.createRunCmd(),
 	}
 

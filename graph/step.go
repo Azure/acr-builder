@@ -39,6 +39,8 @@ type Step struct {
 	// CompletedChan can be used to signal to readers
 	// that the step has been processed.
 	CompletedChan chan bool
+
+	ImageDependencies []*ImageDependencies
 }
 
 // Validate validates the step and returns an error if the Step has problems.

@@ -2,6 +2,7 @@ package builder
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -48,7 +49,6 @@ func NewBuilder(c *cmder.Cmder, debug bool, workspaceDir string, dryRun bool, bu
 func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag) error {
 	// TODO: DESIGN: do we want multiple volumes per step?
 	root := dag.Nodes[graph.RootNodeID]
-	deps := "{}"
 	var completedChans []chan bool
 	errorChan := make(chan error)
 	for k, v := range dag.Nodes {
@@ -85,10 +85,13 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag) error {
 		step := v.Value
 
 		fmt.Printf("Step ID %v marked as %v (start time: %v, end time: %v)\n", step.ID, step.StepStatus, step.StartTime, step.EndTime)
+		bytes, err := json.Marshal(step.ImageDependencies)
+		if err != nil {
+			fmt.Printf("Err while unmarshaling image dependencies: %v\n", err)
+		} else {
+			fmt.Println(string(bytes))
+		}
 	}
-
-	fmt.Printf("Rally found the following dependencies: %s\n", deps)
-	fmt.Println("Build complete")
 
 	return nil
 }
@@ -150,6 +153,27 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 				errorChan <- err
 				return
 			}
+
+			tags := parseRunArgs(step.Run, "-t")
+			buildArgs := parseRunArgs(step.Run, "--build-arg")
+			deps, err := b.ScanForDependencies(workingDir, dockerfile, buildArgs, tags)
+
+			if err != nil {
+				errorChan <- err
+				return
+			}
+
+			err = b.PopulateDigests(ctx, deps)
+			if err != nil {
+				errorChan <- err
+				return
+			}
+			for _, dep := range deps {
+				dep.Git = &graph.GitReference{
+					GitHeadRev: sha,
+				}
+			}
+			step.ImageDependencies = deps
 
 			// If the step has a context directory specified, copy the context.
 			if step.ContextDir != "" {

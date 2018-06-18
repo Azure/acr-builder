@@ -133,7 +133,6 @@ func (b *Builder) getDockerRunArgs(stepID string, stepWorkDir string) []string {
 		"--volume", b.workspaceDir+":"+containerWorkspaceDir,
 		"--workdir", normalizeWorkDir(stepWorkDir),
 
-		// TODO: DESIGN: decide on the usage of the home volume; if it's necessary.
 		"--volume", rallyHomeVol+":"+rallyHomeWorkDir,
 
 		// Set $HOME to the home volume.
@@ -151,7 +150,6 @@ func (b *Builder) copyContext(ctx context.Context, workingDir string, mountLocat
 		"--name", containerName,
 		"--volume", b.workspaceDir + ":" + containerWorkspaceDir,
 
-		// TODO: DESIGN: decide on the usage of the home volume; if it's necessary.
 		"--volume", rallyHomeVol + ":" + rallyHomeWorkDir,
 		// Set $HOME to the home volume.
 		"--env", "HOME=" + rallyHomeVol,

@@ -7,11 +7,5 @@ akv = "someAKV"
 secretEnv = "someAkvSecretEnv"
 
 [[step]]
-id = "git-clone"
 timeout = 5
-run = "alpine/git:latest clone https://github.com/Azure/acr-builder.git"
-
-[[step]]
-id = "acr-builder"
-run = "docker:18.05.0-ce-git build -f Dockerfile ."
-workDir = "acr-builder"
+run = "build -f Dockerfile -t foo:bar https://github.com/Azure/acr-builder.git"
