@@ -44,7 +44,7 @@ func (b *Builder) obtainSourceCode(
 	dockerfile string) (workingDir string, sha string, err error) {
 	sourceType, workingDir, err := b.getContext(ctx, context, dockerfile)
 	if err != nil {
-		return workingDir, sha, err
+		return workingDir, sha, errors.Wrap(err, "failed to obtain source code")
 	}
 
 	if sourceType == dockerSourceGit {

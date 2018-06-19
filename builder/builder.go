@@ -92,16 +92,16 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo [
 
 		err := b.PopulateDigests(ctx, step.ImageDependencies)
 		if err != nil {
-			fmt.Printf("failed to populate digests, err: %v\n", err)
+			return errors.Wrap(err, "failed to populate digests")
 		}
 
 		fmt.Printf("Step ID %v marked as %v (start time: %v, end time: %v)\n", step.ID, step.StepStatus, step.StartTime, step.EndTime)
 		bytes, err := json.Marshal(step.ImageDependencies)
 		if err != nil {
-			fmt.Printf("Err while unmarshaling image dependencies: %v\n", err)
-		} else {
-			fmt.Println(string(bytes))
+			return errors.Wrap(err, "failed to unmarshal image dependencies")
 		}
+
+		fmt.Println(string(bytes))
 	}
 
 	return nil
@@ -159,7 +159,7 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 			dockerfile, context := util.ParseDockerBuildCmd(step.Run)
 			workingDir, sha, err := b.obtainSourceCode(ctx, context, dockerfile)
 			if err != nil {
-				errorChan <- errors.Wrap(err, "failed to obtain source code")
+				errorChan <- err
 				return
 			}
 
@@ -221,20 +221,4 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 	} else if b.debug {
 		fmt.Printf("Skipped processing %v, degree: %v\n", child.Name, degree)
 	}
-}
-
-func prefixStepTags(runCmd string, registry string) string {
-	if registry == "" {
-		return runCmd
-	}
-
-	fields := strings.Fields(runCmd)
-
-	for i := 1; i < len(fields); i++ {
-		if fields[i-1] == "-t" {
-			fields[i] = prefixRegistryToImageName(registry, fields[i])
-		}
-	}
-
-	return strings.Join(fields, " ")
 }

@@ -130,7 +130,7 @@ func UnmarshalPipelineFromFile(file string) (*Pipeline, error) {
 
 	// Early exit if the error is nil
 	if _, err := toml.DecodeFile(file, p); err != nil {
-		return p, err
+		return p, errors.Wrap(err, "failed to deserialize pipeline")
 	}
 
 	// Initialize the pipeline to normalize some values.

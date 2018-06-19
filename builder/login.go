@@ -2,10 +2,11 @@ package builder
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -22,8 +23,7 @@ func (b *Builder) dockerLoginWithRetries(ctx context.Context, attempt int) error
 			return b.dockerLoginWithRetries(ctx, attempt+1)
 		}
 
-		fmt.Println("Failed to login; ran out of retries")
-		return err
+		return errors.Wrap(err, "failed to login, ran out of retries")
 	}
 
 	return nil
