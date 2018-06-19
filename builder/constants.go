@@ -8,6 +8,4 @@ const (
 	// Note that :latest is not valid in the FROM clause, but we're
 	// always appending :latest to tags during processing.
 	NoBaseImageSpecifierLatest = "scratch:latest"
-
-	maxLoginRetries = 3
 )
