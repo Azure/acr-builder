@@ -1,9 +1,10 @@
 package graph
 
 import (
-	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/pkg/errors"
 
 	"github.com/BurntSushi/toml"
 )
@@ -116,7 +117,7 @@ func CreateDagFromFile(file string) (*Dag, error) {
 func UnmarshalPipelineFromString(data string) (*Pipeline, error) {
 	p := &Pipeline{}
 	if _, err := toml.Decode(data, p); err != nil {
-		return p, err
+		return p, errors.Wrap(err, "failed to deserialize pipeline")
 	}
 
 	p.initialize()
