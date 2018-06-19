@@ -158,12 +158,13 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 
 			dockerfile, context := util.ParseDockerBuildCmd(step.Run)
 			workingDir, sha, err := b.obtainSourceCode(ctx, context, dockerfile)
-
 			if err != nil {
 				errorChan <- errors.Wrap(err, "failed to obtain source code")
 				return
 			}
 
+			// Adjust the run command so that the ACR registry is prefixed for all tags
+			step.Run = prefixStepTags(step.Run, b.buildOptions.RegistryName)
 			tags := parseRunArgs(step.Run, "-t")
 			buildArgs := parseRunArgs(step.Run, "--build-arg")
 			deps, err := b.ScanForDependencies(workingDir, dockerfile, buildArgs, tags)
@@ -220,4 +221,20 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 	} else if b.debug {
 		fmt.Printf("Skipped processing %v, degree: %v\n", child.Name, degree)
 	}
+}
+
+func prefixStepTags(runCmd string, registry string) string {
+	if registry == "" {
+		return runCmd
+	}
+
+	fields := strings.Fields(runCmd)
+
+	for i := 1; i < len(fields); i++ {
+		if fields[i-1] == "-t" {
+			fields[i] = prefixRegistryToImageName(registry, fields[i])
+		}
+	}
+
+	return strings.Join(fields, " ")
 }
