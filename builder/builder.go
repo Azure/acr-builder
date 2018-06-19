@@ -95,7 +95,7 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo [
 			return errors.Wrap(err, "failed to populate digests")
 		}
 
-		fmt.Printf("Step ID %v marked as %v (start time: %v, end time: %v)\n", step.ID, step.StepStatus, step.StartTime, step.EndTime)
+		fmt.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
 		bytes, err := json.Marshal(step.ImageDependencies)
 		if err != nil {
 			return errors.Wrap(err, "failed to unmarshal image dependencies")
