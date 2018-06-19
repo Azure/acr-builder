@@ -25,3 +25,10 @@ func validateRegistryCreds(username string, password string) error {
 	}
 	return errors.New("when specifying username and password, provide both or neither")
 }
+
+func validatePush(push bool, registry string, username string, password string) error {
+	if push && (username == "" || password == "" || registry == "") {
+		return errors.New("when specifying push, username, password, and registry are required")
+	}
+	return nil
+}

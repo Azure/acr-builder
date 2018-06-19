@@ -144,6 +144,10 @@ func (b *buildCmd) validateCmdArgs() error {
 		return err
 	}
 
+	if err := validatePush(b.push, b.registry, b.registryUserName, b.registryPassword); err != nil {
+		return err
+	}
+
 	// TODO: OCI build support
 	if b.oci {
 		return errors.New("OCI builder isn't implemented yet")
