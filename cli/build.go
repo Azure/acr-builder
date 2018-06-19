@@ -60,7 +60,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 
 	// Build parameters
-	f.StringVarP(&r.dockerfile, "dockerfile", "f", "file", "name of the Dockerfile")
+	f.StringVarP(&r.dockerfile, "file", "f", "Dockerfile", "name of the Dockerfile")
 	f.StringArrayVarP(&r.tags, "tag", "t", []string{}, "name and optionally a tag in the 'name:tag' format")
 	f.StringArrayVar(&r.buildArgs, "build-arg", []string{}, "set build time arguments")
 	f.StringArrayVar(&r.secretBuildArgs, "secret-build-arg", []string{}, "set secret build arguments")
