@@ -5,6 +5,24 @@ import (
 	"strings"
 )
 
+// GetNormalizedDockerImageNames normalizes the list of docker images
+// and removes any duplicates.
+func GetNormalizedDockerImageNames(dockerImages []string) []string {
+	dict := map[string]bool{}
+	normalizedDockerImages := []string{}
+	for _, d := range dockerImages {
+		d := NormalizeImageTag(d)
+		if dict[d] {
+			continue
+		}
+
+		dict[d] = true
+		normalizedDockerImages = append(normalizedDockerImages, d)
+	}
+
+	return normalizedDockerImages
+}
+
 func prefixRegistryToImageName(registry string, img string) string {
 	if registry == "" {
 		return img

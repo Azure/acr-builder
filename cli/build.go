@@ -89,7 +89,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	b.context = args[0]
 
-	normalizedDockerImages := getNormalizedDockerImageNames(b.tags)
+	normalizedDockerImages := builder.GetNormalizedDockerImageNames(b.tags)
 
 	cmder := cmder.NewCmder(false)
 
