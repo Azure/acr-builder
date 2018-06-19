@@ -90,6 +90,11 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo [
 
 		step := v.Value
 
+		err := b.PopulateDigests(ctx, step.ImageDependencies)
+		if err != nil {
+			fmt.Printf("failed to populate digests, err: %v\n", err)
+		}
+
 		fmt.Printf("Step ID %v marked as %v (start time: %v, end time: %v)\n", step.ID, step.StepStatus, step.StartTime, step.EndTime)
 		bytes, err := json.Marshal(step.ImageDependencies)
 		if err != nil {
@@ -164,13 +169,6 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 			deps, err := b.ScanForDependencies(workingDir, dockerfile, buildArgs, tags)
 			if err != nil {
 				errorChan <- errors.Wrap(err, "failed to scan dependencies")
-				return
-			}
-
-			// TODO: digests need to be populated *after* a build
-			err = b.PopulateDigests(ctx, deps)
-			if err != nil {
-				errorChan <- errors.Wrap(err, "failed to populate digests")
 				return
 			}
 			for _, dep := range deps {

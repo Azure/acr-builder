@@ -125,8 +125,6 @@ func (b *Builder) queryDigest(ctx context.Context, reference *graph.ImageReferen
 			return nil
 		}
 
-		fmt.Printf("Ref string: %v\n", refString)
-
 		args := []string{
 			"docker",
 			"inspect",
