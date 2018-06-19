@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"testing"
-
-	"github.com/Azure/acr-builder/util"
 )
 
 // TestResolveDockerfileDependencies tests resolving runtime and build time dependencies from a Dockerfile.
@@ -14,7 +12,10 @@ func TestResolveDockerfileDependencies(t *testing.T) {
 	buildImg := "aspnetcore-build"
 
 	expectedRuntime := fmt.Sprintf("microsoft/aspnetcore:%s", ver)
-	expectedBuildDeps := []string{fmt.Sprintf("microsoft/%s:%s", buildImg, ver), "imaginary/cert-generator:1.0"}
+	expectedBuildDeps := map[string]bool{
+		fmt.Sprintf("microsoft/%s:%s", buildImg, ver): true,
+		"imaginary/cert-generator:1.0":                true,
+	}
 
 	path := filepath.Join("testdata", "multistage-dep-dockerfile")
 	args := []string{fmt.Sprintf("build_image=%s", buildImg), fmt.Sprintf("build_version=%s", ver)}
@@ -29,7 +30,10 @@ func TestResolveDockerfileDependencies(t *testing.T) {
 		t.Errorf("Unexpected runtime. Got %s, expected %s", runtimeDep, expectedRuntime)
 	}
 
-	if !util.StringSequenceEquals(buildDeps, expectedBuildDeps) {
-		t.Errorf("Unexpected build-time dependencies. Got %v, expected %v", buildDeps, expectedBuildDeps)
+	for _, buildDep := range buildDeps {
+		if ok := expectedBuildDeps[buildDep]; !ok {
+			t.Errorf("Unexpected build-time dependencies. Got %v which wasn't expected", buildDep)
+		}
 	}
+
 }
