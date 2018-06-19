@@ -149,23 +149,22 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 			workingDir, sha, err := b.obtainSourceCode(ctx, context, dockerfile)
 
 			if err != nil {
-				fmt.Printf("Err while obtaining source code: %v\n", err)
-				errorChan <- err
+				errorChan <- errors.Wrap(err, "failed to obtain source code")
 				return
 			}
 
 			tags := parseRunArgs(step.Run, "-t")
 			buildArgs := parseRunArgs(step.Run, "--build-arg")
 			deps, err := b.ScanForDependencies(workingDir, dockerfile, buildArgs, tags)
-
 			if err != nil {
-				errorChan <- err
+				errorChan <- errors.Wrap(err, "failed to scan dependencies")
 				return
 			}
 
+			// TODO: digests need to be populated *after* a build
 			err = b.PopulateDigests(ctx, deps)
 			if err != nil {
-				errorChan <- err
+				errorChan <- errors.Wrap(err, "failed to populate digests")
 				return
 			}
 			for _, dep := range deps {
@@ -182,8 +181,6 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 					return
 				}
 			}
-
-			fmt.Printf("Working Dir: %v, Context Dir: %v, Sha: %v\n", workingDir, step.ContextDir, sha)
 
 			args = append(args, "docker")
 			args = append(args, strings.Fields(step.Run)...)

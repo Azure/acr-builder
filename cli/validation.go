@@ -20,7 +20,7 @@ func validateIsolation(isolation string) error {
 }
 
 func validateRegistryCreds(username string, password string) error {
-	if username == "" && password == "" {
+	if username != "" && password != "" {
 		return nil
 	}
 	return errors.New("when specifying username and password, provide both or neither")

@@ -7,17 +7,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/Azure/acr-builder/graph"
-	"github.com/Azure/acr-builder/pkg/constants"
 	"github.com/docker/distribution/reference"
 	"github.com/sirupsen/logrus"
 )
 
 // ScanForDependencies scans for base image dependencies.
 func (b *Builder) ScanForDependencies(workingDir string, dockerfile string, buildArgs []string, pushTo []string) (deps []*graph.ImageDependencies, err error) {
-	runtime, buildtime, err := ResolveDockerfileDependencies(dockerfile, buildArgs)
+	path := path.Clean(path.Join(workingDir, dockerfile))
+	runtime, buildtime, err := ResolveDockerfileDependencies(path, buildArgs)
 	if err != nil {
 		return deps, err
 	}
@@ -120,7 +121,7 @@ func (b *Builder) queryDigest(ctx context.Context, reference *graph.ImageReferen
 		// refString will always have the tag specified at this point.
 		// For "scratch", we have to compare it against "scratch:latest" even though
 		// scratch:latest isn't valid in a FROM clause.
-		if refString == constants.NoBaseImageSpecifierLatest {
+		if refString == NoBaseImageSpecifierLatest {
 			return nil
 		}
 
@@ -163,9 +164,9 @@ func getRepoDigest(jsonContent string, reference *graph.ImageReference) string {
 	prefix := reference.Repository + "@"
 	// If the reference has "library/" prefixed, we have to remove it - otherwise
 	// we'll fail to query the digest, since image names aren't prefixed with "library/"
-	if strings.HasPrefix(prefix, "library/") && reference.Registry == constants.DockerHubRegistry {
+	if strings.HasPrefix(prefix, "library/") && reference.Registry == DockerHubRegistry {
 		prefix = prefix[8:]
-	} else if len(reference.Registry) > 0 && reference.Registry != constants.DockerHubRegistry {
+	} else if len(reference.Registry) > 0 && reference.Registry != DockerHubRegistry {
 		prefix = reference.Registry + "/" + prefix
 	}
 
@@ -212,11 +213,11 @@ func NewImageReference(path string) (*graph.ImageReference, error) {
 		} else {
 			// DockerHub
 			if result.Registry == "" {
-				result.Registry = constants.DockerHubRegistry
+				result.Registry = DockerHubRegistry
 				result.Repository = strings.Join([]string{"library", reference.Path(named)}, "/")
 			} else {
 				// The domain is the DockerHub user name
-				result.Registry = constants.DockerHubRegistry
+				result.Registry = DockerHubRegistry
 				result.Repository = strings.Join([]string{reference.Domain(named), reference.Path(named)}, "/")
 			}
 		}
