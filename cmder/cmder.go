@@ -21,7 +21,7 @@ type ICmder interface {
 		stdErr io.Writer,
 		cmdDir string) error
 
-	// Stop stops the runner and tries to kill any running processes.
+	// Stop stops the Cmder and tries to kill any running processes.
 	Stop() error
 }
 
