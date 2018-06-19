@@ -44,10 +44,17 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "build",
+		Use:   "build [OPTIONS] PATH | URL",
 		Short: "Run a build",
 		Long:  buildLongDesc,
 		RunE:  r.run,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return errors.New("rally build requires exactly 1 argument. See rally build --help")
+			}
+
+			return nil
+		},
 	}
 
 	f := cmd.Flags()
@@ -56,7 +63,6 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 
 	// Build parameters
 	// TODO: support positional argument for context
-	f.StringVarP(&r.context, "context", "c", ".", "context used to build")
 	f.StringVarP(&r.dockerfile, "dockerfile", "f", "file", "name of the Dockerfile")
 	f.StringArrayVarP(&r.tags, "tag", "t", []string{}, "name and optionally a tag in the 'name:tag' format")
 	f.StringArrayVar(&r.buildArgs, "build-arg", []string{}, "set build time arguments")
@@ -83,6 +89,8 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	if err := b.validateCmdArgs(); err != nil {
 		return err
 	}
+
+	b.context = args[0]
 
 	normalizedDockerImages := getNormalizedDockerImageNames(b.tags)
 
