@@ -2,21 +2,35 @@ package builder
 
 import (
 	"context"
+	"fmt"
 	"os"
 )
 
-// Push attempts to push the specified image names
-func (b *Builder) Push(ctx context.Context, imageNames []string) error {
+const (
+	maxPushRetries = 5
+)
+
+func (b *Builder) pushWithRetries(ctx context.Context, imageNames []string) error {
 	registry := b.buildOptions.RegistryName
 
-	// TODO: parallel push
-	// TODO: retry push after general failures
+	// TODO: parallel push?
 	for _, img := range imageNames {
 		img = prefixRegistryToImageName(registry, img)
-
 		args := []string{"docker", "push", img}
-		if err := b.cmder.Run(ctx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
-			return err
+
+		retry := 0
+		for retry < maxPushRetries {
+			fmt.Printf("Pushing image: %s, attempt %d\n", img, retry+1)
+
+			if err := b.cmder.Run(ctx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
+				retry++
+			} else {
+				break
+			}
+		}
+
+		if retry == maxPushRetries {
+			return fmt.Errorf("Failed to push images successfully")
 		}
 	}
 

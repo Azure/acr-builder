@@ -78,8 +78,8 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo [
 	}
 
 	if b.buildOptions.Push {
-		if err := b.Push(ctx, pushTo); err != nil {
-			return errors.Wrap(err, "failed to push images")
+		if err := b.pushWithRetries(ctx, pushTo); err != nil {
+			return err
 		}
 	}
 
