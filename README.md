@@ -16,7 +16,7 @@ See `rally build --help` for a list of all parameters.
 
 Pushing to a registry:
 
-`rally build -t "foo:bar" -c "https://github.com/Azure/acr-builder.git" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo`
+`rally build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo "https://github.com/Azure/acr-builder.git"`
 
 ### Conditional or Optional parameters
 * `--registry` The docker registry to push to. This parameter will populate the `ACR_BUILD_DOCKER_REGISTRY` reserved environment variable (see `Build Environment`). Registry is required if the `--push` option is present.
@@ -24,7 +24,6 @@ Pushing to a registry:
 * `--password` The password or token for registry specified above.
 * `-f` Dockerfile to be used for building. If specified, the argument value can be a full path or a relative path to the source repository root. Otherwise, `Dockerfile` will be used.
 * `-t` Image name to build to. It must be used alongside `--dockerfile` if push is required. Registry URL must be excluded from the image name parameter.
-* `-c` Docker build context
 * `--build-arg` Build arguments to be passed to docker build. This parameter can be specified multiple times.
 * `--secret-build-arg` Build arguments to be passed to docker build. The argument value contains a secret which will be hidden from the log. This parameter can be specified multiple times.
 * `--push` Specify if push is required if build is successful.
