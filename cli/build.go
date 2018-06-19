@@ -57,10 +57,10 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	// Build parameters
 	// TODO: support positional argument for context
 	f.StringVarP(&r.context, "context", "c", ".", "context used to build")
-	f.StringVarP(&r.dockerfile, "dockerfile", "f", "Dockerfile", "name of the Dockerfile")
+	f.StringVarP(&r.dockerfile, "dockerfile", "f", "file", "name of the Dockerfile")
 	f.StringArrayVarP(&r.tags, "tag", "t", []string{}, "name and optionally a tag in the 'name:tag' format")
-	f.StringArrayVarP(&r.buildArgs, "arg", "a", []string{}, "set build time arguments")
-	f.StringArrayVarP(&r.secretBuildArgs, "secret-arg", "s", []string{}, "set secret build arguments")
+	f.StringArrayVar(&r.buildArgs, "build-arg", []string{}, "set build time arguments")
+	f.StringArrayVar(&r.secretBuildArgs, "secret-build-arg", []string{}, "set secret build arguments")
 
 	f.StringVarP(&r.registry, "registry", "r", "", "the name of the registry")
 	f.StringVarP(&r.registryUserName, "username", "u", "", "the username to use when logging into the registry")
