@@ -14,7 +14,6 @@ import (
 
 	"github.com/Azure/acr-builder/util"
 	dockerbuild "github.com/docker/cli/cli/command/image/build"
-	"github.com/docker/docker/builder/remotecontext/git"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
@@ -91,7 +90,7 @@ func (b *Builder) getContextFromGitURL(gitURL string) (contextDir string, err er
 	if _, err := exec.LookPath("git"); err != nil {
 		return contextDir, errors.Wrapf(err, "unable to find git")
 	}
-	contextDir, err = git.Clone(gitURL)
+	contextDir, err = Clone(gitURL)
 	if err != nil {
 		return contextDir, errors.Wrapf(err, "unable to git clone to a temporary context directory")
 	}
