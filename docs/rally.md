@@ -14,7 +14,7 @@ entryPoint = string (optional)
 envs = [string, string, ...] (optional)
 secretEnvs = [string, string, ...] (optional)
 timeout = string (Go Duration format) (optional)
-whenAll = [string, string, ...] (optional)
+when = [string, string, ...] (optional)
 exitedWith = [int, int, ...] (optional)
 exitedWithout = [int, int, ...](optional)
 ```
@@ -28,7 +28,7 @@ For details on each specific property in a Step, follow these links:
   - [envs](#envs)
   - [secretEnvs](#secretenvs)
   - [timeout](#timeout)
-  - [whenAll](#whenall)
+  - [when](#when)
   - [exitedWith](#exitedwith)
   - [exitedWithout](#exitedwithout)
 
@@ -38,7 +38,7 @@ Rally can freely flow and manipulate context between Steps. It does this by crea
 
 ## Putting the pieces together:
 
-Rally is able to chain steps together to allow parallel and sequential execution from a `rally.toml` template. It does this by creating a consistent DAG based on all Steps' `whenAll` property. Unless `whenAll` is specified as `-` it will not execute steps in parallel, it will assume all steps should proceed sequentially. In order for a Step B to block for a Step A in a sequential matter, it should use `whenAll: ['A']`. Rally reproduces the same DAG in a deterministic manner.
+Rally is able to chain steps together to allow parallel and sequential execution from a `rally.toml` template. It does this by creating a consistent DAG based on all Steps' `when` property. Unless `when` is specified as `-` it will not execute steps in parallel, it will assume all steps should proceed sequentially. In order for a Step B to block for a Step A in a sequential matter, it should use `when: ['A']`. Rally reproduces the same DAG in a deterministic manner.
 
 ```
 # rally.toml
@@ -84,14 +84,14 @@ timeout = "60s" # This step must complete within 60 seconds.
 [[step]]
 id = "curling"
 args = ["curl", "https://www.ehotinger.com/recordmetrics"]
-whenAll = ["-"] # - means to run curl immediately in parallel.
+when = ["-"] # - means to run curl immediately in parallel.
 
 # Build the repository that I cloned earlier.
 [[step]]
 id = "buildit"
 args = ["build", "-t", "eric:{{ .Build.ID }}", "-t", "latest", "-f", "Dockerfile", "."]
 workingDir = "fsrus" # Use the previously cloned repository as the context for our build.
-whenAll = ["clone"]
+when = ["clone"]
   
 # Deploy the latest image to my pre-prod cluster.
 [[step]]
@@ -117,27 +117,27 @@ args = ["pull", "ubuntu"]
 [[step]]
 id = "build-foo"
 args = ["build", "-f", "Dockerfile", "https://github.com/ehotinger/foo", "--cache-from=ubuntu"]
-whenAll = ["-"]
+when = ["-"]
 
 [[step]]
 id = "build-bar"
 args = ["build", "-f", "Dockerfile", "https://github.com/ehotinger/bar", "--cache-from=ubuntu"]
-whenAll = ["-"]
+when = ["-"]
 
 [[step]]
 id = "build-qaz"
 args = ["build", "-f", "Dockerfile", "https://github.com/ehotinger/qaz", "--cache-from=ubuntu"]
-whenAll = ["-"]
+when = ["-"]
 
 [[step]]
 id = "build-qux"
 args = ["build", "-f", "Dockerfile", "https://github.com/ehotinger/qux", "--cache-from=ubuntu"]
-whenAll = ["-"]
+when = ["-"]
 
 [[step]]
 id = "panic"
 args = ["write-log", "{{ .Build.ID }} failed"]
-whenAll = ['build-foo", "build-bar", "build-qaz", "build-qux"]
+when = ['build-foo", "build-bar", "build-qaz", "build-qux"]
 exitedWith = [1, 2, 3]
 ```
 
@@ -174,9 +174,9 @@ The `args` property of a step specifies the command to run in the container as w
 
 `timeout` is the maximum duration for a step to execute.
 
-### whenAll
+### when
 
-`whenAll` is used to block a Step's execution until one or more other Steps have been completed.
+`when` is used to block a Step's execution until one or more other Steps have been completed.
 
 ### exitedWith
 

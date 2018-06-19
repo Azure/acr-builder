@@ -28,7 +28,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 	cStep := &Step{
 		ID:         "C",
 		Run:        "blah",
-		WhenAll:    []string{ImmediateExecutionToken},
+		When:       []string{ImmediateExecutionToken},
 		ExitedWith: []int{0, 1, 2, 3, 4},
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
@@ -36,7 +36,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 
 	bStep := &Step{
 		ID:         "B",
-		WhenAll:    []string{"C"},
+		When:       []string{"C"},
 		Run:        "azure/images/git clone https://github.com/ehotinger/clone",
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
@@ -46,7 +46,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		ID:         "build-foo",
 		Run:        "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu",
 		Envs:       []string{"eric=foo"},
-		WhenAll:    []string{"build-qux"},
+		When:       []string{"build-qux"},
 		SecretEnvs: []string{"someAkvSecretEnv"},
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
@@ -55,7 +55,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 	barStep := &Step{
 		ID:         "build-bar",
 		Run:        "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/bar --cache-from=ubuntu",
-		WhenAll:    []string{ImmediateExecutionToken},
+		When:       []string{ImmediateExecutionToken},
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
 	}
@@ -63,7 +63,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 	quxStep := &Step{
 		ID:         "build-qux",
 		Run:        "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu",
-		WhenAll:    []string{ImmediateExecutionToken},
+		When:       []string{ImmediateExecutionToken},
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
 	}

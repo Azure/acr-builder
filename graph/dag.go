@@ -76,8 +76,8 @@ func NewDagFromPipeline(p *Pipeline) (*Dag, error) {
 			if err := dag.AddEdgeFromRoot(step.ID); err != nil {
 				return dag, err
 			}
-		} else if step.HasNoWhenAll() {
-			// If the step has no whenAll, add it to the root or the previous step
+		} else if step.HasNoWhen() {
+			// If the step has no when, add it to the root or the previous step
 			if prevStep == nil {
 				if err := dag.AddEdgeFromRoot(step.ID); err != nil {
 					return dag, err
@@ -88,8 +88,8 @@ func NewDagFromPipeline(p *Pipeline) (*Dag, error) {
 				}
 			}
 		} else {
-			// Otherwise, add edges according to whenAll
-			for _, dep := range step.WhenAll {
+			// Otherwise, add edges according to when
+			for _, dep := range step.When {
 				if err := dag.AddEdge(dep, step.ID); err != nil {
 					return dag, err
 				}

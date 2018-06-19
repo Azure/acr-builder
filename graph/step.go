@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	// ImmediateExecutionToken defines the whenAll dependency to indicate a step should execute immediately.
+	// ImmediateExecutionToken defines the when dependency to indicate a step should execute immediately.
 	ImmediateExecutionToken = "-"
 )
 
@@ -28,7 +28,7 @@ type Step struct {
 	Envs          []string `toml:"envs"`
 	SecretEnvs    []string `toml:"secretEnvs"`
 	Timeout       int      `toml:"timeout"`
-	WhenAll       []string `toml:"whenAll"`
+	When          []string `toml:"when"`
 	ExitedWith    []int    `toml:"exitedWith"`
 	ExitedWithout []int    `toml:"exitedWithout"`
 
@@ -53,7 +53,7 @@ func (s *Step) Validate() error {
 		return errMissingRun
 	}
 
-	for _, dep := range s.WhenAll {
+	for _, dep := range s.When {
 		if dep == s.ID {
 			return NewSelfReferencedStepError(fmt.Sprintf("Step ID: %v is self-referenced", s.ID))
 		}
@@ -80,7 +80,7 @@ func (s *Step) Equals(t *Step) bool {
 		!util.StringSequenceEquals(s.Envs, t.Envs) ||
 		!util.StringSequenceEquals(s.SecretEnvs, t.SecretEnvs) ||
 		s.Timeout != t.Timeout ||
-		!util.StringSequenceEquals(s.WhenAll, t.WhenAll) ||
+		!util.StringSequenceEquals(s.When, t.When) ||
 		!util.IntSequenceEquals(s.ExitedWith, t.ExitedWith) ||
 		!util.IntSequenceEquals(s.ExitedWithout, t.ExitedWithout) ||
 		s.StartTime != t.StartTime ||
@@ -94,14 +94,14 @@ func (s *Step) Equals(t *Step) bool {
 
 // ShouldExecuteImmediately returns true if the Step should be executed immediately.
 func (s *Step) ShouldExecuteImmediately() bool {
-	if len(s.WhenAll) == 1 && s.WhenAll[0] == ImmediateExecutionToken {
+	if len(s.When) == 1 && s.When[0] == ImmediateExecutionToken {
 		return true
 	}
 
 	return false
 }
 
-// HasNoWhenAll returns true if the Step has no whenAll clause, false otherwise.
-func (s *Step) HasNoWhenAll() bool {
-	return len(s.WhenAll) == 0
+// HasNoWhen returns true if the Step has no when clause, false otherwise.
+func (s *Step) HasNoWhen() bool {
+	return len(s.When) == 0
 }

@@ -21,29 +21,29 @@ exitedWithout = [0, 255]
 [[step]]
 id = "build-qux"
 run = "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu"
-whenAll = ["-"]
+when = ["-"]
 
 [[step]]
 id = "C"
 run = "blah"
-whenAll = ["-"]
+when = ["-"]
 exitedWith = [0, 1, 2, 3, 4]
 
 [[step]]
 id = "build-bar"
 run = "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/bar --cache-from=ubuntu"
-whenAll = ["-"]
+when = ["-"]
 
 [[step]]
 id = "B"
-whenAll = ["C"]
+when = ["C"]
 run = "azure/images/git clone https://github.com/ehotinger/clone"
 
 [[step]]
 id = "build-foo"
 run = "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu"
 envs = ["eric=foo"]
-whenAll = ["build-qux"]
+when = ["build-qux"]
 secretEnvs = ["someAkvSecretEnv"]
 
 [[step]]

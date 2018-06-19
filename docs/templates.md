@@ -14,7 +14,7 @@ args = ["build", "-t", "{{ .Build.QueuedBy | upper }}", "."]
 [[step]]
 name = "eric-build-v2"
 id = "B"
-whenAll = ["A'] # empty -> no waiting
+when = ["A'] # empty -> no waiting
 args = ["build", "-t", "{{ .Build.BuildId | lower }}", "."]
 workDir = "subdirectory"
 env = ["ENV1=Foo", "ENV2=Bar"]
@@ -55,7 +55,7 @@ id = "A"
 [[step]]
 name = "eric-build-v2"
 id = "B"
-whenAll = ["A"] # empty -> no waiting
+when = ["A"] # empty -> no waiting
 args = ["build", "-t", "eus-12345", "."]
 workDir = "subdirectory"
 env = ["ENV1=Foo", "ENV2=Bar"]
