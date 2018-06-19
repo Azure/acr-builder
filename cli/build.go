@@ -25,6 +25,7 @@ type buildCmd struct {
 	out              io.Writer
 	context          string
 	dockerfile       string
+	target           string
 	tags             []string
 	buildArgs        []string
 	secretBuildArgs  []string
@@ -70,6 +71,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringVarP(&r.registryPassword, "password", "p", "", "the password to use when logging into the registry")
 
 	f.StringVar(&r.isolation, "isolation", "default", "the isolation to use")
+	f.StringVar(&r.target, "target", "", "specify a stage to build")
 	f.BoolVar(&r.pull, "pull", false, "attempt to pull a newer version of the base images")
 	f.BoolVar(&r.noCache, "no-cache", false, "true to ignore all cached layers when building the image")
 	f.BoolVar(&r.push, "push", false, "push on success")
@@ -184,6 +186,10 @@ func (b *buildCmd) createRunCmd() string {
 
 	for _, buildSecretArg := range b.secretBuildArgs {
 		args = append(args, "--build-arg", buildSecretArg)
+	}
+
+	if b.target != "" {
+		args = append(args, "--target", b.target)
 	}
 
 	args = append(args, b.context)
