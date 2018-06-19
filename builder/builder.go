@@ -46,7 +46,7 @@ func NewBuilder(c *cmder.Cmder, debug bool, workspaceDir string, dryRun bool, bu
 }
 
 // RunAllBuildSteps executes a pipeline.
-func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag) error {
+func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo []string) error {
 	// TODO: DESIGN: do we want multiple volumes per step?
 	root := dag.Nodes[graph.RootNodeID]
 	var completedChans []chan bool
@@ -74,6 +74,12 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag) error {
 			continue
 		case err := <-errorChan:
 			return err
+		}
+	}
+
+	if b.buildOptions.Push {
+		if err := b.Push(ctx, pushTo); err != nil {
+			return errors.Wrap(err, "failed to push images")
 		}
 	}
 

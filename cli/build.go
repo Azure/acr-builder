@@ -127,7 +127,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	builder := builder.NewBuilder(cmder, debug, "", false, bo)
 	defer builder.CleanAllBuildSteps(context.Background())
 
-	return builder.RunAllBuildSteps(ctx, dag)
+	return builder.RunAllBuildSteps(ctx, dag, p.Push)
 }
 
 func (b *buildCmd) validateCmdArgs() error {

@@ -152,7 +152,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	builder := builder.NewBuilder(cmder, debug, homeVolName, e.dryRun, buildOptions)
 	defer builder.CleanAllBuildSteps(context.Background())
 
-	return builder.RunAllBuildSteps(ctx, dag)
+	return builder.RunAllBuildSteps(ctx, dag, p.Push)
 }
 
 func combineVals(values []string) (string, error) {
