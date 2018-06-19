@@ -12,7 +12,7 @@ Run `make build`. Use `make help` to discover additional commands.
 
 ## Building an image
 
-`rally build --help` will give you a list of all parameters.
+See `rally build --help` for a list of all parameters.
 
 Pushing to a registry:
 
@@ -32,3 +32,11 @@ Pushing to a registry:
 * `--isolation` Build using the specified isolation level
 * `--no-cache` Not using any cached layer when building the image.
 * `--debug` Enable verbose output for debugging.
+
+## Running a pipeline with a template
+
+See `rally exec --help` for a list of all parameters.
+
+```
+rally exec --steps helloworld.toml --template-path templating/testdata/helloworld --id demo -r foo.azurecr.io -u foo -p foo --debug
+```

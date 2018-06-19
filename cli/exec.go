@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -80,6 +81,10 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 
 	ctx := context.Background()
 
+	if e.templatePath == "" {
+		return errors.New("template path is required")
+	}
+
 	j, err := templating.LoadJob(e.templatePath)
 	if err != nil {
 		return fmt.Errorf("Failed to load job at path %s. Err: %v", e.templatePath, err)
@@ -113,6 +118,15 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	rendered, err := engine.Render(j, vals, keep)
 	if err != nil {
 		return fmt.Errorf("Error while rendering templates: %v", err)
+	}
+
+	if rendered[expectedTmplName] == "" {
+		return errors.New("rendered template was empty")
+	}
+
+	if debug {
+		fmt.Println("Rendered template:")
+		fmt.Println(rendered[expectedTmplName])
 	}
 
 	p, err := graph.UnmarshalPipelineFromString(rendered[expectedTmplName])
