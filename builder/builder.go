@@ -11,7 +11,6 @@ import (
 
 	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
-	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 )
 
@@ -126,8 +125,6 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 		return
 	}
 
-	// TODO: review how to refactor this and safely exit; write to CompletedChan?
-
 	degree := child.GetDegree()
 	if degree == 0 {
 		step := child.Value
@@ -137,13 +134,11 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 			step.EndTime = time.Now()
 		}()
 
-		args := b.getDockerRunArgs(step.ID, step.WorkDir)
-		for _, env := range step.Envs {
-			args = append(args, "--env", env)
-		}
-		if step.EntryPoint != "" {
-			args = append(args, "--entrypoint", step.EntryPoint)
-		}
+		args := []string{}
+
+		workingDir := ""
+		sha := ""
+		sourceType := dockerSourceUnknown
 
 		if strings.HasPrefix(step.Run, "build") {
 			// TODO: consider other cases where we should login, e.g., if they want to pull an image from their local registry.
@@ -156,8 +151,8 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 				}
 			}
 
-			dockerfile, context := util.ParseDockerBuildCmd(step.Run)
-			workingDir, sha, err := b.obtainSourceCode(ctx, context, dockerfile)
+			dockerfile, context := parseDockerBuildCmd(step.Run)
+			workingDir, sha, sourceType, err = b.obtainSourceCode(ctx, context, dockerfile)
 			if err != nil {
 				errorChan <- err
 				return
@@ -179,22 +174,47 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 			}
 			step.ImageDependencies = deps
 
-			// If the step has a context directory specified, copy the context.
-			if step.ContextDir != "" {
-				if err := b.copyContext(ctx, workingDir, step.ContextDir); err != nil {
+			// If the step has an ID specified, copy the context.
+			// TODO: validate the ID to ensure it has a proper folder name
+			if step.ID != graph.DefaultStepID {
+				if err := b.copyContext(ctx, workingDir, step.ID); err != nil {
 					errorChan <- err
 					return
 				}
 			}
 
+			// After obtaining the source, we have to replace the positional context
+			if sourceType == dockerSourceGit || sourceType == dockerSourceArchive {
+				// TODO: the positional context can also be specified in the git url hash.
+				step.Run = replacePositionalContext(step.Run, ".")
+			}
+
+			// Use volumes for exec
+			if true {
+				workingDir = ""
+				args = b.getDockerRunArgs(step.ID, step.WorkDir)
+
+				// Update the working directory to match where we copied the context
+				workingDir = step.ID
+			}
+
 			args = append(args, "docker")
 			args = append(args, strings.Fields(step.Run)...)
+
 		} else {
+			args = b.getDockerRunArgs(step.ID, step.WorkDir)
+			for _, env := range step.Envs {
+				args = append(args, "--env", env)
+			}
+			if step.EntryPoint != "" {
+				args = append(args, "--entrypoint", step.EntryPoint)
+			}
 			args = append(args, strings.Fields(step.Run)...)
 		}
 
 		if b.debug {
 			fmt.Printf("Args: %v\n", args)
+			fmt.Printf("Working directory: %s\n", workingDir)
 		}
 
 		// TODO: secret envs
@@ -205,7 +225,7 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 		timeout := time.Duration(step.Timeout) * time.Second
 		currCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		if err := b.cmder.Run(currCtx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
+		if err := b.cmder.Run(currCtx, args, nil, os.Stdout, os.Stderr, workingDir); err != nil {
 			step.StepStatus = graph.Failed
 			errorChan <- err
 		} else {

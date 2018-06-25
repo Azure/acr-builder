@@ -1,5 +1,1 @@
-FROM docker:18.05
-
-RUN apk add --no-cache \
-		git \
-		openssh-client
+FROM docker:18.03.1-ce-git

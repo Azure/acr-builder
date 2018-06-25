@@ -1,4 +1,4 @@
-package graph
+package models
 
 import "github.com/docker/distribution/reference"
 

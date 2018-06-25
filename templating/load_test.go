@@ -45,7 +45,7 @@ func TestIsValidJobDir_Valid(t *testing.T) {
 		t.Fatalf("Unexpected error during job dir validation: %v", err)
 	}
 
-	if j == false {
+	if !j {
 		t.Fatalf("Expected %s to be a valid job dir", thamesPath)
 	}
 }

@@ -1,4 +1,4 @@
-package builder
+package scan
 
 const (
 	// DockerHubRegistry is the docker hub registry

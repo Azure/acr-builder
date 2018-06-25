@@ -1,4 +1,4 @@
-package builder
+package scan
 
 import (
 	"bufio"
@@ -10,13 +10,13 @@ import (
 	"path"
 	"strings"
 
-	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	"github.com/docker/distribution/reference"
 	"github.com/sirupsen/logrus"
 )
 
 // ScanForDependencies scans for base image dependencies.
-func (b *Builder) ScanForDependencies(workingDir string, dockerfile string, buildArgs []string, pushTo []string) (deps []*graph.ImageDependencies, err error) {
+func (s *Scanner) ScanForDependencies(workingDir string, dockerfile string, buildArgs []string, pushTo []string) (deps []*models.ImageDependencies, err error) {
 	path := path.Clean(path.Join(workingDir, dockerfile))
 	runtime, buildtime, err := ResolveDockerfileDependencies(path, buildArgs)
 	if err != nil {
@@ -27,7 +27,7 @@ func (b *Builder) ScanForDependencies(workingDir string, dockerfile string, buil
 	// TODO: refactor this in the future to take in the full list as opposed to individual
 	// images.
 	if len(pushTo) <= 0 {
-		currDep, err := b.NewImageDependencies("", runtime, buildtime)
+		currDep, err := s.NewImageDependencies("", runtime, buildtime)
 		if err != nil {
 			return nil, err
 		}
@@ -35,7 +35,7 @@ func (b *Builder) ScanForDependencies(workingDir string, dockerfile string, buil
 	}
 
 	for _, imageName := range pushTo {
-		currDep, err := b.NewImageDependencies(imageName, runtime, buildtime)
+		currDep, err := s.NewImageDependencies(imageName, runtime, buildtime)
 		if err != nil {
 			return nil, err
 		}
@@ -46,19 +46,19 @@ func (b *Builder) ScanForDependencies(workingDir string, dockerfile string, buil
 }
 
 // NewImageDependencies creates ImageDependencies with no references registered
-func (b *Builder) NewImageDependencies(image string, runtime string, buildtimes []string) (*graph.ImageDependencies, error) {
-	var dependencies *graph.ImageDependencies
+func (s *Scanner) NewImageDependencies(image string, runtime string, buildtimes []string) (*models.ImageDependencies, error) {
+	var dependencies *models.ImageDependencies
 	if len(image) > 0 {
 		imageReference, err := NewImageReference(NormalizeImageTag(image))
 		if err != nil {
 			return nil, err
 		}
-		dependencies = &graph.ImageDependencies{
+		dependencies = &models.ImageDependencies{
 			Image: imageReference,
 		}
 	} else {
 		// we allow build without pushing image to registry so the image can be empty
-		dependencies = &graph.ImageDependencies{
+		dependencies = &models.ImageDependencies{
 			Image: nil,
 		}
 	}
@@ -97,16 +97,16 @@ func (b *Builder) NewImageDependencies(image string, runtime string, buildtimes 
 }
 
 // PopulateDigests populates digests on dependencies
-func (b *Builder) PopulateDigests(ctx context.Context, dependencies []*graph.ImageDependencies) error {
+func (s *Scanner) PopulateDigests(ctx context.Context, dependencies []*models.ImageDependencies) error {
 	for _, entry := range dependencies {
-		if err := b.queryDigest(ctx, entry.Image); err != nil {
+		if err := s.queryDigest(ctx, entry.Image); err != nil {
 			return err
 		}
-		if err := b.queryDigest(ctx, entry.Runtime); err != nil {
+		if err := s.queryDigest(ctx, entry.Runtime); err != nil {
 			return err
 		}
 		for _, buildtime := range entry.Buildtime {
-			if err := b.queryDigest(ctx, buildtime); err != nil {
+			if err := s.queryDigest(ctx, buildtime); err != nil {
 				return err
 			}
 		}
@@ -114,7 +114,7 @@ func (b *Builder) PopulateDigests(ctx context.Context, dependencies []*graph.Ima
 	return nil
 }
 
-func (b *Builder) queryDigest(ctx context.Context, reference *graph.ImageReference) error {
+func (s *Scanner) queryDigest(ctx context.Context, reference *models.ImageReference) error {
 	if reference != nil {
 		refString := reference.String()
 
@@ -134,7 +134,7 @@ func (b *Builder) queryDigest(ctx context.Context, reference *graph.ImageReferen
 		}
 
 		var buf bytes.Buffer
-		err := b.cmder.Run(ctx, args, nil, &buf, os.Stderr, "")
+		err := s.cmder.Run(ctx, args, nil, &buf, os.Stderr, "")
 		if err != nil {
 			return err
 		}
@@ -149,7 +149,7 @@ func (b *Builder) queryDigest(ctx context.Context, reference *graph.ImageReferen
 	return nil
 }
 
-func getRepoDigest(jsonContent string, reference *graph.ImageReference) string {
+func getRepoDigest(jsonContent string, reference *models.ImageReference) string {
 	// Input: ["docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], , docker
 	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
 
@@ -193,12 +193,12 @@ func NormalizeImageTag(img string) string {
 }
 
 // NewImageReference parses a path of a image and creates a ImageReference object
-func NewImageReference(path string) (*graph.ImageReference, error) {
+func NewImageReference(path string) (*models.ImageReference, error) {
 	ref, err := reference.Parse(path)
 	if err != nil {
 		return nil, err
 	}
-	result := &graph.ImageReference{
+	result := &models.ImageReference{
 		Reference: ref,
 	}
 

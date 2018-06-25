@@ -1,8 +1,6 @@
 package graph
 
-import (
-	"fmt"
-)
+import "fmt"
 
 const (
 	// The default step timeout is 10 minutes.

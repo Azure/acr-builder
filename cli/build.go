@@ -96,7 +96,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	cmder := cmder.NewCmder(false)
 
 	defaultStep := &graph.Step{
-		ID:  "Build",
+		ID:  graph.DefaultStepID,
 		Run: b.createRunCmd(),
 	}
 

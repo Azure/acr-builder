@@ -1,10 +1,8 @@
-package builder
+package scan
 
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,30 +23,28 @@ type gitRepo struct {
 }
 
 // GetGitCommitID queries git for the latest commit.
-func (b *Builder) GetGitCommitID(ctx context.Context, cmdDir string) (string, error) {
+func (s *Scanner) GetGitCommitID(ctx context.Context, cmdDir string) (string, error) {
 	cmd := []string{"git", "rev-parse", "--verify", "HEAD"}
 	var buf bytes.Buffer
-	if err := b.cmder.Run(ctx, cmd, nil, &buf, os.Stderr, cmdDir); err != nil {
+	if err := s.cmder.Run(ctx, cmd, nil, &buf, os.Stderr, cmdDir); err != nil {
 		return "", err
 	}
 	return strings.TrimSpace(buf.String()), nil
 }
 
 // Clone clones a repository into a newly created directory, returning the resulting directory name.
-func Clone(remoteURL string) (string, error) {
+func Clone(remoteURL string, root string) (string, error) {
 	repo, err := parseRemoteURL(remoteURL)
 	if err != nil {
 		return "", err
 	}
 
-	return cloneGitRepo(repo)
+	return cloneGitRepo(repo, root)
 }
 
 // ref: https://github.com/moby/moby/blob/master/builder/remotecontext/git/gitutils.go
-func cloneGitRepo(repo gitRepo) (checkoutDir string, err error) {
+func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 	fetch := fetchArgs(repo.remote, repo.ref)
-
-	root, err := ioutil.TempDir("", "docker-build-git")
 	if err != nil {
 		return "", err
 	}
@@ -68,13 +64,6 @@ func cloneGitRepo(repo gitRepo) (checkoutDir string, err error) {
 	if out, err := gitWithinDir(root, "remote", "add", "origin", repo.remote); err != nil {
 		return "", errors.Wrapf(err, "failed add origin repo at %s: %s", repo.remote, out)
 	}
-
-	fmt.Println("checkout dir : " + checkoutDir)
-
-	// TODO: old
-	// if output, err := gitWithinDir(root, fetch...); err != nil {
-	// 	return "", errors.Wrapf(err, "error fetching: %s", output)
-	// }
 
 	if _, err := gitWithinDir(root, fetch...); err != nil {
 		// Fall back to full fetch if shallow fetch fails.
@@ -220,7 +209,6 @@ func supportsShallowClone(remoteURL string) bool {
 // ref: https://github.com/moby/moby/blob/master/builder/remotecontext/git/gitutils.go
 func gitWithinDir(dir string, args ...string) ([]byte, error) {
 	a := []string{"--work-tree", dir, "--git-dir", filepath.Join(dir, ".git")}
-	fmt.Printf("Args: %v\n", a)
 	return git(append(a, args...)...)
 }
 

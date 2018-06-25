@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	"github.com/Azure/acr-builder/util"
 )
 
@@ -16,13 +17,15 @@ const (
 var (
 	errMissingID  = errors.New("Step is missing an ID")
 	errMissingRun = errors.New("Step is missing a `run` section")
+
+	// DefaultStepID is the default step ID for builds.
+	DefaultStepID = "Build"
 )
 
 // Step is a step in the execution pipeline.
 type Step struct {
 	ID            string   `toml:"id"`
 	Run           string   `toml:"run"`
-	ContextDir    string   `toml:"contextDir"`
 	WorkDir       string   `toml:"workDir"`
 	EntryPoint    string   `toml:"entryPoint"`
 	Envs          []string `toml:"envs"`
@@ -40,7 +43,7 @@ type Step struct {
 	// that the step has been processed.
 	CompletedChan chan bool
 
-	ImageDependencies []*ImageDependencies
+	ImageDependencies []*models.ImageDependencies
 }
 
 // Validate validates the step and returns an error if the Step has problems.
@@ -75,7 +78,6 @@ func (s *Step) Equals(t *Step) bool {
 	if s.ID != t.ID ||
 		s.Run != t.Run ||
 		s.WorkDir != t.WorkDir ||
-		s.ContextDir != t.ContextDir ||
 		s.EntryPoint != t.EntryPoint ||
 		!util.StringSequenceEquals(s.Envs, t.Envs) ||
 		!util.StringSequenceEquals(s.SecretEnvs, t.SecretEnvs) ||
