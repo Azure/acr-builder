@@ -5,7 +5,7 @@ RUN apk add --no-cache \
 
 FROM gobuild-base AS rally
 WORKDIR /go/src/github.com/Azure/acr-builder
-COPY . ./
+COPY . .
 RUN make static && mv rally /usr/bin/rally
 
 FROM docker:18.03.1-ce-git
