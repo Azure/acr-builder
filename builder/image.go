@@ -3,6 +3,8 @@ package builder
 import (
 	"fmt"
 	"strings"
+
+	"github.com/Azure/acr-builder/baseimages/scanner/scan"
 )
 
 // GetNormalizedDockerImageNames normalizes the list of docker images
@@ -11,7 +13,7 @@ func GetNormalizedDockerImageNames(dockerImages []string) []string {
 	dict := map[string]bool{}
 	normalizedDockerImages := []string{}
 	for _, d := range dockerImages {
-		d := NormalizeImageTag(d)
+		d := scan.NormalizeImageTag(d)
 		if dict[d] {
 			continue
 		}

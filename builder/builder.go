@@ -1,17 +1,21 @@
 package builder
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -136,10 +140,6 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 
 		args := []string{}
 
-		workingDir := ""
-		sha := ""
-		sourceType := dockerSourceUnknown
-
 		if strings.HasPrefix(step.Run, "build") {
 			// TODO: consider other cases where we should login, e.g., if they want to pull an image from their local registry.
 			// For now, only login if they specify push.
@@ -151,52 +151,40 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 				}
 			}
 
-			dockerfile, context := parseDockerBuildCmd(step.Run)
-			workingDir, sha, sourceType, err = b.obtainSourceCode(ctx, context, dockerfile)
-			if err != nil {
-				errorChan <- err
-				return
-			}
-
+			// TODO: refactor this out of the node processing into initialization.
 			// Adjust the run command so that the ACR registry is prefixed for all tags
 			step.Run = prefixStepTags(step.Run, b.buildOptions.RegistryName)
 			tags := parseRunArgs(step.Run, "-t")
 			buildArgs := parseRunArgs(step.Run, "--build-arg")
-			deps, err := b.ScanForDependencies(workingDir, dockerfile, buildArgs, tags)
+			dockerfile, context := parseDockerBuildCmd(step.Run)
+
+			volName := b.workspaceDir
+			if true {
+				path, err := filepath.Abs(context)
+				if err != nil {
+					errorChan <- errors.Wrap(err, "failed to scan dependencies local")
+					return
+				}
+				volName = filepath.Clean(path)
+			}
+
+			deps, err := b.scrapeDependencies(ctx, volName, step.ID, dockerfile, context, tags, buildArgs)
+
 			if err != nil {
 				errorChan <- errors.Wrap(err, "failed to scan dependencies")
 				return
 			}
-			for _, dep := range deps {
-				dep.Git = &graph.GitReference{
-					GitHeadRev: sha,
-				}
-			}
+
 			step.ImageDependencies = deps
 
-			// If the step has an ID specified, copy the context.
-			// TODO: validate the ID to ensure it has a proper folder name
-			if step.ID != graph.DefaultStepID {
-				if err := b.copyContext(ctx, workingDir, step.ID); err != nil {
-					errorChan <- err
-					return
-				}
-			}
-
-			// After obtaining the source, we have to replace the positional context
-			if sourceType == dockerSourceGit || sourceType == dockerSourceArchive {
-				// TODO: the positional context can also be specified in the git url hash.
-				step.Run = replacePositionalContext(step.Run, ".")
-			}
-
 			// Use volumes for exec
-			if true {
-				workingDir = ""
-				args = b.getDockerRunArgs(step.ID, step.WorkDir)
+			// if true {
+			// 	workingDir = ""
+			// 	args = b.getDockerRunArgs(step.ID, step.WorkDir)
 
-				// Update the working directory to match where we copied the context
-				workingDir = step.ID
-			}
+			// 	// Update the working directory to match where we copied the context
+			// 	workingDir = step.ID
+			// }
 
 			args = append(args, "docker")
 			args = append(args, strings.Fields(step.Run)...)
@@ -214,7 +202,7 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 
 		if b.debug {
 			fmt.Printf("Args: %v\n", args)
-			fmt.Printf("Working directory: %s\n", workingDir)
+			// fmt.Printf("Working directory: %s\n", workingDir)
 		}
 
 		// TODO: secret envs
@@ -225,7 +213,7 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 		timeout := time.Duration(step.Timeout) * time.Second
 		currCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		if err := b.cmder.Run(currCtx, args, nil, os.Stdout, os.Stderr, workingDir); err != nil {
+		if err := b.cmder.Run(currCtx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
 			step.StepStatus = graph.Failed
 			errorChan <- err
 		} else {
@@ -241,4 +229,89 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 	} else if b.debug {
 		fmt.Printf("Skipped processing %v, degree: %v\n", child.Name, degree)
 	}
+}
+
+// PopulateDigests populates digests on dependencies
+func (b *Builder) PopulateDigests(ctx context.Context, dependencies []*models.ImageDependencies) error {
+	for _, entry := range dependencies {
+		if err := b.queryDigest(ctx, entry.Image); err != nil {
+			return err
+		}
+		if err := b.queryDigest(ctx, entry.Runtime); err != nil {
+			return err
+		}
+		for _, buildtime := range entry.Buildtime {
+			if err := b.queryDigest(ctx, buildtime); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageReference) error {
+	if reference != nil {
+		// refString will always have the tag specified at this point.
+		// For "scratch", we have to compare it against "scratch:latest" even though
+		// scratch:latest isn't valid in a FROM clause.
+		if reference.Reference == NoBaseImageSpecifierLatest {
+			return nil
+		}
+
+		args := []string{
+			"docker",
+			"inspect",
+			"--format",
+			"\"{{json .RepoDigests}}\"",
+			reference.Reference,
+		}
+
+		var buf bytes.Buffer
+		err := b.cmder.Run(ctx, args, nil, &buf, os.Stderr, "")
+		if err != nil {
+			return err
+		}
+
+		trimCharPredicate := func(c rune) bool {
+			return '\n' == c || '\r' == c || '"' == c || '\t' == c
+		}
+
+		reference.Digest = getRepoDigest(strings.TrimFunc(buf.String(), trimCharPredicate), reference)
+	}
+
+	return nil
+}
+
+func getRepoDigest(jsonContent string, reference *models.ImageReference) string {
+	// Input: ["docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], , docker
+	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
+
+	// Input: ["test.azurecr.io/docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], test.azurecr.io, docker
+	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
+
+	// Input: Invalid
+	// Output: <empty>
+
+	prefix := reference.Repository + "@"
+	// If the reference has "library/" prefixed, we have to remove it - otherwise
+	// we'll fail to query the digest, since image names aren't prefixed with "library/"
+	if strings.HasPrefix(prefix, "library/") && reference.Registry == DockerHubRegistry {
+		prefix = prefix[8:]
+	} else if len(reference.Registry) > 0 && reference.Registry != DockerHubRegistry {
+		prefix = reference.Registry + "/" + prefix
+	}
+
+	var digestList []string
+	if err := json.Unmarshal([]byte(jsonContent), &digestList); err != nil {
+		logrus.Warnf("Error deserializing %s to json, error: %s", jsonContent, err)
+	}
+
+	for _, digest := range digestList {
+		if strings.HasPrefix(digest, prefix) {
+			return digest[len(prefix):]
+		}
+	}
+
+	logrus.Warnf("Unable to find digest for %s in %s", prefix, jsonContent)
+	return ""
 }

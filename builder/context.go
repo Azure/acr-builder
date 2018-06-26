@@ -1,13 +1,18 @@
 package builder
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	"os"
 	"path"
 
+	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
+)
+
+const (
+	defaultScannerImage = "scanner"
 )
 
 // getDockerRunArgs populates the args for running a Docker container.
@@ -33,57 +38,54 @@ func (b *Builder) getDockerRunArgs(stepID string, stepWorkDir string) []string {
 	return args
 }
 
-func (b *Builder) copyContext(ctx context.Context, workingDir string, mountLocation string) error {
-	containerName := fmt.Sprintf("rally_context_share_%s", uuid.New())
-	cArgs := []string{
+func (b *Builder) scrapeDependencies(ctx context.Context, volName string, outputDir string, dockerfile string, context string, tags []string, buildArgs []string) ([]*models.ImageDependencies, error) {
+	containerName := fmt.Sprintf("rally_dep_scanner_%s", uuid.New())
+	args := []string{
 		"docker",
-		"create",
+		"run",
+		"--rm",
 		"--name", containerName,
-		"--volume", b.workspaceDir + ":" + containerWorkspaceDir,
-
+		"--volume", volName + ":" + containerWorkspaceDir,
 		"--volume", rallyHomeVol + ":" + rallyHomeWorkDir,
-		// Set $HOME to the home volume.
 		"--env", "HOME=" + rallyHomeVol,
-		defaultBlankImage,
+		"--workdir", containerWorkspaceDir,
+		defaultScannerImage,
+		"scan",
+		"-f", dockerfile,
+		"--destination", outputDir,
+		context,
 	}
 
-	err := b.cmder.Run(ctx, cArgs, nil, os.Stdout, os.Stderr, "")
+	for _, tag := range tags {
+		args = append(args, "-t", tag)
+	}
+
+	for _, buildArg := range buildArgs {
+		args = append(args, "--build-arg", buildArg)
+	}
+
+	var buf bytes.Buffer
+	err := b.cmder.Run(ctx, args, nil, &buf, &buf, "")
 	if err != nil {
-		return errors.Wrapf(err, "Failed to create container %s to share context", containerName)
+		return nil, err
 	}
 
-	cpArgs := []string{
-		"docker",
-		"cp",
-		workingDir,
-		fmt.Sprintf("%s:%s", containerName, normalizeWorkDir(mountLocation)),
-	}
-
-	err = b.cmder.Run(ctx, cpArgs, nil, os.Stdout, os.Stderr, "")
+	var deps []*models.ImageDependencies
+	bytes := bytes.TrimSpace(buf.Bytes())
+	err = json.Unmarshal(bytes, &deps)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to copy context to container %s", containerName)
+		return nil, err
 	}
 
-	rmArgs := []string{
-		"docker",
-		"rm",
-		containerName,
-	}
-
-	err = b.cmder.Run(ctx, rmArgs, nil, os.Stdout, os.Stderr, "")
-	if err != nil {
-		return errors.Wrapf(err, "Failed to clean up shared context container %s", containerName)
-	}
-
-	return nil
+	return deps, nil
 }
 
-// normalizeWorkDir normalizes a step's working directory.
-func normalizeWorkDir(stepWorkDir string) string {
-	// If the step's directory is absolute, use it instead of /workspace/...
-	if path.IsAbs(stepWorkDir) {
-		return path.Clean(stepWorkDir)
+// normalizeWorkDir normalizes a working directory.
+func normalizeWorkDir(workDir string) string {
+	// If the directory is absolute, use it instead of /workspace/...
+	if path.IsAbs(workDir) {
+		return path.Clean(workDir)
 	}
 
-	return path.Clean(path.Join("/workspace", stepWorkDir))
+	return path.Clean(path.Join("/workspace", workDir))
 }

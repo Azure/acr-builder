@@ -2,9 +2,6 @@ package scan
 
 import (
 	"bufio"
-	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -12,7 +9,6 @@ import (
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	"github.com/docker/distribution/reference"
-	"github.com/sirupsen/logrus"
 )
 
 // ScanForDependencies scans for base image dependencies.
@@ -96,93 +92,6 @@ func (s *Scanner) NewImageDependencies(image string, runtime string, buildtimes 
 	return dependencies, nil
 }
 
-// PopulateDigests populates digests on dependencies
-func (s *Scanner) PopulateDigests(ctx context.Context, dependencies []*models.ImageDependencies) error {
-	for _, entry := range dependencies {
-		if err := s.queryDigest(ctx, entry.Image); err != nil {
-			return err
-		}
-		if err := s.queryDigest(ctx, entry.Runtime); err != nil {
-			return err
-		}
-		for _, buildtime := range entry.Buildtime {
-			if err := s.queryDigest(ctx, buildtime); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (s *Scanner) queryDigest(ctx context.Context, reference *models.ImageReference) error {
-	if reference != nil {
-		refString := reference.String()
-
-		// refString will always have the tag specified at this point.
-		// For "scratch", we have to compare it against "scratch:latest" even though
-		// scratch:latest isn't valid in a FROM clause.
-		if refString == NoBaseImageSpecifierLatest {
-			return nil
-		}
-
-		args := []string{
-			"docker",
-			"inspect",
-			"--format",
-			"\"{{json .RepoDigests}}\"",
-			refString,
-		}
-
-		var buf bytes.Buffer
-		err := s.cmder.Run(ctx, args, nil, &buf, os.Stderr, "")
-		if err != nil {
-			return err
-		}
-
-		trimCharPredicate := func(c rune) bool {
-			return '\n' == c || '\r' == c || '"' == c || '\t' == c
-		}
-
-		reference.Digest = getRepoDigest(strings.TrimFunc(buf.String(), trimCharPredicate), reference)
-	}
-
-	return nil
-}
-
-func getRepoDigest(jsonContent string, reference *models.ImageReference) string {
-	// Input: ["docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], , docker
-	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
-
-	// Input: ["test.azurecr.io/docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], test.azurecr.io, docker
-	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
-
-	// Input: Invalid
-	// Output: <empty>
-
-	prefix := reference.Repository + "@"
-	// If the reference has "library/" prefixed, we have to remove it - otherwise
-	// we'll fail to query the digest, since image names aren't prefixed with "library/"
-	if strings.HasPrefix(prefix, "library/") && reference.Registry == DockerHubRegistry {
-		prefix = prefix[8:]
-	} else if len(reference.Registry) > 0 && reference.Registry != DockerHubRegistry {
-		prefix = reference.Registry + "/" + prefix
-	}
-
-	var digestList []string
-	if err := json.Unmarshal([]byte(jsonContent), &digestList); err != nil {
-		logrus.Warnf("Error deserializing %s to json, error: %s", jsonContent, err)
-	}
-
-	for _, digest := range digestList {
-		if strings.HasPrefix(digest, prefix) {
-			return digest[len(prefix):]
-		}
-	}
-
-	logrus.Warnf("Unable to find digest for %s in %s", prefix, jsonContent)
-	return ""
-}
-
 // NormalizeImageTag adds "latest" to the image if the specified image
 // has no tag and it's not referenced by digest.
 func NormalizeImageTag(img string) string {
@@ -199,7 +108,7 @@ func NewImageReference(path string) (*models.ImageReference, error) {
 		return nil, err
 	}
 	result := &models.ImageReference{
-		Reference: ref,
+		Reference: ref.String(),
 	}
 
 	if named, ok := ref.(reference.Named); ok {
@@ -307,20 +216,6 @@ func ResolveDockerfileDependencies(path string, buildArgs []string) (string, []s
 	}
 
 	return origin, buildtimeDependencies, nil
-}
-
-func parseRunArgs(runCmd string, match string) []string {
-	fields := strings.Fields(runCmd)
-	prevField := ""
-	imageNames := []string{}
-	for _, field := range fields {
-		if prevField == match {
-			imageNames = append(imageNames, field)
-		}
-		prevField = field
-	}
-
-	return imageNames
 }
 
 func parseBuildArgs(args []string) (map[string]string, error) {
