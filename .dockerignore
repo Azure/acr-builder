@@ -2,6 +2,5 @@
 Dockerfile
 .git
 LICENSE
-Makefile
 *.md
 .vscode

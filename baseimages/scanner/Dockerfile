@@ -2,6 +2,7 @@ FROM golang:1.10-alpine AS gobuild-base
 RUN apk add --no-cache \
 	git \
 	make
+
 FROM gobuild-base AS scanner
 COPY . /go/src/github.com/Azure/acr-builder
 WORKDIR /go/src/github.com/Azure/acr-builder/baseimages/scanner
