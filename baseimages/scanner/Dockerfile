@@ -7,7 +7,9 @@ COPY . /go/src/github.com/Azure/acr-builder
 WORKDIR /go/src/github.com/Azure/acr-builder/baseimages/scanner
 RUN make static && mv scanner /usr/bin/scanner
 
-FROM scratch
+FROM alpine
+RUN apk add --no-cache \
+	git
 COPY --from=scanner /usr/bin/scanner /usr/bin/scanner
 ENTRYPOINT [ "scanner" ]
 CMD [ "--help" ]

@@ -17,9 +17,6 @@ const (
 var (
 	errMissingID  = errors.New("Step is missing an ID")
 	errMissingRun = errors.New("Step is missing a `run` section")
-
-	// DefaultStepID is the default step ID for builds.
-	DefaultStepID = "Build"
 )
 
 // Step is a step in the execution pipeline.
@@ -38,6 +35,8 @@ type Step struct {
 	StartTime  time.Time
 	EndTime    time.Time
 	StepStatus StepStatus
+
+	UseLocalContext bool
 
 	// CompletedChan can be used to signal to readers
 	// that the step has been processed.

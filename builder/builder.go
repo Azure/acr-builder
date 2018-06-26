@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
+	"github.com/Azure/acr-builder/baseimages/scanner/util"
 	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
 	"github.com/pkg/errors"
@@ -21,9 +22,6 @@ import (
 const (
 	containerWorkspaceDir = "/workspace"
 	rmContainer           = true
-
-	rallyHomeWorkDir = "/rally/home"
-	rallyHomeVol     = "rallyHomeVol"
 )
 
 // Builder builds images.
@@ -157,40 +155,54 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 			tags := parseRunArgs(step.Run, "-t")
 			buildArgs := parseRunArgs(step.Run, "--build-arg")
 			dockerfile, context := parseDockerBuildCmd(step.Run)
-
 			volName := b.workspaceDir
-			if true {
-				path, err := filepath.Abs(context)
-				if err != nil {
-					errorChan <- errors.Wrap(err, "failed to scan dependencies local")
-					return
+
+			stepWorkingDir := step.ID
+
+			// If we run `build` (not `exec` for a pipeline) and the context is local,
+			// we get the absolute filepath of the context they provided and volume map
+			// the host's filesystem according to the context.
+			if util.IsLocalContext(context) {
+				if step.UseLocalContext {
+					path, err := filepath.Abs(context)
+					if err != nil {
+						errorChan <- errors.Wrap(err, "failed to normalize local context")
+						return
+					}
+					volName = filepath.Clean(path)
+
+					// Other steps end up in an output directory which matches the step's ID,
+					// but in this case there's no output directory.
+					stepWorkingDir = ""
+				} else {
+					// A local pipeline re-uses a volume.
+					stepWorkingDir = step.WorkDir
 				}
-				volName = filepath.Clean(path)
 			}
 
-			deps, err := b.scrapeDependencies(ctx, volName, step.ID, dockerfile, context, tags, buildArgs)
-
+			deps, err := b.scrapeDependencies(ctx, volName, step.WorkDir, step.ID, dockerfile, context, tags, buildArgs)
 			if err != nil {
 				errorChan <- errors.Wrap(err, "failed to scan dependencies")
 				return
 			}
-
 			step.ImageDependencies = deps
 
-			// Use volumes for exec
-			// if true {
-			// 	workingDir = ""
-			// 	args = b.getDockerRunArgs(step.ID, step.WorkDir)
+			// Modify the Run command if it's a tar or a git URL.
+			if !util.IsLocalContext(context) {
+				// Allow overriding the context from the git URL.
+				if util.IsGitURL(context) {
+					step.Run = replacePositionalContext(step.Run, getContextFromGitURL(context))
+				} else {
+					step.Run = replacePositionalContext(step.Run, ".")
+				}
+			}
 
-			// 	// Update the working directory to match where we copied the context
-			// 	workingDir = step.ID
-			// }
-
+			args = b.getDockerRunArgs(volName, step.ID, stepWorkingDir)
 			args = append(args, "docker")
 			args = append(args, strings.Fields(step.Run)...)
 
 		} else {
-			args = b.getDockerRunArgs(step.ID, step.WorkDir)
+			args = b.getDockerRunArgs(b.workspaceDir, step.ID, step.WorkDir)
 			for _, env := range step.Envs {
 				args = append(args, "--env", env)
 			}
@@ -202,7 +214,6 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 
 		if b.debug {
 			fmt.Printf("Args: %v\n", args)
-			// fmt.Printf("Working directory: %s\n", workingDir)
 		}
 
 		// TODO: secret envs

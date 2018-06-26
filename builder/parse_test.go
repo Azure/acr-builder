@@ -30,3 +30,43 @@ func TestParseDockerBuildCmd(t *testing.T) {
 		}
 	}
 }
+
+// TestReplacePositionalContext tests replacing the positional context parameter in a build command.
+func TestReplacePositionalContext(t *testing.T) {
+	tests := []struct {
+		cmd         string
+		replacement string
+		expected    string
+	}{
+		{"build -f Dockerfile -t blah:latest https://github.com/Azure/acr-builder.git", ".", "build -f Dockerfile -t blah:latest ."},
+		{"build https://github.com/Azure/acr-builder.git -f Dockerfile -t foo:bar", "HelloWorld", "build HelloWorld -f Dockerfile -t foo:bar"},
+		{"build .", "HelloWorld", "build HelloWorld"},
+		{"build --file src/Dockerfile . -t foo:bar", "src/Dockerfile", "build --file src/Dockerfile src/Dockerfile -t foo:bar"},
+		{"build -f src/Dockerfile .", "test/another-repo", "build -f src/Dockerfile test/another-repo"},
+	}
+
+	for _, test := range tests {
+		if actual := replacePositionalContext(test.cmd, test.replacement); actual != test.expected {
+			t.Errorf("Failed to replace positional context. Got %s, expected %s", actual, test.expected)
+		}
+	}
+}
+
+// TestGetContextFromGitURL tests getting context from a git URL.
+func TestGetContextFromGitURL(t *testing.T) {
+	tests := []struct {
+		cmd      string
+		expected string
+	}{
+		{"https://github.com/Azure/acr-builder.git#stable:.", "."},
+		{"https://github.com/Azure/acr-builder.git#master:HelloWorld", "HelloWorld"},
+		{"https://github.com/Azure/acr-builder.git", "."},
+		{"https://github.com/Azure/acr-builder.git#master", "."},
+	}
+
+	for _, test := range tests {
+		if actual := getContextFromGitURL(test.cmd); actual != test.expected {
+			t.Errorf("Failed to get context from git url. Got %s, expected %s", actual, test.expected)
+		}
+	}
+}

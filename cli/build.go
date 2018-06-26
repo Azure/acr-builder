@@ -11,6 +11,8 @@ import (
 	"github.com/Azure/acr-builder/builder"
 	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/volume"
+	"github.com/google/uuid"
 
 	"github.com/sirupsen/logrus"
 
@@ -96,8 +98,8 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	cmder := cmder.NewCmder(false)
 
 	defaultStep := &graph.Step{
-		ID:  graph.DefaultStepID,
-		Run: b.createRunCmd(),
+		UseLocalContext: true,
+		Run:             b.createRunCmd(),
 	}
 
 	steps := []*graph.Step{defaultStep}
@@ -122,6 +124,18 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
+	homeVolName := fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
+	fmt.Printf("Setting up the home volume: %s...\n", homeVolName)
+	v := volume.NewVolume(homeVolName, cmder)
+	if err := v.Create(ctx); err != nil {
+		return fmt.Errorf("Err creating docker vol: %v", err)
+	}
+	defer func() {
+		if err := v.Delete(ctx); err != nil {
+			fmt.Printf("Failed to clean up docker vol: %s. Err: %v\n", homeVolName, err)
+		}
+	}()
+
 	bo := &builder.BuildOptions{
 		RegistryName:     b.registry,
 		RegistryUsername: b.registryUserName,
@@ -131,7 +145,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 		NoCache:          b.noCache,
 	}
 
-	builder := builder.NewBuilder(cmder, debug, "", false, bo)
+	builder := builder.NewBuilder(cmder, debug, homeVolName, false, bo)
 	defer builder.CleanAllBuildSteps(context.Background())
 
 	return builder.RunAllBuildSteps(ctx, dag, p.Push)

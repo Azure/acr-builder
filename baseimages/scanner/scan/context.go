@@ -11,12 +11,11 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/Azure/acr-builder/util"
+	"github.com/Azure/acr-builder/baseimages/scanner/util"
 	dockerbuild "github.com/docker/cli/cli/command/image/build"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
-	"github.com/docker/docker/pkg/urlutil"
 	"github.com/pkg/errors"
 )
 
@@ -51,9 +50,9 @@ func (s *Scanner) obtainSourceCode(
 }
 
 func (s *Scanner) getContext(ctx context.Context, context string, dockerfile string) (dockerSourceType, string, error) {
-	isGitURL := urlutil.IsGitURL(context)
+	isGitURL := util.IsGitURL(context)
 	isVstsURL := util.IsVstsGitURL(context)
-	isURL := urlutil.IsURL(context)
+	isURL := util.IsURL(context)
 
 	// If the context is remote, make the destination folder to clone or untar into.
 	if isGitURL || isVstsURL || isURL {
@@ -92,7 +91,10 @@ func (s *Scanner) getContextFromURL(remoteURL string) (sourceType dockerSourceTy
 	if err != nil {
 		return dockerSourceUnknown, errors.Wrapf(err, "unable to download remote context from %s", remoteURL)
 	}
-	progressOutput := streamformatter.NewProgressOutput(os.Stdout)
+
+	// TODO: revamp streaming, for now just pipe to buf and discard it.
+	var buf bytes.Buffer
+	progressOutput := streamformatter.NewProgressOutput(&buf)
 	r := progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", "Downloading build context")
 	defer func(response *http.Response) {
 		err := response.Body.Close()

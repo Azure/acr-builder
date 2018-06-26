@@ -1,9 +1,9 @@
-[[step]]
 # Start off by pulling the image all of my apps depend on
+[[step]]
 id = "{{.Values.pullStep}}"
 run = "docker pull golang:1.10.1-stretch"
 
-# Execute a bunch of builds in parallel using the previously pulled image as a cache
+# Execute builds in parallel using the previously pulled image as a cache
 [[step]]
 id = "build-foo"
 run = "build -f Dockerfile https://github.com/Azure/acr-builder.git --cache-from=ubuntu"
@@ -11,7 +11,7 @@ when = ["{{.Values.pullStep}}"]
 
 [[step]]
 id = "build-bar"
-run = "build -f Dockerfile https://github.com/Azure/acr-builder.git"
+run = "build -f Dockerfile https://github.com/Azure/acr-builder.git --cache-from=ubuntu"
 when = ["{{.Values.pullStep}}"]
 
 [[step]]

@@ -6,6 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"regexp"
+	"strings"
+
+	"github.com/Azure/acr-builder/util"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	"github.com/google/uuid"
@@ -15,30 +19,29 @@ const (
 	defaultScannerImage = "scanner"
 )
 
+var (
+	dependenciesRE = regexp.MustCompile(`^(\[{"image.*?\])$`)
+)
+
 // getDockerRunArgs populates the args for running a Docker container.
-func (b *Builder) getDockerRunArgs(stepID string, stepWorkDir string) []string {
+func (b *Builder) getDockerRunArgs(volName string, stepID string, stepWorkDir string) []string {
 	args := []string{"docker", "run"}
 
 	if rmContainer {
 		args = append(args, "--rm")
 	}
 
+	// TODO: refactor so that only `build` uses the docker sock.
 	args = append(args,
 		"--name", fmt.Sprintf("rally_step_%s", stepID),
-		"--volume", "/var/run/docker.sock:/var/run/docker.sock",
-		"--volume", b.workspaceDir+":"+containerWorkspaceDir,
+		"--volume", util.GetDockerSock(),
+		"--volume", volName+":"+containerWorkspaceDir,
 		"--workdir", normalizeWorkDir(stepWorkDir),
-
-		"--volume", rallyHomeVol+":"+rallyHomeWorkDir,
-
-		// Set $HOME to the home volume.
-		"--env", "HOME="+rallyHomeVol,
-		"--privileged",
 	)
 	return args
 }
 
-func (b *Builder) scrapeDependencies(ctx context.Context, volName string, outputDir string, dockerfile string, context string, tags []string, buildArgs []string) ([]*models.ImageDependencies, error) {
+func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWorkDir string, outputDir string, dockerfile string, context string, tags []string, buildArgs []string) ([]*models.ImageDependencies, error) {
 	containerName := fmt.Sprintf("rally_dep_scanner_%s", uuid.New())
 	args := []string{
 		"docker",
@@ -46,9 +49,7 @@ func (b *Builder) scrapeDependencies(ctx context.Context, volName string, output
 		"--rm",
 		"--name", containerName,
 		"--volume", volName + ":" + containerWorkspaceDir,
-		"--volume", rallyHomeVol + ":" + rallyHomeWorkDir,
-		"--env", "HOME=" + rallyHomeVol,
-		"--workdir", containerWorkspaceDir,
+		"--workdir", normalizeWorkDir(stepWorkDir),
 		defaultScannerImage,
 		"scan",
 		"-f", dockerfile,
@@ -64,17 +65,31 @@ func (b *Builder) scrapeDependencies(ctx context.Context, volName string, output
 		args = append(args, "--build-arg", buildArg)
 	}
 
+	if b.debug {
+		fmt.Printf("Scraping args: %v\n", args)
+	}
+
 	var buf bytes.Buffer
 	err := b.cmder.Run(ctx, args, nil, &buf, &buf, "")
+	output := strings.TrimSpace(buf.String())
+	fmt.Printf("Output from dependency scanning: %v\n", output)
 	if err != nil {
 		return nil, err
 	}
 
 	var deps []*models.ImageDependencies
-	bytes := bytes.TrimSpace(buf.Bytes())
-	err = json.Unmarshal(bytes, &deps)
-	if err != nil {
-		return nil, err
+
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		matches := dependenciesRE.FindStringSubmatch(line)
+
+		if len(matches) == 2 {
+			err = json.Unmarshal([]byte(matches[1]), &deps)
+			if err != nil {
+				return nil, err
+			}
+			break
+		}
 	}
 
 	return deps, nil
