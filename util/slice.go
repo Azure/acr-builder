@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 package util
 
 // StringSequenceEquals determines whether or not two string sequences are equivalent.

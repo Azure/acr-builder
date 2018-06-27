@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 package builder
 
 import (
@@ -136,7 +139,7 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 			step.EndTime = time.Now()
 		}()
 
-		args := []string{}
+		var args []string
 
 		if strings.HasPrefix(step.Run, "build") {
 			// TODO: consider other cases where we should login, e.g., if they want to pull an image from their local registry.

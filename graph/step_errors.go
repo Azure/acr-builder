@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 package graph
 
 // SelfReferencedStepError defines an error to be returned if the Step is self-referenced.
