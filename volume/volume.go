@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	// VolumePrefix is a prefix for all Rally volumes.
-	VolumePrefix = "rally_vol_"
+	// VolumePrefix is a prefix for volumes.
+	VolumePrefix = "acb_vol_"
 )
 
 // Volume describes a Docker volume.

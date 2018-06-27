@@ -36,7 +36,7 @@ func (b *Builder) getDockerRunArgs(volName string, stepID string, stepWorkDir st
 
 	// TODO: refactor so that only `build` uses the docker sock.
 	args = append(args,
-		"--name", fmt.Sprintf("rally_step_%s", stepID),
+		"--name", fmt.Sprintf("acb_step_%s", stepID),
 		"--volume", util.GetDockerSock(),
 		"--volume", volName+":"+containerWorkspaceDir,
 		"--workdir", normalizeWorkDir(stepWorkDir),
@@ -45,7 +45,7 @@ func (b *Builder) getDockerRunArgs(volName string, stepID string, stepWorkDir st
 }
 
 func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWorkDir string, outputDir string, dockerfile string, context string, tags []string, buildArgs []string) ([]*models.ImageDependencies, error) {
-	containerName := fmt.Sprintf("rally_dep_scanner_%s", uuid.New())
+	containerName := fmt.Sprintf("acb_dep_scanner_%s", uuid.New())
 	args := []string{
 		"docker",
 		"run",

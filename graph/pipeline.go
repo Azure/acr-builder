@@ -83,7 +83,7 @@ func (p *Pipeline) initialize() {
 		}
 
 		if s.ID == "" {
-			s.ID = fmt.Sprintf("rally_step_%d", i)
+			s.ID = fmt.Sprintf("acb_step_%d", i)
 		}
 
 		// Override the step's working directory to be the parent's working directory.

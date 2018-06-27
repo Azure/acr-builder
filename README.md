@@ -8,15 +8,15 @@ Run `make build`. Use `make help` to discover additional commands.
 
 ## CLI
 
-`rally --help` can be used to see all available commands.
+`acb --help` can be used to see all available commands.
 
 ## Building an image
 
-See `rally build --help` for a list of all parameters.
+See `acb build --help` for a list of all parameters.
 
 Pushing to a registry:
 
-`rally build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo "https://github.com/Azure/acr-builder.git"`
+`acb build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo "https://github.com/Azure/acr-builder.git"`
 
 ### Conditional or Optional parameters
 * `--registry` The docker registry to push to. Registry is required if the `--push` option is present.
@@ -34,8 +34,8 @@ Pushing to a registry:
 
 ## Running a pipeline with a template
 
-See `rally exec --help` for a list of all parameters.
+See `acb exec --help` for a list of all parameters.
 
 ```
-rally exec --steps helloworld.toml --template-path templating/testdata/helloworld --id demo -r foo.azurecr.io -u foo -p foo --debug
+acb exec --steps helloworld.toml --template-path templating/testdata/helloworld --id demo -r foo.azurecr.io -u foo -p foo --debug
 ```

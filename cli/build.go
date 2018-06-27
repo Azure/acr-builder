@@ -56,7 +56,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 		RunE:  r.run,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
-				return errors.New("rally build requires exactly 1 argument. See rally build --help")
+				return errors.New("acb build requires exactly 1 argument. See acb build --help")
 			}
 
 			return nil

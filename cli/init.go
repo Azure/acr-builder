@@ -11,7 +11,7 @@ import (
 )
 
 const initLongDesc = `
-This command can be used to initialize a new Rally template.
+This command can be used to initialize a new template.
 `
 
 type initCmd struct {

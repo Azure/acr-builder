@@ -13,9 +13,9 @@ var (
 	debug bool
 )
 
-const globalUsageMessage = `Welcome to Rally - Azure Container Registry's container builder.
+const globalUsageMessage = `Welcome to Azure's container builder.
 
-To start working with Rally, run rally --help
+To start working with Azure container builder (acb), run acb --help
 `
 
 // Execute executes the root command.
@@ -29,7 +29,7 @@ func Execute() {
 func newRootCmd(args []string) *cobra.Command {
 
 	cmd := &cobra.Command{
-		Use:          "rally",
+		Use:          "acb",
 		Short:        "The builder for Azure Container Registry (ACR)",
 		Long:         globalUsageMessage,
 		SilenceUsage: true,
