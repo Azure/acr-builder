@@ -9,9 +9,8 @@ COPY . .
 RUN make static && mv acb /usr/bin/acb
 
 FROM docker:18.03.1-ce-git
-RUN apk add --no-cache \
+RUN mkdir -p ~/.docker \
     # Update Docker CLI config and set X-Meta-Source-Client header to ACR-BUILDER
-    && mkdir -p ~/.docker \
     && echo '{"HttpHeaders":{"X-Meta-Source-Client":"ACR-BUILDER"}}' > ~/.docker/config.json
 COPY --from=acb /usr/bin/acb /usr/bin/acb
 ENTRYPOINT [ "acb" ]
