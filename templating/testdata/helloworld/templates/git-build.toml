@@ -2,4 +2,4 @@
 
 [[step]]
 id = "git-context"
-run = "build -f Dockerfile -t {{.Build.ID}}:latest https://github.com/Azure/acr-builder.git"
+run = "build -f Dockerfile -t acr-builder:{{.Build.ID}} https://github.com/Azure/acr-builder.git"
