@@ -1,0 +1,15 @@
+# This template demonstrates how previously created artifacts can be re-used, for example building after a git clone.
+
+# Run a git clone, which clones the context into `cloned-repository-ctx`
+[[step]]
+run = "git clone https://github.com/Azure/acr-builder.git cloned-repository-ctx"
+
+# Run `ls` on the cloned content
+[[step]]
+run = "bash ls -la"
+workDir = "cloned-repository-ctx"
+
+# Build using the previously stored content from `cloned-repository-ctx`
+[[step]]
+run = "build -f Dockerfile ."
+workDir = "cloned-repository-ctx"
