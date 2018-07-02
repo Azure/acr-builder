@@ -60,6 +60,7 @@ func (s *Scanner) getContext(ctx context.Context, context string, dockerfile str
 	// If the context is remote, make the destination folder to clone or untar into.
 	if isGitURL || isVstsURL || isURL {
 		if _, err := os.Stat(s.destinationFolder); os.IsNotExist(err) {
+			// Creates the destination folder if necessary, granting full permissions to the owner.
 			if innerErr := os.Mkdir(s.destinationFolder, 0700); innerErr != nil {
 				return dockerSourceUnknown, context, innerErr
 			}

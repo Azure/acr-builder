@@ -18,6 +18,7 @@ import (
 	"github.com/Azure/acr-builder/baseimages/scanner/util"
 	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
+	builderutil "github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -285,10 +286,23 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 
 		args := []string{
 			"docker",
+			"run",
+			"--rm",
+
+			// Mount home
+			"--volume", builderutil.GetDockerSock(),
+			"--volume", homeVol + ":" + homeWorkDir,
+			"--env", "HOME=" + homeWorkDir,
+
+			"docker",
 			"inspect",
 			"--format",
 			"\"{{json .RepoDigests}}\"",
 			reference.Reference,
+		}
+
+		if b.debug {
+			fmt.Printf("query digest args: %v\n", args)
 		}
 
 		var buf bytes.Buffer

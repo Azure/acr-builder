@@ -10,16 +10,6 @@ Run `make build`. Use `make help` to discover additional commands.
 
 - Docker
 - In order to run `build`, you must create an image called scanner. This image can be built using `docker build -f baseimages/scanner/Dockerfile -t scanner .` at the root of this repository.
-- In order to interact with `docker manifest`, you must enable experimental Docker CLI support.
-- This file is typically located at `$HOME/.docker/config.json` and its contents should be:
-
-```json
-{
-    "experimental": "enabled"
-}
-```
-
-- After enabling experimental CLI support, running `docker version -f '{{.Client.Experimental}}'` should return `true`.
 
 ## CLI
 
