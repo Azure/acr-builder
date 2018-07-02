@@ -149,7 +149,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	builder := builder.NewBuilder(cmder, debug, homeVolName, false, bo)
-	defer builder.CleanAllBuildSteps(context.Background())
+	defer builder.CleanAllBuildSteps(context.Background(), dag)
 
 	return builder.RunAllBuildSteps(ctx, dag, p.Push)
 }

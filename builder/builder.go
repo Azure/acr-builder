@@ -125,15 +125,23 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo [
 }
 
 // CleanAllBuildSteps cleans up all build steps and removes their corresponding Docker containers.
-func (b *Builder) CleanAllBuildSteps(ctx context.Context) {
-	// TODO: implement
+func (b *Builder) CleanAllBuildSteps(ctx context.Context, dag *graph.Dag) {
+	args := []string{"docker", "rm", "-f"}
 
-	// args := []string{"docker", "rm", "-f"}
+	for k, v := range dag.Nodes {
+		if k == graph.RootNodeID {
+			continue
+		}
 
-	// errs := cmder.Stop()
-	// 	if errs != nil && debug {
-	// 		fmt.Printf("Err during cleanup: %v", errs.String())
-	// 	}
+		step := v.Value
+
+		killArgs := append(args, fmt.Sprintf("acb_step_%s", step.ID))
+		_ = b.cmder.Run(ctx, killArgs, nil, nil, nil, "")
+	}
+
+	if err := b.cmder.Stop(); err != nil {
+		fmt.Printf("Failed to stop ongoing processes: %v", err)
+	}
 }
 
 func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *graph.Node, child *graph.Node, errorChan chan error) {
