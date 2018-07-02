@@ -66,12 +66,18 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 	\
 	Write-Host 'Complete.';
 
-# Build the scanner
+# Build the acr-builder scanner
 FROM environment as scanner
-COPY ./ /gopath/src/github.com/Azure/acr-builder
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder\\baseimages\\scanner
+COPY ./ /gopath/src/github.com/Azure/acr-builder
 RUN Write-Host ('Running build' ); \
-    go build;
+    go build
 
-ENTRYPOINT [ "scanner.exe" ]
-CMD [ "--help" ]
+# setup the runtime environment
+FROM environment as runtime
+COPY --from=scanner /gopath/src/github.com/Azure/acr-builder/baseimages/scanner/scanner.exe c:/scanner/scanner.exe
+
+RUN setx /M PATH $('c:\scanner;{0}' -f $env:PATH)
+
+ENTRYPOINT ["scanner.exe"]
+CMD []
