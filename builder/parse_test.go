@@ -19,6 +19,7 @@ func TestParseDockerBuildCmd(t *testing.T) {
 		{4, "build .", "Dockerfile", "."},
 		{5, "build --file src/Dockerfile . -t foo:bar", "src/Dockerfile", "."},
 		{6, "build -f src/Dockerfile .", "src/Dockerfile", "."},
+		{7, "build -t foo https://github.com/Azure/acr-builder.git#:HelloWorld", "Dockerfile", "https://github.com/Azure/acr-builder.git#:HelloWorld"},
 		// TODO: support reading from stdin?
 		// {7, "build - < Dockerfile", "Dockerfile", "-"},
 	}
@@ -63,6 +64,7 @@ func TestGetContextFromGitURL(t *testing.T) {
 	}{
 		{"https://github.com/Azure/acr-builder.git#stable:.", "."},
 		{"https://github.com/Azure/acr-builder.git#master:HelloWorld", "HelloWorld"},
+		{"https://github.com/Azure/acr-builder.git#:Foo", "Foo"},
 		{"https://github.com/Azure/acr-builder.git", "."},
 		{"https://github.com/Azure/acr-builder.git#master", "."},
 	}
