@@ -27,6 +27,8 @@ type BaseRenderOptions struct {
 	Branch string
 	// TriggeredBy is the reason the build was triggered. Required.
 	TriggeredBy string
+	// Registry is the ACR being used.
+	Registry string
 }
 
 // Values represents a map of build values.
@@ -69,6 +71,7 @@ func OverrideValuesWithBuildInfo(j *Job, c *Config, options BaseRenderOptions) (
 			"Repository":  options.Repository,
 			"Branch":      options.Branch,
 			"TriggeredBy": options.TriggeredBy,
+			"Registry":    options.Registry,
 		},
 	}
 

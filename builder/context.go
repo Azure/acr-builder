@@ -34,11 +34,15 @@ func (b *Builder) getDockerRunArgs(volName string, stepID string, stepWorkDir st
 		args = append(args, "--rm")
 	}
 
-	// TODO: refactor so that only `build` uses the docker sock.
 	args = append(args,
 		"--name", fmt.Sprintf("acb_step_%s", stepID),
-		"--volume", util.GetDockerSock(),
 		"--volume", volName+":"+containerWorkspaceDir,
+
+		// Mount home
+		"--volume", util.GetDockerSock(),
+		"--volume", homeVol+":"+homeWorkDir,
+		"--env", "HOME="+homeWorkDir,
+
 		"--workdir", normalizeWorkDir(stepWorkDir),
 	)
 	return args
@@ -53,6 +57,11 @@ func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWo
 		"--name", containerName,
 		"--volume", volName + ":" + containerWorkspaceDir,
 		"--workdir", normalizeWorkDir(stepWorkDir),
+
+		// Mount home
+		"--volume", homeVol + ":" + homeWorkDir,
+		"--env", "HOME=" + homeWorkDir,
+
 		defaultScannerImage,
 		"scan",
 		"-f", dockerfile,

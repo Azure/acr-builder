@@ -101,6 +101,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		Repository:  e.buildRepository,
 		Branch:      e.buildBranch,
 		TriggeredBy: e.buildTriggeredBy,
+		Registry:    e.registry,
 	}
 
 	rawVals, err := combineVals(e.templateValues)

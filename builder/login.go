@@ -4,17 +4,57 @@
 package builder
 
 import (
+	"bytes"
 	"context"
-	"os"
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/Azure/acr-builder/util"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
 const (
 	maxLoginRetries = 3
+	config          = `{
+	"experimental": "enabled",
+	"HttpHeaders": {"X-Meta-Source-Client": "ACR-BUILDER"}
+}`
 )
+
+// dockerLogin performs a docker login
+func (b *Builder) dockerLogin(ctx context.Context) error {
+	args := []string{
+		"docker",
+		"run",
+		"--name", fmt.Sprintf("acb_docker_login_%s", uuid.New()),
+		"--rm",
+
+		// Interactive mode for --password-stdin
+		"-i",
+
+		// Mount home
+		"--volume", util.GetDockerSock(),
+		"--volume", homeVol + ":" + homeWorkDir,
+		"--env", "HOME=" + homeWorkDir,
+
+		"docker",
+		"login",
+		"--username", b.buildOptions.RegistryUsername,
+		"--password-stdin",
+		b.buildOptions.RegistryName,
+	}
+
+	stdIn := strings.NewReader(b.buildOptions.RegistryPassword + "\n")
+
+	var buf bytes.Buffer
+	if err := b.cmder.Run(ctx, args, stdIn, &buf, &buf, ""); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to set docker credentials: %s", buf.String()))
+	}
+
+	return nil
+}
 
 // dockerLoginWithRetries performs a Docker login with retries.
 func (b *Builder) dockerLoginWithRetries(ctx context.Context, attempt int) error {
@@ -32,12 +72,28 @@ func (b *Builder) dockerLoginWithRetries(ctx context.Context, attempt int) error
 	return nil
 }
 
-// dockerLogin performs a Docker login.
-func (b *Builder) dockerLogin(ctx context.Context) error {
-	bo := b.buildOptions
-	args := []string{"docker", "login", "-u", bo.RegistryUsername, "--password-stdin", bo.RegistryName}
+// setupConfig initializes ~/.docker/config.json
+func (b *Builder) setupConfig(ctx context.Context) error {
+	args := []string{
+		"docker",
+		"run",
+		"--name", fmt.Sprintf("acb_init_config_%s", uuid.New()),
+		"--rm",
 
-	stdIn := strings.NewReader(bo.RegistryPassword + "\n")
-	err := b.cmder.Run(ctx, args, stdIn, os.Stdout, os.Stderr, "")
-	return err
+		// Home
+		"--volume", homeVol + ":" + homeWorkDir,
+		"--env", "HOME=" + homeWorkDir,
+
+		"--volume", util.GetDockerSock(),
+		"--entrypoint", "bash",
+		"ubuntu",
+		"-c", "mkdir -p ~/.docker && cat << EOF > ~/.docker/config.json\n" + config + "\nEOF",
+	}
+
+	var buf bytes.Buffer
+	if err := b.cmder.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to setup config: %s", buf.String()))
+	}
+
+	return nil
 }

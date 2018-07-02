@@ -22,11 +22,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	containerWorkspaceDir = "/workspace"
-	rmContainer           = true
-)
-
 // Builder builds images.
 type Builder struct {
 	cmder        *cmder.Cmder
@@ -51,7 +46,25 @@ func NewBuilder(c *cmder.Cmder, debug bool, workspaceDir string, dryRun bool, bu
 
 // RunAllBuildSteps executes a pipeline.
 func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo []string) error {
-	// TODO: DESIGN: do we want multiple volumes per step?
+
+	if !b.dryRun {
+		if err := b.setupConfig(ctx); err != nil {
+			return err
+		}
+
+		if b.buildOptions.RegistryName != "" &&
+			b.buildOptions.RegistryPassword != "" &&
+			b.buildOptions.RegistryUsername != "" {
+
+			fmt.Printf("Logging in to registry: %s\n", b.buildOptions.RegistryName)
+			if err := b.dockerLoginWithRetries(ctx, 0); err != nil {
+				return err
+			}
+
+			fmt.Println("Successfully logged in")
+		}
+	}
+
 	root := dag.Nodes[graph.RootNodeID]
 	var completedChans []chan bool
 	errorChan := make(chan error)
@@ -142,16 +155,6 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 		var args []string
 
 		if strings.HasPrefix(step.Run, "build") {
-			// TODO: consider other cases where we should login, e.g., if they want to pull an image from their local registry.
-			// For now, only login if they specify push.
-			if b.buildOptions.Push {
-				err := b.dockerLoginWithRetries(ctx, 0)
-				if err != nil {
-					errorChan <- err
-					return
-				}
-			}
-
 			// TODO: refactor this out of the node processing into initialization.
 			// Adjust the run command so that the ACR registry is prefixed for all tags
 			step.Run = prefixStepTags(step.Run, b.buildOptions.RegistryName)

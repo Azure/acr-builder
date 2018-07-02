@@ -93,11 +93,5 @@ RUN Write-Host ('Running build' ); \
 FROM environment as runtime
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
 COPY --from=builder /gopath/src/github.com/Azure/acr-builder/acr-builder.exe c:/acr-builder/acr-builder.exe
-
-RUN setx /M PATH $('c:\acr-builder;c:\docker;{0}' -f $env:PATH); \
-    # Update Docker CLI config and set X-Meta-Source-Client header to ACR-BUILDER
-	New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\\.docker"; \
-	'{"HttpHeaders":{"X-Meta-Source-Client":"ACR-BUILDER"}}' | Out-File -FilePath "$env:USERPROFILE\\.docker\\config.json"
-
 ENTRYPOINT ["acr-builder.exe"]
 CMD []

@@ -11,4 +11,13 @@ const (
 
 	// DockerHubRegistry is the docker hub registry
 	DockerHubRegistry = "registry.hub.docker.com"
+
+	containerWorkspaceDir = "/workspace"
+	rmContainer           = true
+
+	// homeVol is the volume to manage $HOME
+	homeVol = "home"
+
+	// homeWorkDir is the working directory to start at in $HOME
+	homeWorkDir = "/acb/home"
 )

@@ -1,3 +1,5 @@
+# Required.
+# docker build -f baseimages/docker.Windows.Dockerfile -t docker .
 FROM microsoft/windowsservercore as download
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
