@@ -55,7 +55,7 @@ func newScanCmd(out io.Writer) *cobra.Command {
 	f.StringVarP(&s.dockerfile, "file", "f", "Dockerfile", "path to the Dockerfile")
 	f.StringArrayVarP(&s.tags, "tag", "t", []string{}, "name and optionally a tag in the 'name:tag' format")
 	f.StringArrayVar(&s.buildArgs, "build-arg", []string{}, "set build time arguments")
-	f.IntVar(&s.timeout, "timeout", 60, "maximum execution time")
+	f.IntVar(&s.timeout, "timeout", 60, "maximum execution time (in seconds)")
 	f.StringVar(&s.destinationFolder, "destination", "temp", "the destination folder to save context")
 	return cmd
 }
