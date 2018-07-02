@@ -80,4 +80,4 @@ COPY --from=scanner /gopath/src/github.com/Azure/acr-builder/baseimages/scanner/
 RUN setx /M PATH $('c:\scanner;{0}' -f $env:PATH)
 
 ENTRYPOINT ["scanner.exe"]
-CMD []
+CMD [ "--help" ]
