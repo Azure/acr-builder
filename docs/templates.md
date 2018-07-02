@@ -1,8 +1,8 @@
 # Templates
 
-### A build can have multiple templates located in `templates/`:
+A build can have multiple templates located in `templates/`
 
-```
+```toml
 # acr-builder-pre-release.toml
 push = ["Image1", "Image2"]
 
@@ -24,27 +24,24 @@ id = "eric-push"
 args = ["push", "azacr.someregistry.io/{{RepoId}}/{{ImageName | default "someImageName"}}"]
 ```
 
-### Specify values to override in your templates:
+Specify values to override in your templates:
 
-```
+```toml
 # values.toml
 
 # Default values
 ImageName = "DefaultImageName"
 ```
 
-```
+```toml
 # release-values.toml
 
 ImageName = "ProdBuild"
 ```
 
+Combine the two to create a standardized pipeline:
 
-### Combine the two to create a standardized pipeline:
-
-```
-# rally.toml
-
+```toml
 push = ["Image1", "Image2"]
 
 [[step]]
@@ -63,5 +60,4 @@ env = ["ENV1=Foo", "ENV2=Bar"]
 [[step]]
 name = "eric-push"
 args = ["push", "azacr.someregistry.io/ehotinger/acr-builder"]
-
 ```
