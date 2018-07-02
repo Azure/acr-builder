@@ -14,15 +14,15 @@ var gitURLWithSuffix = regexp.MustCompile("\\.git(?:#.+)?$")
 func parseRunArgs(runCmd string, match string) []string {
 	fields := strings.Fields(runCmd)
 	prevField := ""
-	imageNames := []string{}
+	matches := []string{}
 	for _, field := range fields {
 		if prevField == match {
-			imageNames = append(imageNames, field)
+			matches = append(matches, field)
 		}
 		prevField = field
 	}
 
-	return imageNames
+	return matches
 }
 
 // parseDockerBuildCmd parses a docker build command and extracts the
