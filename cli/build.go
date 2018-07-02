@@ -82,7 +82,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.BoolVar(&r.noCache, "no-cache", false, "true to ignore all cached layers when building the image")
 	f.BoolVar(&r.push, "push", false, "push on success")
 	f.BoolVar(&r.oci, "oci", false, "use the OCI builder")
-	f.BoolVar(&r.dryRun, "dryrun", false, "evaluates the build but doesn't execute it")
+	f.BoolVar(&r.dryRun, "dry-run", false, "evaluates the build but doesn't execute it")
 
 	if debug {
 		logrus.SetLevel(logrus.DebugLevel)

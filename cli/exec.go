@@ -74,7 +74,7 @@ func newExecCmd(out io.Writer) *cobra.Command {
 	f.StringVar(&e.buildTriggeredBy, "triggered-by", "", "what the build was triggered by")
 	f.StringVar(&e.templatePath, "template-path", "", "the path to the job to render")
 	f.StringArrayVar(&e.templateValues, "set", []string{}, "set values on the command line (use `--set` multiple times or use commas: key1=val1,key2=val2)")
-	f.BoolVar(&e.dryRun, "dryrun", false, "evaluates the pipeline but doesn't execute it")
+	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the pipeline but doesn't execute it")
 
 	return cmd
 }
