@@ -27,19 +27,17 @@ import (
 type Builder struct {
 	cmder        *cmder.Cmder
 	workspaceDir string
-	dryRun       bool
 	mu           sync.Mutex
 	debug        bool
 	buildOptions *BuildOptions
 }
 
 // NewBuilder creates a new Builder.
-func NewBuilder(c *cmder.Cmder, debug bool, workspaceDir string, dryRun bool, buildOptions *BuildOptions) *Builder {
+func NewBuilder(c *cmder.Cmder, debug bool, workspaceDir string, buildOptions *BuildOptions) *Builder {
 	return &Builder{
 		cmder:        c,
 		debug:        debug,
 		workspaceDir: workspaceDir,
-		dryRun:       dryRun,
 		buildOptions: buildOptions,
 		mu:           sync.Mutex{},
 	}
@@ -48,7 +46,7 @@ func NewBuilder(c *cmder.Cmder, debug bool, workspaceDir string, dryRun bool, bu
 // RunAllBuildSteps executes a pipeline.
 func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo []string) error {
 
-	if !b.dryRun {
+	if !b.cmder.DryRun {
 		if err := b.setupConfig(ctx); err != nil {
 			return err
 		}

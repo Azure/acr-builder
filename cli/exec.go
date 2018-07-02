@@ -168,7 +168,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		Push:             len(p.Push) > 0,
 	}
 
-	builder := builder.NewBuilder(cmder, debug, homeVolName, e.dryRun, buildOptions)
+	builder := builder.NewBuilder(cmder, debug, homeVolName, buildOptions)
 	defer builder.CleanAllBuildSteps(context.Background(), dag)
 
 	return builder.RunAllBuildSteps(ctx, dag, p.Push)

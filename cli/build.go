@@ -42,6 +42,7 @@ type buildCmd struct {
 	push             bool
 	isolation        string
 	oci              bool
+	dryRun           bool
 }
 
 func newBuildCmd(out io.Writer) *cobra.Command {
@@ -81,6 +82,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.BoolVar(&r.noCache, "no-cache", false, "true to ignore all cached layers when building the image")
 	f.BoolVar(&r.push, "push", false, "push on success")
 	f.BoolVar(&r.oci, "oci", false, "use the OCI builder")
+	f.BoolVar(&r.dryRun, "dryrun", false, "evaluates the build but doesn't execute it")
 
 	if debug {
 		logrus.SetLevel(logrus.DebugLevel)
@@ -98,7 +100,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	normalizedDockerImages := builder.GetNormalizedDockerImageNames(b.tags)
 
-	cmder := cmder.NewCmder(false)
+	cmder := cmder.NewCmder(b.dryRun)
 
 	defaultStep := &graph.Step{
 		UseLocalContext: true,
@@ -148,7 +150,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 		NoCache:          b.noCache,
 	}
 
-	builder := builder.NewBuilder(cmder, debug, homeVolName, false, bo)
+	builder := builder.NewBuilder(cmder, debug, homeVolName, bo)
 	defer builder.CleanAllBuildSteps(context.Background(), dag)
 
 	return builder.RunAllBuildSteps(ctx, dag, p.Push)
