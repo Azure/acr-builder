@@ -162,7 +162,7 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 
 		var args []string
 
-		if strings.HasPrefix(step.Run, "build") {
+		if strings.HasPrefix(step.Run, "build ") {
 			// TODO: refactor this out of the node processing into initialization.
 			// Adjust the run command so that the ACR registry is prefixed for all tags
 			step.Run = prefixStepTags(step.Run, b.buildOptions.RegistryName)
