@@ -132,10 +132,7 @@ func (r *ContextAwareFileSystem) CreateTempDir() (tmpDir string, err error) {
 // Cleanup delete all resources allocated by this filesystem object such as temp directory
 func (r *ContextAwareFileSystem) Cleanup() {
 	for _, dir := range r.tempDirs {
-		err := os.RemoveAll(dir)
-		if err != nil {
-			logrus.Errorf("Failed to remove temp directory: %s, error: %s", dir, err)
-		}
+		_ = os.RemoveAll(dir)
 	}
 }
 
