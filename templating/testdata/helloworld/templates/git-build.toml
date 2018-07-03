@@ -1,0 +1,5 @@
+# This template demonstrates a single-step build which builds from a git repository.
+
+[[step]]
+id = "git-context"
+run = "build -f Dockerfile -t acr-builder:{{.Build.ID}} https://github.com/Azure/acr-builder.git"
