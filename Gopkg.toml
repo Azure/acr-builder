@@ -7,14 +7,10 @@
   name = "github.com/sirupsen/logrus"
   version = "1.0.4"
 
-[[constraint]]
-  branch = "master"
-  name = "github.com/stretchr/testify"
-
 [[override]]
   name = "github.com/docker/docker"
   source = "github.com/moby/moby"
-  branch = "master"
+  revision = "61138fb5fc0f5fc1799cabfa86d28fb88a0f472c"
 
 [[constraint]]
   name = "github.com/spf13/cobra"
