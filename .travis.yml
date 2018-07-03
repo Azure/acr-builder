@@ -24,6 +24,7 @@ before_script:
 
 script:
   - make
+  - make -C baseimages/scanner
 
 notifications:
   email: false
