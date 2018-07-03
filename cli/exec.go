@@ -88,7 +88,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		return errors.New("template path is required")
 	}
 
-	j, err := templating.LoadJob(e.templatePath)
+	job, err := templating.LoadJob(e.templatePath)
 	if err != nil {
 		return fmt.Errorf("Failed to load job at path %s. Err: %v", e.templatePath, err)
 	}
@@ -110,7 +110,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	config := &templating.Config{RawValue: rawVals, Values: map[string]*templating.Value{}}
-	vals, err := templating.OverrideValuesWithBuildInfo(j, config, bo)
+	vals, err := templating.OverrideValuesWithBuildInfo(job, config, bo)
 	if err != nil {
 		return fmt.Errorf("Failed to override values: %v", err)
 	}
@@ -119,7 +119,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 
 	keep := map[string]bool{expectedTmplName: true}
 
-	rendered, err := engine.Render(j, vals, keep)
+	rendered, err := engine.Render(job, vals, keep)
 	if err != nil {
 		return fmt.Errorf("Error while rendering templates: %v", err)
 	}

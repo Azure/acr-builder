@@ -13,24 +13,6 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
-// BaseRenderOptions represents additional information for the composition of the final rendering.
-type BaseRenderOptions struct {
-	// ID is the build ID. Required.
-	ID string
-	// Commit is the commit used when running the build. Optional.
-	Commit string
-	// Tag is the tag used when running the build. Optional.
-	Tag string
-	// Repository is the repository used when running the build. Optional.
-	Repository string
-	// Branch is the branch used when running the build. Optional.
-	Branch string
-	// TriggeredBy is the reason the build was triggered. Required.
-	TriggeredBy string
-	// Registry is the ACR being used.
-	Registry string
-}
-
 // Values represents a map of build values.
 type Values map[string]interface{}
 
@@ -61,29 +43,6 @@ func DeserializeFromFile(fileName string) (Values, error) {
 	return Deserialize(b)
 }
 
-// OverrideValuesWithBuildInfo overrides the specified job's values and provides a default set of values.
-func OverrideValuesWithBuildInfo(j *Job, c *Config, options BaseRenderOptions) (Values, error) {
-	base := map[string]interface{}{
-		"Build": map[string]interface{}{
-			"ID":          options.ID,
-			"Commit":      options.Commit,
-			"Tag":         options.Tag,
-			"Repository":  options.Repository,
-			"Branch":      options.Branch,
-			"TriggeredBy": options.TriggeredBy,
-			"Registry":    options.Registry,
-		},
-	}
-
-	vals, err := OverrideValues(j, c)
-	if err != nil {
-		return base, err
-	}
-
-	base["Values"] = vals
-	return base, nil
-}
-
 // OverrideValues overrides the Values of a job.
 func OverrideValues(j *Job, c *Config) (Values, error) {
 	merged := Values{}
@@ -110,20 +69,20 @@ func merge(j *Job, merged map[string]interface{}) (map[string]interface{}, error
 		return merged, nil
 	}
 
-	curr, err := Deserialize([]byte(j.Config.RawValue))
+	vals, err := Deserialize([]byte(j.Config.RawValue))
 	if err != nil {
 		return merged, fmt.Errorf("Failed to deserialize values during merge: %s, Err: %v", j.Config.RawValue, err)
 	}
 
-	for k, v := range curr {
-		if currVal, ok := merged[k]; ok {
+	for k, v := range vals {
+		if lookup, ok := merged[k]; ok {
 
 			// If the lookup is nil, remove the key.
 			// This allows us to remove keys during overrides if they no longer exist.
 			// I.e., someone broke compatibility in a future template.
-			if currVal == nil {
+			if lookup == nil {
 				delete(merged, k)
-			} else if sink, ok := currVal.(map[string]interface{}); ok {
+			} else if sink, ok := lookup.(map[string]interface{}); ok {
 				source, ok := v.(map[string]interface{})
 				if !ok {
 					log.Printf("Skip merging: %s. Not a map", k)
