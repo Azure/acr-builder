@@ -4,7 +4,15 @@
 
 ## Building from source
 
-Run `make build`. Use `make help` to discover additional commands.
+Build using `make`:
+
+```bash
+$ make build
+
+go build -tags "" -ldflags "-w -X acb/version.GITCOMMIT=4fb5952-dirty -X acb/version.VERSION=v1.0.0" -o acb .
+```
+
+For additional commands, try `make help`.
 
 ## Requirements
 
@@ -13,7 +21,20 @@ Run `make build`. Use `make help` to discover additional commands.
 
 ## CLI
 
-`acb --help` can be used to see all available commands.
+```bash
+$ acb --help
+
+Usage:
+  acb [command]
+
+Available Commands:
+  build       Run a build
+  exec        Execute a pipeline
+  help        Help about any command
+  init        Initialize a default template
+  lint        Lint a template
+  version     Print version information
+```
 
 ## Building an image
 
@@ -21,12 +42,14 @@ See `acb build --help` for a list of all parameters.
 
 Pushing to a registry:
 
-`acb build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo "https://github.com/Azure/acr-builder.git"`
+```bash
+$ acb build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo "https://github.com/Azure/acr-builder.git"
+```
 
 ## Running a pipeline with a template
 
 See `acb exec --help` for a list of all parameters.
 
 ```bash
-acb exec --steps helloworld.toml --template-path templating/testdata/helloworld --id demo -r foo.azurecr.io -u foo -p foo --debug
+$ acb exec --steps helloworld.toml --template-path templating/testdata/helloworld --id demo -r foo.azurecr.io -u foo -p foo --debug
 ```

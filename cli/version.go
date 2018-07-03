@@ -13,14 +13,14 @@ import (
 
 const (
 	versionLongMessage = `
-Prints the version information
+Prints version information
 `
 )
 
 func newVersionCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
-		Short: "Print the version information",
+		Short: "Print version information",
 		Long:  versionLongMessage,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Printf(`Go version: %s
