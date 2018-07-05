@@ -114,5 +114,5 @@ func normalizeWorkDir(workDir string) string {
 		return path.Clean(workDir)
 	}
 
-	return path.Clean(path.Join("/workspace", workDir))
+	return path.Clean(path.Join(containerWorkspaceDir, workDir))
 }

@@ -4,6 +4,7 @@
 package volume
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
@@ -32,13 +33,19 @@ func NewVolume(name string, c *cmder.Cmder) *Volume {
 }
 
 // Create creates a Docker volume representing the Volume.
-func (v *Volume) Create(ctx context.Context) error {
+func (v *Volume) Create(ctx context.Context) (string, error) {
+	var buf bytes.Buffer
 	cmd := []string{"docker", "volume", "create", "--name", v.Name}
-	return v.cmder.Run(ctx, cmd, nil, nil, nil, "")
+	err := v.cmder.Run(ctx, cmd, nil, &buf, &buf, "")
+
+	return buf.String(), err
 }
 
 // Delete deletes the associated Docker volume.
-func (v *Volume) Delete(ctx context.Context) error {
+func (v *Volume) Delete(ctx context.Context) (string, error) {
+	var buf bytes.Buffer
 	cmd := []string{"docker", "volume", "rm", v.Name}
-	return v.cmder.Run(ctx, cmd, nil, nil, nil, "")
+	err := v.cmder.Run(ctx, cmd, nil, nil, nil, "")
+
+	return buf.String(), err
 }

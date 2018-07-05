@@ -25,7 +25,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_DOWNLOAD_URL); \
 	[Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine); \
 	\
 	Write-Host 'Verifying install ...'; \
-	Write-Host '  git --version'; git --version; \
+	Write-Host 'git --version'; git --version; \
 	\
 	Write-Host 'Complete.';
 
@@ -68,14 +68,10 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 
 # Build the docker executable
 FROM environment as dockercli
-ARG DOCKER_CLI_LKG_COMMIT=4cb3c70f36baeade76879694a587358be2a74854
+ARG DOCKER_CLI_LKG_COMMIT=c98c4080a323fb0e4fdf7429d8af4e2e946d09b5
 WORKDIR \\gopath\\src\\github.com\\docker\\cli
 RUN git clone https://github.com/docker/cli.git \gopath\src\github.com\docker\cli; \
     git checkout $DOCKER_CLI_LKG_COMMIT; \
-    go get github.com/LK4D4/vndr; \
-    # apply the patch for named pipes to work.
-    vndr github.com/Microsoft/go-winio 3f914f36b87e3f60c9a4c6404ab0fb9c42f08fc3 https://github.com/AzureCR/go-winio.git; \
-    go generate github.com\docker\cli\vendor\github.com\Microsoft\go-winio; \
     scripts\\make.ps1 -Binary -ForceBuildAll
 
 # Build the acr-builder
@@ -83,15 +79,18 @@ FROM environment as builder
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
-RUN Write-Host ('Running build' ); \
-    go build; \
-	Write-Host ('Running unit tests'); \
-	$packageList=$packageList | Select-String -NotMatch "/vendor/" | Select-String -NotMatch "/tests/"; \
-	go test -cover $packageList
+RUN Write-Host ('Running build'); \
+    go build;
+	# Write-Host ('Running unit tests'); \
+	# $packageList=$packageList | Select-String -NotMatch "/vendor/" | Select-String -NotMatch "/tests/"; \
+	# go test -cover $packageList
 
 # setup the runtime environment
 FROM environment as runtime
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
 COPY --from=builder /gopath/src/github.com/Azure/acr-builder/acr-builder.exe c:/acr-builder/acr-builder.exe
-ENTRYPOINT ["acr-builder.exe"]
-CMD []
+
+RUN setx /M PATH $('c:\acr-builder;c:\docker;{0}' -f $env:PATH);
+
+ENTRYPOINT [ "acr-builder.exe" ]
+CMD [ "--help" ]
