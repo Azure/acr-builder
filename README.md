@@ -37,7 +37,7 @@ Run the following on your project directory to build the project and push to a d
 * `--build-env` Custom environment variables defined for the build process. This parameter can be specified multiple times. (For more details, see `Build Environment`).
 * `--push` Specify if push is required if build is successful.
 * `--pull` Attempt to pull a newer version of the base images if it's already cached locally.
-* `--hyperv-isolation` Build using Hyper-V hypervisor partition based isolation. This is used for Windows container builds.
+* `--isolation` Specify isolation technology for container. Supported values are default,process and hyperv. This is used for Windows container builds.
 * `--no-cache` Not using any cached layer when building the image.
 * `--verbose` Enable verbose output for debugging.
 
