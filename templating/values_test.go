@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	curiePath = "testdata/curie"
+	curiePath     = "testdata/curie/curie.toml"
+	curieValsPath = "testdata/curie/values.toml"
 
 	eCurieFirst    = "Marie"
 	eCurieLast     = "Curie"
@@ -68,12 +69,17 @@ someString = "something"
 
 // TestOverrideValues ensures that values.toml overrides the default data successfully.
 func TestOverrideValues(t *testing.T) {
-	j, err := LoadJobFromDir(curiePath)
+	c1, err := LoadConfig(curiePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	vals, err := OverrideValues(j, j.Config)
+	c2, err := LoadConfig(curieValsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	vals, err := OverrideValues(c1, c2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,10 +103,16 @@ func TestOverrideValues(t *testing.T) {
 // TestOverrideValuesWithBuildInfo tests that a job gets overridden with base properties
 // and maintains its original values.
 func TestOverrideValuesWithBuildInfo(t *testing.T) {
-	j, err := LoadJobFromDir(curiePath)
+	c1, err := LoadConfig(curiePath)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	c2, err := LoadConfig(curieValsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	expectedID := "SomeID"
 	expectedCommit := "Some Commit"
 	expectedTag := "some Tag"
@@ -116,7 +128,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		Branch:      expectedBranch,
 		TriggeredBy: expectedTrigger,
 	}
-	vals, err := OverrideValuesWithBuildInfo(j, j.Config, options)
+	vals, err := OverrideValuesWithBuildInfo(c1, c2, options)
 	if err != nil {
 		t.Fatal(err)
 	}

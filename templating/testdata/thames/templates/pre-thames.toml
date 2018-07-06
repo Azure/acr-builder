@@ -1,9 +1,0 @@
-apiName = "v1"
-
-[metadata]
-  buildId = "{{.Build.ID}}"
-  commit = "{{.Build.Commit}}"
-  tag = "{{.Build.Tag}}"
-  repository = "{{.Build.Repository}}"
-  branch = "{{.Build.Branch}}"
-  triggeredBy = "{{.Build.TriggeredBy}}"

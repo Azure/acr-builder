@@ -10,24 +10,25 @@ import (
 // TestRenderAllTemplates tests rendering all templates for a job.
 func TestRenderAllTemplates(t *testing.T) {
 	jobName := "job1"
-	j := makeTestJob(jobName)
-	c := makeTestConfig()
+	j := makeTestTemplate(jobName)
+	c1 := makeDefaultTestConfig()
+	c2 := makeTestConfig()
 	expectedMsg := "FRUITJOB - this is a fruit job"
 
 	engine := New()
 
-	v, err := OverrideValues(j, c)
+	v, err := OverrideValues(c1, c2)
 	if err != nil {
 		t.Fatalf("Failed to override values: %v", err)
 	}
 
-	rendered, err := engine.RenderAllTemplates(j, v)
+	rendered, err := engine.Render(j, v)
 	if err != nil {
 		t.Errorf("Failed to render. Err: %v", err)
 	}
 
-	if rendered["templates/template1"] != expectedMsg {
-		t.Errorf("Expected %s, but got %s", expectedMsg, rendered["templates/template1"])
+	if rendered[jobName] != expectedMsg {
+		t.Errorf("Expected %s, but got %s", expectedMsg, rendered[jobName])
 	}
 }
 
@@ -35,85 +36,56 @@ func TestRenderAllTemplates(t *testing.T) {
 func TestRenderMath(t *testing.T) {
 	expectedMsg := "15,-5,50"
 	engine := New()
-	j := &Job{
-		Templates: []*Template{
-			{Name: "templates/math", Data: []byte("{{.foo | add .bar}}, {{- .bar | sub .foo }}, {{- .foo | mul .bar}}")},
-		},
-		Config: &Config{
-			RawValue: `
+	templateName := "math"
+	template := &Template{
+		Name: templateName,
+		Data: []byte("{{.foo | add .bar}}, {{- .bar | sub .foo }}, {{- .foo | mul .bar}}"),
+	}
+
+	c1 := &Config{
+		RawValue: `
 foo = 5
 bar = 10
 `,
-		},
 	}
+	c2 := &Config{}
 
-	c := &Config{}
-
-	v, err := OverrideValues(j, c)
+	v, err := OverrideValues(c1, c2)
 	if err != nil {
 		t.Fatalf("Failed to override values: %v", err)
 	}
 
-	rendered, err := engine.RenderAllTemplates(j, v)
+	rendered, err := engine.Render(template, v)
 	if err != nil {
 		t.Errorf("Failed to render. Err: %v", err)
 	}
 
-	if rendered["templates/math"] != expectedMsg {
-		t.Errorf("Expected %s, but got %s", expectedMsg, rendered["templates/math"])
+	if rendered[templateName] != expectedMsg {
+		t.Errorf("Expected %s, but got %s", expectedMsg, rendered[templateName])
 	}
 }
 
-// TestRender_IgnoredTemplate ensures that an ignored template renders as an empty string.
-func TestRender_IgnoredTemplate(t *testing.T) {
-	jobName := "job1"
-	j := makeTestJob(jobName)
-	c := makeTestConfig()
-
-	expectedMsg := ""
-
-	engine := New()
-
-	v, err := OverrideValues(j, c)
-	if err != nil {
-		t.Fatalf("Failed to override values: %v", err)
-	}
-
-	// NB: an empty keep set should result in all templates being ignored.
-	keep := make(map[string]bool)
-	rendered, err := engine.Render(j, v, keep)
-	if err != nil {
-		t.Errorf("Failed to render. Err: %v", err)
-	}
-
-	if rendered["templates/template1"] != expectedMsg {
-		t.Errorf("Expected %s, but got %s", expectedMsg, rendered["templates/template1"])
+func makeTestTemplate(name string) *Template {
+	return &Template{
+		Name: name,
+		Data: []byte("{{ .jobName | upper }} - {{ .description | lower }}"),
 	}
 }
 
-func makeTestJob(jobName string) *Job {
-
-	j := &Job{
-		Templates: []*Template{
-			{Name: "templates/template1", Data: []byte("{{ .jobName | upper }} - {{ .description | lower }}")},
-		},
-		Config: &Config{
-			RawValue: `
-jobName = "fruitjob"
-description = "this should get overridden"
+func makeDefaultTestConfig() *Config {
+	return &Config{
+		RawValue: `
+description = "this will be overridden"
+jobName = "this will be overridden"
 `,
-		},
 	}
-
-	return j
 }
 
 func makeTestConfig() *Config {
-	c := &Config{
+	return &Config{
 		RawValue: `
 description = "THIS IS a FRuiT JoB"
+jobName = "FRUITJOB"
 `,
 	}
-
-	return c
 }

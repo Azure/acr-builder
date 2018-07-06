@@ -25,16 +25,16 @@ This command can be used to execute a pipeline.
 `
 
 type execCmd struct {
-	out       io.Writer
-	dryRun    bool
-	stepsFile string
+	out    io.Writer
+	dryRun bool
 
 	registry         string
 	registryUserName string
 	registryPassword string
 
 	// Build-time parameters for rendering
-	templatePath     string
+	stepsFile        string
+	valuesFile       string
 	templateValues   []string
 	buildID          string
 	buildCommit      string
@@ -58,7 +58,9 @@ func newExecCmd(out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 
-	f.StringVar(&e.stepsFile, "steps", "", "the steps file to use when building")
+	f.StringVar(&e.valuesFile, "values", "", "the values file to use")
+	f.StringVar(&e.stepsFile, "steps", "", "the steps file to use")
+	f.StringArrayVar(&e.templateValues, "set", []string{}, "set values on the command line (use `--set` multiple times or use commas: key1=val1,key2=val2)")
 
 	f.StringVarP(&e.registry, "registry", "r", "", "the name of the registry")
 	f.StringVarP(&e.registryUserName, "username", "u", "", "the username to use when logging into the registry")
@@ -72,8 +74,7 @@ func newExecCmd(out io.Writer) *cobra.Command {
 	f.StringVar(&e.buildRepository, "repository", "", "the build repository")
 	f.StringVarP(&e.buildBranch, "branch", "b", "", "the build branch")
 	f.StringVar(&e.buildTriggeredBy, "triggered-by", "", "what the build was triggered by")
-	f.StringVar(&e.templatePath, "template-path", "", "the path to the job to render")
-	f.StringArrayVar(&e.templateValues, "set", []string{}, "set values on the command line (use `--set` multiple times or use commas: key1=val1,key2=val2)")
+
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the pipeline but doesn't execute it")
 
 	return cmd
@@ -84,14 +85,15 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 
 	ctx := context.Background()
 
-	if e.templatePath == "" {
-		return errors.New("template path is required")
+	template, err := templating.LoadTemplate(e.stepsFile)
+	if err != nil {
+		return fmt.Errorf("failed to load template at path %s. Err: %v", e.stepsFile, err)
+	}
+	config, err := templating.LoadConfig(e.valuesFile)
+	if err != nil {
+		return fmt.Errorf("failed to load values file at path %s. Err: %v", e.valuesFile, err)
 	}
 
-	job, err := templating.LoadJob(e.templatePath)
-	if err != nil {
-		return fmt.Errorf("Failed to load job at path %s. Err: %v", e.templatePath, err)
-	}
 	engine := templating.New()
 
 	bo := templating.BaseRenderOptions{
@@ -109,31 +111,27 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	config := &templating.Config{RawValue: rawVals, Values: map[string]*templating.Value{}}
-	vals, err := templating.OverrideValuesWithBuildInfo(job, config, bo)
+	setConfig := &templating.Config{RawValue: rawVals, Values: map[string]*templating.Value{}}
+	vals, err := templating.OverrideValuesWithBuildInfo(config, setConfig, bo)
 	if err != nil {
 		return fmt.Errorf("Failed to override values: %v", err)
 	}
 
-	expectedTmplName := fmt.Sprintf("templates/%s", e.stepsFile)
-
-	keep := map[string]bool{expectedTmplName: true}
-
-	rendered, err := engine.Render(job, vals, keep)
+	rendered, err := engine.Render(template, vals)
 	if err != nil {
 		return fmt.Errorf("Error while rendering templates: %v", err)
 	}
 
-	if rendered[expectedTmplName] == "" {
+	if rendered[e.stepsFile] == "" {
 		return errors.New("rendered template was empty")
 	}
 
 	if debug {
 		fmt.Println("Rendered template:")
-		fmt.Println(rendered[expectedTmplName])
+		fmt.Println(rendered[e.stepsFile])
 	}
 
-	p, err := graph.UnmarshalPipelineFromString(rendered[expectedTmplName])
+	p, err := graph.UnmarshalPipelineFromString(rendered[e.stepsFile])
 	if err != nil {
 		return err
 	}
@@ -176,10 +174,6 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 
 func combineVals(values []string) (string, error) {
 	ret := templating.Values{}
-
-	// TODO: support passing in multiple value files?
-
-	// User specified a value via --set
 	for _, v := range values {
 		s := strings.Split(v, "=")
 		if len(s) != 2 {
