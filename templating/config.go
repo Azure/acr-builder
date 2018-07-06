@@ -25,6 +25,11 @@ func (c *Config) GetValues() map[string]*Value {
 	return c.Values
 }
 
+// IsValidConfig determines whether or not the Config is valid.
+func (c *Config) IsValidConfig() bool {
+	return c != nil && c.RawValue != ""
+}
+
 // Value represents a configuration value.
 type Value struct {
 	Value string `json:"value,omitempty"`

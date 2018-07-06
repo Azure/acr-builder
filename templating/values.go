@@ -44,16 +44,16 @@ func DeserializeFromFile(fileName string) (Values, error) {
 }
 
 // OverrideValues overrides the Values of a job.
-func OverrideValues(j *Job, c *Config) (Values, error) {
+func OverrideValues(c1 *Config, c2 *Config) (Values, error) {
 	merged := Values{}
 
-	if c != nil {
-		v, err := Deserialize([]byte(c.RawValue))
+	if c2 != nil {
+		v, err := Deserialize([]byte(c2.RawValue))
 		if err != nil {
 			return merged, err
 		}
 
-		merged, err = merge(j, v)
+		merged, err = merge(c1, v)
 		if err != nil {
 			return merged, err
 		}
@@ -62,16 +62,16 @@ func OverrideValues(j *Job, c *Config) (Values, error) {
 	return merged, nil
 }
 
-// merge merges the specified job with the specified map.
-// The specified map has precendence over the job.
-func merge(j *Job, merged map[string]interface{}) (map[string]interface{}, error) {
-	if !j.HasValidConfig() {
+// merge merges the specified template with the specified map.
+// The specified map has precendence.
+func merge(c *Config, merged map[string]interface{}) (map[string]interface{}, error) {
+	if !c.IsValidConfig() {
 		return merged, nil
 	}
 
-	vals, err := Deserialize([]byte(j.Config.RawValue))
+	vals, err := Deserialize([]byte(c.RawValue))
 	if err != nil {
-		return merged, fmt.Errorf("Failed to deserialize values during merge: %s, Err: %v", j.Config.RawValue, err)
+		return merged, fmt.Errorf("Failed to deserialize values during merge: %s, Err: %v", c.RawValue, err)
 	}
 
 	for k, v := range vals {

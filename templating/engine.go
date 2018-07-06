@@ -34,15 +34,10 @@ func FuncMap() template.FuncMap {
 	return sprig.TxtFuncMap()
 }
 
-// RenderAllTemplates renders all of a job's templates with the specified default values.
-func (e *Engine) RenderAllTemplates(job *Job, values Values) (map[string]string, error) {
-	return e.Render(job, values, nil)
-}
-
-// Render renders a job's templates, skipping any of those not specified in keep.
-func (e *Engine) Render(job *Job, values Values, keep map[string]bool) (map[string]string, error) {
-	if job == nil {
-		return nil, errors.New("job is required")
+// Render renders a template.
+func (e *Engine) Render(t *Template, values Values) (map[string]string, error) {
+	if t == nil {
+		return nil, errors.New("template is required")
 	}
 
 	if values == nil {
@@ -50,17 +45,9 @@ func (e *Engine) Render(job *Job, values Values, keep map[string]bool) (map[stri
 	}
 
 	templates := map[string]renderableTemplate{}
-
-	for _, t := range job.Templates {
-		// If keep is nil, keep everything
-		if keep == nil || keep[t.Name] {
-			templates[t.Name] = renderableTemplate{
-				template: string(t.Data),
-				values:   values,
-			}
-		} else {
-			fmt.Printf("Skipped rendering for %s\n", t.Name)
-		}
+	templates[t.Name] = renderableTemplate{
+		template: string(t.Data),
+		values:   values,
 	}
 
 	return e.render(templates)

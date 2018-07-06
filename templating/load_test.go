@@ -4,51 +4,61 @@
 package templating
 
 import (
+	"io/ioutil"
 	"testing"
 )
 
 const (
-	thamesPath = "testdata/thames"
+	thamesValuesPath = "testdata/thames/values.toml"
+	thamesPath       = "testdata/thames/thames.toml"
 )
 
-// TestLoadJobFromDir tests loading a Job from a directory with templates
-func TestLoadJobFromDir(t *testing.T) {
-	j, err := LoadJob(thamesPath)
+// TestLoadConfig tests loading a Config.
+func TestLoadConfig(t *testing.T) {
+	c, err := LoadConfig(thamesValuesPath)
 	if err != nil {
-		t.Fatalf("Failed to load job at path %s. Err: %v", thamesPath, err)
-	}
-	if j == nil {
-		t.Fatalf("Job at path %s was nil.", thamesPath)
+		t.Fatalf("failed to load config from path %s. Err: %v", thamesValuesPath, err)
 	}
 
-	if j.Config == nil {
-		t.Fatalf("Job config is nil")
+	if c == nil {
+		t.Fatalf("resulting config at path %s was nil", thamesValuesPath)
 	}
 
-	expectedNumTmpls := 2
-	expectedTemplateNames := map[string]bool{"templates/pre-thames.toml": true, "templates/thames.toml": true}
-
-	// Verify templates
-	if len(j.Templates) != expectedNumTmpls {
-		t.Errorf("Expected %d templates but got %d", expectedNumTmpls, len(j.Templates))
+	data, err := ioutil.ReadFile(thamesValuesPath)
+	if err != nil {
+		t.Fatalf("failed to read file %s. Err: %v", thamesValuesPath, err)
 	}
 
-	for _, v := range j.Templates {
-		if ok := expectedTemplateNames[v.Name]; !ok {
-			t.Errorf("%s was not an expected template", v.Name)
-		}
+	expected := string(data)
+	if expected != c.GetRawValue() {
+		t.Fatalf("expected %s but got %s", expected, c.GetRawValue())
 	}
-
 }
 
-// TestIsValidJobDir_Valid ensures that a valid job directory is marked as such.
-func TestIsValidJobDir_Valid(t *testing.T) {
-	j, err := IsValidJobDir(thamesPath)
+// TestLoadTemplate tests loading a Template.
+func TestLoadTemplate(t *testing.T) {
+	template, err := LoadTemplate(thamesPath)
 	if err != nil {
-		t.Fatalf("Unexpected error during job dir validation: %v", err)
+		t.Fatalf("failed to load config from path %s. Err: %v", thamesPath, err)
 	}
 
-	if !j {
-		t.Fatalf("Expected %s to be a valid job dir", thamesPath)
+	if template == nil {
+		t.Fatalf("resulting template at path %s was nil", thamesPath)
+	}
+
+	data, err := ioutil.ReadFile(thamesPath)
+	if err != nil {
+		t.Fatalf("failed to read file %s. Err: %v", thamesPath, err)
+	}
+
+	expectedData := string(data)
+	actualData := string(template.GetData())
+	if expectedData != actualData {
+		t.Fatalf("expected %s as the data but got %s", expectedData, actualData)
+	}
+
+	expectedName := thamesPath
+	if expectedName != template.GetName() {
+		t.Fatalf("expected %s as the template's name but got %s", expectedName, template.GetName())
 	}
 }

@@ -21,8 +21,8 @@ type BaseRenderOptions struct {
 	Registry string
 }
 
-// OverrideValuesWithBuildInfo overrides the specified job's values and provides a default set of values.
-func OverrideValuesWithBuildInfo(j *Job, c *Config, options BaseRenderOptions) (Values, error) {
+// OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
+func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, options BaseRenderOptions) (Values, error) {
 	base := map[string]interface{}{
 		"Build": map[string]interface{}{
 			"ID":          options.ID,
@@ -35,7 +35,7 @@ func OverrideValuesWithBuildInfo(j *Job, c *Config, options BaseRenderOptions) (
 		},
 	}
 
-	vals, err := OverrideValues(j, c)
+	vals, err := OverrideValues(c1, c2)
 	if err != nil {
 		return base, err
 	}
