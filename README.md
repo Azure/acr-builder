@@ -51,5 +51,5 @@ $ acb build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo 
 See `acb exec --help` for a list of all parameters.
 
 ```bash
-$ acb exec --steps helloworld.toml --template-path templating/testdata/helloworld --id demo -r foo.azurecr.io -u foo -p foo --debug
+$ ./acb exec --steps templating/testdata/helloworld/git-build.toml --values templating/testdata/helloworld/values.toml --id ericdemo --debug -r foo.azurecr.io -u username -p pw
 ```
