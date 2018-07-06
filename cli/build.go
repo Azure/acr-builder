@@ -132,12 +132,12 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	homeVolName := fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
 	fmt.Printf("Setting up the home volume: %s...\n", homeVolName)
 	v := volume.NewVolume(homeVolName, cmder)
-	if err := v.Create(ctx); err != nil {
-		return fmt.Errorf("Err creating docker vol: %v", err)
+	if msg, err := v.Create(ctx); err != nil {
+		return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
 	}
 	defer func() {
-		if err := v.Delete(ctx); err != nil {
-			fmt.Printf("Failed to clean up docker vol: %s. Err: %v\n", homeVolName, err)
+		if msg, err := v.Delete(ctx); err != nil {
+			fmt.Printf("Failed to clean up docker vol: %s. Msg: %s, Err: %v\n", homeVolName, msg, err)
 		}
 	}()
 

@@ -17,10 +17,6 @@ import (
 
 const (
 	maxLoginRetries = 3
-	config          = `{
-	"experimental": "enabled",
-	"HttpHeaders": {"X-Meta-Source-Client": "ACR-BUILDER"}
-}`
 )
 
 // dockerLogin performs a docker login
@@ -67,32 +63,6 @@ func (b *Builder) dockerLoginWithRetries(ctx context.Context, attempt int) error
 		}
 
 		return errors.Wrap(err, "failed to login, ran out of retries")
-	}
-
-	return nil
-}
-
-// setupConfig initializes ~/.docker/config.json
-func (b *Builder) setupConfig(ctx context.Context) error {
-	args := []string{
-		"docker",
-		"run",
-		"--name", fmt.Sprintf("acb_init_config_%s", uuid.New()),
-		"--rm",
-
-		// Home
-		"--volume", homeVol + ":" + homeWorkDir,
-		"--env", "HOME=" + homeWorkDir,
-
-		"--volume", util.GetDockerSock(),
-		"--entrypoint", "bash",
-		"ubuntu",
-		"-c", "mkdir -p ~/.docker && cat << EOF > ~/.docker/config.json\n" + config + "\nEOF",
-	}
-
-	var buf bytes.Buffer
-	if err := b.cmder.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to setup config: %s", buf.String()))
 	}
 
 	return nil
