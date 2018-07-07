@@ -32,7 +32,7 @@ Available Commands:
   exec        Execute a pipeline
   help        Help about any command
   init        Initialize a default template
-  lint        Lint a template
+  render      Render a template
   version     Print version information
 ```
 

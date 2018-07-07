@@ -28,25 +28,16 @@ type execCmd struct {
 	out    io.Writer
 	dryRun bool
 
-	registry         string
 	registryUserName string
 	registryPassword string
 
-	// Build-time parameters for rendering
-	stepsFile        string
-	valuesFile       string
-	templateValues   []string
-	buildID          string
-	buildCommit      string
-	buildTag         string
-	buildRepository  string
-	buildBranch      string
-	buildTriggeredBy string
+	opts *templating.BaseRenderOptions
 }
 
 func newExecCmd(out io.Writer) *cobra.Command {
 	e := &execCmd{
-		out: out,
+		out:  out,
+		opts: &templating.BaseRenderOptions{},
 	}
 
 	cmd := &cobra.Command{
@@ -58,80 +49,29 @@ func newExecCmd(out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 
-	f.StringVar(&e.valuesFile, "values", "", "the values file to use")
-	f.StringVar(&e.stepsFile, "steps", "", "the steps file to use")
-	f.StringArrayVar(&e.templateValues, "set", []string{}, "set values on the command line (use `--set` multiple times or use commas: key1=val1,key2=val2)")
-
-	f.StringVarP(&e.registry, "registry", "r", "", "the name of the registry")
 	f.StringVarP(&e.registryUserName, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&e.registryPassword, "password", "p", "", "the password to use when logging into the registry")
-
-	// TODO: better names and shorthand
-	// Rendering parameters
-	f.StringVar(&e.buildID, "id", "", "the build ID")
-	f.StringVarP(&e.buildCommit, "commit", "c", "", "the commit SHA")
-	f.StringVarP(&e.buildTag, "tag", "t", "", "the build tag")
-	f.StringVar(&e.buildRepository, "repository", "", "the build repository")
-	f.StringVarP(&e.buildBranch, "branch", "b", "", "the build branch")
-	f.StringVar(&e.buildTriggeredBy, "triggered-by", "", "what the build was triggered by")
-
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the pipeline but doesn't execute it")
 
+	AddBaseRenderingOptions(f, e.opts, cmd)
 	return cmd
 }
 
 func (e *execCmd) run(cmd *cobra.Command, args []string) error {
-	cmder := cmder.NewCmder(e.dryRun)
-
-	ctx := context.Background()
-
-	template, err := templating.LoadTemplate(e.stepsFile)
-	if err != nil {
-		return fmt.Errorf("failed to load template at path %s. Err: %v", e.stepsFile, err)
-	}
-	config, err := templating.LoadConfig(e.valuesFile)
-	if err != nil {
-		return fmt.Errorf("failed to load values file at path %s. Err: %v", e.valuesFile, err)
-	}
-
-	engine := templating.New()
-
-	bo := templating.BaseRenderOptions{
-		ID:          e.buildID,
-		Commit:      e.buildCommit,
-		Tag:         e.buildTag,
-		Repository:  e.buildRepository,
-		Branch:      e.buildBranch,
-		TriggeredBy: e.buildTriggeredBy,
-		Registry:    e.registry,
-	}
-
-	rawVals, err := combineVals(e.templateValues)
+	template, err := templating.LoadAndRenderSteps(e.opts)
 	if err != nil {
 		return err
 	}
-
-	setConfig := &templating.Config{RawValue: rawVals, Values: map[string]*templating.Value{}}
-	vals, err := templating.OverrideValuesWithBuildInfo(config, setConfig, bo)
-	if err != nil {
-		return fmt.Errorf("Failed to override values: %v", err)
-	}
-
-	rendered, err := engine.Render(template, vals)
-	if err != nil {
-		return fmt.Errorf("Error while rendering templates: %v", err)
-	}
-
-	if rendered[e.stepsFile] == "" {
-		return errors.New("rendered template was empty")
+	if template == "" {
+		return errors.New("rendered pipeline was empty")
 	}
 
 	if debug {
 		fmt.Println("Rendered template:")
-		fmt.Println(rendered[e.stepsFile])
+		fmt.Println(template)
 	}
 
-	p, err := graph.UnmarshalPipelineFromString(rendered[e.stepsFile])
+	p, err := graph.UnmarshalPipelineFromString(template)
 	if err != nil {
 		return err
 	}
@@ -140,6 +80,8 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	cmder := cmder.NewCmder(e.dryRun)
 
 	timeout := time.Duration(p.TotalTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -160,7 +102,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	buildOptions := &builder.BuildOptions{
-		RegistryName:     e.registry,
+		RegistryName:     e.opts.Registry,
 		RegistryUsername: e.registryUserName,
 		RegistryPassword: e.registryPassword,
 		Push:             len(p.Push) > 0,

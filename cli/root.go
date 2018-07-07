@@ -44,7 +44,7 @@ func newRootCmd(args []string) *cobra.Command {
 		newVersionCmd(out),
 		newExecCmd(out),
 		newBuildCmd(out),
-		newLintCmd(out),
+		newRenderCmd(out),
 		newInitCmd(out),
 	)
 
