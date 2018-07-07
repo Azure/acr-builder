@@ -15,7 +15,7 @@ func TestRenderAllTemplates(t *testing.T) {
 	c2 := makeTestConfig()
 	expectedMsg := "FRUITJOB - this is a fruit job"
 
-	engine := New()
+	engine := NewEngine()
 
 	v, err := OverrideValues(c1, c2)
 	if err != nil {
@@ -35,7 +35,7 @@ func TestRenderAllTemplates(t *testing.T) {
 // TestRenderMath verifies that the engine can render math sprig funcs.
 func TestRenderMath(t *testing.T) {
 	expectedMsg := "15,-5,50"
-	engine := New()
+	engine := NewEngine()
 	templateName := "math"
 	template := &Template{
 		Name: templateName,

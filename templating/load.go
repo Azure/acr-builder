@@ -15,7 +15,7 @@ import (
 func LoadConfig(path string) (*Config, error) {
 	data, err := readFile(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to load values file at path %s", path)
 	}
 
 	return &Config{RawValue: string(data)}, nil
@@ -25,7 +25,7 @@ func LoadConfig(path string) (*Config, error) {
 func LoadTemplate(path string) (*Template, error) {
 	data, err := readFile(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to load template at path %s", path)
 	}
 
 	return &Template{Name: path, Data: data}, nil
