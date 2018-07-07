@@ -156,7 +156,7 @@ clean: ## Cleanup any build binaries or packages
 .PHONY: vendor
 vendor: ## Runs `dep ensure`
 	@echo "+ $@"
-	@dep "ensure"
+	@dep ensure
 
 .PHONY: help
 help: ## Prints this help menu
