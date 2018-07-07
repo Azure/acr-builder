@@ -80,17 +80,16 @@ COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/dock
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
 RUN Write-Host ('Running build'); \
-    go build;
-	# Write-Host ('Running unit tests'); \
-	# $packageList=$packageList | Select-String -NotMatch "/vendor/" | Select-String -NotMatch "/tests/"; \
-	# go test -cover $packageList
+    go build -o acb.exe; \
+	Write-Host ('Running unit tests'); \
+	go test ./...
 
 # setup the runtime environment
 FROM environment as runtime
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
-COPY --from=builder /gopath/src/github.com/Azure/acr-builder/acr-builder.exe c:/acr-builder/acr-builder.exe
+COPY --from=builder /gopath/src/github.com/Azure/acr-builder/acb.exe c:/acr-builder/acb.exe
 
 RUN setx /M PATH $('c:\acr-builder;c:\docker;{0}' -f $env:PATH);
 
-ENTRYPOINT [ "acr-builder.exe" ]
+ENTRYPOINT [ "acb.exe" ]
 CMD [ "--help" ]
