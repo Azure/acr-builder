@@ -6,6 +6,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"os"
 
 	"fmt"
 	"io"
@@ -18,7 +19,7 @@ import (
 )
 
 const scanLongDesc = `
-This command can be used to scan a Dockerifle.
+This command can be used to scan a Dockerfile.
 `
 
 type scanCmd struct {
@@ -29,6 +30,7 @@ type scanCmd struct {
 	buildArgs         []string
 	timeout           int
 	destinationFolder string
+	cleanup           bool
 }
 
 func newScanCmd(out io.Writer) *cobra.Command {
@@ -57,6 +59,7 @@ func newScanCmd(out io.Writer) *cobra.Command {
 	f.StringArrayVar(&s.buildArgs, "build-arg", []string{}, "set build time arguments")
 	f.IntVar(&s.timeout, "timeout", 60, "maximum execution time (in seconds)")
 	f.StringVar(&s.destinationFolder, "destination", "temp", "the destination folder to save context")
+	f.BoolVar(&s.cleanup, "cleanup", false, "delete the destination folder after running")
 	return cmd
 }
 
@@ -65,6 +68,12 @@ func (s *scanCmd) run(cmd *cobra.Command, args []string) error {
 	timeout := time.Duration(s.timeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+
+	if s.cleanup {
+		defer func() {
+			_ = os.RemoveAll(s.destinationFolder)
+		}()
+	}
 
 	cmder := cmder.NewCmder(false)
 
