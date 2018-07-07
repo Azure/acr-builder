@@ -14,6 +14,42 @@ BUILDDIR := ${PREFIX}/cross
 
 # Populate version variables and add them to compile time flags
 VERSION := $(shell cat VERSION)
+GITCOMMIT := $(shell git rev-parse --short HEAD)
+GITUNTRACKEDCHANGES := $(shell git status --porcelain --untracked-files=no)
+ifneq ($(GITUNTRACKEDCHANGES),)
+	GITCOMMIT := $(GITCOMMIT)-dirty
+endif
+CTIMEVAR=-X $(PKG)/version.GITCOMMIT=$(GITCOMMIT) -X $(PKG)/version.VERSION=$(VERSION)
+GO_LDFLAGS=-ldflags "-w $(CTIMEVAR)"
+GO_LDFLAGS_STATIC=-ldflags "-w $(CTIMEVAR) -extldflags -static"
+
+ifneq "$(strip $(shell command -v go 2>/dev/null))" ""
+	GOOS ?= $(shell go env GOOS)
+	GOARCH ?= $(shell go env GOARCH)
+else
+	ifeq ($(GOOS),)
+		ifeq ($(OS),Windows_NT)
+			GOOS = windows
+		else
+			UNAME_S := $(shell uname -s)
+			ifeq ($(UNAME_S),Linux)
+				GOOS = linux
+			endif
+			ifeq ($(UNAME_S),Darwin)
+				GOOS = darwin
+			endif
+			ifeq ($(UNAME_S),FreeBSD)
+				GOOS = freebsd
+			endif
+		endif
+	else
+		GOOS ?= $$GOOS
+		GOARCH ?= $$GOARCH
+	endif
+endif
+
+# Try to include OS specific Makefiles, without any warnings/errors if they don't exist.
+-include Makefile.$(GOOS)
 
 # List the GOOS and GOARCH to build
 GOOSARCHES = linux/amd64
@@ -26,8 +62,8 @@ cbuild: clean build ## Runs a clean and a build
 build: $(NAME) ## Builds a dynamic executable or package
 
 $(NAME): *.go VERSION
-	@echo "+ $@"
-	go build -tags "$(BUILDTAGS)" ${GO_LDFLAGS} -o $(NAME) .
+	@echo "+ $@${BINARY_SUFFIX}"
+	go build -tags "$(BUILDTAGS)" ${GO_LDFLAGS} -o $(NAME)${BINARY_SUFFIX} .
 
 .PHONY: static
 static: ## Builds a static executable
@@ -117,6 +153,11 @@ clean: ## Cleanup any build binaries or packages
 	$(RM) $(NAME)
 	$(RM) -r $(BUILDDIR)
 
+.PHONY: vendor
+vendor: ## Runs `dep ensure`
+	@echo "+ $@"
+	@dep "ensure"
+
 .PHONY: help
-help: ## Prints the help menu
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+help: ## Prints this help menu
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST) | sort
