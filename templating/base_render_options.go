@@ -64,7 +64,7 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, options *BaseRenderOpti
 	return base, nil
 }
 
-// LoadAndRenderSteps loads a steps file and renders it according to an optional values file, --set values,
+// LoadAndRenderSteps loads a template file and renders it according to an optional values file, --set values,
 // and base render options.
 func LoadAndRenderSteps(opts *BaseRenderOptions) (string, error) {
 	template, err := LoadTemplate(opts.StepsFile)
@@ -94,7 +94,7 @@ func LoadAndRenderSteps(opts *BaseRenderOptions) (string, error) {
 		return "", fmt.Errorf("Failed to override values: %v", err)
 	}
 
-	engine := New()
+	engine := NewEngine()
 	rendered, err := engine.Render(template, mergedVals)
 	if err != nil {
 		return "", fmt.Errorf("Error while rendering templates: %v", err)

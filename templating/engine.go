@@ -21,8 +21,8 @@ type Engine struct {
 	StrictMode bool
 }
 
-// New creates a new engine.
-func New() *Engine {
+// NewEngine creates a new engine.
+func NewEngine() *Engine {
 	fm := FuncMap()
 	return &Engine{
 		FuncMap: fm,
