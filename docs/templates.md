@@ -27,6 +27,7 @@ The following variables can be accessed using `{{ .Build.VariableName }}`, where
 - Branch
 - TriggeredBy
 - Registry
+- GitTag
 
 ## Pipelines
 
