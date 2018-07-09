@@ -35,6 +35,7 @@ type buildCmd struct {
 	tags             []string
 	buildArgs        []string
 	secretBuildArgs  []string
+	labels           []string
 	registryUserName string
 	registryPassword string
 	pull             bool
@@ -75,6 +76,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringArrayVarP(&r.tags, "tag", "t", []string{}, "name and optionally a tag in the 'name:tag' format")
 	f.StringArrayVar(&r.buildArgs, "build-arg", []string{}, "set build time arguments")
 	f.StringArrayVar(&r.secretBuildArgs, "secret-build-arg", []string{}, "set secret build arguments")
+	f.StringArrayVar(&r.labels, "label", []string{}, "set metadata for an image")
 
 	f.StringVarP(&r.registryUserName, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&r.registryPassword, "password", "p", "", "the password to use when logging into the registry")
@@ -212,6 +214,10 @@ func (b *buildCmd) createRunCmd() string {
 
 	if b.network != "" {
 		args = append(args, fmt.Sprintf("--network=%s", b.network))
+	}
+
+	for _, label := range b.labels {
+		args = append(args, "--label", label)
 	}
 
 	if b.noCache {
