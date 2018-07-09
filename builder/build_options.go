@@ -9,6 +9,4 @@ type BuildOptions struct {
 	RegistryUsername string
 	RegistryPassword string
 	Push             bool
-	NoCache          bool
-	Pull             bool
 }

@@ -53,25 +53,30 @@ func newExecCmd(out io.Writer) *cobra.Command {
 	f.StringVarP(&e.registryPassword, "password", "p", "", "the password to use when logging into the registry")
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the pipeline but doesn't execute it")
 
-	AddBaseRenderingOptions(f, e.opts, cmd)
+	AddBaseRenderingOptions(f, e.opts, cmd, true)
 	return cmd
 }
 
 func (e *execCmd) run(cmd *cobra.Command, args []string) error {
-	template, err := templating.LoadAndRenderSteps(e.opts)
+	template, err := templating.LoadTemplate(e.opts.StepsFile)
 	if err != nil {
 		return err
 	}
-	if template == "" {
-		return errors.New("rendered pipeline was empty")
+
+	rendered, err := templating.LoadAndRenderSteps(template, e.opts)
+	if err != nil {
+		return err
+	}
+	if rendered == "" {
+		return errors.New("rendered template was empty")
 	}
 
 	if debug {
 		fmt.Println("Rendered template:")
-		fmt.Println(template)
+		fmt.Println(rendered)
 	}
 
-	p, err := graph.UnmarshalPipelineFromString(template)
+	p, err := graph.UnmarshalPipelineFromString(rendered)
 	if err != nil {
 		return err
 	}

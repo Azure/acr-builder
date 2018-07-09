@@ -14,6 +14,7 @@ import (
 	"github.com/Azure/acr-builder/builder"
 	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/volume"
 	"github.com/google/uuid"
 
@@ -34,7 +35,6 @@ type buildCmd struct {
 	tags             []string
 	buildArgs        []string
 	secretBuildArgs  []string
-	registry         string
 	registryUserName string
 	registryPassword string
 	pull             bool
@@ -43,11 +43,14 @@ type buildCmd struct {
 	isolation        string
 	oci              bool
 	dryRun           bool
+
+	opts *templating.BaseRenderOptions
 }
 
 func newBuildCmd(out io.Writer) *cobra.Command {
 	r := &buildCmd{
-		out: out,
+		out:  out,
+		opts: &templating.BaseRenderOptions{},
 	}
 
 	cmd := &cobra.Command{
@@ -72,7 +75,6 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringArrayVar(&r.buildArgs, "build-arg", []string{}, "set build time arguments")
 	f.StringArrayVar(&r.secretBuildArgs, "secret-build-arg", []string{}, "set secret build arguments")
 
-	f.StringVarP(&r.registry, "registry", "r", "", "the name of the registry")
 	f.StringVarP(&r.registryUserName, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&r.registryPassword, "password", "p", "", "the password to use when logging into the registry")
 
@@ -83,6 +85,8 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.BoolVar(&r.push, "push", false, "push on success")
 	f.BoolVar(&r.oci, "oci", false, "use the OCI builder")
 	f.BoolVar(&r.dryRun, "dry-run", false, "evaluates the build but doesn't execute it")
+
+	AddBaseRenderingOptions(f, r.opts, cmd, false)
 
 	if debug {
 		logrus.SetLevel(logrus.DebugLevel)
@@ -98,20 +102,41 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	b.context = args[0]
 
-	normalizedDockerImages := builder.GetNormalizedDockerImageNames(b.tags)
+	b.tags = builder.GetNormalizedDockerImageNames(b.tags)
+
+	template := &templating.Template{
+		Name: "build",
+		Data: []byte(b.createRunCmd()),
+	}
+
+	rendered, err := templating.LoadAndRenderSteps(template, b.opts)
+	if err != nil {
+		return err
+	}
+	if rendered == "" {
+		return errors.New("rendered template was empty")
+	}
+
+	if debug {
+		fmt.Println("Rendered template:")
+		fmt.Println(rendered)
+	}
+
+	// After the template has rendered, we have to parse the tags again so we can properly set the push targets.
+	// TODO: refactor this alongside `push` when it's first classed.
+	b.tags = builder.ParseRunArgs(rendered, builder.TagLookup)
 
 	cmder := cmder.NewCmder(b.dryRun)
-
 	defaultStep := &graph.Step{
 		UseLocalContext: true,
-		Run:             b.createRunCmd(),
+		Run:             rendered,
 	}
 
 	steps := []*graph.Step{defaultStep}
 
 	push := []string{}
 	if b.push {
-		for _, img := range normalizedDockerImages {
+		for _, img := range b.tags {
 			push = append(push, img)
 		}
 	}
@@ -130,29 +155,28 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	defer cancel()
 
 	homeVolName := fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
-	fmt.Printf("Setting up the home volume: %s...\n", homeVolName)
-	v := volume.NewVolume(homeVolName, cmder)
-	if msg, err := v.Create(ctx); err != nil {
-		return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
-	}
-	defer func() {
-		if msg, err := v.Delete(ctx); err != nil {
-			fmt.Printf("Failed to clean up docker vol: %s. Msg: %s, Err: %v\n", homeVolName, msg, err)
+	if !b.dryRun {
+		fmt.Printf("Setting up the home volume: %s...\n", homeVolName)
+		v := volume.NewVolume(homeVolName, cmder)
+		if msg, err := v.Create(ctx); err != nil {
+			return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
 		}
-	}()
+		defer func() {
+			if msg, err := v.Delete(ctx); err != nil {
+				fmt.Printf("Failed to clean up docker vol: %s. Msg: %s, Err: %v\n", homeVolName, msg, err)
+			}
+		}()
+	}
 
 	bo := &builder.BuildOptions{
-		RegistryName:     b.registry,
+		RegistryName:     b.opts.Registry,
 		RegistryUsername: b.registryUserName,
 		RegistryPassword: b.registryPassword,
-		Pull:             b.pull,
 		Push:             b.push,
-		NoCache:          b.noCache,
 	}
 
 	builder := builder.NewBuilder(cmder, debug, homeVolName, bo)
 	defer builder.CleanAllBuildSteps(context.Background(), dag)
-
 	return builder.RunAllBuildSteps(ctx, dag, p.Push)
 }
 
@@ -165,7 +189,7 @@ func (b *buildCmd) validateCmdArgs() error {
 		return err
 	}
 
-	if err := validatePush(b.push, b.registry, b.registryUserName, b.registryPassword); err != nil {
+	if err := validatePush(b.push, b.opts.Registry, b.registryUserName, b.registryPassword); err != nil {
 		return err
 	}
 
@@ -184,7 +208,7 @@ func (b *buildCmd) createRunCmd() string {
 	}
 
 	if b.pull {
-		args = append(args)
+		args = append(args, "--pull")
 	}
 
 	if b.noCache {

@@ -70,7 +70,7 @@ func (e *Engine) render(templates map[string]renderableTemplate) (rendered map[s
 		t.Option("missingkey=zero")
 	}
 
-	// Gather all the templates from the job's files.
+	// Gather all the template filenames.
 	files := []string{}
 
 	// Sort the templates for consistent ordering
