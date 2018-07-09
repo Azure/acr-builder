@@ -6,6 +6,7 @@ package templating
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // BaseRenderOptions represents additional information for the composition of the final rendering.
@@ -39,6 +40,9 @@ type BaseRenderOptions struct {
 
 	// Registry is the ACR being used. Optional.
 	Registry string
+
+	// Date is the date of the Build. Required.
+	Date time.Time
 }
 
 // OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
@@ -52,6 +56,7 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, options *BaseRenderOpti
 			"GitTag":      options.GitTag,
 			"TriggeredBy": options.TriggeredBy,
 			"Registry":    options.Registry,
+			"Date":        options.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
 		},
 	}
 

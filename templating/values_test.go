@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"testing"
 	"text/template"
+	"time"
 )
 
 const (
@@ -121,6 +122,13 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedRegistry := "foo.azurecr.io"
 	expectedGitTag := "some git tag"
 
+	parsedTime, err := time.Parse("20060102-150405", "20100520-131422")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedTime := "20100520-131422z"
+
 	options := &BaseRenderOptions{
 		ID:          expectedID,
 		Commit:      expectedCommit,
@@ -129,6 +137,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		TriggeredBy: expectedTrigger,
 		Registry:    expectedRegistry,
 		GitTag:      expectedGitTag,
+		Date:        parsedTime,
 	}
 	vals, err := OverrideValuesWithBuildInfo(c1, c2, options)
 	if err != nil {
@@ -144,11 +153,12 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		{"{{.Build.TriggeredBy}}", expectedTrigger},
 		{"{{.Build.Registry}}", expectedRegistry},
 		{"{{.Build.GitTag}}", expectedGitTag},
+		{"{{.Build.Date}}", expectedTime},
 		{"{{.Values.born}}", eCurieBorn},
 		{"{{.Values.first}}", eCurieFirst},
 		{"{{.Values.last}}", eCurieLast},
 		{"{{.Values.from}}", eCurieFrom},
-		{"{{.Values.awards}}", eCurieAwards},
+		{"{{.Values.awards }}", eCurieAwards},
 	}
 	for _, test := range tests {
 		if o, err := executeTemplate(test.tpl, vals); err != nil || o != test.expect {
