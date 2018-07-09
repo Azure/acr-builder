@@ -22,6 +22,7 @@ func TestParseRunArgs(t *testing.T) {
 
 		// Build arg tests
 		{3, "build -f Dockerfile -t hello:world --build-arg foo https://github.com/Azure/acr-builder.git --build-arg bar", buildArgLookup, []string{"foo", "bar"}},
+		{4, "build -f Dockerfile -t hello:world --buildarg ignored --build-arg foo=bar https://github.com/Azure/acr-builder.git --build-arg hello=world", buildArgLookup, []string{"foo=bar", "hello=world"}},
 	}
 
 	for _, test := range tests {
