@@ -3,7 +3,35 @@
 
 package builder
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/Azure/acr-builder/util"
+)
+
+func TestParseRunArgs(t *testing.T) {
+	tests := []struct {
+		id       int
+		cmd      string
+		lookup   map[string]bool
+		expected []string
+	}{
+		// Tag tests
+		{1, "build -f Dockerfile -t {{.Build.ID}}:latest --tag blah https://github.com/Azure/acr-builder.git", tagLookup, []string{"{{.Build.ID}}:latest", "blah"}},
+		{2, "build --tag foo https://github.com/Azure/acr-builder.git --tag bar -t qux", tagLookup, []string{"foo", "bar", "qux"}},
+
+		// Build arg tests
+		{3, "build -f Dockerfile -t hello:world --build-arg foo https://github.com/Azure/acr-builder.git --build-arg bar", buildArgLookup, []string{"foo", "bar"}},
+		{4, "build -f Dockerfile -t hello:world --buildarg ignored --build-arg foo=bar https://github.com/Azure/acr-builder.git --build-arg hello=world", buildArgLookup, []string{"foo=bar", "hello=world"}},
+	}
+
+	for _, test := range tests {
+		actual := parseRunArgs(test.cmd, test.lookup)
+		if !util.StringSequenceEquals(actual, test.expected) {
+			t.Errorf("Test %d failed. Expected %v, got %v", test.id, test.expected, actual)
+		}
+	}
+}
 
 // TestParseDockerBuildCmd tests stripping out the positional Docker context and Dockerfile name from a build command.
 func TestParseDockerBuildCmd(t *testing.T) {
