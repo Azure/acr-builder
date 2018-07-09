@@ -24,6 +24,7 @@ func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions
 	f.StringVar(&opts.Repository, "repository", "", "the build repository")
 	f.StringVarP(&opts.Branch, "branch", "b", "", "the build branch")
 	f.StringVar(&opts.TriggeredBy, "triggered-by", "", "what the build was triggered by")
+	f.StringVar(&opts.GitTag, "git-tag", "", "the git tag")
 	f.StringVarP(&opts.Registry, "registry", "r", "", "the name of the registry")
 
 	// exec and render both use steps and it's required, but build doesn't

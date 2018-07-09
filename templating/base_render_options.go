@@ -34,6 +34,9 @@ type BaseRenderOptions struct {
 	// TriggeredBy is the reason the build was triggered. Required.
 	TriggeredBy string
 
+	// GitTag is a Git tag. Optional.
+	GitTag string
+
 	// Registry is the ACR being used. Optional.
 	Registry string
 }
@@ -46,6 +49,7 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, options *BaseRenderOpti
 			"Commit":      options.Commit,
 			"Repository":  options.Repository,
 			"Branch":      options.Branch,
+			"GitTag":      options.GitTag,
 			"TriggeredBy": options.TriggeredBy,
 			"Registry":    options.Registry,
 		},

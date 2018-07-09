@@ -119,6 +119,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedBranch := "br"
 	expectedTrigger := "triggered from someone cool!!1"
 	expectedRegistry := "foo.azurecr.io"
+	expectedGitTag := "some git tag"
 
 	options := &BaseRenderOptions{
 		ID:          expectedID,
@@ -127,6 +128,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		Branch:      expectedBranch,
 		TriggeredBy: expectedTrigger,
 		Registry:    expectedRegistry,
+		GitTag:      expectedGitTag,
 	}
 	vals, err := OverrideValuesWithBuildInfo(c1, c2, options)
 	if err != nil {
@@ -141,6 +143,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		{"{{.Build.Branch}}", expectedBranch},
 		{"{{.Build.TriggeredBy}}", expectedTrigger},
 		{"{{.Build.Registry}}", expectedRegistry},
+		{"{{.Build.GitTag}}", expectedGitTag},
 		{"{{.Values.born}}", eCurieBorn},
 		{"{{.Values.first}}", eCurieFirst},
 		{"{{.Values.last}}", eCurieLast},
