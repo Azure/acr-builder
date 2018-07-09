@@ -43,6 +43,7 @@ type buildCmd struct {
 	isolation        string
 	oci              bool
 	dryRun           bool
+	network          string
 
 	opts *templating.BaseRenderOptions
 }
@@ -79,6 +80,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringVarP(&r.registryPassword, "password", "p", "", "the password to use when logging into the registry")
 
 	f.StringVar(&r.isolation, "isolation", "default", "the isolation to use")
+	f.StringVar(&r.network, "network", "default", "set the networking mode during build")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
 	f.BoolVar(&r.pull, "pull", false, "attempt to pull a newer version of the base images")
 	f.BoolVar(&r.noCache, "no-cache", false, "true to ignore all cached layers when building the image")
@@ -112,9 +114,6 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	rendered, err := templating.LoadAndRenderSteps(template, b.opts)
 	if err != nil {
 		return err
-	}
-	if rendered == "" {
-		return errors.New("rendered template was empty")
 	}
 
 	if debug {
@@ -209,6 +208,10 @@ func (b *buildCmd) createRunCmd() string {
 
 	if b.pull {
 		args = append(args, "--pull")
+	}
+
+	if b.network != "" {
+		args = append(args, fmt.Sprintf("--network=%s", b.network))
 	}
 
 	if b.noCache {
