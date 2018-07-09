@@ -25,9 +25,6 @@ type BaseRenderOptions struct {
 	// Commit is the commit used when running the build. Optional.
 	Commit string
 
-	// Tag is the tag used when running the build. Optional.
-	Tag string
-
 	// Repository is the repository used when running the build. Optional.
 	Repository string
 
@@ -47,7 +44,6 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, options *BaseRenderOpti
 		"Build": map[string]interface{}{
 			"ID":          options.ID,
 			"Commit":      options.Commit,
-			"Tag":         options.Tag,
 			"Repository":  options.Repository,
 			"Branch":      options.Branch,
 			"TriggeredBy": options.TriggeredBy,
@@ -66,11 +62,8 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, options *BaseRenderOpti
 
 // LoadAndRenderSteps loads a template file and renders it according to an optional values file, --set values,
 // and base render options.
-func LoadAndRenderSteps(opts *BaseRenderOptions) (string, error) {
-	template, err := LoadTemplate(opts.StepsFile)
-	if err != nil {
-		return "", err
-	}
+func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, error) {
+	var err error
 
 	config := &Config{}
 	if opts.ValuesFile != "" {
@@ -100,7 +93,7 @@ func LoadAndRenderSteps(opts *BaseRenderOptions) (string, error) {
 		return "", fmt.Errorf("Error while rendering templates: %v", err)
 	}
 
-	return rendered[opts.StepsFile], nil
+	return rendered[template.Name], nil
 }
 
 func combineVals(values []string) (string, error) {

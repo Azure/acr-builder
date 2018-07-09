@@ -115,7 +115,6 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 
 	expectedID := "SomeID"
 	expectedCommit := "Some Commit"
-	expectedTag := "some Tag"
 	expectedRepo := "some RePo"
 	expectedBranch := "br"
 	expectedTrigger := "triggered from someone cool!!1"
@@ -124,7 +123,6 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	options := &BaseRenderOptions{
 		ID:          expectedID,
 		Commit:      expectedCommit,
-		Tag:         expectedTag,
 		Repository:  expectedRepo,
 		Branch:      expectedBranch,
 		TriggeredBy: expectedTrigger,
@@ -139,7 +137,6 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		// Base properties
 		{"{{.Build.ID}}", expectedID},
 		{"{{.Build.Commit}}", expectedCommit},
-		{"{{ .Build.Tag }}", expectedTag},
 		{"{{ .Build.Repository}}", expectedRepo},
 		{"{{.Build.Branch}}", expectedBranch},
 		{"{{.Build.TriggeredBy}}", expectedTrigger},

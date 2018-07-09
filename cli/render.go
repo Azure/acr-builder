@@ -34,17 +34,22 @@ func newRenderCmd(out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	AddBaseRenderingOptions(f, r.opts, cmd)
+	AddBaseRenderingOptions(f, r.opts, cmd, true)
 	return cmd
 }
 
 func (r *renderCmd) run(cmd *cobra.Command, args []string) error {
-	template, err := templating.LoadAndRenderSteps(r.opts)
+	template, err := templating.LoadTemplate(r.opts.StepsFile)
+	if err != nil {
+		return err
+	}
+
+	rendered, err := templating.LoadAndRenderSteps(template, r.opts)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Rendered template:")
-	fmt.Println(template)
+	fmt.Println(rendered)
 	return nil
 }

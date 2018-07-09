@@ -11,8 +11,8 @@ import (
 var httpPrefix = regexp.MustCompile("^https?://")
 var gitURLWithSuffix = regexp.MustCompile("\\.git(?:#.+)?$")
 
-// parseRunArgs parses the "Run" command of a Step.
-func parseRunArgs(runCmd string, lookup map[string]bool) []string {
+// ParseRunArgs parses the "Run" command of a Step.
+func ParseRunArgs(runCmd string, lookup map[string]bool) []string {
 	fields := strings.Fields(runCmd)
 	prevField := ""
 	matches := []string{}
