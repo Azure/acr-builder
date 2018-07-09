@@ -7,17 +7,17 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 )
 
 const (
 	maxPushRetries = 5
 )
 
-func (b *Builder) pushWithRetries(ctx context.Context, imageNames []string) error {
+func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
 	registry := b.buildOptions.RegistryName
 
-	// TODO: parallel push?
-	for _, img := range imageNames {
+	for _, img := range images {
 		img = prefixRegistryToImageName(registry, img)
 		args := []string{"docker", "push", img}
 
@@ -26,6 +26,7 @@ func (b *Builder) pushWithRetries(ctx context.Context, imageNames []string) erro
 			fmt.Printf("Pushing image: %s, attempt %d\n", img, retry+1)
 
 			if err := b.cmder.Run(ctx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
+				time.Sleep(500 * time.Millisecond)
 				retry++
 			} else {
 				break
