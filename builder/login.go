@@ -57,7 +57,6 @@ func (b *Builder) dockerLoginWithRetries(ctx context.Context, attempt int) error
 	err := b.dockerLogin(ctx)
 	if err != nil {
 		if attempt < maxLoginRetries {
-			// TODO: exponential backoff
 			time.Sleep(500 * time.Millisecond)
 			return b.dockerLoginWithRetries(ctx, attempt+1)
 		}

@@ -1,5 +1,6 @@
 **/.dockerignore
 Dockerfile
+Windows.Dockerfile
 .git
 LICENSE
 *.md
