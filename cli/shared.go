@@ -4,6 +4,8 @@
 package cli
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
@@ -26,6 +28,8 @@ func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions
 	f.StringVar(&opts.TriggeredBy, "triggered-by", "", "what the build was triggered by")
 	f.StringVar(&opts.GitTag, "git-tag", "", "the git tag")
 	f.StringVarP(&opts.Registry, "registry", "r", "", "the name of the registry")
+
+	opts.Date = time.Now().UTC()
 
 	// exec and render both use steps and it's required, but build doesn't
 	if usesSteps {
