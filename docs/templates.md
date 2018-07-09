@@ -1,63 +1,53 @@
 # Templates
 
-A build can have multiple templates located in `templates/`
+Individual builds and pipelines both support templating. Internally we use [Go templates](https://golang.org/pkg/text/template/) and [Sprig](https://github.com/Masterminds/sprig/).
+
+## Using custom values
+
+A sample values file looks like this:
 
 ```toml
-# acr-builder-pre-release.toml
-push = ["Image1", "Image2"]
-
-[[step]]
-id = "A"
-name = "eric-build"
-args = ["build", "-t", "{{ .Build.QueuedBy | upper }}", "."]
-
-[[step]]
-name = "eric-build-v2"
-id = "B"
-when = ["A'] # empty -> no waiting
-args = ["build", "-t", "{{ .Build.BuildId | lower }}", "."]
-workDir = "subdirectory"
-env = ["ENV1=Foo", "ENV2=Bar"]
-
-[[step]]
-id = "eric-push"
-args = ["push", "azacr.someregistry.io/{{RepoId}}/{{ImageName | default "someImageName"}}"]
+born = 1867
+first = "Marie"
+last = "Curie"
+research = "radioactivity"
+from = "Poland"
 ```
 
-Specify values to override in your templates:
+When this file is loaded with `--values`, you can reference any of the values using this syntax: `{{ .Values.born }}`, `{{ .Values.research }}`, etc.
+You could also override any of these values using `--set born=1900` for example.
 
-```toml
-# values.toml
+## Build variables
 
-# Default values
-ImageName = "DefaultImageName"
+The following variables can be accessed using `{{ .Build.VariableName }}`, where `VariableName` equals one of the following:
+
+- ID
+- Commit
+- Repository
+- Branch
+- TriggeredBy
+- Registry
+
+## Pipelines
+
+You can execute a pipeline with `exec`. It requires a `--steps` file and optionally a `--values` file. You can also use `--set` to override values specified in `--values`, or to provide new values not covered by `--values`.
+
+```bash
+$ acb exec --steps templating/testdata/helloworld/git-build.toml --values templating/testdata/helloworld/values.toml --id demo
+
+...
+
+Successfully tagged acr-builder:demo
 ```
 
-```toml
-# release-values.toml
+## Build
 
-ImageName = "ProdBuild"
-```
+Templating in `build` works the same as `exec`, except that you don't have to provide a `--steps` file.
 
-Combine the two to create a standardized pipeline:
+```bash
+$ acb build https://github.com/Azure/acr-builder.git -f Dockerfile -t "acr-builder:{{.Build.ID}}" --id demo
 
-```toml
-push = ["Image1", "Image2"]
+...
 
-[[step]]
-name = "eric-build"
-args = ["build", "-t", "ERIC", "."]
-id = "A"
-
-[[step]]
-name = "eric-build-v2"
-id = "B"
-when = ["A"] # empty -> no waiting
-args = ["build", "-t", "eus-12345", "."]
-workDir = "subdirectory"
-env = ["ENV1=Foo", "ENV2=Bar"]
-
-[[step]]
-name = "eric-push"
-args = ["push", "azacr.someregistry.io/ehotinger/acr-builder"]
+Successfully tagged acr-builder:demo
 ```
