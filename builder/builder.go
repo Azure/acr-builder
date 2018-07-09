@@ -23,6 +23,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var buildArgLookup = map[string]bool{"--build-arg": true}
+var tagLookup = map[string]bool{"-t": true, "--tag": true}
+
 // Builder builds images.
 type Builder struct {
 	cmder        *cmder.Cmder
@@ -165,8 +168,8 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 			// TODO: refactor this out of the node processing into initialization.
 			// Adjust the run command so that the ACR registry is prefixed for all tags
 			step.Run = prefixStepTags(step.Run, b.buildOptions.RegistryName)
-			tags := parseRunArgs(step.Run, "-t")
-			buildArgs := parseRunArgs(step.Run, "--build-arg")
+			tags := parseRunArgs(step.Run, tagLookup)
+			buildArgs := parseRunArgs(step.Run, buildArgLookup)
 			dockerfile, context := parseDockerBuildCmd(step.Run)
 			volName := b.workspaceDir
 
