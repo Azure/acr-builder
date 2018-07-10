@@ -5,7 +5,6 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -66,9 +65,6 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	rendered, err := templating.LoadAndRenderSteps(template, e.opts)
 	if err != nil {
 		return err
-	}
-	if rendered == "" {
-		return errors.New("rendered template was empty")
 	}
 
 	if debug {

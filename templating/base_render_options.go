@@ -102,6 +102,10 @@ func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, er
 		return "", fmt.Errorf("Error while rendering templates: %v", err)
 	}
 
+	if rendered[template.Name] == "" {
+		return "", fmt.Errorf("Rendered template was empty. Original template: %s", template.Data)
+	}
+
 	return rendered[template.Name], nil
 }
 
