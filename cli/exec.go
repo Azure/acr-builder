@@ -27,8 +27,8 @@ type execCmd struct {
 	out    io.Writer
 	dryRun bool
 
-	registryUserName string
-	registryPassword string
+	registryUser string
+	registryPw   string
 
 	opts *templating.BaseRenderOptions
 }
@@ -48,8 +48,8 @@ func newExecCmd(out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 
-	f.StringVarP(&e.registryUserName, "username", "u", "", "the username to use when logging into the registry")
-	f.StringVarP(&e.registryPassword, "password", "p", "", "the password to use when logging into the registry")
+	f.StringVarP(&e.registryUser, "username", "u", "", "the username to use when logging into the registry")
+	f.StringVarP(&e.registryPw, "password", "p", "", "the password to use when logging into the registry")
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the pipeline but doesn't execute it")
 
 	AddBaseRenderingOptions(f, e.opts, cmd, true)
@@ -72,19 +72,14 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		fmt.Println(rendered)
 	}
 
-	p, err := graph.UnmarshalPipelineFromString(rendered)
-	if err != nil {
-		return err
-	}
-
-	dag, err := graph.NewDagFromPipeline(p)
+	pipeline, err := graph.UnmarshalPipelineFromString(rendered, e.opts.Registry, e.registryUser, e.registryPw)
 	if err != nil {
 		return err
 	}
 
 	cmder := cmder.NewCmder(e.dryRun)
 
-	timeout := time.Duration(p.TotalTimeout) * time.Second
+	timeout := time.Duration(pipeline.TotalTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -102,17 +97,10 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		}()
 	}
 
-	buildOptions := &builder.BuildOptions{
-		RegistryName:     e.opts.Registry,
-		RegistryUsername: e.registryUserName,
-		RegistryPassword: e.registryPassword,
-		Push:             len(p.Push) > 0,
-	}
+	builder := builder.NewBuilder(cmder, debug, homeVolName)
+	defer builder.CleanAllBuildSteps(context.Background(), pipeline)
 
-	builder := builder.NewBuilder(cmder, debug, homeVolName, buildOptions)
-	defer builder.CleanAllBuildSteps(context.Background(), dag)
-
-	return builder.RunAllBuildSteps(ctx, dag, p.Push)
+	return builder.RunAllBuildSteps(ctx, pipeline)
 }
 
 func combineVals(values []string) (string, error) {

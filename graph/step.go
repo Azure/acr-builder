@@ -46,6 +46,8 @@ type Step struct {
 	CompletedChan chan bool
 
 	ImageDependencies []*models.ImageDependencies
+	Tags              []string
+	BuildArgs         []string
 }
 
 // Validate validates the step and returns an error if the Step has problems.

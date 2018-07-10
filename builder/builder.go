@@ -23,57 +23,45 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// BuildArgLookup defines string matches for build args.
-var BuildArgLookup = map[string]bool{"--build-arg": true}
-
-// TagLookup defines string matches for tags.
-var TagLookup = map[string]bool{"-t": true, "--tag": true}
-
 // Builder builds images.
 type Builder struct {
 	cmder        *cmder.Cmder
 	workspaceDir string
 	mu           sync.Mutex
 	debug        bool
-	buildOptions *BuildOptions
 }
 
 // NewBuilder creates a new Builder.
-func NewBuilder(c *cmder.Cmder, debug bool, workspaceDir string, buildOptions *BuildOptions) *Builder {
+func NewBuilder(c *cmder.Cmder, debug bool, workspaceDir string) *Builder {
 	return &Builder{
 		cmder:        c,
 		debug:        debug,
 		workspaceDir: workspaceDir,
-		buildOptions: buildOptions,
 		mu:           sync.Mutex{},
 	}
 }
 
 // RunAllBuildSteps executes a pipeline.
-func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo []string) error {
+func (b *Builder) RunAllBuildSteps(ctx context.Context, p *graph.Pipeline) error {
 
 	if !b.cmder.DryRun {
 		if err := b.setupConfig(ctx); err != nil {
 			return err
 		}
 
-		if b.buildOptions.RegistryName != "" &&
-			b.buildOptions.RegistryPassword != "" &&
-			b.buildOptions.RegistryUsername != "" {
-
-			fmt.Printf("Logging in to registry: %s\n", b.buildOptions.RegistryName)
-			if err := b.dockerLoginWithRetries(ctx, 0); err != nil {
+		if p.UsingRegistryCreds() {
+			fmt.Printf("Logging in to registry: %s\n", p.RegistryName)
+			if err := b.dockerLoginWithRetries(ctx, p.RegistryName, p.RegistryUsername, p.RegistryPassword, 0); err != nil {
 				return err
 			}
-
 			fmt.Println("Successfully logged in")
 		}
 	}
 
-	root := dag.Nodes[graph.RootNodeID]
+	root := p.Dag.Nodes[graph.RootNodeID]
 	var completedChans []chan bool
 	errorChan := make(chan error)
-	for k, v := range dag.Nodes {
+	for k, v := range p.Dag.Nodes {
 		if k == graph.RootNodeID {
 			continue
 		}
@@ -81,7 +69,7 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo [
 	}
 
 	for _, n := range root.Children() {
-		go b.processVertex(ctx, dag, root, n, errorChan)
+		go b.processVertex(ctx, p, root, n, errorChan)
 	}
 
 	// Block until either:
@@ -99,13 +87,11 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo [
 		}
 	}
 
-	if b.buildOptions.Push {
-		if err := b.pushWithRetries(ctx, pushTo); err != nil {
-			return err
-		}
+	if err := b.pushWithRetries(ctx, p.Push); err != nil {
+		return err
 	}
 
-	for k, v := range dag.Nodes {
+	for k, v := range p.Dag.Nodes {
 		if k == graph.RootNodeID {
 			continue
 		}
@@ -130,10 +116,10 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, dag *graph.Dag, pushTo [
 }
 
 // CleanAllBuildSteps cleans up all build steps and removes their corresponding Docker containers.
-func (b *Builder) CleanAllBuildSteps(ctx context.Context, dag *graph.Dag) {
+func (b *Builder) CleanAllBuildSteps(ctx context.Context, p *graph.Pipeline) {
 	args := []string{"docker", "rm", "-f"}
 
-	for k, v := range dag.Nodes {
+	for k, v := range p.Dag.Nodes {
 		if k == graph.RootNodeID {
 			continue
 		}
@@ -149,8 +135,8 @@ func (b *Builder) CleanAllBuildSteps(ctx context.Context, dag *graph.Dag) {
 	}
 }
 
-func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *graph.Node, child *graph.Node, errorChan chan error) {
-	err := dag.RemoveEdge(parent.Name, child.Name)
+func (b *Builder) processVertex(ctx context.Context, p *graph.Pipeline, parent *graph.Node, child *graph.Node, errorChan chan error) {
+	err := p.Dag.RemoveEdge(parent.Name, child.Name)
 	if err != nil {
 		errorChan <- errors.Wrap(err, "failed to remove edge")
 		return
@@ -168,14 +154,8 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 		var args []string
 
 		if strings.HasPrefix(step.Run, "build ") {
-			// TODO: refactor this out of the node processing into initialization.
-			// Adjust the run command so that the ACR registry is prefixed for all tags
-			step.Run = prefixStepTags(step.Run, b.buildOptions.RegistryName)
-			tags := ParseRunArgs(step.Run, TagLookup)
-			buildArgs := ParseRunArgs(step.Run, BuildArgLookup)
 			dockerfile, context := parseDockerBuildCmd(step.Run)
 			volName := b.workspaceDir
-
 			stepWorkingDir := step.ID
 
 			// If we run `build` (not `exec` for a pipeline) and the context is local,
@@ -199,7 +179,7 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 				}
 			}
 
-			deps, err := b.scrapeDependencies(ctx, volName, step.WorkDir, step.ID, dockerfile, context, tags, buildArgs)
+			deps, err := b.scrapeDependencies(ctx, volName, step.WorkDir, step.ID, dockerfile, context, step.Tags, step.BuildArgs)
 			if err != nil {
 				errorChan <- errors.Wrap(err, "failed to scan dependencies")
 				return
@@ -251,7 +231,7 @@ func (b *Builder) processVertex(ctx context.Context, dag *graph.Dag, parent *gra
 
 			// Try to process all child nodes
 			for _, c := range child.Children() {
-				go b.processVertex(ctx, dag, child, c, errorChan)
+				go b.processVertex(ctx, p, child, c, errorChan)
 			}
 		}
 

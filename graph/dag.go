@@ -8,8 +8,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-
-	"github.com/BurntSushi/toml"
 )
 
 const (
@@ -104,41 +102,6 @@ func NewDagFromPipeline(p *Pipeline) (*Dag, error) {
 	}
 
 	return dag, nil
-}
-
-// CreateDagFromFile creates a Dag from the specified file.
-func CreateDagFromFile(file string) (*Dag, error) {
-	p, err := UnmarshalPipelineFromFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewDagFromPipeline(p)
-}
-
-// UnmarshalPipelineFromString unmarshals a pipeline from a raw string.
-func UnmarshalPipelineFromString(data string) (*Pipeline, error) {
-	p := &Pipeline{}
-	if _, err := toml.Decode(data, p); err != nil {
-		return p, errors.Wrap(err, "failed to deserialize pipeline")
-	}
-
-	p.initialize()
-	return p, nil
-}
-
-// UnmarshalPipelineFromFile unmarshals a pipeline from a toml file.
-func UnmarshalPipelineFromFile(file string) (*Pipeline, error) {
-	p := &Pipeline{}
-
-	// Early exit if the error is nil
-	if _, err := toml.DecodeFile(file, p); err != nil {
-		return p, errors.Wrap(err, "failed to deserialize pipeline")
-	}
-
-	// Initialize the pipeline to normalize some values.
-	p.initialize()
-	return p, nil
 }
 
 // AddVertex adds a vertex to the Dag with the specified name and value.

@@ -10,9 +10,9 @@ import (
 
 // TestDagCreation_ValidFile tests that a valid DAG is created from a file.
 func TestDagCreation_ValidFile(t *testing.T) {
-	dag, err := CreateDagFromFile("testdata/rally.toml")
+	pipeline, err := UnmarshalPipelineFromFile("testdata/rally.toml", "", "", "")
 	if err != nil {
-		t.Fatalf("Failed to create DAG from file. Err: %v", err)
+		t.Fatalf("Failed to create pipeline from file. Err: %v", err)
 	}
 
 	rootStep := &Step{ID: RootNodeID}
@@ -105,7 +105,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 
 	noChildren := make(map[string]*Step)
 
-	for k, node := range dag.Nodes {
+	for k, node := range pipeline.Dag.Nodes {
 		if val, ok := dict[k]; ok {
 			if !val.Equals(node.Value) {
 				t.Fatalf("Step generated from DAG is different than expected step for %v", k)
