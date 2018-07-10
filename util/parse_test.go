@@ -1,9 +1,7 @@
-package graph
+package util
 
 import (
 	"testing"
-
-	"github.com/Azure/acr-builder/util"
 )
 
 // TestParseTags tests parsing tags off a build command.
@@ -20,7 +18,7 @@ func TestParseTags(t *testing.T) {
 
 	for _, test := range tests {
 		actual := ParseTags(test.cmd)
-		if !util.StringSequenceEquals(actual, test.expected) {
+		if !StringSequenceEquals(actual, test.expected) {
 			t.Errorf("Test %d failed. Expected %v, got %v", test.id, test.expected, actual)
 		}
 	}
@@ -39,7 +37,7 @@ func TestParseBuildArgs(t *testing.T) {
 
 	for _, test := range tests {
 		actual := ParseBuildArgs(test.cmd)
-		if !util.StringSequenceEquals(actual, test.expected) {
+		if !StringSequenceEquals(actual, test.expected) {
 			t.Errorf("Test %d failed. Expected %v, got %v", test.id, test.expected, actual)
 		}
 	}

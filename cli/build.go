@@ -15,6 +15,7 @@ import (
 	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/templating"
+	"github.com/Azure/acr-builder/util"
 	"github.com/Azure/acr-builder/volume"
 	"github.com/google/uuid"
 
@@ -123,7 +124,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	// After the template has rendered, we have to parse the tags again
 	// so we can properly set the push targets.
-	b.tags = graph.ParseTags(rendered)
+	b.tags = util.ParseTags(rendered)
 
 	cmder := cmder.NewCmder(b.dryRun)
 	defaultStep := &graph.Step{
@@ -143,12 +144,12 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	// TODO: create secrets
 	secrets := []*graph.Secret{}
 
-	pipeline, err := graph.NewPipeline(steps, push, secrets, b.opts.Registry, b.registryUser, b.registryPw)
+	p, err := graph.NewPipeline(steps, push, secrets, b.opts.Registry, b.registryUser, b.registryPw)
 	if err != nil {
 		return err
 	}
 
-	timeout := time.Duration(pipeline.TotalTimeout) * time.Second
+	timeout := time.Duration(p.TotalTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -167,8 +168,8 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	builder := builder.NewBuilder(cmder, debug, homeVolName)
-	defer builder.CleanAllBuildSteps(context.Background(), pipeline)
-	return builder.RunAllBuildSteps(ctx, pipeline)
+	defer builder.CleanAllBuildSteps(context.Background(), p)
+	return builder.RunAllBuildSteps(ctx, p)
 }
 
 func (b *buildCmd) validateCmdArgs() error {

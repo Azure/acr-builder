@@ -152,8 +152,8 @@ func (p *Pipeline) initialize() error {
 		// Mark the step as skipped initially
 		s.StepStatus = Skipped
 
-		s.Tags = ParseTags(s.Run)
-		s.BuildArgs = ParseBuildArgs(s.Run)
+		s.Tags = util.ParseTags(s.Run)
+		s.BuildArgs = util.ParseBuildArgs(s.Run)
 	}
 
 	p.Push = getNormalizedDockerImageNames(p.Push, p.RegistryName)
