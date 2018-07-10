@@ -3,7 +3,15 @@
 
 package graph
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/Azure/acr-builder/util"
+
+	"github.com/Azure/acr-builder/baseimages/scanner/scan"
+	"github.com/BurntSushi/toml"
+	"github.com/pkg/errors"
+)
 
 const (
 	// The default step timeout is 10 minutes.
@@ -27,29 +35,71 @@ const (
 
 // Pipeline represents a build pipeline.
 type Pipeline struct {
-	Steps        []*Step   `toml:"step"`
-	StepTimeout  int       `toml:"stepTimeout,omitempty"`
-	TotalTimeout int       `toml:"totalTimeout,omitempty"`
-	Push         []string  `toml:"push,omitempty"`
-	Secrets      []*Secret `toml:"secrets,omitempty"`
-	WorkDir      string    `toml:"workDir,omitempty"`
+	Steps            []*Step   `toml:"step"`
+	StepTimeout      int       `toml:"stepTimeout,omitempty"`
+	TotalTimeout     int       `toml:"totalTimeout,omitempty"`
+	Push             []string  `toml:"push,omitempty"`
+	Secrets          []*Secret `toml:"secrets,omitempty"`
+	WorkDir          string    `toml:"workDir,omitempty"`
+	RegistryName     string
+	RegistryUsername string
+	RegistryPassword string
+	Dag              *Dag
+}
+
+// UnmarshalPipelineFromString unmarshals a pipeline from a raw string.
+func UnmarshalPipelineFromString(data, registry, user, pw string) (*Pipeline, error) {
+	p := &Pipeline{}
+	if _, err := toml.Decode(data, p); err != nil {
+		return p, errors.Wrap(err, "failed to deserialize pipeline")
+	}
+
+	p.setRegistryInfo(registry, user, pw)
+
+	err := p.initialize()
+	return p, err
+}
+
+// UnmarshalPipelineFromFile unmarshals a pipeline from a toml file.
+func UnmarshalPipelineFromFile(file, registry, user, pw string) (*Pipeline, error) {
+	p := &Pipeline{}
+
+	// Early exit if the error is nil
+	if _, err := toml.DecodeFile(file, p); err != nil {
+		return p, errors.Wrap(err, "failed to deserialize pipeline")
+	}
+
+	p.setRegistryInfo(registry, user, pw)
+
+	err := p.initialize()
+	return p, err
 }
 
 // NewPipeline returns a default Pipeline object.
-func NewPipeline(steps []*Step, push []string, secrets []*Secret) *Pipeline {
+func NewPipeline(
+	steps []*Step,
+	push []string,
+	secrets []*Secret,
+	registry string,
+	user string,
+	pw string) (*Pipeline, error) {
 	p := &Pipeline{
-		Steps:        steps,
-		StepTimeout:  defaultStepTimeoutInSeconds,
-		TotalTimeout: defaultTotalTimeoutInSeconds,
-		Push:         push,
-		Secrets:      secrets,
+		Steps:            steps,
+		StepTimeout:      defaultStepTimeoutInSeconds,
+		TotalTimeout:     defaultTotalTimeoutInSeconds,
+		Push:             push,
+		Secrets:          secrets,
+		RegistryName:     registry,
+		RegistryUsername: user,
+		RegistryPassword: pw,
 	}
-	p.initialize()
-	return p
+
+	err := p.initialize()
+	return p, err
 }
 
 // initialize normalizes the pipeline's values.
-func (p *Pipeline) initialize() {
+func (p *Pipeline) initialize() error {
 	if p.StepTimeout <= 0 {
 		p.StepTimeout = defaultStepTimeoutInSeconds
 	}
@@ -96,7 +146,57 @@ func (p *Pipeline) initialize() {
 			s.CompletedChan = make(chan bool)
 		}
 
+		// Adjust the run command so that the ACR registry is prefixed for all tags
+		s.Run = util.PrefixTags(s.Run, p.RegistryName)
+
 		// Mark the step as skipped initially
 		s.StepStatus = Skipped
+
+		s.Tags = util.ParseTags(s.Run)
+		s.BuildArgs = util.ParseBuildArgs(s.Run)
 	}
+
+	p.Push = getNormalizedDockerImageNames(p.Push, p.RegistryName)
+
+	var err error
+	p.Dag, err = NewDagFromPipeline(p)
+
+	return err
+}
+
+// UsingRegistryCreds determines whether or not the pipeline is using registry creds.
+func (p *Pipeline) UsingRegistryCreds() bool {
+	return p.RegistryName != "" &&
+		p.RegistryPassword != "" &&
+		p.RegistryUsername != ""
+}
+
+// SetRegistryInfo sets registry information.
+func (p *Pipeline) setRegistryInfo(registry, user, pw string) {
+	p.RegistryName = registry
+	p.RegistryUsername = user
+	p.RegistryPassword = pw
+}
+
+// getNormalizedDockerImageNames normalizes the list of docker images
+// and removes any duplicates.
+func getNormalizedDockerImageNames(dockerImages []string, registry string) []string {
+	if len(dockerImages) <= 0 {
+		return dockerImages
+	}
+
+	dict := map[string]bool{}
+	normalizedDockerImages := []string{}
+	for _, d := range dockerImages {
+		d := scan.NormalizeImageTag(d)
+		d = util.PrefixRegistryToImageName(registry, d)
+		if dict[d] {
+			continue
+		}
+
+		dict[d] = true
+		normalizedDockerImages = append(normalizedDockerImages, d)
+	}
+
+	return normalizedDockerImages
 }

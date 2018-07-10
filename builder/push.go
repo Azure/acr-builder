@@ -11,14 +11,15 @@ import (
 )
 
 const (
-	maxPushRetries = 5
+	maxPushRetries = 3
 )
 
 func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
-	registry := b.buildOptions.RegistryName
+	if len(images) <= 0 {
+		return nil
+	}
 
 	for _, img := range images {
-		img = prefixRegistryToImageName(registry, img)
 		args := []string{"docker", "push", img}
 
 		retry := 0

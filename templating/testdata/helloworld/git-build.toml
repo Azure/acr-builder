@@ -1,4 +1,5 @@
 # This template demonstrates a single-step build which builds from a git repository.
+push = ["acr-builder:{{.Build.ID}}"]
 
 [[step]]
 id = "git-context"

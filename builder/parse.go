@@ -11,21 +11,6 @@ import (
 var httpPrefix = regexp.MustCompile("^https?://")
 var gitURLWithSuffix = regexp.MustCompile("\\.git(?:#.+)?$")
 
-// ParseRunArgs parses the "Run" command of a Step.
-func ParseRunArgs(runCmd string, lookup map[string]bool) []string {
-	fields := strings.Fields(runCmd)
-	prevField := ""
-	matches := []string{}
-	for _, field := range fields {
-		if found := lookup[prevField]; found {
-			matches = append(matches, field)
-		}
-		prevField = field
-	}
-
-	return matches
-}
-
 // parseDockerBuildCmd parses a docker build command and extracts the
 // context and Dockerfile from it.
 func parseDockerBuildCmd(cmd string) (dockerfile string, context string) {

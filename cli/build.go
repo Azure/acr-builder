@@ -15,6 +15,7 @@ import (
 	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/templating"
+	"github.com/Azure/acr-builder/util"
 	"github.com/Azure/acr-builder/volume"
 	"github.com/google/uuid"
 
@@ -28,23 +29,23 @@ This command can be used to build images.
 `
 
 type buildCmd struct {
-	out              io.Writer
-	context          string
-	dockerfile       string
-	target           string
-	tags             []string
-	buildArgs        []string
-	secretBuildArgs  []string
-	labels           []string
-	registryUserName string
-	registryPassword string
-	pull             bool
-	noCache          bool
-	push             bool
-	isolation        string
-	oci              bool
-	dryRun           bool
-	network          string
+	out             io.Writer
+	context         string
+	dockerfile      string
+	target          string
+	tags            []string
+	buildArgs       []string
+	secretBuildArgs []string
+	labels          []string
+	registryUser    string
+	registryPw      string
+	pull            bool
+	noCache         bool
+	push            bool
+	isolation       string
+	oci             bool
+	dryRun          bool
+	network         string
 
 	opts *templating.BaseRenderOptions
 }
@@ -78,11 +79,11 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringArrayVar(&r.secretBuildArgs, "secret-build-arg", []string{}, "set secret build arguments")
 	f.StringArrayVar(&r.labels, "label", []string{}, "set metadata for an image")
 
-	f.StringVarP(&r.registryUserName, "username", "u", "", "the username to use when logging into the registry")
-	f.StringVarP(&r.registryPassword, "password", "p", "", "the password to use when logging into the registry")
+	f.StringVarP(&r.registryUser, "username", "u", "", "the username to use when logging into the registry")
+	f.StringVarP(&r.registryPw, "password", "p", "", "the password to use when logging into the registry")
 
-	f.StringVar(&r.isolation, "isolation", "default", "the isolation to use")
-	f.StringVar(&r.network, "network", "default", "set the networking mode during build")
+	f.StringVar(&r.isolation, "isolation", "", "the isolation to use")
+	f.StringVar(&r.network, "network", "", "set the networking mode during build")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
 	f.BoolVar(&r.pull, "pull", false, "attempt to pull a newer version of the base images")
 	f.BoolVar(&r.noCache, "no-cache", false, "true to ignore all cached layers when building the image")
@@ -106,8 +107,6 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	b.context = args[0]
 
-	b.tags = builder.GetNormalizedDockerImageNames(b.tags)
-
 	template := &templating.Template{
 		Name: "build",
 		Data: []byte(b.createRunCmd()),
@@ -123,9 +122,9 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 		fmt.Println(rendered)
 	}
 
-	// After the template has rendered, we have to parse the tags again so we can properly set the push targets.
-	// TODO: refactor this alongside `push` when it's first classed.
-	b.tags = builder.ParseRunArgs(rendered, builder.TagLookup)
+	// After the template has rendered, we have to parse the tags again
+	// so we can properly set the push targets.
+	b.tags = util.ParseTags(rendered)
 
 	cmder := cmder.NewCmder(b.dryRun)
 	defaultStep := &graph.Step{
@@ -145,8 +144,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	// TODO: create secrets
 	secrets := []*graph.Secret{}
 
-	p := graph.NewPipeline(steps, push, secrets)
-	dag, err := graph.NewDagFromPipeline(p)
+	p, err := graph.NewPipeline(steps, push, secrets, b.opts.Registry, b.registryUser, b.registryPw)
 	if err != nil {
 		return err
 	}
@@ -169,16 +167,9 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 		}()
 	}
 
-	bo := &builder.BuildOptions{
-		RegistryName:     b.opts.Registry,
-		RegistryUsername: b.registryUserName,
-		RegistryPassword: b.registryPassword,
-		Push:             b.push,
-	}
-
-	builder := builder.NewBuilder(cmder, debug, homeVolName, bo)
-	defer builder.CleanAllBuildSteps(context.Background(), dag)
-	return builder.RunAllBuildSteps(ctx, dag, p.Push)
+	builder := builder.NewBuilder(cmder, debug, homeVolName)
+	defer builder.CleanAllBuildSteps(context.Background(), p)
+	return builder.RunAllBuildSteps(ctx, p)
 }
 
 func (b *buildCmd) validateCmdArgs() error {
@@ -186,11 +177,11 @@ func (b *buildCmd) validateCmdArgs() error {
 		return err
 	}
 
-	if err := validateRegistryCreds(b.registryUserName, b.registryPassword); err != nil {
+	if err := validateRegistryCreds(b.registryUser, b.registryPw); err != nil {
 		return err
 	}
 
-	if err := validatePush(b.push, b.opts.Registry, b.registryUserName, b.registryPassword); err != nil {
+	if err := validatePush(b.push, b.opts.Registry, b.registryUser, b.registryPw); err != nil {
 		return err
 	}
 
