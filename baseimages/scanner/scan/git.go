@@ -29,7 +29,7 @@ type gitRepo struct {
 func (s *Scanner) GetGitCommitID(ctx context.Context, cmdDir string) (string, error) {
 	cmd := []string{"git", "rev-parse", "--verify", "HEAD"}
 	var buf bytes.Buffer
-	if err := s.cmder.Run(ctx, cmd, nil, &buf, os.Stderr, cmdDir); err != nil {
+	if err := s.taskManager.Run(ctx, cmd, nil, &buf, os.Stderr, cmdDir); err != nil {
 		return "", err
 	}
 	return strings.TrimSpace(buf.String()), nil

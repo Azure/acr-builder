@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package cmder
+package taskmanager
 
 import (
 	"context"
@@ -14,8 +14,8 @@ import (
 	"github.com/Azure/acr-builder/util"
 )
 
-// ICmder is an interface for executing processes.
-type ICmder interface {
+// ITaskManager is an interface for executing processes.
+type ITaskManager interface {
 	// Run runs a command based on the specified params.
 	Run(ctx context.Context,
 		args []string,
@@ -24,20 +24,20 @@ type ICmder interface {
 		stdErr io.Writer,
 		cmdDir string) error
 
-	// Stop stops the Cmder and tries to kill any running processes.
+	// Stop stops the manager and tries to kill any running processes.
 	Stop() error
 }
 
-// Cmder is a wrapper for executing processes.
-type Cmder struct {
+// TaskManager is a wrapper for executing processes.
+type TaskManager struct {
 	DryRun    bool
 	mu        sync.Mutex
 	processes map[int]*os.Process
 }
 
-// NewCmder creates a new Cmder.
-func NewCmder(dryRun bool) *Cmder {
-	return &Cmder{
+// NewTaskManager creates a new TaskManager.
+func NewTaskManager(dryRun bool) *TaskManager {
+	return &TaskManager{
 		DryRun:    dryRun,
 		processes: map[int]*os.Process{},
 		mu:        sync.Mutex{},
@@ -45,7 +45,7 @@ func NewCmder(dryRun bool) *Cmder {
 }
 
 // Run runs a command based on the specified params.
-func (c *Cmder) Run(
+func (tm *TaskManager) Run(
 	ctx context.Context,
 	args []string,
 	stdIn io.Reader,
@@ -53,7 +53,7 @@ func (c *Cmder) Run(
 	stdErr io.Writer,
 	cmdDir string) error {
 
-	if c.DryRun {
+	if tm.DryRun {
 		fmt.Printf("[DRY RUN] Args: %v\n", args)
 		return nil
 	}
@@ -73,11 +73,11 @@ func (c *Cmder) Run(
 
 	pid := cmd.Process.Pid
 
-	c.mu.Lock()
-	c.processes[pid] = cmd.Process
-	c.mu.Unlock()
+	tm.mu.Lock()
+	tm.processes[pid] = cmd.Process
+	tm.mu.Unlock()
 
-	defer c.DeletePid(pid)
+	defer tm.DeletePid(pid)
 
 	errChan := make(chan error)
 	go func() {
@@ -100,24 +100,24 @@ func (c *Cmder) Run(
 }
 
 // DeletePid deletes the specified pid from the internal map.
-func (c *Cmder) DeletePid(pid int) {
-	c.mu.Lock()
-	delete(c.processes, pid)
-	c.mu.Unlock()
+func (tm *TaskManager) DeletePid(pid int) {
+	tm.mu.Lock()
+	delete(tm.processes, pid)
+	tm.mu.Unlock()
 }
 
 // Stop stops the runner and tries to kill any running processes.
-func (c *Cmder) Stop() util.Errors {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (tm *TaskManager) Stop() util.Errors {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 
 	var errors util.Errors
-	for pid, process := range c.processes {
+	for pid, process := range tm.processes {
 		if err := process.Kill(); err != nil {
 			errors = append(errors, err)
 		}
 
-		delete(c.processes, pid)
+		delete(tm.processes, pid)
 	}
 
 	return errors

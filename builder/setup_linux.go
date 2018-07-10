@@ -38,7 +38,7 @@ func (b *Builder) setupConfig(ctx context.Context) error {
 	}
 
 	var buf bytes.Buffer
-	if err := b.cmder.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+	if err := b.taskManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to setup config: %s", buf.String()))
 	}
 

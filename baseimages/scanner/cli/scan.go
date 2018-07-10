@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/scan"
-	"github.com/Azure/acr-builder/cmder"
+	"github.com/Azure/acr-builder/taskmanager"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -75,9 +75,9 @@ func (s *scanCmd) run(cmd *cobra.Command, args []string) error {
 		}()
 	}
 
-	cmder := cmder.NewCmder(false)
+	tm := taskmanager.NewTaskManager(false)
 
-	scanner := scan.NewScanner(cmder, s.context, s.dockerfile, s.destinationFolder, s.buildArgs, s.tags, debug)
+	scanner := scan.NewScanner(tm, s.context, s.dockerfile, s.destinationFolder, s.buildArgs, s.tags, debug)
 	deps, err := scanner.Scan(ctx)
 	if err != nil {
 		return err

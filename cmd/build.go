@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package cli
+package cmd
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/builder"
-	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/taskmanager"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/util"
 	"github.com/Azure/acr-builder/volume"
@@ -126,7 +126,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	// so we can properly set the push targets.
 	b.tags = util.ParseTags(rendered)
 
-	cmder := cmder.NewCmder(b.dryRun)
+	taskManager := taskmanager.NewTaskManager(b.dryRun)
 	defaultStep := &graph.Step{
 		UseLocalContext: true,
 		Run:             rendered,
@@ -144,19 +144,19 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	// TODO: create secrets
 	secrets := []*graph.Secret{}
 
-	p, err := graph.NewPipeline(steps, push, secrets, b.opts.Registry, b.registryUser, b.registryPw)
+	pipeline, err := graph.NewPipeline(steps, push, secrets, b.opts.Registry, b.registryUser, b.registryPw)
 	if err != nil {
 		return err
 	}
 
-	timeout := time.Duration(p.TotalTimeout) * time.Second
+	timeout := time.Duration(pipeline.TotalTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	homeVolName := fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
 	if !b.dryRun {
 		fmt.Printf("Setting up the home volume: %s...\n", homeVolName)
-		v := volume.NewVolume(homeVolName, cmder)
+		v := volume.NewVolume(homeVolName, taskManager)
 		if msg, err := v.Create(ctx); err != nil {
 			return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
 		}
@@ -167,9 +167,9 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 		}()
 	}
 
-	builder := builder.NewBuilder(cmder, debug, homeVolName)
-	defer builder.CleanAllBuildSteps(context.Background(), p)
-	return builder.RunAllBuildSteps(ctx, p)
+	builder := builder.NewBuilder(taskManager, debug, homeVolName)
+	defer builder.CleanAllBuildSteps(context.Background(), pipeline)
+	return builder.RunAllBuildSteps(ctx, pipeline)
 }
 
 func (b *buildCmd) validateCmdArgs() error {

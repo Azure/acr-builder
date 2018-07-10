@@ -16,8 +16,8 @@ import (
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	"github.com/Azure/acr-builder/baseimages/scanner/util"
-	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/taskmanager"
 	builderutil "github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -25,16 +25,16 @@ import (
 
 // Builder builds images.
 type Builder struct {
-	cmder        *cmder.Cmder
+	taskManager  *taskmanager.TaskManager
 	workspaceDir string
 	mu           sync.Mutex
 	debug        bool
 }
 
 // NewBuilder creates a new Builder.
-func NewBuilder(c *cmder.Cmder, debug bool, workspaceDir string) *Builder {
+func NewBuilder(tm *taskmanager.TaskManager, debug bool, workspaceDir string) *Builder {
 	return &Builder{
-		cmder:        c,
+		taskManager:  tm,
 		debug:        debug,
 		workspaceDir: workspaceDir,
 		mu:           sync.Mutex{},
@@ -42,26 +42,26 @@ func NewBuilder(c *cmder.Cmder, debug bool, workspaceDir string) *Builder {
 }
 
 // RunAllBuildSteps executes a pipeline.
-func (b *Builder) RunAllBuildSteps(ctx context.Context, p *graph.Pipeline) error {
+func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline) error {
 
-	if !b.cmder.DryRun {
+	if !b.taskManager.DryRun {
 		if err := b.setupConfig(ctx); err != nil {
 			return err
 		}
 
-		if p.UsingRegistryCreds() {
-			fmt.Printf("Logging in to registry: %s\n", p.RegistryName)
-			if err := b.dockerLoginWithRetries(ctx, p.RegistryName, p.RegistryUsername, p.RegistryPassword, 0); err != nil {
+		if pipeline.UsingRegistryCreds() {
+			fmt.Printf("Logging in to registry: %s\n", pipeline.RegistryName)
+			if err := b.dockerLoginWithRetries(ctx, pipeline.RegistryName, pipeline.RegistryUsername, pipeline.RegistryPassword, 0); err != nil {
 				return err
 			}
 			fmt.Println("Successfully logged in")
 		}
 	}
 
-	root := p.Dag.Nodes[graph.RootNodeID]
+	root := pipeline.Dag.Nodes[graph.RootNodeID]
 	var completedChans []chan bool
 	errorChan := make(chan error)
-	for k, v := range p.Dag.Nodes {
+	for k, v := range pipeline.Dag.Nodes {
 		if k == graph.RootNodeID {
 			continue
 		}
@@ -69,7 +69,7 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, p *graph.Pipeline) error
 	}
 
 	for _, n := range root.Children() {
-		go b.processVertex(ctx, p, root, n, errorChan)
+		go b.processVertex(ctx, pipeline, root, n, errorChan)
 	}
 
 	// Block until either:
@@ -87,11 +87,11 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, p *graph.Pipeline) error
 		}
 	}
 
-	if err := b.pushWithRetries(ctx, p.Push); err != nil {
+	if err := b.pushWithRetries(ctx, pipeline.Push); err != nil {
 		return err
 	}
 
-	for k, v := range p.Dag.Nodes {
+	for k, v := range pipeline.Dag.Nodes {
 		if k == graph.RootNodeID {
 			continue
 		}
@@ -116,10 +116,10 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, p *graph.Pipeline) error
 }
 
 // CleanAllBuildSteps cleans up all build steps and removes their corresponding Docker containers.
-func (b *Builder) CleanAllBuildSteps(ctx context.Context, p *graph.Pipeline) {
+func (b *Builder) CleanAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline) {
 	args := []string{"docker", "rm", "-f"}
 
-	for k, v := range p.Dag.Nodes {
+	for k, v := range pipeline.Dag.Nodes {
 		if k == graph.RootNodeID {
 			continue
 		}
@@ -127,16 +127,16 @@ func (b *Builder) CleanAllBuildSteps(ctx context.Context, p *graph.Pipeline) {
 		step := v.Value
 
 		killArgs := append(args, fmt.Sprintf("acb_step_%s", step.ID))
-		_ = b.cmder.Run(ctx, killArgs, nil, nil, nil, "")
+		_ = b.taskManager.Run(ctx, killArgs, nil, nil, nil, "")
 	}
 
-	if err := b.cmder.Stop(); err != nil {
+	if err := b.taskManager.Stop(); err != nil {
 		fmt.Printf("Failed to stop ongoing processes: %v", err)
 	}
 }
 
-func (b *Builder) processVertex(ctx context.Context, p *graph.Pipeline, parent *graph.Node, child *graph.Node, errorChan chan error) {
-	err := p.Dag.RemoveEdge(parent.Name, child.Name)
+func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, parent *graph.Node, child *graph.Node, errorChan chan error) {
+	err := pipeline.Dag.RemoveEdge(parent.Name, child.Name)
 	if err != nil {
 		errorChan <- errors.Wrap(err, "failed to remove edge")
 		return
@@ -223,7 +223,7 @@ func (b *Builder) processVertex(ctx context.Context, p *graph.Pipeline, parent *
 		timeout := time.Duration(step.Timeout) * time.Second
 		currCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		if err := b.cmder.Run(currCtx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
+		if err := b.taskManager.Run(currCtx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
 			step.StepStatus = graph.Failed
 			errorChan <- err
 		} else {
@@ -231,7 +231,7 @@ func (b *Builder) processVertex(ctx context.Context, p *graph.Pipeline, parent *
 
 			// Try to process all child nodes
 			for _, c := range child.Children() {
-				go b.processVertex(ctx, p, child, c, errorChan)
+				go b.processVertex(ctx, pipeline, child, c, errorChan)
 			}
 		}
 
@@ -290,7 +290,7 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 		}
 
 		var buf bytes.Buffer
-		err := b.cmder.Run(ctx, args, nil, &buf, os.Stderr, "")
+		err := b.taskManager.Run(ctx, args, nil, &buf, os.Stderr, "")
 		if err != nil {
 			return err
 		}

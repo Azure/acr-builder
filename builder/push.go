@@ -26,7 +26,7 @@ func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
 		for retry < maxPushRetries {
 			fmt.Printf("Pushing image: %s, attempt %d\n", img, retry+1)
 
-			if err := b.cmder.Run(ctx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
+			if err := b.taskManager.Run(ctx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
 				time.Sleep(500 * time.Millisecond)
 				retry++
 			} else {
