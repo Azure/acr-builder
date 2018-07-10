@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package cli
+package cmd
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/builder"
-	"github.com/Azure/acr-builder/cmder"
 	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/taskmanager"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/volume"
 	"github.com/google/uuid"
@@ -77,7 +77,11 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cmder := cmder.NewCmder(e.dryRun)
+	if err := e.validateCmdArgs(pipeline.Push); err != nil {
+		return err
+	}
+
+	taskManager := taskmanager.NewTaskManager(e.dryRun)
 
 	timeout := time.Duration(pipeline.TotalTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -86,7 +90,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	homeVolName := fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
 	if !e.dryRun {
 		fmt.Printf("Setting up the home volume: %s\n", homeVolName)
-		v := volume.NewVolume(homeVolName, cmder)
+		v := volume.NewVolume(homeVolName, taskManager)
 		if msg, err := v.Create(ctx); err != nil {
 			return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
 		}
@@ -97,10 +101,22 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		}()
 	}
 
-	builder := builder.NewBuilder(cmder, debug, homeVolName)
+	builder := builder.NewBuilder(taskManager, debug, homeVolName)
 	defer builder.CleanAllBuildSteps(context.Background(), pipeline)
 
 	return builder.RunAllBuildSteps(ctx, pipeline)
+}
+
+func (e *execCmd) validateCmdArgs(imgs []string) error {
+	if err := validateRegistryCreds(e.registryUser, e.registryPw); err != nil {
+		return err
+	}
+
+	if err := validatePush(len(imgs) > 0, e.opts.Registry, e.registryUser, e.registryPw); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func combineVals(values []string) (string, error) {

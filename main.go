@@ -4,9 +4,9 @@
 package main
 
 import (
-	"github.com/Azure/acr-builder/cli"
+	"github.com/Azure/acr-builder/cmd"
 )
 
 func main() {
-	cli.Execute()
+	cmd.Execute()
 }
