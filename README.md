@@ -31,7 +31,21 @@ For additional commands, try `make help`.
 ## Requirements
 
 - Docker
-- In order to run `build`, you must create an image called scanner. This image can be built using `docker build -f baseimages/scanner/Dockerfile -t scanner .` at the root of this repository.
+- There are also dependency images that are used throughout the pipeline. Refer to the `baseimages` folder for corresponding Dockerfiles to generate these images, and review the list below for Linux/Windows.
+
+## Linux Images
+
+The following images are required:
+
+- `scanner:linux`
+- `docker-cli:linux`
+- `ubuntu`
+
+## Windows Images
+
+- `scanner:windows`
+- `docker-cli:windows`
+- `microsoft/windowsservercore:1803`
 
 ## CLI
 

@@ -28,7 +28,7 @@ func (b *Builder) setupConfig(ctx context.Context) error {
 		"--volume", homeVol + ":" + homeWorkDir,
 		"--env", homeEnv,
 		"--entrypoint", "powershell",
-		"microsoft/windowsservercore:1803",
+		configImageName,
 		"mkdir ~/.docker; echo \"" + config + "\" > ~/.docker/config.json",
 	}
 

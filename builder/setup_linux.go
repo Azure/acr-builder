@@ -31,7 +31,7 @@ func (b *Builder) setupConfig(ctx context.Context) error {
 		"--volume", homeVol + ":" + homeWorkDir,
 		"--env", homeEnv,
 		"--entrypoint", "bash",
-		"ubuntu",
+		configImageName,
 		"-c", "mkdir -p ~/.docker && cat << EOF > ~/.docker/config.json\n" + config + "\nEOF",
 	}
 

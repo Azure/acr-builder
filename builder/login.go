@@ -35,7 +35,7 @@ func (b *Builder) dockerLogin(ctx context.Context, registry string, user string,
 		"--volume", homeVol + ":" + homeWorkDir,
 		"--env", homeEnv,
 
-		"docker",
+		dockerCLIImageName,
 		"login",
 		"--username", user,
 		"--password-stdin",
