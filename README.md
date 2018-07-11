@@ -22,7 +22,7 @@ $ docker build -f Windows.Dockerfile -t acb:windows .
 
 Using `make`:
 
-```bash
+```sh
 $ make
 ```
 
@@ -49,7 +49,7 @@ The following images are required:
 
 ## CLI
 
-```bash
+```sh
 $ acb --help
 
 Usage:
@@ -70,7 +70,7 @@ See `acb build --help` for a list of all parameters.
 
 Pushing to a registry:
 
-```bash
+```sh
 $ acb build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo "https://github.com/Azure/acr-builder.git"
 ```
 
@@ -78,6 +78,6 @@ $ acb build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo 
 
 See `acb exec --help` for a list of all parameters.
 
-```bash
+```sh
 $ acb exec --steps templating/testdata/helloworld/git-build.toml --values templating/testdata/helloworld/values.toml --id demo -r foo.azurecr.io -u username -p pw
 ```
