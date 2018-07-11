@@ -33,7 +33,7 @@ func (b *Builder) dockerLogin(ctx context.Context, registry string, user string,
 		// Mount home
 		"--volume", util.GetDockerSock(),
 		"--volume", homeVol + ":" + homeWorkDir,
-		"--env", "HOME=" + homeWorkDir,
+		"--env", homeEnv,
 
 		"docker",
 		"login",

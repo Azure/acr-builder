@@ -18,10 +18,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	defaultScannerImage = "scanner"
-)
-
 var (
 	dependenciesRE = regexp.MustCompile(`^(\[{"image.*?\])$`)
 )
@@ -41,7 +37,7 @@ func (b *Builder) getDockerRunArgs(volName string, stepID string, stepWorkDir st
 		// Mount home
 		"--volume", util.GetDockerSock(),
 		"--volume", homeVol+":"+homeWorkDir,
-		"--env", "HOME="+homeWorkDir,
+		"--env", homeEnv,
 
 		"--workdir", normalizeWorkDir(stepWorkDir),
 	)
@@ -60,9 +56,9 @@ func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWo
 
 		// Mount home
 		"--volume", homeVol + ":" + homeWorkDir,
-		"--env", "HOME=" + homeWorkDir,
+		"--env", homeEnv,
 
-		defaultScannerImage,
+		scannerImageName,
 		"scan",
 		"-f", dockerfile,
 		"--destination", outputDir,

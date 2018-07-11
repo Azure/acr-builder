@@ -276,7 +276,7 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 			// Mount home
 			"--volume", builderutil.GetDockerSock(),
 			"--volume", homeVol + ":" + homeWorkDir,
-			"--env", "HOME=" + homeWorkDir,
+			"--env", homeEnv,
 
 			"docker",
 			"inspect",

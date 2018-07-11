@@ -2,14 +2,28 @@
 
 [![Build Status](https://travis-ci.org/Azure/acr-builder.svg?branch=master)](https://travis-ci.org/Azure/acr-builder)
 
-## Building from source
+## Build
 
-Build using `make`:
+Using Docker:
+
+Execute the following commands from the root of the repository.
+
+Linux:
+
+```sh
+$ docker build -f Dockerfile -t acb:linux .
+```
+
+Windows:
+
+```sh
+$ docker build -f Windows.Dockerfile -t acb:windows .
+```
+
+Using `make`:
 
 ```bash
-$ make build
-
-go build -tags "" -ldflags "-w -X acb/version.GITCOMMIT=4fb5952-dirty -X acb/version.VERSION=v1.0.0" -o acb .
+$ make
 ```
 
 For additional commands, try `make help`.

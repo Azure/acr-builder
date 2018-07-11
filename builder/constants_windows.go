@@ -9,4 +9,8 @@ const (
 
 	// containerWorkspaceDir is the default working directory for a container.
 	containerWorkspaceDir = "c:\\workspace"
+
+	scannerImageName = "scanner:windows"
 )
+
+var homeEnv = "USERPROFILE=" + homeWorkDir

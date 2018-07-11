@@ -4,14 +4,24 @@
 
 Using Docker:
 
-```bash
-docker build -f baseimages/scanner/Dockerfile -t scanner .
+Execute the following commands from the root of the repository.
+
+Linux:
+
+```sh
+$ docker build -f baseimages/scanner/Dockerfile -t scanner:linux .
+```
+
+Windows:
+
+```sh
+$ docker build -f baseimages/scanner/Windows.Dockerfile -t scanner:windows .
 ```
 
 Using make:
 
-```bash
-make
+```sh
+$ make
 ```
 
 ### Examples
