@@ -2,14 +2,28 @@
 
 [![Build Status](https://travis-ci.org/Azure/acr-builder.svg?branch=master)](https://travis-ci.org/Azure/acr-builder)
 
-## Building from source
+## Build
 
-Build using `make`:
+Using Docker:
 
-```bash
-$ make build
+Execute the following commands from the root of the repository.
 
-go build -tags "" -ldflags "-w -X acb/version.GITCOMMIT=4fb5952-dirty -X acb/version.VERSION=v1.0.0" -o acb .
+Linux:
+
+```sh
+$ docker build -f Dockerfile -t acb:linux .
+```
+
+Windows:
+
+```sh
+$ docker build -f Windows.Dockerfile -t acb:windows .
+```
+
+Using `make`:
+
+```sh
+$ make
 ```
 
 For additional commands, try `make help`.
@@ -17,11 +31,25 @@ For additional commands, try `make help`.
 ## Requirements
 
 - Docker
-- In order to run `build`, you must create an image called scanner. This image can be built using `docker build -f baseimages/scanner/Dockerfile -t scanner .` at the root of this repository.
+- There are also dependency images that are used throughout the pipeline. Refer to the `baseimages` folder for corresponding Dockerfiles to generate these images, and review the list below for Linux/Windows.
+
+## Linux Images
+
+The following images are required:
+
+- `scanner:linux`
+- `docker-cli:linux`
+- `ubuntu`
+
+## Windows Images
+
+- `scanner:windows`
+- `docker-cli:windows`
+- `microsoft/windowsservercore:1803`
 
 ## CLI
 
-```bash
+```sh
 $ acb --help
 
 Usage:
@@ -42,7 +70,7 @@ See `acb build --help` for a list of all parameters.
 
 Pushing to a registry:
 
-```bash
+```sh
 $ acb build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo "https://github.com/Azure/acr-builder.git"
 ```
 
@@ -50,6 +78,6 @@ $ acb build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u foo -p foo 
 
 See `acb exec --help` for a list of all parameters.
 
-```bash
+```sh
 $ acb exec --steps templating/testdata/helloworld/git-build.toml --values templating/testdata/helloworld/values.toml --id demo -r foo.azurecr.io -u username -p pw
 ```

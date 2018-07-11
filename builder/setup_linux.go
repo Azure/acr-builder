@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Azure/acr-builder/util"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
@@ -30,10 +29,9 @@ func (b *Builder) setupConfig(ctx context.Context) error {
 
 		// Home
 		"--volume", homeVol + ":" + homeWorkDir,
-		"--env", "HOME=" + homeWorkDir,
-		"--volume", util.GetDockerSock(),
+		"--env", homeEnv,
 		"--entrypoint", "bash",
-		"ubuntu",
+		configImageName,
 		"-c", "mkdir -p ~/.docker && cat << EOF > ~/.docker/config.json\n" + config + "\nEOF",
 	}
 

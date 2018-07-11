@@ -34,7 +34,7 @@ The following variables can be accessed using `{{ .Build.VariableName }}`, where
 
 You can execute a pipeline with `exec`. It requires a `--steps` file and optionally a `--values` file. You can also use `--set` to override values specified in `--values`, or to provide new values not covered by `--values`.
 
-```bash
+```sh
 $ acb exec --steps templating/testdata/helloworld/git-build.toml --values templating/testdata/helloworld/values.toml --id demo
 
 ...
@@ -46,7 +46,7 @@ Successfully tagged acr-builder:demo
 
 Templating in `build` works the same as `exec`, except that you don't have to provide a `--steps` file.
 
-```bash
+```sh
 $ acb build https://github.com/Azure/acr-builder.git -f Dockerfile -t "acr-builder:{{.Build.ID}}" --id demo
 
 ...

@@ -25,7 +25,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_DOWNLOAD_URL); \
 	[Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine); \
 	\
 	Write-Host 'Verifying install ...'; \
-	Write-Host '  git --version'; git --version; \
+	Write-Host 'git --version'; git --version; \
 	\
 	Write-Host 'Complete.';
 
@@ -70,7 +70,7 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 FROM environment as scanner
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder\\baseimages\\scanner
 COPY ./ /gopath/src/github.com/Azure/acr-builder
-RUN Write-Host ('Running build' ); \
+RUN Write-Host ('Running build'); \
     go build
 
 # setup the runtime environment

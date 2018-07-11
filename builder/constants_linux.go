@@ -9,4 +9,10 @@ const (
 
 	// containerWorkspaceDir is the default working directory for a container.
 	containerWorkspaceDir = "/workspace"
+
+	scannerImageName   = "scanner:linux"
+	dockerCLIImageName = "docker-cli:linux"
+	configImageName    = "ubuntu"
 )
+
+var homeEnv = "HOME=" + homeWorkDir
