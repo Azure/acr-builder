@@ -1,0 +1,19 @@
+version: "{build}"
+
+clone_folder: c:\gopath\src\github.com\Azure\acr-builder
+
+environment:
+  GOPATH: c:\gopath
+
+install:
+  - set Path=c:\go\bin;c:\gopath\bin;
+  - go version
+  - go env
+
+build: false
+deploy: false
+
+test_script:
+  - go build github.com/Azure/acr-builder
+  - go build github.com/Azure/acr-builder/baseimages/scanner
+  - go test ./...
