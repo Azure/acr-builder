@@ -2,11 +2,8 @@ version: "{build}"
 
 clone_folder: c:\gopath\src\github.com\Azure\acr-builder
 
-# Build host
-
 environment:
   GOPATH: c:\gopath
-  GOVERSION: 1.9
 
 install:
   - set Path=c:\go\bin;c:\gopath\bin;
