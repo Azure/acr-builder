@@ -17,5 +17,6 @@ build: false
 deploy: false
 
 test_script:
-  - go build ./...
+  - go build github.com/Azure/acr-builder
+  - go build github.com/Azure/acr-builder/baseimages/scanner
   - go test ./...
