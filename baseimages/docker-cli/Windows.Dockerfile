@@ -1,5 +1,5 @@
 # Required.
-# docker build -f baseimages/docker.Windows.Dockerfile -t docker-cli:windows .
+# docker build -f baseimages/docker-cli/Windows.Dockerfile -t docker-cli:windows .
 
 ARG WINDOWS_IMAGE=microsoft/windowsservercore:1803
 FROM $WINDOWS_IMAGE as environment
