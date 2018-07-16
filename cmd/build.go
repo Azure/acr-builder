@@ -33,19 +33,20 @@ type buildCmd struct {
 	context         string
 	dockerfile      string
 	target          string
+	registryUser    string
+	registryPw      string
+	isolation       string
+	network         string
+	platform        string
 	tags            []string
 	buildArgs       []string
 	secretBuildArgs []string
 	labels          []string
-	registryUser    string
-	registryPw      string
 	pull            bool
 	noCache         bool
 	push            bool
-	isolation       string
 	oci             bool
 	dryRun          bool
-	network         string
 
 	opts *templating.BaseRenderOptions
 }
@@ -85,6 +86,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringVar(&r.isolation, "isolation", "", "the isolation to use")
 	f.StringVar(&r.network, "network", "", "set the networking mode during build")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
+	f.StringVar(&r.platform, "platform", "", "sets the platform if the server is capable of multiple platforms")
 	f.BoolVar(&r.pull, "pull", false, "attempt to pull a newer version of the base images")
 	f.BoolVar(&r.noCache, "no-cache", false, "true to ignore all cached layers when building the image")
 	f.BoolVar(&r.push, "push", false, "push on success")
@@ -233,6 +235,10 @@ func (b *buildCmd) createRunCmd() string {
 
 	if b.target != "" {
 		args = append(args, "--target", b.target)
+	}
+
+	if b.platform != "" {
+		args = append(args, "--platform", b.platform)
 	}
 
 	args = append(args, b.context)
