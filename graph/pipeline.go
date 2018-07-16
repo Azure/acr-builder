@@ -5,11 +5,12 @@ package graph
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/Azure/acr-builder/util"
+	yaml "gopkg.in/yaml.v2"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/scan"
-	"github.com/BurntSushi/toml"
 	"github.com/pkg/errors"
 )
 
@@ -35,12 +36,12 @@ const (
 
 // Pipeline represents a build pipeline.
 type Pipeline struct {
-	Steps            []*Step   `toml:"step"`
-	StepTimeout      int       `toml:"stepTimeout,omitempty"`
-	TotalTimeout     int       `toml:"totalTimeout,omitempty"`
-	Push             []string  `toml:"push,omitempty"`
-	Secrets          []*Secret `toml:"secrets,omitempty"`
-	WorkDir          string    `toml:"workDir,omitempty"`
+	Steps            []*Step   `yaml:"steps"`
+	StepTimeout      int       `yaml:"stepTimeout,omitempty"`
+	TotalTimeout     int       `yaml:"totalTimeout,omitempty"`
+	Push             []string  `yaml:"push,omitempty"`
+	Secrets          []*Secret `yaml:"secrets,omitempty"`
+	WorkDir          string    `yaml:"workDir,omitempty"`
 	RegistryName     string
 	RegistryUsername string
 	RegistryPassword string
@@ -50,7 +51,7 @@ type Pipeline struct {
 // UnmarshalPipelineFromString unmarshals a pipeline from a raw string.
 func UnmarshalPipelineFromString(data, registry, user, pw string) (*Pipeline, error) {
 	p := &Pipeline{}
-	if _, err := toml.Decode(data, p); err != nil {
+	if err := yaml.Unmarshal([]byte(data), p); err != nil {
 		return p, errors.Wrap(err, "failed to deserialize pipeline")
 	}
 
@@ -60,18 +61,22 @@ func UnmarshalPipelineFromString(data, registry, user, pw string) (*Pipeline, er
 	return p, err
 }
 
-// UnmarshalPipelineFromFile unmarshals a pipeline from a toml file.
+// UnmarshalPipelineFromFile unmarshals a pipeline from a file.
 func UnmarshalPipelineFromFile(file, registry, user, pw string) (*Pipeline, error) {
 	p := &Pipeline{}
 
-	// Early exit if the error is nil
-	if _, err := toml.DecodeFile(file, p); err != nil {
-		return p, errors.Wrap(err, "failed to deserialize pipeline")
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return p, err
+	}
+
+	if err := yaml.Unmarshal([]byte(data), &p); err != nil {
+		return p, err
 	}
 
 	p.setRegistryInfo(registry, user, pw)
 
-	err := p.initialize()
+	err = p.initialize()
 	return p, err
 }
 

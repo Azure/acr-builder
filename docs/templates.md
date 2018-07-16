@@ -6,12 +6,12 @@ Individual builds and pipelines both support templating. Internally we use [Go t
 
 A sample values file looks like this:
 
-```toml
-born = 1867
-first = "Marie"
-last = "Curie"
-research = "radioactivity"
-from = "Poland"
+```yaml
+born: 1867
+first: Marie
+last: Curie
+research: radioactivity
+from: Poland
 ```
 
 When this file is loaded with `--values`, you can reference any of the values using this syntax: `{{ .Values.born }}`, `{{ .Values.research }}`, etc.
@@ -35,7 +35,7 @@ The following variables can be accessed using `{{ .Build.VariableName }}`, where
 You can execute a pipeline with `exec`. It requires a `--steps` file and optionally a `--values` file. You can also use `--set` to override values specified in `--values`, or to provide new values not covered by `--values`.
 
 ```sh
-$ acb exec --steps templating/testdata/helloworld/git-build.toml --values templating/testdata/helloworld/values.toml --id demo
+$ acb exec --steps templating/testdata/helloworld/git-build.yaml --values templating/testdata/helloworld/values.yaml --id demo
 
 ...
 

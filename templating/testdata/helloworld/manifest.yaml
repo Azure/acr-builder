@@ -1,0 +1,15 @@
+steps:
+  - id: git-context
+    run: build -f Dockerfile -t acr-builder:{{.Build.ID}} -t acr-builder:foo https://github.com/Azure/acr-builder.git
+
+  - run: docker push {{.Build.Registry}}/acr-builder:latest
+
+  - run: docker push {{.Build.Registry}}/acr-builder:{{.Build.ID}}
+
+  - run: docker push {{.Build.Registry}}/acr-builder:foo
+
+  - run: docker manifest create --amend {{.Build.Registry}}/acr-builder:latest {{.Build.Registry}}/acr-builder:{{.Build.ID}} {{.Build.Registry}}/acr-builder:foo
+
+  - run: docker manifest annotate {{.Build.Registry}}/acr-builder:latest {{.Build.Registry}}/acr-builder:{{.Build.ID}} --os linux --arch amd64
+
+  - run: docker manifest push {{.Build.Registry}}/acr-builder

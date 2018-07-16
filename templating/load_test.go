@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	thamesValuesPath = "testdata/thames/values.toml"
-	thamesPath       = "testdata/thames/thames.toml"
+	thamesValuesPath = "testdata/thames/values.yaml"
+	thamesPath       = "testdata/thames/thames.yaml"
 )
 
 // TestLoadConfig tests loading a Config.

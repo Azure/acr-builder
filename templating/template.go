@@ -5,8 +5,8 @@ package templating
 
 // Template represents a template.
 type Template struct {
-	Name string `json:"name,omitempty"`
-	Data []byte `json:"data,omitempty"`
+	Name string
+	Data []byte
 }
 
 // GetName returns a Template's name.

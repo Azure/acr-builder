@@ -5,8 +5,8 @@ package templating
 
 // Config represents configuration values.
 type Config struct {
-	RawValue string            `json:"rawValue,omitempty"`
-	Values   map[string]*Value `json:"values,omitempty"`
+	RawValue string
+	Values   map[string]*Value
 }
 
 // GetRawValue returns the Config's value as a string.
@@ -32,7 +32,7 @@ func (c *Config) IsValidConfig() bool {
 
 // Value represents a configuration value.
 type Value struct {
-	Value string `json:"value,omitempty"`
+	Value string
 }
 
 // GetValue returns the Value's value.

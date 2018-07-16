@@ -4,29 +4,27 @@
 package templating
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 
 	"github.com/Azure/acr-builder/util"
-	"github.com/BurntSushi/toml"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Values represents a map of build values.
 type Values map[string]interface{}
 
-// ToTOMLString encodes the Values object into a TOML string.
-func (v Values) ToTOMLString() (string, error) {
-	var buf bytes.Buffer
-	err := toml.NewEncoder(&buf).Encode(v)
-	return buf.String(), err
+// ToYAMLString encodes the Values object into a YAML string.
+func (v Values) ToYAMLString() (string, error) {
+	b, err := yaml.Marshal(v)
+	return string(b), err
 }
 
 // Deserialize will convert the specified bytes to a Values object.
 func Deserialize(b []byte) (v Values, err error) {
 	v = Values{}
-	_, err = toml.Decode(string(b), &v)
+	err = yaml.Unmarshal(b, &v)
 	if len(v) == 0 {
 		v = Values{}
 	}
@@ -43,7 +41,7 @@ func DeserializeFromFile(fileName string) (Values, error) {
 	return Deserialize(b)
 }
 
-// OverrideValues overrides the Values of a job.
+// OverrideValues overrides the first config with the second.
 func OverrideValues(c1 *Config, c2 *Config) (Values, error) {
 	merged := Values{}
 

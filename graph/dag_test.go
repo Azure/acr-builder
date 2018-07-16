@@ -10,7 +10,7 @@ import (
 
 // TestDagCreation_ValidFile tests that a valid DAG is created from a file.
 func TestDagCreation_ValidFile(t *testing.T) {
-	pipeline, err := UnmarshalPipelineFromFile("testdata/rally.toml", "", "", "")
+	pipeline, err := UnmarshalPipelineFromFile("testdata/rally.yaml", "", "", "")
 	if err != nil {
 		t.Fatalf("Failed to create pipeline from file. Err: %v", err)
 	}

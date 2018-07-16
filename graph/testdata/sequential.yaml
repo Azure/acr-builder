@@ -1,0 +1,11 @@
+stepTimeout: 30
+totalTimeout: 90
+push: [push1, push2, push3]
+
+secrets:
+  - akv: someAKV
+    secretEnv: someAkvSecretEnv
+
+steps:
+  - timeout: 5
+    run: build -f Dockerfile -t foo:bar https://github.com/Azure/acr-builder.git

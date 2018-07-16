@@ -1,4 +1,0 @@
-# This template demonstrates a single-step build which builds from a tar.
-
-[[step]]
-run = "build https://acrbuild.blob.core.windows.net/public/aspnetcore-helloworld.tar.gz -f HelloWorld/Dockerfile -t aspnetcore:{{.Build.ID}}"
