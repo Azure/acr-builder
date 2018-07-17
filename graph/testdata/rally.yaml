@@ -22,6 +22,7 @@ steps:
     run: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu
     when: ["-"]
     rm: false
+    detach: true
 
   - id: C
     run: blah

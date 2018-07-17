@@ -35,6 +35,7 @@ type Step struct {
 	ExitedWith    []int    `yaml:"exitedWith"`
 	ExitedWithout []int    `yaml:"exitedWithout"`
 	Rm            bool     `yaml:"rm"`
+	Detach        bool     `yaml:"detach"`
 
 	StartTime  time.Time
 	EndTime    time.Time
@@ -82,6 +83,7 @@ func (s *Step) Equals(t *Step) bool {
 
 	if s.ID != t.ID ||
 		s.Rm != t.Rm ||
+		s.Detach != t.Detach ||
 		s.Run != t.Run ||
 		s.WorkDir != t.WorkDir ||
 		s.EntryPoint != t.EntryPoint ||

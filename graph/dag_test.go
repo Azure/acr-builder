@@ -70,6 +70,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		When:       []string{ImmediateExecutionToken},
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
+		Detach:     true,
 	}
 
 	qazStep := &Step{
