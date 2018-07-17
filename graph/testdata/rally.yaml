@@ -27,6 +27,9 @@ steps:
   - id: C
     run: blah
     when: ["-"]
+    ports:
+      - "8000:8000"
+      - "8080:8080"
     exitedWith: [0, 1, 2, 3, 4]
     rm: true
 

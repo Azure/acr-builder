@@ -196,11 +196,11 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 				}
 			}
 
-			args = b.getDockerRunArgs(volName, step.ID, stepWorkingDir, step.Rm, step.Detach)
+			args = b.getDockerRunArgs(volName, step.ID, stepWorkingDir, step.Ports, step.Rm, step.Detach)
 			args = append(args, "docker")
 			args = append(args, strings.Fields(step.Run)...)
 		} else {
-			args = b.getDockerRunArgs(b.workspaceDir, step.ID, step.WorkDir, step.Rm, step.Detach)
+			args = b.getDockerRunArgs(b.workspaceDir, step.ID, step.WorkDir, step.Ports, step.Rm, step.Detach)
 			for _, env := range step.Envs {
 				args = append(args, "--env", env)
 			}

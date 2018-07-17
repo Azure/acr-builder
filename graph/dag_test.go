@@ -34,6 +34,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		When:       []string{ImmediateExecutionToken},
 		ExitedWith: []int{0, 1, 2, 3, 4},
 		StepStatus: Skipped,
+		Ports:      []string{"8000:8000", "8080:8080"},
 		Timeout:    defaultStepTimeoutInSeconds,
 		Rm:         true,
 	}
