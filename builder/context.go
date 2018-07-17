@@ -23,7 +23,7 @@ var (
 )
 
 // getDockerRunArgs populates the args for running a Docker container.
-func (b *Builder) getDockerRunArgs(volName string, stepID string, stepWorkDir string) []string {
+func (b *Builder) getDockerRunArgs(volName string, stepID string, stepWorkDir string, rmContainer bool) []string {
 	args := []string{"docker", "run"}
 
 	if rmContainer {
