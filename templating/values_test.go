@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	curiePath     = "testdata/curie/curie.toml"
-	curieValsPath = "testdata/curie/values.toml"
+	curiePath     = "testdata/curie/curie.yaml"
+	curieValsPath = "testdata/curie/values.yaml"
 
 	eCurieFirst    = "Marie"
 	eCurieLast     = "Curie"
@@ -25,13 +25,12 @@ const (
 // TestDeserialize tests deserialization of bytes to Values.
 func TestDeserialize(t *testing.T) {
 	data := `# TestDeserialize
-title = "A grocery list"
-fruits = ["banana", "apple", "pear"]
-
-[fruit]
-  [fruit.fruit]
-	nested = "star"
-	fruit = "nested"
+title: A grocery list
+fruits: [banana, apple, pear]
+fruit:
+  fruit:
+    nested: star
+    fruit: nested
 `
 	v, err := Deserialize([]byte(data))
 	if err != nil {
@@ -43,7 +42,7 @@ fruits = ["banana", "apple", "pear"]
 
 // TestDeserializeFromFile tests deserialization of a file to Values.
 func TestDeserializeFromFile(t *testing.T) {
-	v, err := DeserializeFromFile("./testdata/fruits.toml")
+	v, err := DeserializeFromFile("./testdata/fruits.yaml")
 	if err != nil {
 		t.Fatalf("Failed to read file. Err: %v", err)
 	}
@@ -51,16 +50,16 @@ func TestDeserializeFromFile(t *testing.T) {
 	matchFruits(t, v)
 }
 
-// TestToTOMLString converts a string to TOML.
-func TestToTOMLString(t *testing.T) {
+// TestToYAMLString converts a string to YAML.
+func TestToYAMLString(t *testing.T) {
 	vals := Values{"id": true, "hello": 1, "someString": "something"}
-	expected := `hello = 1
-id = true
-someString = "something"
+	expected := `hello: 1
+id: true
+someString: something
 `
-	out, err := vals.ToTOMLString()
+	out, err := vals.ToYAMLString()
 	if err != nil {
-		t.Fatalf("Failed to convert to TOML string. Err: %v", err)
+		t.Fatalf("Failed to convert to YAML string. Err: %v", err)
 	}
 
 	if expected != out {
@@ -68,7 +67,7 @@ someString = "something"
 	}
 }
 
-// TestOverrideValues ensures that values.toml overrides the default data successfully.
+// TestOverrideValues ensures that values file overrides the default data successfully.
 func TestOverrideValues(t *testing.T) {
 	c1, err := LoadConfig(curiePath)
 	if err != nil {

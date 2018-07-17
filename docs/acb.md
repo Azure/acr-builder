@@ -2,21 +2,21 @@
 
 A pipeline config consists of steps. Each step is tailored to an independent container and describes how the pipeline can interact with the container.
 
-```toml
+```yaml
 # An example Step
 ## A Step describes how to interact with a container.
 ## It consists of the following properties:
 
-id = string (required)
-run = string (required)
-workDir = string (optional)
-entryPoint = string (optional)
-envs = [string, string, ...] (optional)
-secretEnvs = [string, string, ...] (optional)
-timeout = string (Go Duration format) (optional)
-when = [string, string, ...] (optional)
-exitedWith = [int, int, ...] (optional)
-exitedWithout = [int, int, ...](optional)
+id: string (optional)
+run: string (required)
+workDir: string (optional)
+entryPoint: string (optional)
+envs: [string, string, ...] (optional)
+secretEnvs: [string, string, ...] (optional)
+timeout: int (in seconds) (optional)
+when: [string, string, ...] (optional)
+exitedWith: [int, int, ...] (optional)
+exitedWithout: [int, int, ...](optional)
 ```
 
 For details on each specific property in a Step, follow these links:
@@ -38,26 +38,24 @@ Azure Container Builder can freely flow and manipulate context between Steps. It
 
 ## Putting the pieces together
 
-Azure Container Builder is able to chain steps together to allow parallel and sequential execution from an `acb.toml` template. It does this by creating a consistent DAG based on all Steps' `when` property. Unless `when` is specified as `-` it will not execute steps in parallel, it will assume all steps should proceed sequentially. In order for a Step B to block for a Step A in a sequential matter, it should use `when: ['A']`. Azure Container Builder reproduces the same DAG in a deterministic manner.
+Azure Container Builder is able to chain steps together to allow parallel and sequential execution from an `acb.yaml` template. It does this by creating a consistent DAG based on all Steps' `when` property. Unless `when` is specified as `-` it will not execute steps in parallel, it will assume all steps should proceed sequentially. In order for a Step B to block for a Step A in a sequential matter, it should use `when: ['A']`. Azure Container Builder reproduces the same DAG in a deterministic manner.
 
-```toml
-stepTimeout = int (optional)
-totalTimeout = int (optional)
-push = [string, string, ...]
+```yaml
+stepTimeout: int (optional)
+totalTimeout: int (optional)
+push: [string, string, ...]
 
-[[step]]
-id = "..."
-
-[[step]]
+steps:
+  - id: someID
 
 ...
 
-[[secrets]]
-akv = string (optional)
-secretEnv = string (optional)
+secrets:
+  - akv: string (optional)
+    secretEnv: string (optional)
 ```
 
-For details on specific properties in the `acb.toml`, review the following properties:
+For details on specific properties in the `acb.yaml`, review the following properties:
 
 - [secrets](#secrets)
 - [stepTimeout](#steptimeout)
@@ -106,7 +104,7 @@ The `run` property of a step specifies which image to use when running the opera
 
 `exitedWithout` can be used to trigger a task when previous steps exited without one or more of the specified exit codes.
 
-## `acb.toml` Properties
+## `acb.yaml` Properties
 
 ### secrets
 

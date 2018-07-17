@@ -24,16 +24,16 @@ var (
 
 // Step is a step in the execution pipeline.
 type Step struct {
-	ID            string   `toml:"id"`
-	Run           string   `toml:"run"`
-	WorkDir       string   `toml:"workDir"`
-	EntryPoint    string   `toml:"entryPoint"`
-	Envs          []string `toml:"envs"`
-	SecretEnvs    []string `toml:"secretEnvs"`
-	Timeout       int      `toml:"timeout"`
-	When          []string `toml:"when"`
-	ExitedWith    []int    `toml:"exitedWith"`
-	ExitedWithout []int    `toml:"exitedWithout"`
+	ID            string   `yaml:"id"`
+	Run           string   `yaml:"run"`
+	WorkDir       string   `yaml:"workDir"`
+	EntryPoint    string   `yaml:"entryPoint"`
+	Envs          []string `yaml:"envs"`
+	SecretEnvs    []string `yaml:"secretEnvs"`
+	Timeout       int      `yaml:"timeout"`
+	When          []string `yaml:"when"`
+	ExitedWith    []int    `yaml:"exitedWith"`
+	ExitedWithout []int    `yaml:"exitedWithout"`
 
 	StartTime  time.Time
 	EndTime    time.Time

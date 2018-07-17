@@ -1,0 +1,12 @@
+born: 1867
+first: Marie
+last: Curie
+research: radioactivity
+from: Poland
+
+awards:
+  - id: Nobel Prize in Physics
+
+  - id: Davy Medal
+
+  - id: Albert Medal

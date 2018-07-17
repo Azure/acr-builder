@@ -1,8 +1,0 @@
-# TestDeserialize
-title = "A grocery list"
-fruits = ["banana", "apple", "pear"]
-
-[fruit]
-  [fruit.fruit]
-    nested = "star"
-    fruit = "nested"

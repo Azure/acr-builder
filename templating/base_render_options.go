@@ -119,5 +119,5 @@ func combineVals(values []string) (string, error) {
 		ret[s[0]] = s[1]
 	}
 
-	return ret.ToTOMLString()
+	return ret.ToYAMLString()
 }

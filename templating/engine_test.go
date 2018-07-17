@@ -44,8 +44,8 @@ func TestRenderMath(t *testing.T) {
 
 	c1 := &Config{
 		RawValue: `
-foo = 5
-bar = 10
+foo: 5
+bar: 10
 `,
 	}
 	c2 := &Config{}
@@ -75,8 +75,8 @@ func makeTestTemplate(name string) *Template {
 func makeDefaultTestConfig() *Config {
 	return &Config{
 		RawValue: `
-description = "this will be overridden"
-jobName = "this will be overridden"
+description: this will be overridden
+jobName: this will be overridden
 `,
 	}
 }
@@ -84,8 +84,8 @@ jobName = "this will be overridden"
 func makeTestConfig() *Config {
 	return &Config{
 		RawValue: `
-description = "THIS IS a FRuiT JoB"
-jobName = "FRUITJOB"
+description: THIS IS a FRuiT JoB
+jobName: FRUITJOB
 `,
 	}
 }
