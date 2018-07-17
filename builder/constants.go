@@ -12,8 +12,6 @@ const (
 	// DockerHubRegistry is the docker hub registry
 	DockerHubRegistry = "registry.hub.docker.com"
 
-	rmContainer = true
-
 	// homeVol is the volume to manage $HOME
 	homeVol = "home"
 )

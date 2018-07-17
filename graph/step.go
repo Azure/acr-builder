@@ -30,10 +30,13 @@ type Step struct {
 	EntryPoint    string   `yaml:"entryPoint"`
 	Envs          []string `yaml:"envs"`
 	SecretEnvs    []string `yaml:"secretEnvs"`
-	Timeout       int      `yaml:"timeout"`
+	Ports         []string `yaml:"ports"`
 	When          []string `yaml:"when"`
 	ExitedWith    []int    `yaml:"exitedWith"`
 	ExitedWithout []int    `yaml:"exitedWithout"`
+	Timeout       int      `yaml:"timeout"`
+	Rm            bool     `yaml:"rm"`
+	Detach        bool     `yaml:"detach"`
 
 	StartTime  time.Time
 	EndTime    time.Time
@@ -80,9 +83,12 @@ func (s *Step) Equals(t *Step) bool {
 	}
 
 	if s.ID != t.ID ||
+		s.Rm != t.Rm ||
+		s.Detach != t.Detach ||
 		s.Run != t.Run ||
 		s.WorkDir != t.WorkDir ||
 		s.EntryPoint != t.EntryPoint ||
+		!util.StringSequenceEquals(s.Ports, t.Ports) ||
 		!util.StringSequenceEquals(s.Envs, t.Envs) ||
 		!util.StringSequenceEquals(s.SecretEnvs, t.SecretEnvs) ||
 		s.Timeout != t.Timeout ||
