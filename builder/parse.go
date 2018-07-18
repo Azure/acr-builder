@@ -19,7 +19,6 @@ func parseDockerBuildCmd(cmd string) (dockerfile string, context string) {
 	dockerfile = "Dockerfile"
 	context = "."
 
-	// TODO: support reading from stdin?
 	for i := 1; i < len(fields); i++ {
 		v := fields[i]
 

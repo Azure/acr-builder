@@ -22,8 +22,6 @@ func TestParseDockerBuildCmd(t *testing.T) {
 		{5, "build --file src/Dockerfile . -t foo:bar", "src/Dockerfile", "."},
 		{6, "build -f src/Dockerfile .", "src/Dockerfile", "."},
 		{7, "build -t foo https://github.com/Azure/acr-builder.git#:HelloWorld", "Dockerfile", "https://github.com/Azure/acr-builder.git#:HelloWorld"},
-		// TODO: support reading from stdin?
-		// {7, "build - < Dockerfile", "Dockerfile", "-"},
 	}
 
 	for _, test := range tests {
