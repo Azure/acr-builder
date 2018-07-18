@@ -17,7 +17,7 @@ import (
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	"github.com/Azure/acr-builder/baseimages/scanner/util"
 	"github.com/Azure/acr-builder/graph"
-	"github.com/Azure/acr-builder/taskmanager"
+	"github.com/Azure/acr-builder/pkg/taskmanager"
 	builderutil "github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

@@ -12,7 +12,7 @@ import (
 
 	"github.com/Azure/acr-builder/builder"
 	"github.com/Azure/acr-builder/graph"
-	"github.com/Azure/acr-builder/taskmanager"
+	"github.com/Azure/acr-builder/pkg/taskmanager"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/volume"
 	"github.com/google/uuid"

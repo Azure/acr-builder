@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
-	"github.com/Azure/acr-builder/taskmanager"
+	"github.com/Azure/acr-builder/pkg/taskmanager"
 )
 
 // Scanner scans Dockerfiles.

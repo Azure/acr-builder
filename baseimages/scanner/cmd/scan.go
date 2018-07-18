@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package cli
+package cmd
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/scan"
-	"github.com/Azure/acr-builder/taskmanager"
+	"github.com/Azure/acr-builder/pkg/taskmanager"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
