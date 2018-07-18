@@ -31,6 +31,7 @@ type scanCmd struct {
 	timeout           int
 	destinationFolder string
 	cleanup           bool
+	dryRun            bool
 }
 
 func newScanCmd(out io.Writer) *cobra.Command {
@@ -59,6 +60,7 @@ func newScanCmd(out io.Writer) *cobra.Command {
 	f.StringArrayVar(&s.buildArgs, "build-arg", []string{}, "set build time arguments")
 	f.IntVar(&s.timeout, "timeout", 60, "maximum execution time (in seconds)")
 	f.StringVar(&s.destinationFolder, "destination", "temp", "the destination folder to save context")
+	f.BoolVar(&s.dryRun, "dry-run", false, "evaluates the command but doesn't execute it")
 	f.BoolVar(&s.cleanup, "cleanup", false, "delete the destination folder after running")
 	return cmd
 }
@@ -75,7 +77,7 @@ func (s *scanCmd) run(cmd *cobra.Command, args []string) error {
 		}()
 	}
 
-	tm := taskmanager.NewTaskManager(false)
+	tm := taskmanager.NewTaskManager(s.dryRun)
 
 	scanner := scan.NewScanner(tm, s.context, s.dockerfile, s.destinationFolder, s.buildArgs, s.tags, debug)
 	deps, err := scanner.Scan(ctx)
