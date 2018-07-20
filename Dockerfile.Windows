@@ -66,6 +66,26 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 	\
 	Write-Host 'Complete.';
 
+# Setup Windows Credential helper.
+
+ENV WINDOWS_CRED_HELPER_VERSION v0.6.0
+ENV WINDOWS_CRED_HELPER_URL https://github.com/docker/docker-credential-helpers/releases/download/${WINDOWS_CRED_HELPER_VERSION}/docker-credential-wincred-${WINDOWS_CRED_HELPER_VERSION}-amd64.zip
+
+RUN [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
+	Invoke-WebRequest -Uri $env:WINDOWS_CRED_HELPER_URL -OutFile 'wincred.zip'; \	
+	\
+	Write-Host 'Expanding WINCRED ZIP...'; \
+	Expand-Archive -Path wincred.zip -DestinationPath C:\wincred\.; \
+	\
+	Write-Host 'Removing WINCRED ZIP ...'; \
+	Remove-Item wincred.zip -Force; \
+	\
+	Write-Host 'Updating PATH with WINCRED helper...'; \
+	$env:PATH = 'C:\wincred;' + $env:PATH; \
+	[Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine); \
+	\
+	Write-Host 'Windows Credential Helper setup Complete.';
+
 # Build the docker executable
 FROM environment as dockercli
 ARG DOCKER_CLI_LKG_COMMIT=c98c4080a323fb0e4fdf7429d8af4e2e946d09b5
@@ -92,7 +112,7 @@ COPY --from=builder /gopath/src/github.com/Azure/acr-builder/acr-builder.exe c:/
 RUN setx /M PATH $('c:\acr-builder;c:\docker;{0}' -f $env:PATH); \
     # Update Docker CLI config and set X-Meta-Source-Client header to ACR-BUILDER
 	New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\\.docker"; \
-	'{"HttpHeaders":{"X-Meta-Source-Client":"ACR-BUILDER"}}' | Out-File -FilePath "$env:USERPROFILE\\.docker\\config.json"
+	'{\"HttpHeaders\":{\"X-Meta-Source-Client\":\"ACR-BUILDER\"}, \"credsStore\": \"wincred\"}' | Out-File -FilePath "$env:USERPROFILE\\.docker\\config.json -Encoding ASCII"
 
 ENTRYPOINT ["acr-builder.exe"]
 CMD []
