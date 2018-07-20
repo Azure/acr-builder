@@ -27,7 +27,6 @@ func Execute() {
 }
 
 func newRootCmd(args []string) *cobra.Command {
-
 	cmd := &cobra.Command{
 		Use:          "scanner",
 		Short:        "The dependency scanner for Azure Container Registry (ACR)",

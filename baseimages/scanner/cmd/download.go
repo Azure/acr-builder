@@ -35,7 +35,7 @@ func newDownloadCmd(out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "download [OPTIONS] PATH | URL",
-		Short: "Download the specified context",
+		Short: "Download the specified context to a destination folder",
 		Long:  scanLongDesc,
 		RunE:  d.run,
 		Args: func(cmd *cobra.Command, args []string) error {

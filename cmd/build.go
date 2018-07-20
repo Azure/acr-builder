@@ -19,8 +19,6 @@ import (
 	"github.com/Azure/acr-builder/volume"
 	"github.com/google/uuid"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +36,7 @@ type buildCmd struct {
 	isolation       string
 	network         string
 	platform        string
+	homeVol         string
 	tags            []string
 	buildArgs       []string
 	secretBuildArgs []string
@@ -87,6 +86,8 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringVar(&r.network, "network", "", "set the networking mode during build")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
 	f.StringVar(&r.platform, "platform", "", "sets the platform if the server is capable of multiple platforms")
+	f.StringVar(&r.homeVol, "homevol", "", "the home volume to use")
+
 	f.BoolVar(&r.pull, "pull", false, "attempt to pull a newer version of the base images")
 	f.BoolVar(&r.noCache, "no-cache", false, "true to ignore all cached layers when building the image")
 	f.BoolVar(&r.push, "push", false, "push on success")
@@ -94,10 +95,6 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.BoolVar(&r.dryRun, "dry-run", false, "evaluates the build but doesn't execute it")
 
 	AddBaseRenderingOptions(f, r.opts, cmd, false)
-
-	if debug {
-		logrus.SetLevel(logrus.DebugLevel)
-	}
 
 	return cmd
 }
@@ -155,19 +152,27 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	homeVolName := fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
-	if !b.dryRun {
-		fmt.Printf("Setting up the home volume: %s...\n", homeVolName)
-		v := volume.NewVolume(homeVolName, taskManager)
-		if msg, err := v.Create(ctx); err != nil {
-			return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
-		}
-		defer func() {
-			if msg, err := v.Delete(ctx); err != nil {
-				fmt.Printf("Failed to clean up docker vol: %s. Msg: %s, Err: %v\n", homeVolName, msg, err)
+	homeVolName := ""
+	if b.homeVol == "" {
+		homeVolName = fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
+		if !b.dryRun {
+			v := volume.NewVolume(homeVolName, taskManager)
+			if msg, err := v.Create(ctx); err != nil {
+				return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
 			}
-		}()
+			defer func() {
+				if msg, err := v.Delete(ctx); err != nil {
+					fmt.Printf("Failed to clean up docker vol: %s. Msg: %s, Err: %v\n", homeVolName, msg, err)
+				} else {
+					fmt.Println("Successfully cleaned up volume")
+				}
+			}()
+		}
+	} else {
+		homeVolName = b.homeVol
 	}
+
+	fmt.Printf("Using %s as the home volume\n", homeVolName)
 
 	builder := builder.NewBuilder(taskManager, debug, homeVolName)
 	defer builder.CleanAllBuildSteps(context.Background(), pipeline)

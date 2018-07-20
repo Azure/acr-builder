@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/Azure/acr-builder/builder"
@@ -29,6 +28,7 @@ type execCmd struct {
 
 	registryUser string
 	registryPw   string
+	homeVol      string
 
 	opts *templating.BaseRenderOptions
 }
@@ -50,6 +50,7 @@ func newExecCmd(out io.Writer) *cobra.Command {
 
 	f.StringVarP(&e.registryUser, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&e.registryPw, "password", "p", "", "the password to use when logging into the registry")
+	f.StringVar(&e.homeVol, "homevol", "", "the home volume to use")
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the pipeline but doesn't execute it")
 
 	AddBaseRenderingOptions(f, e.opts, cmd, true)
@@ -87,20 +88,27 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	homeVolName := fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
-	if !e.dryRun {
-		fmt.Printf("Setting up the home volume: %s\n", homeVolName)
-		v := volume.NewVolume(homeVolName, taskManager)
-		if msg, err := v.Create(ctx); err != nil {
-			return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
-		}
-		defer func() {
-			if msg, err := v.Delete(ctx); err != nil {
-				fmt.Printf("Failed to clean up docker vol: %s. Msg: %s, Err: %v\n", homeVolName, msg, err)
+	homeVolName := ""
+	if e.homeVol == "" {
+		homeVolName = fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
+		if !e.dryRun {
+			v := volume.NewVolume(homeVolName, taskManager)
+			if msg, err := v.Create(ctx); err != nil {
+				return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
 			}
-		}()
+			defer func() {
+				if msg, err := v.Delete(ctx); err != nil {
+					fmt.Printf("Failed to clean up docker vol: %s. Msg: %s, Err: %v\n", homeVolName, msg, err)
+				} else {
+					fmt.Println("Successfully cleaned up volume")
+				}
+			}()
+		}
+	} else {
+		homeVolName = e.homeVol
 	}
 
+	fmt.Printf("Using %s as the home volume\n", homeVolName)
 	builder := builder.NewBuilder(taskManager, debug, homeVolName)
 	defer builder.CleanAllBuildSteps(context.Background(), pipeline)
 
@@ -117,17 +125,4 @@ func (e *execCmd) validateCmdArgs(imgs []string) error {
 	}
 
 	return nil
-}
-
-func combineVals(values []string) (string, error) {
-	ret := templating.Values{}
-	for _, v := range values {
-		s := strings.Split(v, "=")
-		if len(s) != 2 {
-			return "", fmt.Errorf("failed to parse --set data: %s", v)
-		}
-		ret[s[0]] = s[1]
-	}
-
-	return ret.ToYAMLString()
 }

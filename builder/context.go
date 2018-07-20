@@ -45,7 +45,7 @@ func (b *Builder) getDockerRunArgs(
 	}
 
 	args = append(args,
-		"--name", fmt.Sprintf("acb_step_%s", stepID),
+		"--name", stepID,
 		"--volume", volName+":"+containerWorkspaceDir,
 
 		// Mount home

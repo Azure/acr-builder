@@ -41,7 +41,7 @@ const (
 func (s *Scanner) ObtainSourceCode(ctx context.Context, context string) (workingDir string, sha string, sourceType DockerSourceType, err error) {
 	sourceType, workingDir, err = s.getContext(ctx, context)
 	if err != nil {
-		return workingDir, sha, sourceType, errors.Wrap(err, "failed to obtain source code")
+		return workingDir, sha, sourceType, err
 	}
 
 	if sourceType == dockerSourceGit {
@@ -83,7 +83,7 @@ func (s *Scanner) getContextFromGitURL(gitURL string) (contextDir string, err er
 	}
 	contextDir, err = Clone(gitURL, s.destinationFolder)
 	if err != nil {
-		return contextDir, errors.Wrapf(err, "unable to git clone to a temporary context directory")
+		return contextDir, errors.Wrapf(err, "unable to git clone to %s", s.destinationFolder)
 	}
 
 	return contextDir, err

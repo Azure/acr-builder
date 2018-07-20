@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -126,7 +125,7 @@ func (b *Builder) CleanAllBuildSteps(ctx context.Context, pipeline *graph.Pipeli
 
 		step := v.Value
 
-		killArgs := append(args, fmt.Sprintf("acb_step_%s", step.ID))
+		killArgs := append(args, step.ID)
 		_ = b.taskManager.Run(ctx, killArgs, nil, nil, nil, "")
 	}
 
@@ -156,28 +155,6 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 		if strings.HasPrefix(step.Run, "build ") {
 			dockerfile, context := parseDockerBuildCmd(step.Run)
 			volName := b.workspaceDir
-			stepWorkingDir := step.ID
-
-			// If we run `build` (not `exec` for a pipeline) and the context is local,
-			// we get the absolute filepath of the context they provided and volume map
-			// the host's filesystem according to the context.
-			if util.IsLocalContext(context) {
-				if step.UseLocalContext {
-					path, err := filepath.Abs(context)
-					if err != nil {
-						errorChan <- errors.Wrap(err, "failed to normalize local context")
-						return
-					}
-					volName = filepath.Clean(path)
-
-					// Other steps end up in an output directory which matches the step's ID,
-					// but in this case there's no output directory.
-					stepWorkingDir = ""
-				} else {
-					// A local pipeline re-uses a volume.
-					stepWorkingDir = step.WorkDir
-				}
-			}
 
 			deps, err := b.scrapeDependencies(ctx, volName, step.WorkDir, step.ID, dockerfile, context, step.Tags, step.BuildArgs)
 			if err != nil {
@@ -196,7 +173,9 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 				}
 			}
 
-			args = b.getDockerRunArgs(volName, step.ID, stepWorkingDir, step.Ports, step.Rm, step.Detach)
+			// NB: use step.ID as the working directory since we obtained the source code from
+			// the scanner at this location.
+			args = b.getDockerRunArgs(volName, step.ID, step.ID, step.Ports, true, step.Detach)
 			args = append(args, "docker")
 			args = append(args, strings.Fields(step.Run)...)
 		} else {
