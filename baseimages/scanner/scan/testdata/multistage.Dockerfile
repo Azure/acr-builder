@@ -1,5 +1,5 @@
 # This dockerfile is just a test resource and is not buildable
-ARG runtime_version=2.0.6
+ARG runtime_version="2.0.6"
 FROM microsoft/aspnetcore:${runtime_version} AS base
 WORKDIR /app
 EXPOSE 80

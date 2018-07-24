@@ -238,5 +238,13 @@ func parseAssignment(in string) (string, string, error) {
 	if len(values) != 2 {
 		return "", "", fmt.Errorf("%s cannot be split into 2 tokens with '='", in)
 	}
-	return values[0], values[1], nil
+
+	val := removeSurroundingQuotes(values[1])
+
+	return values[0], val, nil
+}
+
+// removeSurroundingQuotes removes all surrounding quotes.
+func removeSurroundingQuotes(s string) string {
+	return strings.Trim(s, `"`)
 }

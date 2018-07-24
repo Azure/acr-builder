@@ -20,7 +20,7 @@ func TestResolveDockerfileDependencies(t *testing.T) {
 		"imaginary/cert-generator:1.0":                true,
 	}
 
-	path := filepath.Join("testdata", "multistage-dep-dockerfile")
+	path := filepath.Join("testdata", "multistage.Dockerfile")
 	args := []string{fmt.Sprintf("build_image=%s", buildImg), fmt.Sprintf("build_version=%s", ver)}
 
 	runtimeDep, buildDeps, err := ResolveDockerfileDependencies(path, args)
@@ -39,4 +39,27 @@ func TestResolveDockerfileDependencies(t *testing.T) {
 		}
 	}
 
+}
+
+func TestRemoveSurroundingQuotes(t *testing.T) {
+	tests := []struct {
+		in       string
+		expected string
+	}{
+		{`"hello""world"`, `hello""world`},
+		{`"""hello"""`, `hello`},
+		{`"hello""world"`, `hello""world`},
+		{`"`, ``},
+		{`"""""`, ``},
+		{`"hello`, `hello`},
+		{`hello"`, `hello`},
+		{`hello`, `hello`},
+		{`hel"lo`, `hel"lo`},
+	}
+
+	for _, test := range tests {
+		if actual := removeSurroundingQuotes(test.in); actual != test.expected {
+			t.Errorf("expected %s but got %s", test.expected, actual)
+		}
+	}
 }
