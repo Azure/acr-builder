@@ -11,13 +11,13 @@ Execute the following commands from the root of the repository.
 Linux:
 
 ```sh
-$ docker build -f Dockerfile -t acb:linux .
+$ docker build -f Dockerfile -t acb .
 ```
 
 Windows:
 
 ```sh
-$ docker build -f Windows.Dockerfile -t acb:windows .
+$ docker build -f Windows.Dockerfile -t acb .
 ```
 
 ## Requirements
@@ -29,14 +29,14 @@ $ docker build -f Windows.Dockerfile -t acb:windows .
 
 The following images are required:
 
-- `scanner:linux`
-- `docker-cli:linux`
+- `scanner`
+- `docker`
 - `ubuntu`
 
 ## Windows Images
 
-- `scanner:windows`
-- `docker-cli:windows`
+- `scanner`
+- `docker`
 - `microsoft/windowsservercore:1803`
 
 ## Usage
