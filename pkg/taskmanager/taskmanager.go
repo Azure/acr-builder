@@ -11,7 +11,7 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/Azure/acr-builder/util"
+	"github.com/Azure/acr-builder/pkg/util"
 )
 
 // TaskManager is a wrapper for executing processes.
