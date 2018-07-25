@@ -119,7 +119,7 @@ func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWo
 
 // normalizeWorkDir normalizes a working directory.
 func normalizeWorkDir(workDir string) string {
-	// If the directory is absolute, use it instead of /workspace/...
+	// If the directory is absolute, use it instead of /workspace
 	if path.IsAbs(workDir) {
 		return path.Clean(workDir)
 	}

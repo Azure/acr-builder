@@ -99,8 +99,6 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 			defer func() {
 				if msg, err := v.Delete(ctx); err != nil {
 					fmt.Printf("Failed to clean up docker vol: %s. Msg: %s, Err: %v\n", homeVolName, msg, err)
-				} else {
-					fmt.Println("Successfully cleaned up volume")
 				}
 			}()
 		}
