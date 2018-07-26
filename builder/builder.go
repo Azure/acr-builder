@@ -163,8 +163,13 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 			}
 			step.ImageDependencies = deps
 
+			workDir := step.WorkDir
 			// Modify the Run command if it's a tar or a git URL.
 			if !util.IsLocalContext(context) {
+				// NB: use step.ID as the working directory if the context is remote,
+				// since we obtained the source code from the scanner and put it in this location
+				workDir = step.ID
+
 				// Allow overriding the context from the git URL.
 				if util.IsGitURL(context) {
 					step.Run = replacePositionalContext(step.Run, getContextFromGitURL(context))
@@ -173,9 +178,7 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 				}
 			}
 
-			// NB: use step.ID as the working directory since we obtained the source code from
-			// the scanner at this location.
-			args = b.getDockerRunArgs(volName, step.ID, step.ID, step.Ports, true, step.Detach)
+			args = b.getDockerRunArgs(volName, step.ID, workDir, step.Ports, true, step.Detach)
 			args = append(args, "docker")
 			args = append(args, strings.Fields(step.Run)...)
 		} else {
