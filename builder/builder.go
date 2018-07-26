@@ -167,15 +167,16 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 			// Modify the Run command if it's a tar or a git URL.
 			if !util.IsLocalContext(context) {
 				// NB: use step.ID as the working directory if the context is remote,
-				// since we obtained the source code from the scanner and put it in this location
-				workDir = step.ID
-
-				// Allow overriding the context from the git URL.
-				if util.IsGitURL(context) {
-					step.Run = replacePositionalContext(step.Run, getContextFromGitURL(context))
+				// since we obtained the source code from the scanner and put it in this location.
+				// If the remote context also has additional context specified, we have to append it
+				// to the working directory.
+				if util.IsGitURL(context) || util.IsVstsGitURL(context) {
+					workDir = step.ID + "/" + getContextFromGitURL(context)
 				} else {
-					step.Run = replacePositionalContext(step.Run, ".")
+					workDir = step.ID
 				}
+
+				step.Run = replacePositionalContext(step.Run, ".")
 			}
 
 			args = b.getDockerRunArgs(volName, step.ID, workDir, step.Ports, true, step.Detach)
