@@ -144,6 +144,12 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 	degree := child.GetDegree()
 	if degree == 0 {
 		step := child.Value
+
+		if step.StartDelay > 0 {
+			fmt.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
+			time.Sleep(time.Duration(step.StartDelay) * time.Second)
+		}
+
 		step.StepStatus = graph.InProgress
 		step.StartTime = time.Now()
 		defer func() {

@@ -72,6 +72,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
 		Detach:     true,
+		StartDelay: 50,
 	}
 
 	qazStep := &Step{

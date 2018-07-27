@@ -23,6 +23,7 @@ steps:
     when: ["-"]
     rm: false
     detach: true
+    startDelay: 50
 
   - id: C
     run: blah
