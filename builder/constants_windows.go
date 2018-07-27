@@ -10,9 +10,7 @@ const (
 	// containerWorkspaceDir is the default working directory for a container.
 	containerWorkspaceDir = "c:\\workspace"
 
-	scannerImageName   = "scanner:windows"
-	dockerCLIImageName = "docker-cli:windows"
-	configImageName    = "microsoft/windowsservercore:1803"
+	configImageName = "microsoft/windowsservercore:1803"
 )
 
 var homeEnv = "USERPROFILE=" + homeWorkDir

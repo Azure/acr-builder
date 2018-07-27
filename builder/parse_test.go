@@ -22,8 +22,6 @@ func TestParseDockerBuildCmd(t *testing.T) {
 		{5, "build --file src/Dockerfile . -t foo:bar", "src/Dockerfile", "."},
 		{6, "build -f src/Dockerfile .", "src/Dockerfile", "."},
 		{7, "build -t foo https://github.com/Azure/acr-builder.git#:HelloWorld", "Dockerfile", "https://github.com/Azure/acr-builder.git#:HelloWorld"},
-		// TODO: support reading from stdin?
-		// {7, "build - < Dockerfile", "Dockerfile", "-"},
 	}
 
 	for _, test := range tests {
@@ -49,6 +47,7 @@ func TestReplacePositionalContext(t *testing.T) {
 		{"build .", "HelloWorld", "build HelloWorld"},
 		{"build --file src/Dockerfile . -t foo:bar", "src/Dockerfile", "build --file src/Dockerfile src/Dockerfile -t foo:bar"},
 		{"build -f src/Dockerfile .", "test/another-repo", "build -f src/Dockerfile test/another-repo"},
+		{"build -f src/Dockerfile https://foo.visualstudio.com/ACR/_git/Build/#master:.", "vstsreplacement", "build -f src/Dockerfile vstsreplacement"},
 	}
 
 	for _, test := range tests {
@@ -69,6 +68,14 @@ func TestGetContextFromGitURL(t *testing.T) {
 		{"https://github.com/Azure/acr-builder.git#:Foo", "Foo"},
 		{"https://github.com/Azure/acr-builder.git", "."},
 		{"https://github.com/Azure/acr-builder.git#master", "."},
+
+		{"https://foo.visualstudio.com/ACR/_git/Build/#master:.", "."},
+		{"https://foo.visualstudio.com/ACR/_git/Build/#master:HelloWorld", "HelloWorld"},
+		{"https://foo.visualstudio.com/ACR/_git/Build/#:Foo", "Foo"},
+		{"https://foo.visualstudio.com/ACR/_git/Build/", "."},
+		{"https://foo.visualstudio.com/ACR/_git/Build/#master", "."},
+
+		{"https://foo.visualstudio.com/ACR/_git/Build#master:HelloWorld", "HelloWorld"},
 	}
 
 	for _, test := range tests {

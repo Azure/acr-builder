@@ -11,22 +11,8 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/Azure/acr-builder/util"
+	"github.com/Azure/acr-builder/pkg/util"
 )
-
-// ITaskManager is an interface for executing processes.
-type ITaskManager interface {
-	// Run runs a command based on the specified params.
-	Run(ctx context.Context,
-		args []string,
-		stdIn io.Reader,
-		stdOut io.Writer,
-		stdErr io.Writer,
-		cmdDir string) error
-
-	// Stop stops the manager and tries to kill any running processes.
-	Stop() error
-}
 
 // TaskManager is a wrapper for executing processes.
 type TaskManager struct {
@@ -106,7 +92,7 @@ func (tm *TaskManager) DeletePid(pid int) {
 	tm.mu.Unlock()
 }
 
-// Stop stops the runner and tries to kill any running processes.
+// Stop stops the task manager and tries to kill any running processes.
 func (tm *TaskManager) Stop() util.Errors {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()

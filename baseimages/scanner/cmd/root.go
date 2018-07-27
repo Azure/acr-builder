@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package cli
+package cmd
 
 import (
 	"os"
@@ -27,7 +27,6 @@ func Execute() {
 }
 
 func newRootCmd(args []string) *cobra.Command {
-
 	cmd := &cobra.Command{
 		Use:          "scanner",
 		Short:        "The dependency scanner for Azure Container Registry (ACR)",
@@ -43,6 +42,7 @@ func newRootCmd(args []string) *cobra.Command {
 	cmd.AddCommand(
 		newScanCmd(out),
 		newVersionCmd(out),
+		newDownloadCmd(out),
 	)
 
 	_ = flags.Parse(args)

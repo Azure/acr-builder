@@ -3,8 +3,8 @@
 
 package main
 
-import "github.com/Azure/acr-builder/baseimages/scanner/cli"
+import "github.com/Azure/acr-builder/baseimages/scanner/cmd"
 
 func main() {
-	cli.Execute()
+	cmd.Execute()
 }

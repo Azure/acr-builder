@@ -14,4 +14,7 @@ const (
 
 	// homeVol is the volume to manage $HOME
 	homeVol = "home"
+
+	scannerImageName   = "scanner"
+	dockerCLIImageName = "docker"
 )

@@ -19,7 +19,6 @@ func parseDockerBuildCmd(cmd string) (dockerfile string, context string) {
 	dockerfile = "Dockerfile"
 	context = "."
 
-	// TODO: support reading from stdin?
 	for i := 1; i < len(fields); i++ {
 		v := fields[i]
 
@@ -53,7 +52,7 @@ func replacePositionalContext(runCmd string, replacement string) string {
 }
 
 func getContextFromGitURL(gitURL string) string {
-	if httpPrefix.MatchString(gitURL) && gitURLWithSuffix.MatchString(gitURL) {
+	if httpPrefix.MatchString(gitURL) && (strings.Contains(gitURL, ".visualstudio.com") || gitURLWithSuffix.MatchString(gitURL)) {
 		pos := strings.LastIndex(gitURL, "#")
 		if pos >= 0 {
 			frag := gitURL[pos+1:]

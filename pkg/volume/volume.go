@@ -8,7 +8,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/Azure/acr-builder/taskmanager"
+	"github.com/Azure/acr-builder/pkg/taskmanager"
 )
 
 const (

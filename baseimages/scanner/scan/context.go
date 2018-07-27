@@ -22,11 +22,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-type dockerSourceType int
+// DockerSourceType indicates whether or not the source is a Git repository, archive, or local directory.
+type DockerSourceType int
 
 // TODO: review and eliminate this.
 const (
-	dockerSourceUnknown dockerSourceType = iota
+	dockerSourceUnknown DockerSourceType = iota
 	dockerSourceLocal
 	dockerSourceGit
 	dockerSourceArchive
@@ -36,13 +37,11 @@ const (
 	archiveHeaderSize = 512
 )
 
-func (s *Scanner) obtainSourceCode(
-	ctx context.Context,
-	context string,
-	dockerfile string) (workingDir string, sha string, sourceType dockerSourceType, err error) {
-	sourceType, workingDir, err = s.getContext(ctx, context, dockerfile)
+// ObtainSourceCode obtains the source code from the specified context.
+func (s *Scanner) ObtainSourceCode(ctx context.Context, context string) (workingDir string, sha string, sourceType DockerSourceType, err error) {
+	sourceType, workingDir, err = s.getContext(ctx, context)
 	if err != nil {
-		return workingDir, sha, sourceType, errors.Wrap(err, "failed to obtain source code")
+		return workingDir, sha, sourceType, err
 	}
 
 	if sourceType == dockerSourceGit {
@@ -52,7 +51,7 @@ func (s *Scanner) obtainSourceCode(
 	return workingDir, sha, sourceType, err
 }
 
-func (s *Scanner) getContext(ctx context.Context, context string, dockerfile string) (dockerSourceType, string, error) {
+func (s *Scanner) getContext(ctx context.Context, context string) (DockerSourceType, string, error) {
 	isGitURL := util.IsGitURL(context)
 	isVstsURL := util.IsVstsGitURL(context)
 	isURL := util.IsURL(context)
@@ -84,13 +83,13 @@ func (s *Scanner) getContextFromGitURL(gitURL string) (contextDir string, err er
 	}
 	contextDir, err = Clone(gitURL, s.destinationFolder)
 	if err != nil {
-		return contextDir, errors.Wrapf(err, "unable to git clone to a temporary context directory")
+		return contextDir, errors.Wrapf(err, "unable to git clone to %s", s.destinationFolder)
 	}
 
 	return contextDir, err
 }
 
-func (s *Scanner) getContextFromURL(remoteURL string) (sourceType dockerSourceType, err error) {
+func (s *Scanner) getContextFromURL(remoteURL string) (sourceType DockerSourceType, err error) {
 	response, err := getWithStatusError(remoteURL)
 	if err != nil {
 		return dockerSourceUnknown, errors.Wrapf(err, "unable to download remote context from %s", remoteURL)

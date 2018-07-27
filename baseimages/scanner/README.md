@@ -9,13 +9,13 @@ Execute the following commands from the root of the repository.
 Linux:
 
 ```sh
-$ docker build -f baseimages/scanner/Dockerfile -t scanner:linux .
+$ docker build -f baseimages/scanner/Dockerfile -t scanner .
 ```
 
 Windows:
 
 ```sh
-$ docker build -f baseimages/scanner/Windows.Dockerfile -t scanner:windows .
+$ docker build -f baseimages/scanner/Windows.Dockerfile -t scanner .
 ```
 
 Using make:

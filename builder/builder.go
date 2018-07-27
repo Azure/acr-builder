@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -17,7 +16,7 @@ import (
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	"github.com/Azure/acr-builder/baseimages/scanner/util"
 	"github.com/Azure/acr-builder/graph"
-	"github.com/Azure/acr-builder/taskmanager"
+	"github.com/Azure/acr-builder/pkg/taskmanager"
 	builderutil "github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -126,7 +125,7 @@ func (b *Builder) CleanAllBuildSteps(ctx context.Context, pipeline *graph.Pipeli
 
 		step := v.Value
 
-		killArgs := append(args, fmt.Sprintf("acb_step_%s", step.ID))
+		killArgs := append(args, step.ID)
 		_ = b.taskManager.Run(ctx, killArgs, nil, nil, nil, "")
 	}
 
@@ -156,28 +155,6 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 		if strings.HasPrefix(step.Run, "build ") {
 			dockerfile, context := parseDockerBuildCmd(step.Run)
 			volName := b.workspaceDir
-			stepWorkingDir := step.ID
-
-			// If we run `build` (not `exec` for a pipeline) and the context is local,
-			// we get the absolute filepath of the context they provided and volume map
-			// the host's filesystem according to the context.
-			if util.IsLocalContext(context) {
-				if step.UseLocalContext {
-					path, err := filepath.Abs(context)
-					if err != nil {
-						errorChan <- errors.Wrap(err, "failed to normalize local context")
-						return
-					}
-					volName = filepath.Clean(path)
-
-					// Other steps end up in an output directory which matches the step's ID,
-					// but in this case there's no output directory.
-					stepWorkingDir = ""
-				} else {
-					// A local pipeline re-uses a volume.
-					stepWorkingDir = step.WorkDir
-				}
-			}
 
 			deps, err := b.scrapeDependencies(ctx, volName, step.WorkDir, step.ID, dockerfile, context, step.Tags, step.BuildArgs)
 			if err != nil {
@@ -186,17 +163,23 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 			}
 			step.ImageDependencies = deps
 
+			workDir := step.WorkDir
 			// Modify the Run command if it's a tar or a git URL.
 			if !util.IsLocalContext(context) {
-				// Allow overriding the context from the git URL.
-				if util.IsGitURL(context) {
-					step.Run = replacePositionalContext(step.Run, getContextFromGitURL(context))
+				// NB: use step.ID as the working directory if the context is remote,
+				// since we obtained the source code from the scanner and put it in this location.
+				// If the remote context also has additional context specified, we have to append it
+				// to the working directory.
+				if util.IsGitURL(context) || util.IsVstsGitURL(context) {
+					workDir = step.ID + "/" + getContextFromGitURL(context)
 				} else {
-					step.Run = replacePositionalContext(step.Run, ".")
+					workDir = step.ID
 				}
+
+				step.Run = replacePositionalContext(step.Run, ".")
 			}
 
-			args = b.getDockerRunArgs(volName, step.ID, stepWorkingDir, step.Ports, step.Rm, step.Detach)
+			args = b.getDockerRunArgs(volName, step.ID, workDir, step.Ports, true, step.Detach)
 			args = append(args, "docker")
 			args = append(args, strings.Fields(step.Run)...)
 		} else {

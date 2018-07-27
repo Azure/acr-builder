@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
-	"github.com/Azure/acr-builder/taskmanager"
+	"github.com/Azure/acr-builder/pkg/taskmanager"
 )
 
 // Scanner scans Dockerfiles.
@@ -36,7 +36,7 @@ func NewScanner(tm *taskmanager.TaskManager, context string, dockerfile string, 
 
 // Scan scans a Dockerfile for dependencies.
 func (s *Scanner) Scan(ctx context.Context) (deps []*models.ImageDependencies, err error) {
-	workingDir, sha, _, err := s.obtainSourceCode(ctx, s.context, s.dockerfile)
+	workingDir, sha, _, err := s.ObtainSourceCode(ctx, s.context)
 	if err != nil {
 		return deps, err
 	}
