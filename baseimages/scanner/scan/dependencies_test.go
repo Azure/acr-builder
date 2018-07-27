@@ -55,6 +55,8 @@ func TestRemoveSurroundingQuotes(t *testing.T) {
 		{`hello"`, `hello`},
 		{`hello`, `hello`},
 		{`hel"lo`, `hel"lo`},
+		{`''hello''`, `hello`},
+		{`''he'llo'''`, `he'llo`},
 	}
 
 	for _, test := range tests {

@@ -244,7 +244,8 @@ func parseAssignment(in string) (string, string, error) {
 	return values[0], val, nil
 }
 
-// removeSurroundingQuotes removes all surrounding quotes.
+// removeSurroundingQuotes trims double quotes, then single quotes.
 func removeSurroundingQuotes(s string) string {
-	return strings.Trim(s, `"`)
+	s = strings.Trim(s, `"`)
+	return strings.Trim(s, `'`)
 }
