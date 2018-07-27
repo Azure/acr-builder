@@ -17,6 +17,7 @@ timeout: int (in seconds) (optional)
 when: [string, string, ...] (optional)
 exitedWith: [int, int, ...] (optional)
 exitedWithout: [int, int, ...](optional)
+startDelay: int (in seconds) (optional)
 ```
 
 For details on each specific property in a Step, follow these links:
@@ -31,6 +32,7 @@ For details on each specific property in a Step, follow these links:
 - [when](#when)
 - [exitedWith](#exitedwith)
 - [exitedWithout](#exitedwithout)
+- [startDelay](#startdelay)
 
 ## Context
 
@@ -103,6 +105,10 @@ The `run` property of a step specifies which image to use when running the opera
 ### exitedWithout
 
 `exitedWithout` can be used to trigger a task when previous steps exited without one or more of the specified exit codes.
+
+### startDelay
+
+`startDelay` can be used to delay a step's execution. This is an integer value measured in seconds.
 
 ## `acb.yaml` Properties
 
