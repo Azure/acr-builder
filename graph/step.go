@@ -37,12 +37,11 @@ type Step struct {
 	Timeout       int      `yaml:"timeout"`
 	Rm            bool     `yaml:"rm"`
 	Detach        bool     `yaml:"detach"`
+	StartDelay    int      `yaml:"startDelay"`
 
 	StartTime  time.Time
 	EndTime    time.Time
 	StepStatus StepStatus
-
-	UseLocalContext bool
 
 	// CompletedChan can be used to signal to readers
 	// that the step has been processed.
@@ -95,6 +94,7 @@ func (s *Step) Equals(t *Step) bool {
 		!util.StringSequenceEquals(s.When, t.When) ||
 		!util.IntSequenceEquals(s.ExitedWith, t.ExitedWith) ||
 		!util.IntSequenceEquals(s.ExitedWithout, t.ExitedWithout) ||
+		s.StartDelay != t.StartDelay ||
 		s.StartTime != t.StartTime ||
 		s.EndTime != t.EndTime ||
 		s.StepStatus != t.StepStatus {

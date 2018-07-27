@@ -127,8 +127,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	taskManager := taskmanager.NewTaskManager(b.dryRun)
 	defaultStep := &graph.Step{
-		UseLocalContext: true,
-		Run:             rendered,
+		Run: rendered,
 	}
 
 	steps := []*graph.Step{defaultStep}
