@@ -71,5 +71,5 @@ $ docker run -v /var/run/docker.sock:/var/run/docker.sock acb build -t "foo:bar"
 See `acb exec --help` for a list of all parameters.
 
 ```sh
-$ docker run -v $(pwd):/workspace --workdir /workspace -v /var/run/docker.sock:/var/run/docker.sock acb exec --steps templating/testdata/helloworld/git-build.yaml --values templating/testdata/helloworld/values.yaml --id demo -r foo.azurecr.io -u username -p password
+$ docker run -v $(pwd):/workspace --workdir /workspace -v /var/run/docker.sock:/var/run/docker.sock acb exec --homevol $(pwd) --steps templating/testdata/helloworld/git-build.yaml --values templating/testdata/helloworld/values.yaml --id demo -r foo.azurecr.io -u username -p password
 ```
