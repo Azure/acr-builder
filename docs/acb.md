@@ -13,10 +13,13 @@ workDir: string (optional)
 entryPoint: string (optional)
 envs: [string, string, ...] (optional)
 secretEnvs: [string, string, ...] (optional)
-timeout: int (in seconds) (optional)
+ports: [string, string, ...] (optional)
 when: [string, string, ...] (optional)
 exitedWith: [int, int, ...] (optional)
-exitedWithout: [int, int, ...](optional)
+exitedWithout: [int, int, ...] (optional)
+timeout: int (in seconds) (optional)
+rm: bool (optional)
+detach: bool (optional)
 startDelay: int (in seconds) (optional)
 ```
 
@@ -28,10 +31,13 @@ For details on each specific property in a Step, follow these links:
 - [entryPoint](#entrypoint)
 - [envs](#envs)
 - [secretEnvs](#secretenvs)
-- [timeout](#timeout)
+- [ports](#ports)
 - [when](#when)
 - [exitedWith](#exitedwith)
 - [exitedWithout](#exitedwithout)
+- [timeout](#timeout)
+- [rm](#rm)
+- [detach](#deatch)
 - [startDelay](#startdelay)
 
 ## Context
@@ -90,9 +96,21 @@ The `run` property of a step specifies which image to use when running the opera
 
 `secretEnvs` is a list of environment variables which are encrypted using Azure Key Vault. These values are decrypted using the [secrets](#secrets) property.
 
+### ports
+
+`ports` is a list of ports to publish to the host.
+
 ### timeout
 
 `timeout` is the maximum duration for a step to execute.
+
+### rm
+
+`rm` determines whether or not the step's container should be removed after execution.
+
+### detach
+
+`detach` determines whether or not the container should be detached when running.
 
 ### when
 
