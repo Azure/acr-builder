@@ -77,7 +77,7 @@ func (tm *TaskManager) Run(
 	case <-ctx.Done():
 		go func() {
 			if err := cmd.Process.Kill(); err != nil {
-				fmt.Printf("Failed to kill process. Path: %v, Args: %v, Err: %v", cmd.Path, cmd.Args, err)
+				fmt.Printf("Failed to kill process. Path: %s, Args: %v, Err: %v", cmd.Path, cmd.Args, err)
 			}
 		}()
 
