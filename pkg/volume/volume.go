@@ -6,7 +6,6 @@ package volume
 import (
 	"bytes"
 	"context"
-	"sync"
 
 	"github.com/Azure/acr-builder/pkg/taskmanager"
 )
@@ -20,7 +19,6 @@ const (
 type Volume struct {
 	Name        string
 	taskManager *taskmanager.TaskManager
-	mu          sync.Mutex
 }
 
 // NewVolume creates a new Volume.
@@ -28,7 +26,6 @@ func NewVolume(name string, tm *taskmanager.TaskManager) *Volume {
 	return &Volume{
 		Name:        name,
 		taskManager: tm,
-		mu:          sync.Mutex{},
 	}
 }
 
@@ -37,7 +34,6 @@ func (v *Volume) Create(ctx context.Context) (string, error) {
 	var buf bytes.Buffer
 	cmd := []string{"docker", "volume", "create", "--name", v.Name}
 	err := v.taskManager.Run(ctx, cmd, nil, &buf, &buf, "")
-
 	return buf.String(), err
 }
 
@@ -45,7 +41,6 @@ func (v *Volume) Create(ctx context.Context) (string, error) {
 func (v *Volume) Delete(ctx context.Context) (string, error) {
 	var buf bytes.Buffer
 	cmd := []string{"docker", "volume", "rm", v.Name}
-	err := v.taskManager.Run(ctx, cmd, nil, nil, nil, "")
-
+	err := v.taskManager.Run(ctx, cmd, nil, &buf, &buf, "")
 	return buf.String(), err
 }
