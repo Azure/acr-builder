@@ -94,26 +94,27 @@ func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWo
 	var buf bytes.Buffer
 	err := b.taskManager.Run(ctx, args, nil, &buf, &buf, "")
 	output := strings.TrimSpace(buf.String())
-	fmt.Printf("Output from dependency scanning: %v\n", output)
 	if err != nil {
+		fmt.Printf("Output from dependency scanning: %s\n", output)
 		return nil, err
 	}
 
-	var deps []*models.ImageDependencies
+	return getImageDependencies(output)
+}
 
-	lines := strings.Split(output, "\n")
+func getImageDependencies(s string) ([]*models.ImageDependencies, error) {
+	var deps []*models.ImageDependencies
+	lines := strings.Split(s, "\n")
 	for _, line := range lines {
 		matches := dependenciesRE.FindStringSubmatch(line)
-
 		if len(matches) == 2 {
-			err = json.Unmarshal([]byte(matches[1]), &deps)
+			err := json.Unmarshal([]byte(matches[1]), &deps)
 			if err != nil {
 				return nil, err
 			}
 			break
 		}
 	}
-
 	return deps, nil
 }
 
