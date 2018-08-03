@@ -279,15 +279,6 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 }
 
 func getRepoDigest(jsonContent string, reference *models.ImageReference) string {
-	// Input: ["docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], , docker
-	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
-
-	// Input: ["test.azurecr.io/docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], test.azurecr.io, docker
-	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
-
-	// Input: Invalid
-	// Output: <empty>
-
 	prefix := reference.Repository + "@"
 	// If the reference has "library/" prefixed, we have to remove it - otherwise
 	// we'll fail to query the digest, since image names aren't prefixed with "library/"
@@ -296,18 +287,14 @@ func getRepoDigest(jsonContent string, reference *models.ImageReference) string 
 	} else if len(reference.Registry) > 0 && reference.Registry != DockerHubRegistry {
 		prefix = reference.Registry + "/" + prefix
 	}
-
 	var digestList []string
 	if err := json.Unmarshal([]byte(jsonContent), &digestList); err != nil {
-		logrus.Warnf("Error deserializing %s to json, error: %s", jsonContent, err)
+		logrus.Warnf("Error deserializing %s to json, error: %v", jsonContent, err)
 	}
-
 	for _, digest := range digestList {
 		if strings.HasPrefix(digest, prefix) {
 			return digest[len(prefix):]
 		}
 	}
-
-	logrus.Warnf("Unable to find digest for %s in %s", prefix, jsonContent)
 	return ""
 }
