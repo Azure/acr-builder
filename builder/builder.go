@@ -127,86 +127,84 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 	degree := child.GetDegree()
 	if degree == 0 {
 		step := child.Value
-
-		if step.StartDelay > 0 {
-			log.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
-			time.Sleep(time.Duration(step.StartDelay) * time.Second)
-		}
-
-		step.StepStatus = graph.InProgress
-		step.StartTime = time.Now()
-		defer func() {
-			step.EndTime = time.Now()
-		}()
-
-		var args []string
-
-		if step.IsBuildStep() {
-			dockerfile, context := parseDockerBuildCmd(step.Run)
-			volName := b.workspaceDir
-
-			deps, err := b.scrapeDependencies(ctx, volName, step.WorkDir, step.ID, dockerfile, context, step.Tags, step.BuildArgs)
-			if err != nil {
-				errorChan <- errors.Wrap(err, "failed to scan dependencies")
-				return
-			}
-			step.ImageDependencies = deps
-
-			workDir := step.WorkDir
-			// Modify the Run command if it's a tar or a git URL.
-			if !scannerutil.IsLocalContext(context) {
-				// NB: use step.ID as the working directory if the context is remote,
-				// since we obtained the source code from the scanner and put it in this location.
-				// If the remote context also has additional context specified, we have to append it
-				// to the working directory.
-				if scannerutil.IsGitURL(context) || scannerutil.IsVstsGitURL(context) {
-					workDir = step.ID + "/" + getContextFromGitURL(context)
-				} else {
-					workDir = step.ID
-				}
-
-				step.Run = replacePositionalContext(step.Run, ".")
-			}
-
-			args = b.getDockerRunArgs(volName, step.ID, workDir, step.Ports, true, step.Detach)
-			args = append(args, "docker")
-			args = append(args, strings.Fields(step.Run)...)
-		} else {
-			args = b.getDockerRunArgs(b.workspaceDir, step.ID, step.WorkDir, step.Ports, step.Rm, step.Detach)
-			for _, env := range step.Envs {
-				args = append(args, "--env", env)
-			}
-			if step.EntryPoint != "" {
-				args = append(args, "--entrypoint", step.EntryPoint)
-			}
-			args = append(args, strings.Fields(step.Run)...)
-		}
-
-		if b.debug {
-			log.Printf("Step args: %v\n", args)
-		}
-		// TODO: secret envs
-
-		// NB: ctx refers to the global ctx here,
-		// so when running individual processes use the individual
-		// step's ctx instead.
-		timeout := time.Duration(step.Timeout) * time.Second
-		currCtx, cancel := context.WithTimeout(ctx, timeout)
-		defer cancel()
-		if err := b.taskManager.Run(currCtx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
+		if err := b.runStep(ctx, step); err != nil {
 			step.StepStatus = graph.Failed
 			errorChan <- err
 		} else {
 			step.StepStatus = graph.Successful
-
-			// Try to process all child nodes
 			for _, c := range child.Children() {
 				go b.processVertex(ctx, pipeline, child, c, errorChan)
 			}
 		}
-
+		// Step must always be marked as complete.
 		step.CompletedChan <- true
 	}
+}
+
+func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
+	if step.StartDelay > 0 {
+		log.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
+		time.Sleep(time.Duration(step.StartDelay) * time.Second)
+	}
+
+	step.StepStatus = graph.InProgress
+	step.StartTime = time.Now()
+	defer func() {
+		step.EndTime = time.Now()
+	}()
+
+	var args []string
+
+	if step.IsBuildStep() {
+		dockerfile, context := parseDockerBuildCmd(step.Run)
+		volName := b.workspaceDir
+
+		deps, err := b.scrapeDependencies(ctx, volName, step.WorkDir, step.ID, dockerfile, context, step.Tags, step.BuildArgs)
+		if err != nil {
+			return errors.Wrap(err, "failed to scan dependencies")
+		}
+		step.ImageDependencies = deps
+
+		workDir := step.WorkDir
+		// Modify the Run command if it's a tar or a git URL.
+		if !scannerutil.IsLocalContext(context) {
+			// NB: use step.ID as the working directory if the context is remote,
+			// since we obtained the source code from the scanner and put it in this location.
+			// If the remote context also has additional context specified, we have to append it
+			// to the working directory.
+			if scannerutil.IsGitURL(context) || scannerutil.IsVstsGitURL(context) {
+				workDir = step.ID + "/" + getContextFromGitURL(context)
+			} else {
+				workDir = step.ID
+			}
+
+			step.Run = replacePositionalContext(step.Run, ".")
+		}
+
+		args = b.getDockerRunArgs(volName, step.ID, workDir, step.Ports, true, step.Detach)
+		args = append(args, "docker")
+		args = append(args, strings.Fields(step.Run)...)
+	} else {
+		args = b.getDockerRunArgs(b.workspaceDir, step.ID, step.WorkDir, step.Ports, step.Rm, step.Detach)
+		for _, env := range step.Envs {
+			args = append(args, "--env", env)
+		}
+		if step.EntryPoint != "" {
+			args = append(args, "--entrypoint", step.EntryPoint)
+		}
+		args = append(args, strings.Fields(step.Run)...)
+	}
+
+	if b.debug {
+		log.Printf("Step args: %v\n", args)
+	}
+	// NB: ctx refers to the global ctx here,
+	// so when running individual processes use the individual
+	// step's ctx instead.
+	timeout := time.Duration(step.Timeout) * time.Second
+	currCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return b.taskManager.Run(currCtx, args, nil, os.Stdout, os.Stderr, "")
 }
 
 // populateDigests populates digests on dependencies
