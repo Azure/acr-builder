@@ -53,18 +53,14 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 		}
 	}
 
-	root := pipeline.Dag.Nodes[graph.RootNodeID]
 	var completedChans []chan bool
 	errorChan := make(chan error)
-	for k, v := range pipeline.Dag.Nodes {
-		if k == graph.RootNodeID {
-			continue
-		}
-		completedChans = append(completedChans, v.Value.CompletedChan)
+	for _, n := range pipeline.Dag.Nodes {
+		completedChans = append(completedChans, n.Value.CompletedChan)
 	}
 
-	for _, n := range root.Children() {
-		go b.processVertex(ctx, pipeline, root, n, errorChan)
+	for _, n := range pipeline.Dag.Root.Children() {
+		go b.processVertex(ctx, pipeline, pipeline.Dag.Root, n, errorChan)
 	}
 
 	// Block until either:
@@ -86,11 +82,8 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 		return err
 	}
 
-	for k, v := range pipeline.Dag.Nodes {
-		if k == graph.RootNodeID {
-			continue
-		}
-		step := v.Value
+	for _, n := range pipeline.Dag.Nodes {
+		step := n.Value
 		err := b.populateDigests(ctx, step.ImageDependencies)
 		if err != nil {
 			return errors.Wrap(err, "failed to populate digests")
@@ -111,11 +104,8 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 // CleanAllBuildSteps cleans up all build steps and removes their corresponding Docker containers.
 func (b *Builder) CleanAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline) {
 	args := []string{"docker", "rm", "-f"}
-	for k, v := range pipeline.Dag.Nodes {
-		if k == graph.RootNodeID {
-			continue
-		}
-		step := v.Value
+	for _, n := range pipeline.Dag.Nodes {
+		step := n.Value
 		killArgs := append(args, step.ID)
 		_ = b.taskManager.Run(ctx, killArgs, nil, nil, nil, "")
 	}

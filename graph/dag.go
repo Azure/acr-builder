@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	// RootNodeID is the root node at the start of the graph.
-	RootNodeID = "root"
+	rootNodeID = "acb_root"
 )
 
 // Node represents a vertex in a Dag.
@@ -44,6 +43,7 @@ func (n *Node) GetDegree() int {
 
 // Dag represents a thread safe directed acyclic graph.
 type Dag struct {
+	Root  *Node
 	Nodes map[string]*Node
 	mu    sync.Mutex
 }
@@ -52,10 +52,7 @@ type Dag struct {
 func NewDag() *Dag {
 	dag := new(Dag)
 	dag.Nodes = make(map[string]*Node)
-
-	// Add the root vertex
-	n := NewNode(&Step{ID: RootNodeID})
-	dag.Nodes[RootNodeID] = n
+	dag.Root = NewNode(&Step{ID: rootNodeID})
 	return dag
 }
 
@@ -68,20 +65,19 @@ func NewDagFromPipeline(p *Pipeline) (*Dag, error) {
 		if err := step.Validate(); err != nil {
 			return dag, err
 		}
-
 		if _, err := dag.AddVertex(step); err != nil {
 			return dag, err
 		}
 
 		// If the step is parallel, add it to the root
 		if step.ShouldExecuteImmediately() {
-			if err := dag.AddEdgeFromRoot(step.ID); err != nil {
+			if err := dag.AddEdge(rootNodeID, step.ID); err != nil {
 				return dag, err
 			}
 		} else if step.HasNoWhen() {
 			// If the step has no when, add it to the root or the previous step
 			if prevStep == nil {
-				if err := dag.AddEdgeFromRoot(step.ID); err != nil {
+				if err := dag.AddEdge(rootNodeID, step.ID); err != nil {
 					return dag, err
 				}
 			} else {
@@ -106,24 +102,17 @@ func NewDagFromPipeline(p *Pipeline) (*Dag, error) {
 
 // AddVertex adds a vertex to the Dag with the specified name and value.
 func (d *Dag) AddVertex(value *Step) (*Node, error) {
-	if value.ID == RootNodeID {
-		return nil, fmt.Errorf("%v is a reserved ID, it cannot be used", RootNodeID)
+	if value.ID == rootNodeID {
+		return nil, fmt.Errorf("%v is a reserved ID, it can't be used", rootNodeID)
 	}
-
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if _, exists := d.Nodes[value.ID]; exists {
-		return nil, fmt.Errorf("%v already exists as a vertex", value.ID)
+	if _, ok := d.Nodes[value.ID]; ok {
+		return nil, fmt.Errorf("%s already exists as a vertex", value.ID)
 	}
-
 	n := NewNode(value)
 	d.Nodes[value.ID] = n
 	return n, nil
-}
-
-// AddEdgeFromRoot adds an edge from the root to the specified vertex.
-func (d *Dag) AddEdgeFromRoot(to string) error {
-	return d.AddEdge(RootNodeID, to)
 }
 
 // AddEdge adds an edge between from and to.
@@ -185,18 +174,20 @@ func (d *Dag) validateFromAndTo(from string, to string) (*Node, *Node, error) {
 	if from == to {
 		return nil, nil, errors.New("from and to cannot be the same")
 	}
-
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	fromNode, ok := d.Nodes[from]
-	if !ok {
-		return nil, nil, fmt.Errorf("%v does not exist as a vertex [from: %v, to: %v]", from, from, to)
+	var fromNode *Node
+	if from == rootNodeID {
+		fromNode = d.Root
+	} else {
+		var ok bool
+		if fromNode, ok = d.Nodes[from]; !ok {
+			return nil, nil, fmt.Errorf("%v does not exist as a vertex [from: %v, to: %v]", from, from, to)
+		}
 	}
-
 	toNode, ok := d.Nodes[to]
 	if !ok {
 		return nil, nil, fmt.Errorf("%v does not exist as a vertex [from: %v, to: %v]", to, from, to)
 	}
-
 	return fromNode, toNode, nil
 }
