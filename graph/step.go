@@ -6,6 +6,7 @@ package graph
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
@@ -57,17 +58,14 @@ func (s *Step) Validate() error {
 	if s.ID == "" {
 		return errMissingID
 	}
-
 	if s.Run == "" {
 		return errMissingRun
 	}
-
 	for _, dep := range s.When {
 		if dep == s.ID {
 			return NewSelfReferencedStepError(fmt.Sprintf("Step ID: %v is self-referenced", s.ID))
 		}
 	}
-
 	return nil
 }
 
@@ -116,4 +114,9 @@ func (s *Step) ShouldExecuteImmediately() bool {
 // HasNoWhen returns true if the Step has no when clause, false otherwise.
 func (s *Step) HasNoWhen() bool {
 	return len(s.When) == 0
+}
+
+// IsBuildStep returns true if the Step is a build step, false otherwise.
+func (s *Step) IsBuildStep() bool {
+	return strings.HasPrefix(s.Run, "build ")
 }

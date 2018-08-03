@@ -82,22 +82,26 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 		return err
 	}
 
+	var deps []*models.ImageDependencies
 	for _, n := range pipeline.Dag.Nodes {
 		step := n.Value
-		err := b.populateDigests(ctx, step.ImageDependencies)
-		if err != nil {
-			return errors.Wrap(err, "failed to populate digests")
+		if !step.IsBuildStep() { // If the step isn't a build step, it won't have dependencies from the scanner.
+			continue
 		}
-
+		if err := b.populateDigests(ctx, step.ImageDependencies); err != nil {
+			return err
+		}
 		log.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
-		bytes, err := json.Marshal(step.ImageDependencies)
-		if err != nil {
-			return errors.Wrap(err, "failed to unmarshal image dependencies")
+		if len(step.ImageDependencies) > 0 {
+			deps = append(deps, step.ImageDependencies...)
 		}
-
-		fmt.Println(string(bytes))
 	}
 
+	bytes, err := json.Marshal(deps)
+	if err != nil {
+		return errors.Wrap(err, "failed to unmarshal image dependencies")
+	}
+	fmt.Println(string(bytes))
 	return nil
 }
 
@@ -136,7 +140,7 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 
 		var args []string
 
-		if strings.HasPrefix(step.Run, "build ") {
+		if step.IsBuildStep() {
 			dockerfile, context := parseDockerBuildCmd(step.Run)
 			volName := b.workspaceDir
 
@@ -250,9 +254,8 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 			log.Printf("query digest args: %v\n", args)
 		}
 		var buf bytes.Buffer
-		err := b.taskManager.Run(ctx, args, nil, &buf, &buf, "")
-		if err != nil {
-			return err
+		if err := b.taskManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+			return errors.Wrapf(err, "failed to query digests, msg: %s", buf.String())
 		}
 		trimCharPredicate := func(c rune) bool {
 			return '\n' == c || '\r' == c || '"' == c || '\t' == c

@@ -36,7 +36,9 @@ func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
 			"--env", homeEnv,
 
 			dockerCLIImageName,
-			"push", img}
+			"push",
+			img,
+		}
 
 		retry := 0
 		for retry < maxPushRetries {
