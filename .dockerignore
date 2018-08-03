@@ -5,3 +5,6 @@ Windows.Dockerfile
 LICENSE
 *.md
 .vscode
+.github
+.travis.yml
+appveyor.yml
