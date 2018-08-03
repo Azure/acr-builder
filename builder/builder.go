@@ -99,6 +99,7 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 		if err != nil {
 			return errors.Wrap(err, "failed to unmarshal image dependencies")
 		}
+		fmt.Println("The following dependencies were found:")
 		fmt.Println(string(bytes))
 	}
 
