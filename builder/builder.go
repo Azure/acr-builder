@@ -8,25 +8,23 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
-	"github.com/Azure/acr-builder/baseimages/scanner/util"
+	scannerutil "github.com/Azure/acr-builder/baseimages/scanner/util"
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/taskmanager"
-	builderutil "github.com/Azure/acr-builder/util"
+	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // Builder builds images.
 type Builder struct {
 	taskManager  *taskmanager.TaskManager
 	workspaceDir string
-	mu           sync.Mutex
 	debug        bool
 }
 
@@ -36,39 +34,32 @@ func NewBuilder(tm *taskmanager.TaskManager, debug bool, workspaceDir string) *B
 		taskManager:  tm,
 		debug:        debug,
 		workspaceDir: workspaceDir,
-		mu:           sync.Mutex{},
 	}
 }
 
 // RunAllBuildSteps executes a pipeline.
 func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline) error {
-
 	if !b.taskManager.DryRun {
 		if err := b.setupConfig(ctx); err != nil {
 			return err
 		}
-
 		if pipeline.UsingRegistryCreds() {
-			fmt.Printf("Logging in to registry: %s\n", pipeline.RegistryName)
+			log.Printf("Logging in to registry: %s\n", pipeline.RegistryName)
 			if err := b.dockerLoginWithRetries(ctx, pipeline.RegistryName, pipeline.RegistryUsername, pipeline.RegistryPassword, 0); err != nil {
 				return err
 			}
-			fmt.Println("Successfully logged in")
+			log.Println("Successfully logged in")
 		}
 	}
 
-	root := pipeline.Dag.Nodes[graph.RootNodeID]
 	var completedChans []chan bool
 	errorChan := make(chan error)
-	for k, v := range pipeline.Dag.Nodes {
-		if k == graph.RootNodeID {
-			continue
-		}
-		completedChans = append(completedChans, v.Value.CompletedChan)
+	for _, n := range pipeline.Dag.Nodes {
+		completedChans = append(completedChans, n.Value.CompletedChan)
 	}
 
-	for _, n := range root.Children() {
-		go b.processVertex(ctx, pipeline, root, n, errorChan)
+	for _, n := range pipeline.Dag.Root.Children() {
+		go b.processVertex(ctx, pipeline, pipeline.Dag.Root, n, errorChan)
 	}
 
 	// Block until either:
@@ -90,24 +81,24 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 		return err
 	}
 
-	for k, v := range pipeline.Dag.Nodes {
-		if k == graph.RootNodeID {
-			continue
+	var deps []*models.ImageDependencies
+	for _, n := range pipeline.Dag.Nodes {
+		step := n.Value
+		log.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
+
+		if len(step.ImageDependencies) > 0 {
+			if err := b.populateDigests(ctx, step.ImageDependencies); err != nil {
+				return err
+			}
+			deps = append(deps, step.ImageDependencies...)
 		}
+	}
 
-		step := v.Value
-
-		err := b.PopulateDigests(ctx, step.ImageDependencies)
-		if err != nil {
-			return errors.Wrap(err, "failed to populate digests")
-		}
-
-		fmt.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
-		bytes, err := json.Marshal(step.ImageDependencies)
+	if len(deps) > 0 {
+		bytes, err := json.Marshal(deps)
 		if err != nil {
 			return errors.Wrap(err, "failed to unmarshal image dependencies")
 		}
-
 		fmt.Println(string(bytes))
 	}
 
@@ -117,21 +108,12 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 // CleanAllBuildSteps cleans up all build steps and removes their corresponding Docker containers.
 func (b *Builder) CleanAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline) {
 	args := []string{"docker", "rm", "-f"}
-
-	for k, v := range pipeline.Dag.Nodes {
-		if k == graph.RootNodeID {
-			continue
-		}
-
-		step := v.Value
-
+	for _, n := range pipeline.Dag.Nodes {
+		step := n.Value
 		killArgs := append(args, step.ID)
 		_ = b.taskManager.Run(ctx, killArgs, nil, nil, nil, "")
 	}
-
-	if err := b.taskManager.Stop(); err != nil {
-		fmt.Printf("Failed to stop ongoing processes: %v", err)
-	}
+	_ = b.taskManager.Stop()
 }
 
 func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, parent *graph.Node, child *graph.Node, errorChan chan error) {
@@ -146,7 +128,7 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 		step := child.Value
 
 		if step.StartDelay > 0 {
-			fmt.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
+			log.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
 			time.Sleep(time.Duration(step.StartDelay) * time.Second)
 		}
 
@@ -158,7 +140,7 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 
 		var args []string
 
-		if strings.HasPrefix(step.Run, "build ") {
+		if step.IsBuildStep() {
 			dockerfile, context := parseDockerBuildCmd(step.Run)
 			volName := b.workspaceDir
 
@@ -171,12 +153,12 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 
 			workDir := step.WorkDir
 			// Modify the Run command if it's a tar or a git URL.
-			if !util.IsLocalContext(context) {
+			if !scannerutil.IsLocalContext(context) {
 				// NB: use step.ID as the working directory if the context is remote,
 				// since we obtained the source code from the scanner and put it in this location.
 				// If the remote context also has additional context specified, we have to append it
 				// to the working directory.
-				if util.IsGitURL(context) || util.IsVstsGitURL(context) {
+				if scannerutil.IsGitURL(context) || scannerutil.IsVstsGitURL(context) {
 					workDir = step.ID + "/" + getContextFromGitURL(context)
 				} else {
 					workDir = step.ID
@@ -200,9 +182,8 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 		}
 
 		if b.debug {
-			fmt.Printf("Args: %v\n", args)
+			log.Printf("Step args: %v\n", args)
 		}
-
 		// TODO: secret envs
 
 		// NB: ctx refers to the global ctx here,
@@ -224,13 +205,11 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 		}
 
 		step.CompletedChan <- true
-	} else if b.debug {
-		fmt.Printf("Skipped processing %v, degree: %v\n", child.Name, degree)
 	}
 }
 
-// PopulateDigests populates digests on dependencies
-func (b *Builder) PopulateDigests(ctx context.Context, dependencies []*models.ImageDependencies) error {
+// populateDigests populates digests on dependencies
+func (b *Builder) populateDigests(ctx context.Context, dependencies []*models.ImageDependencies) error {
 	for _, entry := range dependencies {
 		if err := b.queryDigest(ctx, entry.Image); err != nil {
 			return err
@@ -255,14 +234,13 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 		if reference.Reference == NoBaseImageSpecifierLatest {
 			return nil
 		}
-
 		args := []string{
 			"docker",
 			"run",
 			"--rm",
 
 			// Mount home
-			"--volume", builderutil.GetDockerSock(),
+			"--volume", util.GetDockerSock(),
 			"--volume", homeVol + ":" + homeWorkDir,
 			"--env", homeEnv,
 
@@ -272,21 +250,16 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 			"\"{{json .RepoDigests}}\"",
 			reference.Reference,
 		}
-
 		if b.debug {
-			fmt.Printf("query digest args: %v\n", args)
+			log.Printf("query digest args: %v\n", args)
 		}
-
 		var buf bytes.Buffer
-		err := b.taskManager.Run(ctx, args, nil, &buf, os.Stderr, "")
-		if err != nil {
-			return err
+		if err := b.taskManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+			return errors.Wrapf(err, "failed to query digests, msg: %s", buf.String())
 		}
-
 		trimCharPredicate := func(c rune) bool {
 			return '\n' == c || '\r' == c || '"' == c || '\t' == c
 		}
-
 		reference.Digest = getRepoDigest(strings.TrimFunc(buf.String(), trimCharPredicate), reference)
 	}
 
@@ -294,15 +267,6 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 }
 
 func getRepoDigest(jsonContent string, reference *models.ImageReference) string {
-	// Input: ["docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], , docker
-	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
-
-	// Input: ["test.azurecr.io/docker@sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce"], test.azurecr.io, docker
-	// Output: sha256:b90307d28c6a6ab3d1d873d03a26c53c282bb94d5b5fb62cc7c027c384fe50ce
-
-	// Input: Invalid
-	// Output: <empty>
-
 	prefix := reference.Repository + "@"
 	// If the reference has "library/" prefixed, we have to remove it - otherwise
 	// we'll fail to query the digest, since image names aren't prefixed with "library/"
@@ -311,18 +275,14 @@ func getRepoDigest(jsonContent string, reference *models.ImageReference) string 
 	} else if len(reference.Registry) > 0 && reference.Registry != DockerHubRegistry {
 		prefix = reference.Registry + "/" + prefix
 	}
-
 	var digestList []string
 	if err := json.Unmarshal([]byte(jsonContent), &digestList); err != nil {
-		logrus.Warnf("Error deserializing %s to json, error: %s", jsonContent, err)
+		log.Printf("Error deserializing %s to json, error: %v\n", jsonContent, err)
 	}
-
 	for _, digest := range digestList {
 		if strings.HasPrefix(digest, prefix) {
 			return digest[len(prefix):]
 		}
 	}
-
-	logrus.Warnf("Unable to find digest for %s in %s", prefix, jsonContent)
 	return ""
 }

@@ -6,6 +6,7 @@ package scan
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -182,7 +183,7 @@ func ResolveDockerfileDependencies(path string, buildArgs []string) (string, []s
 					originLookup[alias] = origin
 					// Just ignore the rest of the tokens...
 					if len(tokens) > 4 {
-						fmt.Printf("Ignoring chunks from FROM clause: %v", tokens[4:])
+						log.Printf("Ignoring chunks from FROM clause: %v", tokens[4:])
 					}
 				}
 			case "ARG":

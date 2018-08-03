@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"path"
 	"regexp"
 	"strings"
@@ -88,14 +89,14 @@ func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWo
 	}
 
 	if b.debug {
-		fmt.Printf("Scraping args: %v\n", args)
+		log.Printf("Scraping args: %v\n", args)
 	}
 
 	var buf bytes.Buffer
 	err := b.taskManager.Run(ctx, args, nil, &buf, &buf, "")
 	output := strings.TrimSpace(buf.String())
 	if err != nil {
-		fmt.Printf("Output from dependency scanning: %s\n", output)
+		log.Printf("Output from dependency scanning: %s\n", output)
 		return nil, err
 	}
 

@@ -8,14 +8,11 @@ import (
 	"testing"
 )
 
-// TestDagCreation_ValidFile tests that a valid DAG is created from a file.
 func TestDagCreation_ValidFile(t *testing.T) {
 	pipeline, err := UnmarshalPipelineFromFile("testdata/rally.yaml", "", "", "")
 	if err != nil {
 		t.Fatalf("Failed to create pipeline from file. Err: %v", err)
 	}
-
-	rootStep := &Step{ID: RootNodeID}
 
 	pullerStep := &Step{
 		ID:            "puller",
@@ -83,7 +80,6 @@ func TestDagCreation_ValidFile(t *testing.T) {
 	}
 
 	dict := make(map[string]*Step)
-	dict[RootNodeID] = rootStep
 	dict[pullerStep.ID] = pullerStep
 	dict[cStep.ID] = cStep
 	dict[bStep.ID] = bStep
@@ -109,15 +105,17 @@ func TestDagCreation_ValidFile(t *testing.T) {
 
 	noChildren := make(map[string]*Step)
 
+	err = verifyChildren(rootStepChildren, pipeline.Dag.Root.Children())
+	if err != nil {
+		t.Fatalf("root node: %v failed child validation. Err: %v", pipeline.Dag.Root.Name, err)
+	}
+
 	for k, node := range pipeline.Dag.Nodes {
 		if val, ok := dict[k]; ok {
 			if !val.Equals(node.Value) {
 				t.Fatalf("Step generated from DAG is different than expected step for %v", k)
 			}
-			var err error
 			switch node.Name {
-			case rootStep.ID:
-				err = verifyChildren(rootStepChildren, node.Children())
 			case pullerStep.ID:
 				err = verifyChildren(noChildren, node.Children())
 			case cStep.ID:
@@ -135,7 +133,6 @@ func TestDagCreation_ValidFile(t *testing.T) {
 			default:
 				t.Fatalf("Unhandled node: %v", k)
 			}
-
 			if err != nil {
 				t.Fatalf("%v failed child validation. Err: %v", node.Name, err)
 			}

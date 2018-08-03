@@ -5,7 +5,7 @@ package cmd
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"io"
 	"time"
@@ -69,6 +69,6 @@ func (d *downloadCmd) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Printf("Download complete, working directory: %s\n", workingDir)
+	log.Printf("Download complete, working directory: %s\n", workingDir)
 	return nil
 }
