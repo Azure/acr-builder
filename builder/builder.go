@@ -19,7 +19,6 @@ import (
 	"github.com/Azure/acr-builder/pkg/taskmanager"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // Builder builds images.
@@ -87,22 +86,22 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 		step := n.Value
 		log.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
 
-		if !step.IsBuildStep() { // If the step isn't a build step, it won't have dependencies from the scanner.
-			continue
-		}
-		if err := b.populateDigests(ctx, step.ImageDependencies); err != nil {
-			return err
-		}
 		if len(step.ImageDependencies) > 0 {
+			if err := b.populateDigests(ctx, step.ImageDependencies); err != nil {
+				return err
+			}
 			deps = append(deps, step.ImageDependencies...)
 		}
 	}
 
-	bytes, err := json.Marshal(deps)
-	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal image dependencies")
+	if len(deps) > 0 {
+		bytes, err := json.Marshal(deps)
+		if err != nil {
+			return errors.Wrap(err, "failed to unmarshal image dependencies")
+		}
+		fmt.Println(string(bytes))
 	}
-	fmt.Println(string(bytes))
+
 	return nil
 }
 
@@ -278,7 +277,7 @@ func getRepoDigest(jsonContent string, reference *models.ImageReference) string 
 	}
 	var digestList []string
 	if err := json.Unmarshal([]byte(jsonContent), &digestList); err != nil {
-		logrus.Warnf("Error deserializing %s to json, error: %v", jsonContent, err)
+		log.Printf("Error deserializing %s to json, error: %v\n", jsonContent, err)
 	}
 	for _, digest := range digestList {
 		if strings.HasPrefix(digest, prefix) {
