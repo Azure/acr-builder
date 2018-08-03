@@ -85,13 +85,14 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 	var deps []*models.ImageDependencies
 	for _, n := range pipeline.Dag.Nodes {
 		step := n.Value
+		log.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
+
 		if !step.IsBuildStep() { // If the step isn't a build step, it won't have dependencies from the scanner.
 			continue
 		}
 		if err := b.populateDigests(ctx, step.ImageDependencies); err != nil {
 			return err
 		}
-		log.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
 		if len(step.ImageDependencies) > 0 {
 			deps = append(deps, step.ImageDependencies...)
 		}
