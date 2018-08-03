@@ -54,22 +54,24 @@ Available Commands:
   init        Initialize a default template
   render      Render a template
   version     Print version information
+
+Flags:
+  -d, --debug   enable verbose output for debugging
+  -h, --help    help for acb
 ```
 
 ## Building an image
 
 See `acb build --help` for a list of all parameters.
 
-Pushing to a registry:
-
 ```sh
-$ docker run -v /var/run/docker.sock:/var/run/docker.sock acb build -t "foo:bar" -f "Dockerfile" --push -r foo.azurecr.io -u username -p password "https://github.com/Azure/acr-builder.git"
+$ docker run -v /var/run/docker.sock:/var/run/docker.sock acb build https://github.com/Azure/acr-builder.git
 ```
 
-## Running a pipeline with a template
+## Running a pipeline
 
 See `acb exec --help` for a list of all parameters.
 
 ```sh
-$ docker run -v $(pwd):/workspace --workdir /workspace -v /var/run/docker.sock:/var/run/docker.sock acb exec --homevol $(pwd) --steps templating/testdata/helloworld/git-build.yaml --values templating/testdata/helloworld/values.yaml --id demo -r foo.azurecr.io -u username -p password
+$ docker run -v $(pwd):/workspace --workdir /workspace -v /var/run/docker.sock:/var/run/docker.sock acb exec --homevol $(pwd) --steps templating/testdata/helloworld/git-build.yaml --values templating/testdata/helloworld/values.yaml --id demo -r foo.azurecr.io
 ```
