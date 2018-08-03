@@ -100,10 +100,7 @@ func (s *Scanner) getContextFromURL(remoteURL string) (sourceType DockerSourceTy
 	progressOutput := streamformatter.NewProgressOutput(&buf)
 	r := progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", "Downloading build context")
 	defer func(response *http.Response) {
-		err := response.Body.Close()
-		if err != nil {
-			fmt.Printf("Failed to close http response from url: %s, err: %v\n", remoteURL, err)
-		}
+		_ = response.Body.Close()
 	}(response)
 
 	err = s.getContextFromReader(r)

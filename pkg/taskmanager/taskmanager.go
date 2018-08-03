@@ -5,8 +5,8 @@ package taskmanager
 
 import (
 	"context"
-	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"sync"
@@ -40,7 +40,7 @@ func (tm *TaskManager) Run(
 	cmdDir string) error {
 
 	if tm.DryRun {
-		fmt.Printf("[DRY RUN] Args: %v\n", args)
+		log.Printf("[DRY RUN] Args: %v\n", args)
 		return nil
 	}
 
@@ -77,7 +77,7 @@ func (tm *TaskManager) Run(
 	case <-ctx.Done():
 		go func() {
 			if err := cmd.Process.Kill(); err != nil {
-				fmt.Printf("Failed to kill process. Path: %s, Args: %v, Err: %v", cmd.Path, cmd.Args, err)
+				log.Printf("Failed to kill process. Path: %s, Args: %v, Err: %v", cmd.Path, cmd.Args, err)
 			}
 		}()
 

@@ -160,9 +160,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
 			}
 			defer func() {
-				if msg, err := v.Delete(ctx); err != nil {
-					fmt.Printf("Failed to clean up docker vol: %s. Msg: %s, Err: %v\n", homeVolName, msg, err)
-				}
+				_, _ = v.Delete(ctx)
 			}()
 		}
 	} else {

@@ -6,6 +6,7 @@ package builder
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -39,8 +40,7 @@ func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
 
 		retry := 0
 		for retry < maxPushRetries {
-			fmt.Printf("Pushing image: %s, attempt %d\n", img, retry+1)
-
+			log.Printf("Pushing image: %s, attempt %d\n", img, retry+1)
 			if err := b.taskManager.Run(ctx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
 				time.Sleep(500 * time.Millisecond)
 				retry++

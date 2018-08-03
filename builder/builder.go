@@ -45,11 +45,11 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 			return err
 		}
 		if pipeline.UsingRegistryCreds() {
-			fmt.Printf("Logging in to registry: %s\n", pipeline.RegistryName)
+			log.Printf("Logging in to registry: %s\n", pipeline.RegistryName)
 			if err := b.dockerLoginWithRetries(ctx, pipeline.RegistryName, pipeline.RegistryUsername, pipeline.RegistryPassword, 0); err != nil {
 				return err
 			}
-			fmt.Println("Successfully logged in")
+			log.Println("Successfully logged in")
 		}
 	}
 
@@ -90,15 +90,13 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 		if k == graph.RootNodeID {
 			continue
 		}
-
 		step := v.Value
-
 		err := b.populateDigests(ctx, step.ImageDependencies)
 		if err != nil {
 			return errors.Wrap(err, "failed to populate digests")
 		}
 
-		fmt.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
+		log.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
 		bytes, err := json.Marshal(step.ImageDependencies)
 		if err != nil {
 			return errors.Wrap(err, "failed to unmarshal image dependencies")
@@ -121,9 +119,7 @@ func (b *Builder) CleanAllBuildSteps(ctx context.Context, pipeline *graph.Pipeli
 		killArgs := append(args, step.ID)
 		_ = b.taskManager.Run(ctx, killArgs, nil, nil, nil, "")
 	}
-	if err := b.taskManager.Stop(); err != nil {
-		fmt.Printf("Failed to stop ongoing processes: %v", err)
-	}
+	_ = b.taskManager.Stop()
 }
 
 func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, parent *graph.Node, child *graph.Node, errorChan chan error) {
@@ -138,7 +134,7 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 		step := child.Value
 
 		if step.StartDelay > 0 {
-			fmt.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
+			log.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
 			time.Sleep(time.Duration(step.StartDelay) * time.Second)
 		}
 
@@ -192,9 +188,8 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 		}
 
 		if b.debug {
-			fmt.Printf("Args: %v\n", args)
+			log.Printf("Step args: %v\n", args)
 		}
-
 		// TODO: secret envs
 
 		// NB: ctx refers to the global ctx here,
