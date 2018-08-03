@@ -109,7 +109,6 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Using %s as the home volume\n", homeVolName)
 	builder := builder.NewBuilder(taskManager, debug, homeVolName)
 	defer builder.CleanAllBuildSteps(context.Background(), pipeline)
-
 	return builder.RunAllBuildSteps(ctx, pipeline)
 }
 

@@ -8,16 +8,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
-	"github.com/Azure/acr-builder/baseimages/scanner/util"
+	scannerutil "github.com/Azure/acr-builder/baseimages/scanner/util"
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/taskmanager"
-	builderutil "github.com/Azure/acr-builder/util"
+	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -26,7 +26,6 @@ import (
 type Builder struct {
 	taskManager  *taskmanager.TaskManager
 	workspaceDir string
-	mu           sync.Mutex
 	debug        bool
 }
 
@@ -36,18 +35,15 @@ func NewBuilder(tm *taskmanager.TaskManager, debug bool, workspaceDir string) *B
 		taskManager:  tm,
 		debug:        debug,
 		workspaceDir: workspaceDir,
-		mu:           sync.Mutex{},
 	}
 }
 
 // RunAllBuildSteps executes a pipeline.
 func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline) error {
-
 	if !b.taskManager.DryRun {
 		if err := b.setupConfig(ctx); err != nil {
 			return err
 		}
-
 		if pipeline.UsingRegistryCreds() {
 			fmt.Printf("Logging in to registry: %s\n", pipeline.RegistryName)
 			if err := b.dockerLoginWithRetries(ctx, pipeline.RegistryName, pipeline.RegistryUsername, pipeline.RegistryPassword, 0); err != nil {
@@ -97,7 +93,7 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 
 		step := v.Value
 
-		err := b.PopulateDigests(ctx, step.ImageDependencies)
+		err := b.populateDigests(ctx, step.ImageDependencies)
 		if err != nil {
 			return errors.Wrap(err, "failed to populate digests")
 		}
@@ -117,18 +113,14 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 // CleanAllBuildSteps cleans up all build steps and removes their corresponding Docker containers.
 func (b *Builder) CleanAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline) {
 	args := []string{"docker", "rm", "-f"}
-
 	for k, v := range pipeline.Dag.Nodes {
 		if k == graph.RootNodeID {
 			continue
 		}
-
 		step := v.Value
-
 		killArgs := append(args, step.ID)
 		_ = b.taskManager.Run(ctx, killArgs, nil, nil, nil, "")
 	}
-
 	if err := b.taskManager.Stop(); err != nil {
 		fmt.Printf("Failed to stop ongoing processes: %v", err)
 	}
@@ -171,12 +163,12 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 
 			workDir := step.WorkDir
 			// Modify the Run command if it's a tar or a git URL.
-			if !util.IsLocalContext(context) {
+			if !scannerutil.IsLocalContext(context) {
 				// NB: use step.ID as the working directory if the context is remote,
 				// since we obtained the source code from the scanner and put it in this location.
 				// If the remote context also has additional context specified, we have to append it
 				// to the working directory.
-				if util.IsGitURL(context) || util.IsVstsGitURL(context) {
+				if scannerutil.IsGitURL(context) || scannerutil.IsVstsGitURL(context) {
 					workDir = step.ID + "/" + getContextFromGitURL(context)
 				} else {
 					workDir = step.ID
@@ -224,13 +216,11 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 		}
 
 		step.CompletedChan <- true
-	} else if b.debug {
-		fmt.Printf("Skipped processing %v, degree: %v\n", child.Name, degree)
 	}
 }
 
-// PopulateDigests populates digests on dependencies
-func (b *Builder) PopulateDigests(ctx context.Context, dependencies []*models.ImageDependencies) error {
+// populateDigests populates digests on dependencies
+func (b *Builder) populateDigests(ctx context.Context, dependencies []*models.ImageDependencies) error {
 	for _, entry := range dependencies {
 		if err := b.queryDigest(ctx, entry.Image); err != nil {
 			return err
@@ -255,14 +245,13 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 		if reference.Reference == NoBaseImageSpecifierLatest {
 			return nil
 		}
-
 		args := []string{
 			"docker",
 			"run",
 			"--rm",
 
 			// Mount home
-			"--volume", builderutil.GetDockerSock(),
+			"--volume", util.GetDockerSock(),
 			"--volume", homeVol + ":" + homeWorkDir,
 			"--env", homeEnv,
 
@@ -272,21 +261,17 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 			"\"{{json .RepoDigests}}\"",
 			reference.Reference,
 		}
-
 		if b.debug {
-			fmt.Printf("query digest args: %v\n", args)
+			log.Printf("query digest args: %v\n", args)
 		}
-
 		var buf bytes.Buffer
-		err := b.taskManager.Run(ctx, args, nil, &buf, os.Stderr, "")
+		err := b.taskManager.Run(ctx, args, nil, &buf, &buf, "")
 		if err != nil {
 			return err
 		}
-
 		trimCharPredicate := func(c rune) bool {
 			return '\n' == c || '\r' == c || '"' == c || '\t' == c
 		}
-
 		reference.Digest = getRepoDigest(strings.TrimFunc(buf.String(), trimCharPredicate), reference)
 	}
 
