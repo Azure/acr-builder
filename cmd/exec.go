@@ -116,9 +116,5 @@ func (e *execCmd) validateCmdArgs(imgs []string) error {
 		return err
 	}
 
-	if err := validatePush(len(imgs) > 0, e.opts.Registry, e.registryUser, e.registryPw); err != nil {
-		return err
-	}
-
-	return nil
+	return validatePush(len(imgs) > 0, e.opts.Registry, e.registryUser, e.registryPw)
 }
