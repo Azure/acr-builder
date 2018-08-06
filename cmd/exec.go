@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"time"
 
 	"github.com/Azure/acr-builder/builder"
@@ -69,7 +70,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	if debug {
-		fmt.Println("Rendered template:")
+		log.Println("Rendered template:")
 		fmt.Println(rendered)
 	}
 
@@ -104,7 +105,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		homeVolName = e.homeVol
 	}
 
-	fmt.Printf("Using %s as the home volume\n", homeVolName)
+	log.Printf("Using %s as the home volume\n", homeVolName)
 	builder := builder.NewBuilder(taskManager, debug, homeVolName)
 	defer builder.CleanAllBuildSteps(context.Background(), pipeline)
 	return builder.RunAllBuildSteps(ctx, pipeline)

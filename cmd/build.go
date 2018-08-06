@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"strings"
 	"time"
 
@@ -117,7 +118,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	if debug {
-		fmt.Println("Rendered template:")
+		log.Println("Rendered template:")
 		fmt.Println(rendered)
 	}
 
@@ -167,7 +168,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 		homeVolName = b.homeVol
 	}
 
-	fmt.Printf("Using %s as the home volume\n", homeVolName)
+	log.Printf("Using %s as the home volume\n", homeVolName)
 	builder := builder.NewBuilder(taskManager, debug, homeVolName)
 	defer builder.CleanAllBuildSteps(context.Background(), pipeline)
 	return builder.RunAllBuildSteps(ctx, pipeline)

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"text/template"
@@ -57,7 +58,7 @@ func (e *Engine) render(templates map[string]renderableTemplate) (rendered map[s
 	// If a template panics, recover the engine.
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("Template rendering recovered. Value: %v\n", r)
+			log.Printf("Template rendering recovered. Value: %v\n", r)
 		}
 	}()
 

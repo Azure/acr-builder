@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"os"
 
 	"fmt"
@@ -90,7 +91,7 @@ func (s *scanCmd) run(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "failed to unmarshal image dependencies")
 	}
 
-	fmt.Println("Dependencies:")
+	log.Println("Dependencies:")
 	fmt.Println(string(bytes))
 	return nil
 }
