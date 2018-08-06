@@ -47,6 +47,7 @@ func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
 				time.Sleep(500 * time.Millisecond)
 				retry++
 			} else {
+				log.Printf("Successfully pushed image: %s\n", img)
 				break
 			}
 		}

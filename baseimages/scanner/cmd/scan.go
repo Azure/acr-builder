@@ -6,9 +6,9 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 
-	"fmt"
 	"io"
 	"time"
 

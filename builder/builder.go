@@ -40,9 +40,11 @@ func NewBuilder(tm *taskmanager.TaskManager, debug bool, workspaceDir string) *B
 // RunAllBuildSteps executes a pipeline.
 func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline) error {
 	if !b.taskManager.DryRun {
+		log.Printf("Setting up Docker configuration...")
 		if err := b.setupConfig(ctx); err != nil {
 			return err
 		}
+		log.Printf("Successfully set up Docker configuration")
 		if pipeline.UsingRegistryCreds() {
 			log.Printf("Logging in to registry: %s\n", pipeline.RegistryName)
 			if err := b.dockerLoginWithRetries(ctx, pipeline.RegistryName, pipeline.RegistryUsername, pipeline.RegistryPassword, 0); err != nil {
