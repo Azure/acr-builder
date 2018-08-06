@@ -70,7 +70,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	if debug {
-		log.Println("Rendered template:")
+		fmt.Println("Rendered template:")
 		fmt.Println(rendered)
 	}
 
