@@ -61,7 +61,7 @@ func OverrideValues(c1 *Config, c2 *Config) (Values, error) {
 }
 
 // merge merges the specified template with the specified map.
-// The specified map has precendence.
+// The specified map has precedence.
 func merge(c *Config, merged map[string]interface{}) (map[string]interface{}, error) {
 	if !c.IsValidConfig() {
 		return merged, nil
@@ -107,7 +107,7 @@ func mergeMaps(sink, source map[string]interface{}) map[string]interface{} {
 
 			// 1. If the key doesn't exist, set it.
 			// 2. If the key exists and it's a map, recursively iterate through the map.
-			// 3. Otherwise, the key is trying to be overriden by a scalar value, in which
+			// 3. Otherwise, the key is trying to be overridden by a scalar value, in which
 			// case print a warning message and skip it.
 			if innerV, ok := sink[k]; !ok {
 				sink[k] = v
