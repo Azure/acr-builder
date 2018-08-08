@@ -183,11 +183,11 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 			step.Run = replacePositionalContext(step.Run, ".")
 		}
 
-		args = b.getDockerRunArgs(volName, step.ID, workDir, step.Ports, true, step.Detach)
+		args = b.getDockerRunArgs(volName, workDir, step)
 		args = append(args, "docker")
 		args = append(args, strings.Fields(step.Run)...)
 	} else {
-		args = b.getDockerRunArgs(b.workspaceDir, step.ID, step.WorkDir, step.Ports, step.Rm, step.Detach)
+		args = b.getDockerRunArgs(b.workspaceDir, step.WorkDir, step)
 		for _, env := range step.Envs {
 			args = append(args, "--env", env)
 		}
