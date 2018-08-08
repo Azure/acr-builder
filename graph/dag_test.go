@@ -77,6 +77,8 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Run:        "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu",
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
+		Privileged: true,
+		User:       "root",
 	}
 
 	dict := make(map[string]*Step)

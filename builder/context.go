@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/util"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
@@ -26,27 +27,32 @@ var (
 // getDockerRunArgs populates the args for running a Docker container.
 func (b *Builder) getDockerRunArgs(
 	volName string,
-	stepID string,
 	stepWorkDir string,
-	ports []string,
-	rmContainer bool,
-	detach bool) []string {
+	step *graph.Step) []string {
 	args := []string{"docker", "run"}
 
-	if rmContainer {
+	if step.Rm {
 		args = append(args, "--rm")
 	}
 
-	if detach {
+	if step.Detach {
 		args = append(args, "--detach")
 	}
 
-	for _, port := range ports {
+	for _, port := range step.Ports {
 		args = append(args, "-p", port)
 	}
 
+	if step.Privileged {
+		args = append(args, "--privileged")
+	}
+
+	if step.User != "" {
+		args = append(args, "--user", step.User)
+	}
+
 	args = append(args,
-		"--name", stepID,
+		"--name", step.ID,
 		"--volume", volName+":"+containerWorkspaceDir,
 
 		// Mount home

@@ -39,6 +39,8 @@ type Step struct {
 	Rm            bool     `yaml:"rm"`
 	Detach        bool     `yaml:"detach"`
 	StartDelay    int      `yaml:"startDelay"`
+	Privileged    bool     `yaml:"privileged"`
+	User          string   `yaml:"user"`
 
 	StartTime  time.Time
 	EndTime    time.Time
@@ -95,7 +97,9 @@ func (s *Step) Equals(t *Step) bool {
 		s.StartDelay != t.StartDelay ||
 		s.StartTime != t.StartTime ||
 		s.EndTime != t.EndTime ||
-		s.StepStatus != t.StepStatus {
+		s.StepStatus != t.StepStatus ||
+		s.Privileged != t.Privileged ||
+		s.User != t.User {
 		return false
 	}
 
