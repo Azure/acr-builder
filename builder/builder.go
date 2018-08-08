@@ -131,7 +131,7 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 		step := child.Value
 		if err := b.runStep(ctx, step); err != nil {
 			step.StepStatus = graph.Failed
-			errorChan <- err
+			errorChan <- errors.Wrapf(err, "failed to run step id: %s", step.ID)
 		} else {
 			step.StepStatus = graph.Successful
 			for _, c := range child.Children() {
