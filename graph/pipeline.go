@@ -133,7 +133,7 @@ func (p *Pipeline) initialize() error {
 	for i, s := range p.Steps {
 		// If individual steps don't have step timeouts specified,
 		// stamp the global timeout on them.
-		if s.Timeout == 0 {
+		if s.Timeout <= 0 {
 			s.Timeout = p.StepTimeout
 		}
 
