@@ -23,9 +23,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const buildLongDesc = `
+const (
+	buildLongDesc = `
 This command can be used to build images.
 `
+
+	// 8 hours
+	timeoutInSec = 60 * 60 * 8
+)
 
 type buildCmd struct {
 	out             io.Writer
@@ -128,7 +133,8 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	taskManager := taskmanager.NewTaskManager(b.dryRun)
 	defaultStep := &graph.Step{
-		Run: rendered,
+		Run:     rendered,
+		Timeout: timeoutInSec,
 	}
 
 	steps := []*graph.Step{defaultStep}
