@@ -1,15 +1,15 @@
 # This template demonstrates how previously created artifacts can be re-used, for example building after a git clone.
 # Run a git clone, which clones the context into `cloned-repository-ctx`
 steps:
-  - run: git clone https://github.com/Azure/acr-builder.git cloned-repository-ctx
+  - cmd: git clone https://github.com/Azure/acr-builder.git cloned-repository-ctx
     rm: true
 
   # Run `ls` on the cloned content
-  - run: bash ls -la
+  - cmd: bash ls -la
     workDir: cloned-repository-ctx
     rm: true
 
   # Build using the previously stored content from `cloned-repository-ctx`
-  - run: build -f Dockerfile .
+  - cmd: build -f Dockerfile .
     workDir: cloned-repository-ctx
     rm: true

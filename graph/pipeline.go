@@ -151,14 +151,14 @@ func (p *Pipeline) initialize() error {
 			s.CompletedChan = make(chan bool)
 		}
 
-		// Adjust the run command so that the ACR registry is prefixed for all tags
-		s.Run = util.PrefixTags(s.Run, p.RegistryName)
+		// Adjust the command so that the ACR registry is prefixed for all tags
+		s.Cmd = util.PrefixTags(s.Cmd, p.RegistryName)
 
 		// Mark the step as skipped initially
 		s.StepStatus = Skipped
 
-		s.Tags = util.ParseTags(s.Run)
-		s.BuildArgs = util.ParseBuildArgs(s.Run)
+		s.Tags = util.ParseTags(s.Cmd)
+		s.BuildArgs = util.ParseBuildArgs(s.Cmd)
 	}
 
 	p.Push = getNormalizedDockerImageNames(p.Push, p.RegistryName)

@@ -133,7 +133,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	taskManager := taskmanager.NewTaskManager(b.dryRun)
 	defaultStep := &graph.Step{
-		Run:     rendered,
+		Cmd:     rendered,
 		Timeout: timeoutInSec,
 	}
 
