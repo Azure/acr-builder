@@ -20,13 +20,13 @@ const (
 
 var (
 	errMissingID  = errors.New("Step is missing an ID")
-	errMissingRun = errors.New("Step is missing a `run` section")
+	errMissingCmd = errors.New("Step is missing a cmd property")
 )
 
 // Step is a step in the execution pipeline.
 type Step struct {
 	ID            string   `yaml:"id"`
-	Run           string   `yaml:"run"`
+	Cmd           string   `yaml:"cmd"`
 	WorkDir       string   `yaml:"workDir"`
 	EntryPoint    string   `yaml:"entryPoint"`
 	Envs          []string `yaml:"envs"`
@@ -60,8 +60,8 @@ func (s *Step) Validate() error {
 	if s.ID == "" {
 		return errMissingID
 	}
-	if s.Run == "" {
-		return errMissingRun
+	if s.Cmd == "" {
+		return errMissingCmd
 	}
 	for _, dep := range s.When {
 		if dep == s.ID {
@@ -84,7 +84,7 @@ func (s *Step) Equals(t *Step) bool {
 	if s.ID != t.ID ||
 		s.Rm != t.Rm ||
 		s.Detach != t.Detach ||
-		s.Run != t.Run ||
+		s.Cmd != t.Cmd ||
 		s.WorkDir != t.WorkDir ||
 		s.EntryPoint != t.EntryPoint ||
 		!util.StringSequenceEquals(s.Ports, t.Ports) ||
@@ -122,5 +122,5 @@ func (s *Step) HasNoWhen() bool {
 
 // IsBuildStep returns true if the Step is a build step, false otherwise.
 func (s *Step) IsBuildStep() bool {
-	return strings.HasPrefix(s.Run, "build ")
+	return strings.HasPrefix(s.Cmd, "build ")
 }

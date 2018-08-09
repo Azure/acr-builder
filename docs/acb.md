@@ -8,7 +8,7 @@ A pipeline config consists of steps. Each step is tailored to an independent con
 ## It consists of the following properties:
 
 id: string (optional)
-run: string (required)
+cmd: string (required)
 workDir: string (optional)
 entryPoint: string (optional)
 envs: [string, string, ...] (optional)
@@ -26,7 +26,7 @@ startDelay: int (in seconds) (optional)
 For details on each specific property in a Step, follow these links:
 
 - [id](#id)
-- [run](#run)
+- [cmd](#cmd)
 - [workDir](#workdir)
 - [entryPoint](#entrypoint)
 - [envs](#envs)
@@ -76,9 +76,9 @@ For details on specific properties in the `acb.yaml`, review the following prope
 
 The `id` property is a unique identifier to reference the step throughout the pipeline.
 
-### run
+### cmd
 
-The `run` property of a step specifies which image to use when running the operation as well as any additional command-line parameters.
+The `cmd` property of a step specifies which image to use when running the operation as well as any additional command-line parameters.
 
 ### workDir
 

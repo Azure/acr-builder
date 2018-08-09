@@ -8,4 +8,4 @@ secrets:
 
 steps:
   - timeout: 5
-    run: build -f Dockerfile -t foo:bar https://github.com/Azure/acr-builder.git
+    cmd: build -f Dockerfile -t foo:bar https://github.com/Azure/acr-builder.git

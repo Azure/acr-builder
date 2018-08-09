@@ -11,19 +11,19 @@ func TestIsBuildStep(t *testing.T) {
 	}{
 		{
 			&Step{
-				Run: "build -t foo .",
+				Cmd: "build -t foo .",
 			},
 			true,
 		},
 		{
 			&Step{
-				Run: "builder build -t foo .",
+				Cmd: "builder build -t foo .",
 			},
 			false,
 		},
 		{
 			&Step{
-				Run: "build",
+				Cmd: "build",
 			},
 			false,
 		},

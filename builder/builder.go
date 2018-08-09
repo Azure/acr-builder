@@ -158,7 +158,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 	var args []string
 
 	if step.IsBuildStep() {
-		dockerfile, context := parseDockerBuildCmd(step.Run)
+		dockerfile, context := parseDockerBuildCmd(step.Cmd)
 		volName := b.workspaceDir
 
 		deps, err := b.scrapeDependencies(ctx, volName, step.WorkDir, step.ID, dockerfile, context, step.Tags, step.BuildArgs)
@@ -180,12 +180,12 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 				workDir = step.ID
 			}
 
-			step.Run = replacePositionalContext(step.Run, ".")
+			step.Cmd = replacePositionalContext(step.Cmd, ".")
 		}
 
 		args = b.getDockerRunArgs(volName, workDir, step)
 		args = append(args, "docker")
-		args = append(args, strings.Fields(step.Run)...)
+		args = append(args, strings.Fields(step.Cmd)...)
 	} else {
 		args = b.getDockerRunArgs(b.workspaceDir, step.WorkDir, step)
 		for _, env := range step.Envs {
@@ -194,7 +194,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		if step.EntryPoint != "" {
 			args = append(args, "--entrypoint", step.EntryPoint)
 		}
-		args = append(args, strings.Fields(step.Run)...)
+		args = append(args, strings.Fields(step.Cmd)...)
 	}
 
 	if b.debug {

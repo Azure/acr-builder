@@ -12,21 +12,21 @@ secrets:
 
 steps:
   - id: puller
-    run: azure/images/docker pull ubuntu
+    cmd: azure/images/docker pull ubuntu
     entryPoint: someEntryPoint
     envs: [eric=foo, foo=bar]
     secretEnvs: [someAkvSecretEnv]
     exitedWithout: [0, 255]
 
   - id: build-qux
-    run: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu
+    cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu
     when: ["-"]
     rm: false
     detach: true
     startDelay: 50
 
   - id: C
-    run: blah
+    cmd: blah
     when: ["-"]
     ports:
       - "8000:8000"
@@ -35,20 +35,20 @@ steps:
     rm: true
 
   - id: build-bar
-    run: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/bar --cache-from=ubuntu
+    cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/bar --cache-from=ubuntu
     when: ["-"]
 
   - id: B
     when: [C]
-    run: azure/images/git clone https://github.com/ehotinger/clone
+    cmd: azure/images/git clone https://github.com/ehotinger/clone
 
   - id: build-foo
-    run: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu
+    cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu
     envs: ["eric=foo"]
     when: [build-qux]
     secretEnvs: [someAkvSecretEnv]
 
   - id: build-qaz
-    run: "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu"
+    cmd: "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu"
     privileged: true
     user: root
