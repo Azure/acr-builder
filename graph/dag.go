@@ -56,12 +56,12 @@ func NewDag() *Dag {
 	return dag
 }
 
-// NewDagFromPipeline creates a new Dag based on the specified pipeline.
-func NewDagFromPipeline(p *Pipeline) (*Dag, error) {
+// NewDagFromTask creates a new Dag based on the specified Task.
+func NewDagFromTask(t *Task) (*Dag, error) {
 	dag := NewDag()
 
 	var prevStep *Step
-	for _, step := range p.Steps {
+	for _, step := range t.Steps {
 		if err := step.Validate(); err != nil {
 			return dag, err
 		}

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package taskmanager
+package procmanager
 
 import (
 	"context"
@@ -14,32 +14,32 @@ import (
 	"github.com/Azure/acr-builder/pkg/util"
 )
 
-// TaskManager is a wrapper for executing processes.
-type TaskManager struct {
+// ProcManager is a wrapper for os.Process.
+type ProcManager struct {
 	DryRun    bool
 	mu        sync.Mutex
 	processes map[int]*os.Process
 }
 
-// NewTaskManager creates a new TaskManager.
-func NewTaskManager(dryRun bool) *TaskManager {
-	return &TaskManager{
+// NewProcManager creates a new ProcManager.
+func NewProcManager(dryRun bool) *ProcManager {
+	return &ProcManager{
 		DryRun:    dryRun,
 		processes: map[int]*os.Process{},
 		mu:        sync.Mutex{},
 	}
 }
 
-// Run runs a command based on the specified params.
-func (tm *TaskManager) Run(
+// Run runs an exec.Command based on the specified args.
+// stdIn, stdOut, stdErr, and cmdDir can be attached to the created exec.Command.
+func (pm *ProcManager) Run(
 	ctx context.Context,
 	args []string,
 	stdIn io.Reader,
 	stdOut io.Writer,
 	stdErr io.Writer,
 	cmdDir string) error {
-
-	if tm.DryRun {
+	if pm.DryRun {
 		log.Printf("[DRY RUN] Args: %v\n", args)
 		return nil
 	}
@@ -59,11 +59,11 @@ func (tm *TaskManager) Run(
 
 	pid := cmd.Process.Pid
 
-	tm.mu.Lock()
-	tm.processes[pid] = cmd.Process
-	tm.mu.Unlock()
+	pm.mu.Lock()
+	pm.processes[pid] = cmd.Process
+	pm.mu.Unlock()
 
-	defer tm.DeletePid(pid)
+	defer pm.DeletePid(pid)
 
 	errChan := make(chan error)
 	go func() {
@@ -86,25 +86,25 @@ func (tm *TaskManager) Run(
 }
 
 // DeletePid deletes the specified pid from the internal map.
-func (tm *TaskManager) DeletePid(pid int) {
-	tm.mu.Lock()
-	delete(tm.processes, pid)
-	tm.mu.Unlock()
+func (pm *ProcManager) DeletePid(pid int) {
+	pm.mu.Lock()
+	delete(pm.processes, pid)
+	pm.mu.Unlock()
 }
 
-// Stop stops the task manager and tries to kill any running processes.
-func (tm *TaskManager) Stop() util.Errors {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
+// Stop stops the process manager and tries to kill any remaining processes
+// in its internal map. Any errors encountered during kill will be return as
+// a list of errors.
+func (pm *ProcManager) Stop() util.Errors {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
 
 	var errors util.Errors
-	for pid, process := range tm.processes {
+	for pid, process := range pm.processes {
 		if err := process.Kill(); err != nil {
 			errors = append(errors, err)
 		}
-
-		delete(tm.processes, pid)
+		delete(pm.processes, pid)
 	}
-
 	return errors
 }

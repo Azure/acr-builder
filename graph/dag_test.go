@@ -9,9 +9,9 @@ import (
 )
 
 func TestDagCreation_ValidFile(t *testing.T) {
-	pipeline, err := UnmarshalPipelineFromFile("testdata/rally.yaml", "", "", "")
+	task, err := UnmarshalTaskFromFile("testdata/rally.yaml", "", "", "")
 	if err != nil {
-		t.Fatalf("Failed to create pipeline from file. Err: %v", err)
+		t.Fatalf("Failed to create task from file. Err: %v", err)
 	}
 
 	pullerStep := &Step{
@@ -107,12 +107,12 @@ func TestDagCreation_ValidFile(t *testing.T) {
 
 	noChildren := make(map[string]*Step)
 
-	err = verifyChildren(rootStepChildren, pipeline.Dag.Root.Children())
+	err = verifyChildren(rootStepChildren, task.Dag.Root.Children())
 	if err != nil {
-		t.Fatalf("root node: %v failed child validation. Err: %v", pipeline.Dag.Root.Name, err)
+		t.Fatalf("root node: %v failed child validation. Err: %v", task.Dag.Root.Name, err)
 	}
 
-	for k, node := range pipeline.Dag.Nodes {
+	for k, node := range task.Dag.Nodes {
 		if val, ok := dict[k]; ok {
 			if !val.Equals(node.Value) {
 				t.Fatalf("Step generated from DAG is different than expected step for %v", k)

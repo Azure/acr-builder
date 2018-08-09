@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/Azure/acr-builder/pkg/taskmanager"
+	"github.com/Azure/acr-builder/pkg/procmanager"
 )
 
 const (
@@ -18,14 +18,14 @@ const (
 // Volume describes a Docker volume.
 type Volume struct {
 	Name        string
-	taskManager *taskmanager.TaskManager
+	procManager *procmanager.ProcManager
 }
 
 // NewVolume creates a new Volume.
-func NewVolume(name string, tm *taskmanager.TaskManager) *Volume {
+func NewVolume(name string, pm *procmanager.ProcManager) *Volume {
 	return &Volume{
 		Name:        name,
-		taskManager: tm,
+		procManager: pm,
 	}
 }
 
@@ -33,7 +33,7 @@ func NewVolume(name string, tm *taskmanager.TaskManager) *Volume {
 func (v *Volume) Create(ctx context.Context) (string, error) {
 	var buf bytes.Buffer
 	cmd := []string{"docker", "volume", "create", "--name", v.Name}
-	err := v.taskManager.Run(ctx, cmd, nil, &buf, &buf, "")
+	err := v.procManager.Run(ctx, cmd, nil, &buf, &buf, "")
 	return buf.String(), err
 }
 
@@ -41,6 +41,6 @@ func (v *Volume) Create(ctx context.Context) (string, error) {
 func (v *Volume) Delete(ctx context.Context) (string, error) {
 	var buf bytes.Buffer
 	cmd := []string{"docker", "volume", "rm", v.Name}
-	err := v.taskManager.Run(ctx, cmd, nil, &buf, &buf, "")
+	err := v.procManager.Run(ctx, cmd, nil, &buf, &buf, "")
 	return buf.String(), err
 }

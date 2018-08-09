@@ -45,7 +45,7 @@ func (b *Builder) dockerLogin(ctx context.Context, registry string, user string,
 	stdIn := strings.NewReader(pw + "\n")
 
 	var buf bytes.Buffer
-	if err := b.taskManager.Run(ctx, args, stdIn, &buf, &buf, ""); err != nil {
+	if err := b.procManager.Run(ctx, args, stdIn, &buf, &buf, ""); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to set docker credentials: %s", buf.String()))
 	}
 

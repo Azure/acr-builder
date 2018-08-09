@@ -16,38 +16,38 @@ import (
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	scannerutil "github.com/Azure/acr-builder/baseimages/scanner/util"
 	"github.com/Azure/acr-builder/graph"
-	"github.com/Azure/acr-builder/pkg/taskmanager"
+	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 )
 
 // Builder builds images.
 type Builder struct {
-	taskManager  *taskmanager.TaskManager
+	procManager  *procmanager.ProcManager
 	workspaceDir string
 	debug        bool
 }
 
 // NewBuilder creates a new Builder.
-func NewBuilder(tm *taskmanager.TaskManager, debug bool, workspaceDir string) *Builder {
+func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *Builder {
 	return &Builder{
-		taskManager:  tm,
+		procManager:  pm,
 		debug:        debug,
 		workspaceDir: workspaceDir,
 	}
 }
 
-// RunAllBuildSteps executes a pipeline.
-func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline) error {
-	if !b.taskManager.DryRun {
+// RunAllBuildSteps executes a Task.
+func (b *Builder) RunAllBuildSteps(ctx context.Context, task *graph.Task) error {
+	if !b.procManager.DryRun {
 		log.Printf("Setting up Docker configuration...")
 		if err := b.setupConfig(ctx); err != nil {
 			return err
 		}
 		log.Printf("Successfully set up Docker configuration")
-		if pipeline.UsingRegistryCreds() {
-			log.Printf("Logging in to registry: %s\n", pipeline.RegistryName)
-			if err := b.dockerLoginWithRetries(ctx, pipeline.RegistryName, pipeline.RegistryUsername, pipeline.RegistryPassword, 0); err != nil {
+		if task.UsingRegistryCreds() {
+			log.Printf("Logging in to registry: %s\n", task.RegistryName)
+			if err := b.dockerLoginWithRetries(ctx, task.RegistryName, task.RegistryUsername, task.RegistryPassword, 0); err != nil {
 				return err
 			}
 			log.Println("Successfully logged in")
@@ -56,12 +56,12 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 
 	var completedChans []chan bool
 	errorChan := make(chan error)
-	for _, n := range pipeline.Dag.Nodes {
+	for _, n := range task.Dag.Nodes {
 		completedChans = append(completedChans, n.Value.CompletedChan)
 	}
 
-	for _, n := range pipeline.Dag.Root.Children() {
-		go b.processVertex(ctx, pipeline, pipeline.Dag.Root, n, errorChan)
+	for _, n := range task.Dag.Root.Children() {
+		go b.processVertex(ctx, task, task.Dag.Root, n, errorChan)
 	}
 
 	// Block until either:
@@ -79,12 +79,12 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 		}
 	}
 
-	if err := b.pushWithRetries(ctx, pipeline.Push); err != nil {
+	if err := b.pushWithRetries(ctx, task.Push); err != nil {
 		return err
 	}
 
 	var deps []*models.ImageDependencies
-	for _, n := range pipeline.Dag.Nodes {
+	for _, n := range task.Dag.Nodes {
 		step := n.Value
 		log.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
 
@@ -109,18 +109,18 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline
 }
 
 // CleanAllBuildSteps cleans up all build steps and removes their corresponding Docker containers.
-func (b *Builder) CleanAllBuildSteps(ctx context.Context, pipeline *graph.Pipeline) {
+func (b *Builder) CleanAllBuildSteps(ctx context.Context, task *graph.Task) {
 	args := []string{"docker", "rm", "-f"}
-	for _, n := range pipeline.Dag.Nodes {
+	for _, n := range task.Dag.Nodes {
 		step := n.Value
 		killArgs := append(args, step.ID)
-		_ = b.taskManager.Run(ctx, killArgs, nil, nil, nil, "")
+		_ = b.procManager.Run(ctx, killArgs, nil, nil, nil, "")
 	}
-	_ = b.taskManager.Stop()
+	_ = b.procManager.Stop()
 }
 
-func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, parent *graph.Node, child *graph.Node, errorChan chan error) {
-	err := pipeline.Dag.RemoveEdge(parent.Name, child.Name)
+func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *graph.Node, child *graph.Node, errorChan chan error) {
+	err := task.Dag.RemoveEdge(parent.Name, child.Name)
 	if err != nil {
 		errorChan <- errors.Wrap(err, "failed to remove edge")
 		return
@@ -135,7 +135,7 @@ func (b *Builder) processVertex(ctx context.Context, pipeline *graph.Pipeline, p
 		} else {
 			step.StepStatus = graph.Successful
 			for _, c := range child.Children() {
-				go b.processVertex(ctx, pipeline, child, c, errorChan)
+				go b.processVertex(ctx, task, child, c, errorChan)
 			}
 		}
 		// Step must always be marked as complete.
@@ -206,7 +206,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 	timeout := time.Duration(step.Timeout) * time.Second
 	currCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	return b.taskManager.Run(currCtx, args, nil, os.Stdout, os.Stderr, "")
+	return b.procManager.Run(currCtx, args, nil, os.Stdout, os.Stderr, "")
 }
 
 // populateDigests populates digests on dependencies
@@ -255,7 +255,7 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 			log.Printf("query digest args: %v\n", args)
 		}
 		var buf bytes.Buffer
-		if err := b.taskManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+		if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
 			return errors.Wrapf(err, "failed to query digests, msg: %s", buf.String())
 		}
 		trimCharPredicate := func(c rune) bool {

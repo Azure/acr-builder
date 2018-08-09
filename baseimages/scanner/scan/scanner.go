@@ -7,12 +7,12 @@ import (
 	"context"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
-	"github.com/Azure/acr-builder/pkg/taskmanager"
+	"github.com/Azure/acr-builder/pkg/procmanager"
 )
 
 // Scanner scans Dockerfiles.
 type Scanner struct {
-	taskManager       *taskmanager.TaskManager
+	procManager       *procmanager.ProcManager
 	context           string
 	dockerfile        string
 	destinationFolder string
@@ -22,9 +22,9 @@ type Scanner struct {
 }
 
 // NewScanner creates a new Scanner.
-func NewScanner(tm *taskmanager.TaskManager, context string, dockerfile string, destination string, buildArgs []string, tags []string, debug bool) *Scanner {
+func NewScanner(pm *procmanager.ProcManager, context string, dockerfile string, destination string, buildArgs []string, tags []string, debug bool) *Scanner {
 	return &Scanner{
-		taskManager:       tm,
+		procManager:       pm,
 		context:           context,
 		dockerfile:        dockerfile,
 		destinationFolder: destination,
