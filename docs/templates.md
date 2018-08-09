@@ -1,6 +1,6 @@
 # Templates
 
-Individual builds and pipelines both support templating. Internally we use [Go templates](https://golang.org/pkg/text/template/) and [Sprig](https://github.com/Masterminds/sprig/).
+Individual builds and tasks both support templating. Internally we use [Go templates](https://golang.org/pkg/text/template/) and [Sprig](https://github.com/Masterminds/sprig/).
 
 ## Using custom values
 
@@ -30,9 +30,9 @@ The following variables can be accessed using `{{ .Build.VariableName }}`, where
 - GitTag
 - Date
 
-## Pipelines
+## Tasks
 
-You can execute a pipeline with `exec`. It requires a `--steps` file and optionally a `--values` file. You can also use `--set` to override values specified in `--values`, or to provide new values not covered by `--values`.
+You can execute a task with `exec`. It requires a `--steps` file and optionally a `--values` file. You can also use `--set` to override values specified in `--values`, or to provide new values not covered by `--values`.
 
 ```sh
 $ acb exec --steps templating/testdata/helloworld/git-build.yaml --values templating/testdata/helloworld/values.yaml --id demo

@@ -23,7 +23,7 @@ var (
 	errMissingCmd = errors.New("Step is missing a cmd property")
 )
 
-// Step is a step in the execution pipeline.
+// Step is a step in the execution task.
 type Step struct {
 	ID            string   `yaml:"id"`
 	Cmd           string   `yaml:"cmd"`

@@ -34,8 +34,8 @@ const (
 	maxTotalTimeoutInSeconds = 60 * 60 * 6
 )
 
-// Pipeline represents a build pipeline.
-type Pipeline struct {
+// Task represents a task execution.
+type Task struct {
 	Steps            []*Step   `yaml:"steps"`
 	StepTimeout      int       `yaml:"stepTimeout,omitempty"`
 	TotalTimeout     int       `yaml:"totalTimeout,omitempty"`
@@ -48,47 +48,41 @@ type Pipeline struct {
 	Dag              *Dag
 }
 
-// UnmarshalPipelineFromString unmarshals a pipeline from a raw string.
-func UnmarshalPipelineFromString(data, registry, user, pw string) (*Pipeline, error) {
-	p := &Pipeline{}
-	if err := yaml.Unmarshal([]byte(data), p); err != nil {
-		return p, errors.Wrap(err, "failed to deserialize pipeline")
+// UnmarshalTaskFromString unmarshals a Task from a raw string.
+func UnmarshalTaskFromString(data, registry, user, pw string) (*Task, error) {
+	t := &Task{}
+	if err := yaml.Unmarshal([]byte(data), t); err != nil {
+		return t, errors.Wrap(err, "failed to deserialize task")
 	}
-
-	p.setRegistryInfo(registry, user, pw)
-
-	err := p.initialize()
-	return p, err
+	t.setRegistryInfo(registry, user, pw)
+	err := t.initialize()
+	return t, err
 }
 
-// UnmarshalPipelineFromFile unmarshals a pipeline from a file.
-func UnmarshalPipelineFromFile(file, registry, user, pw string) (*Pipeline, error) {
-	p := &Pipeline{}
-
+// UnmarshalTaskFromFile unmarshals a Task from a file.
+func UnmarshalTaskFromFile(file, registry, user, pw string) (*Task, error) {
+	t := &Task{}
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		return p, err
+		return t, err
 	}
-
-	if err := yaml.Unmarshal([]byte(data), &p); err != nil {
-		return p, err
+	if err := yaml.Unmarshal([]byte(data), &t); err != nil {
+		return t, errors.Wrap(err, "failed to deserialize task")
 	}
-
-	p.setRegistryInfo(registry, user, pw)
-
-	err = p.initialize()
-	return p, err
+	t.setRegistryInfo(registry, user, pw)
+	err = t.initialize()
+	return t, err
 }
 
-// NewPipeline returns a default Pipeline object.
-func NewPipeline(
+// NewTask returns a default Task object.
+func NewTask(
 	steps []*Step,
 	push []string,
 	secrets []*Secret,
 	registry string,
 	user string,
-	pw string) (*Pipeline, error) {
-	p := &Pipeline{
+	pw string) (*Task, error) {
+	t := &Task{
 		Steps:            steps,
 		StepTimeout:      defaultStepTimeoutInSeconds,
 		TotalTimeout:     defaultTotalTimeoutInSeconds,
@@ -99,42 +93,41 @@ func NewPipeline(
 		RegistryPassword: pw,
 	}
 
-	err := p.initialize()
-	return p, err
+	err := t.initialize()
+	return t, err
 }
 
-// initialize normalizes the pipeline's values.
-func (p *Pipeline) initialize() error {
-	if p.StepTimeout <= 0 {
-		p.StepTimeout = defaultStepTimeoutInSeconds
+// initialize normalizes a Task's values.
+func (t *Task) initialize() error {
+	if t.StepTimeout <= 0 {
+		t.StepTimeout = defaultStepTimeoutInSeconds
 	}
-
-	if p.TotalTimeout <= 0 {
-		p.TotalTimeout = defaultTotalTimeoutInSeconds
+	if t.TotalTimeout <= 0 {
+		t.TotalTimeout = defaultTotalTimeoutInSeconds
 	}
 
 	// Force total timeout to be greater than the individual step timeout.
-	if p.TotalTimeout < p.StepTimeout {
-		p.TotalTimeout = p.StepTimeout
+	if t.TotalTimeout < t.StepTimeout {
+		t.TotalTimeout = t.StepTimeout
 	}
 
-	if p.StepTimeout < minStepTimeoutInSeconds {
-		p.StepTimeout = minStepTimeoutInSeconds
-	} else if p.StepTimeout > maxStepTimeoutInSeconds {
-		p.StepTimeout = maxStepTimeoutInSeconds
+	if t.StepTimeout < minStepTimeoutInSeconds {
+		t.StepTimeout = minStepTimeoutInSeconds
+	} else if t.StepTimeout > maxStepTimeoutInSeconds {
+		t.StepTimeout = maxStepTimeoutInSeconds
 	}
 
-	if p.TotalTimeout < minTotalTimeoutInSeconds {
-		p.TotalTimeout = minTotalTimeoutInSeconds
-	} else if p.TotalTimeout > maxTotalTimeoutInSeconds {
-		p.TotalTimeout = maxTotalTimeoutInSeconds
+	if t.TotalTimeout < minTotalTimeoutInSeconds {
+		t.TotalTimeout = minTotalTimeoutInSeconds
+	} else if t.TotalTimeout > maxTotalTimeoutInSeconds {
+		t.TotalTimeout = maxTotalTimeoutInSeconds
 	}
 
-	for i, s := range p.Steps {
+	for i, s := range t.Steps {
 		// If individual steps don't have step timeouts specified,
 		// stamp the global timeout on them.
 		if s.Timeout <= 0 {
-			s.Timeout = p.StepTimeout
+			s.Timeout = t.StepTimeout
 		}
 
 		if s.ID == "" {
@@ -142,8 +135,8 @@ func (p *Pipeline) initialize() error {
 		}
 
 		// Override the step's working directory to be the parent's working directory.
-		if s.WorkDir == "" && p.WorkDir != "" {
-			s.WorkDir = p.WorkDir
+		if s.WorkDir == "" && t.WorkDir != "" {
+			s.WorkDir = t.WorkDir
 		}
 
 		// Initialize a completion channel for each step.
@@ -152,7 +145,7 @@ func (p *Pipeline) initialize() error {
 		}
 
 		// Adjust the command so that the ACR registry is prefixed for all tags
-		s.Cmd = util.PrefixTags(s.Cmd, p.RegistryName)
+		s.Cmd = util.PrefixTags(s.Cmd, t.RegistryName)
 
 		// Mark the step as skipped initially
 		s.StepStatus = Skipped
@@ -161,26 +154,26 @@ func (p *Pipeline) initialize() error {
 		s.BuildArgs = util.ParseBuildArgs(s.Cmd)
 	}
 
-	p.Push = getNormalizedDockerImageNames(p.Push, p.RegistryName)
+	t.Push = getNormalizedDockerImageNames(t.Push, t.RegistryName)
 
 	var err error
-	p.Dag, err = NewDagFromPipeline(p)
+	t.Dag, err = NewDagFromTask(t)
 
 	return err
 }
 
-// UsingRegistryCreds determines whether or not the pipeline is using registry creds.
-func (p *Pipeline) UsingRegistryCreds() bool {
-	return p.RegistryName != "" &&
-		p.RegistryPassword != "" &&
-		p.RegistryUsername != ""
+// UsingRegistryCreds determines whether or not the Task is using registry creds.
+func (t *Task) UsingRegistryCreds() bool {
+	return t.RegistryName != "" &&
+		t.RegistryPassword != "" &&
+		t.RegistryUsername != ""
 }
 
 // SetRegistryInfo sets registry information.
-func (p *Pipeline) setRegistryInfo(registry, user, pw string) {
-	p.RegistryName = registry
-	p.RegistryUsername = user
-	p.RegistryPassword = pw
+func (t *Task) setRegistryInfo(registry, user, pw string) {
+	t.RegistryName = registry
+	t.RegistryUsername = user
+	t.RegistryPassword = pw
 }
 
 // getNormalizedDockerImageNames normalizes the list of docker images

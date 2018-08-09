@@ -14,7 +14,7 @@ import (
 
 	"github.com/Azure/acr-builder/builder"
 	"github.com/Azure/acr-builder/graph"
-	"github.com/Azure/acr-builder/pkg/taskmanager"
+	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/pkg/volume"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/util"
@@ -131,7 +131,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	// so we can properly set the push targets.
 	b.tags = util.ParseTags(rendered)
 
-	taskManager := taskmanager.NewTaskManager(b.dryRun)
+	procManager := procmanager.NewProcManager(b.dryRun)
 	defaultStep := &graph.Step{
 		Cmd:     rendered,
 		Timeout: timeoutInSec,
@@ -149,12 +149,12 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	// TODO: create secrets
 	secrets := []*graph.Secret{}
 
-	pipeline, err := graph.NewPipeline(steps, push, secrets, b.opts.Registry, b.registryUser, b.registryPw)
+	task, err := graph.NewTask(steps, push, secrets, b.opts.Registry, b.registryUser, b.registryPw)
 	if err != nil {
 		return err
 	}
 
-	timeout := time.Duration(pipeline.TotalTimeout) * time.Second
+	timeout := time.Duration(task.TotalTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -162,7 +162,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	if b.homeVol == "" {
 		homeVolName = fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
 		if !b.dryRun {
-			v := volume.NewVolume(homeVolName, taskManager)
+			v := volume.NewVolume(homeVolName, procManager)
 			if msg, err := v.Create(ctx); err != nil {
 				return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
 			}
@@ -175,9 +175,9 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Printf("Using %s as the home volume\n", homeVolName)
-	builder := builder.NewBuilder(taskManager, debug, homeVolName)
-	defer builder.CleanAllBuildSteps(context.Background(), pipeline)
-	return builder.RunAllBuildSteps(ctx, pipeline)
+	builder := builder.NewBuilder(procManager, debug, homeVolName)
+	defer builder.CleanAllBuildSteps(context.Background(), task)
+	return builder.RunAllBuildSteps(ctx, task)
 }
 
 func (b *buildCmd) validateCmdArgs() error {

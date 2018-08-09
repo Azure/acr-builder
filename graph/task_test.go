@@ -19,12 +19,12 @@ func TestUsingRegistryCreds(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		p := &Pipeline{
+		task := &Task{
 			RegistryName:     test.registry,
 			RegistryUsername: test.user,
 			RegistryPassword: test.pw,
 		}
-		actual := p.UsingRegistryCreds()
+		actual := task.UsingRegistryCreds()
 		if test.expected != actual {
 			t.Errorf("expected use of registry creds to be %v but got %v", test.expected, actual)
 		}

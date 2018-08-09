@@ -23,7 +23,7 @@ $ docker build -f Windows.Dockerfile -t acb .
 ## Requirements
 
 - Docker
-- There are also dependency images that are used throughout the pipeline. Refer to the `baseimages` folder for corresponding Dockerfiles to generate these images, and review the list below for Linux/Windows.
+- There are also dependency images that are used throughout the task. Refer to the `baseimages` folder for corresponding Dockerfiles to generate these images, and review the list below for Linux/Windows.
 
 ## Linux Images
 
@@ -49,7 +49,7 @@ Usage:
 
 Available Commands:
   build       Run a build
-  exec        Execute a pipeline
+  exec        Execute a task
   help        Help about any command
   init        Initialize a default template
   render      Render a template
@@ -68,7 +68,7 @@ See `acb build --help` for a list of all parameters.
 $ docker run -v /var/run/docker.sock:/var/run/docker.sock acb build https://github.com/Azure/acr-builder.git
 ```
 
-## Running a pipeline
+## Running a task
 
 See `acb exec --help` for a list of all parameters.
 

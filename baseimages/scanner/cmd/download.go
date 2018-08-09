@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/scan"
-	"github.com/Azure/acr-builder/pkg/taskmanager"
+	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -61,9 +61,9 @@ func (d *downloadCmd) run(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	tm := taskmanager.NewTaskManager(d.dryRun)
+	pm := procmanager.NewProcManager(d.dryRun)
 
-	scanner := scan.NewScanner(tm, d.context, "", d.destinationFolder, nil, nil, debug)
+	scanner := scan.NewScanner(pm, d.context, "", d.destinationFolder, nil, nil, debug)
 	workingDir, _, _, err := scanner.ObtainSourceCode(ctx, d.context)
 	if err != nil {
 		return err

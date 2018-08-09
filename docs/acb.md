@@ -1,6 +1,6 @@
 # Structure
 
-A pipeline config consists of steps. Each step is tailored to an independent container and describes how the pipeline can interact with the container.
+A task config consists of steps. Each step is tailored to an independent container and describes how the task can interact with the container.
 
 ```yaml
 # An example Step
@@ -74,7 +74,7 @@ For details on specific properties in the `acb.yaml`, review the following prope
 
 ### id
 
-The `id` property is a unique identifier to reference the step throughout the pipeline.
+The `id` property is a unique identifier to reference the step throughout the task.
 
 ### cmd
 

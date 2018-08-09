@@ -99,7 +99,7 @@ func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWo
 	}
 
 	var buf bytes.Buffer
-	err := b.taskManager.Run(ctx, args, nil, &buf, &buf, "")
+	err := b.procManager.Run(ctx, args, nil, &buf, &buf, "")
 	output := strings.TrimSpace(buf.String())
 	if err != nil {
 		log.Printf("Output from dependency scanning: %s\n", output)
