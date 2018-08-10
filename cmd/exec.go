@@ -107,8 +107,8 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 
 	log.Printf("Using %s as the home volume\n", homeVolName)
 	builder := builder.NewBuilder(procManager, debug, homeVolName)
-	defer builder.CleanAllBuildSteps(context.Background(), task)
-	return builder.RunAllBuildSteps(ctx, task)
+	defer builder.CleanTask(context.Background(), task)
+	return builder.RunTask(ctx, task)
 }
 
 func (e *execCmd) validateCmdArgs(imgs []string) error {

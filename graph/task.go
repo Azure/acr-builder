@@ -144,9 +144,6 @@ func (t *Task) initialize() error {
 			s.CompletedChan = make(chan bool)
 		}
 
-		// Adjust the command so that the ACR registry is prefixed for all tags
-		s.Cmd = util.PrefixTags(s.Cmd, t.RegistryName)
-
 		// Mark the step as skipped initially
 		s.StepStatus = Skipped
 

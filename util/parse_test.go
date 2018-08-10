@@ -12,7 +12,7 @@ func TestParseTags(t *testing.T) {
 		expected []string
 	}{
 		// Tag tests
-		{1, "build -f Dockerfile -t {{.Build.ID}}:latest --tag blah https://github.com/Azure/acr-builder.git", []string{"{{.Build.ID}}:latest", "blah"}},
+		{1, "build -f Dockerfile -t {{.Run.ID}}:latest --tag blah https://github.com/Azure/acr-builder.git", []string{"{{.Run.ID}}:latest", "blah"}},
 		{2, "build --tag foo https://github.com/Azure/acr-builder.git --tag bar -t qux", []string{"foo", "bar", "qux"}},
 	}
 

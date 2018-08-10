@@ -15,7 +15,7 @@ func TestParseDockerBuildCmd(t *testing.T) {
 		dockerfile string
 		context    string
 	}{
-		{1, "build -f Dockerfile -t {{.Build.ID}}:latest https://github.com/Azure/acr-builder.git", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
+		{1, "build -f Dockerfile -t {{.Run.ID}}:latest https://github.com/Azure/acr-builder.git", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
 		{2, "build https://github.com/Azure/acr-builder.git -f Dockerfile -t foo:bar", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
 		{3, "build https://github.com/Azure/acr-builder.git#master:blah -f Dockerfile -t foo:bar", "Dockerfile", "https://github.com/Azure/acr-builder.git#master:blah"},
 		{4, "build .", "Dockerfile", "."},

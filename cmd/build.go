@@ -128,8 +128,11 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	// After the template has rendered, we have to parse the tags again
-	// so we can properly set the push targets.
+	// so we can properly set the build/push tags.
 	b.tags = util.ParseTags(rendered)
+	for i := range b.tags {
+		b.tags[i] = util.PrefixRegistryToImageName(b.opts.Registry, b.tags[i])
+	}
 
 	procManager := procmanager.NewProcManager(b.dryRun)
 	defaultStep := &graph.Step{
@@ -141,9 +144,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	push := []string{}
 	if b.push {
-		for _, img := range b.tags {
-			push = append(push, img)
-		}
+		push = b.tags
 	}
 
 	// TODO: create secrets
@@ -176,8 +177,8 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	log.Printf("Using %s as the home volume\n", homeVolName)
 	builder := builder.NewBuilder(procManager, debug, homeVolName)
-	defer builder.CleanAllBuildSteps(context.Background(), task)
-	return builder.RunAllBuildSteps(ctx, task)
+	defer builder.CleanTask(context.Background(), task)
+	return builder.RunTask(ctx, task)
 }
 
 func (b *buildCmd) validateCmdArgs() error {
