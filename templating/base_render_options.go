@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // BaseRenderOptions represents additional information for the composition of the final rendering.
@@ -86,7 +88,7 @@ func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, er
 
 	setConfig := &Config{}
 	if len(opts.TemplateValues) > 0 {
-		rawVals, err := combineVals(opts.TemplateValues)
+		rawVals, err := parseValues(opts.TemplateValues)
 		if err != nil {
 			return "", err
 		}
@@ -112,14 +114,22 @@ func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, er
 	return rendered[template.Name], nil
 }
 
-func combineVals(values []string) (string, error) {
+// parseValues receives a slice of values in key=val format
+// and serializes them into YAML. If a key is specified more
+// than once, the key will be overridden.
+func parseValues(values []string) (string, error) {
 	ret := Values{}
 	for _, v := range values {
-		s := strings.Split(v, "=")
-		if len(s) != 2 {
-			return "", fmt.Errorf("failed to parse --set data: %s", v)
+		i := strings.Index(v, "=")
+		if i < 0 {
+			return "", errors.New("failed to parse --set data; invalid format, no = assignment found")
 		}
-		ret[s[0]] = s[1]
+		key := v[:i]
+		if key == "" {
+			return "", errors.New("failed to parse --set data; expected a key=val format")
+		}
+		val := v[i+1:] // Skip the = separator
+		ret[key] = val
 	}
 
 	return ret.ToYAMLString()
