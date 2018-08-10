@@ -115,7 +115,7 @@ func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, er
 }
 
 // parseValues receives a slice of values in key=val format
-// and serializes them into JSON. If a key is specified more
+// and serializes them into YAML. If a key is specified more
 // than once, the key will be overridden.
 func parseValues(values []string) (string, error) {
 	ret := Values{}
