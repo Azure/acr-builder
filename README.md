@@ -75,3 +75,11 @@ See `acb exec --help` for a list of all parameters.
 ```sh
 $ docker run -v $(pwd):/workspace --workdir /workspace -v /var/run/docker.sock:/var/run/docker.sock acb exec --homevol $(pwd) --steps templating/testdata/helloworld/git-build.yaml --values templating/testdata/helloworld/values.yaml --id demo -r foo.azurecr.io
 ```
+
+## Rendering a template locally
+
+```sh
+$ acb render --steps acb.yaml --values values.yaml
+```
+
+If your template uses `.Run.ID` or other `.Run` variables, refer to the full list of parameters using `acb render --help`.

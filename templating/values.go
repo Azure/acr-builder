@@ -69,7 +69,7 @@ func merge(c *Config, merged map[string]interface{}) (map[string]interface{}, er
 
 	vals, err := Deserialize([]byte(c.RawValue))
 	if err != nil {
-		return merged, fmt.Errorf("Failed to deserialize values. Try linting your template locally. Err: %v", err)
+		return merged, fmt.Errorf("Failed to deserialize values. Try rendering your template locally using the instructions found at https://github.com/Azure/acr-builder. Err: %v", err)
 	}
 
 	for k, v := range vals {
