@@ -37,8 +37,8 @@ func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *B
 	}
 }
 
-// RunAllBuildSteps executes a Task.
-func (b *Builder) RunAllBuildSteps(ctx context.Context, task *graph.Task) error {
+// RunTask executes a Task.
+func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	if !b.procManager.DryRun {
 		log.Printf("Setting up Docker configuration...")
 		if err := b.setupConfig(ctx); err != nil {
@@ -108,10 +108,12 @@ func (b *Builder) RunAllBuildSteps(ctx context.Context, task *graph.Task) error 
 	return nil
 }
 
-// CleanAllBuildSteps cleans up all build steps and removes their corresponding Docker containers.
-func (b *Builder) CleanAllBuildSteps(ctx context.Context, task *graph.Task) {
+// CleanTask iterates through all build steps and removes
+// their corresponding containers.
+func (b *Builder) CleanTask(ctx context.Context, task *graph.Task) {
 	args := []string{"docker", "rm", "-f"}
 	for _, n := range task.Dag.Nodes {
+		// TODO: Optimization - only execute on nodes which have been initiated.
 		step := n.Value
 		killArgs := append(args, step.ID)
 		_ = b.procManager.Run(ctx, killArgs, nil, nil, nil, "")

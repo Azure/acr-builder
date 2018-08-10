@@ -1,9 +1,9 @@
 apiName: "{{.Values.apiName}}"
 
 metadata:
-  - buildId: "{{.Build.ID | upper}}"
-    commit: "{{.Build.Commit | lower}}"
-    tag: "{{.Build.Tag}}"
-    repository: "{{.Build.Repository}}"
-    branch: "{{.Build.Branch}}"
-    triggeredBy: "{{.Build.TriggeredBy}}"
+  - buildId: "{{.Run.ID | upper}}"
+    commit: "{{.Run.Commit | lower}}"
+    tag: "{{.Run.Tag}}"
+    repository: "{{.Run.Repository}}"
+    branch: "{{.Run.Branch}}"
+    triggeredBy: "{{.Run.TriggeredBy}}"
