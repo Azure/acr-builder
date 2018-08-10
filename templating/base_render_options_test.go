@@ -42,7 +42,7 @@ func TestParseValues_Invalid(t *testing.T) {
 	tests := []struct {
 		values []string
 	}{
-		{[]string{"apple", "=k", "====="}},
+		{[]string{"apple", "=k", "=====", "=", "", "           "}},
 	}
 
 	for _, test := range tests {
