@@ -126,7 +126,7 @@ func parseValues(values []string) (string, error) {
 		}
 		key := v[:i]
 		if key == "" {
-			return "", errors.New("failed to parse --set data; invalid format, empty key")
+			return "", errors.New("failed to parse --set data; expected a key=val format")
 		}
 		val := v[i+1:] // Skip the = separator
 		ret[key] = val
