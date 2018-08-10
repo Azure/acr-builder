@@ -49,6 +49,9 @@ type BaseRenderOptions struct {
 func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, options *BaseRenderOptions) (Values, error) {
 	base := map[string]interface{}{
 		"Build": map[string]interface{}{
+			"ID": options.ID,
+		},
+		"Run": map[string]interface{}{
 			"ID":          options.ID,
 			"Commit":      options.Commit,
 			"Repository":  options.Repository,

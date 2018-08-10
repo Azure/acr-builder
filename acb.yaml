@@ -1,2 +1,2 @@
 steps:
-  - cmd: build . -t acb:linux-{{.Build.ID}}
+  - cmd: build . -t acb:linux-{{.Run.ID}}
