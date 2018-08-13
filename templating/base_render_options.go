@@ -86,12 +86,12 @@ func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, er
 	var err error
 
 	config := &Config{}
-	if opts.Base64EncodedValuesFile != "" {
-		if config, err = DecodeConfig(opts.Base64EncodedValuesFile); err != nil {
+	if opts.ValuesFile != "" {
+		if config, err = LoadConfig(opts.ValuesFile); err != nil {
 			return "", err
 		}
-	} else if opts.ValuesFile != "" {
-		if config, err = LoadConfig(opts.ValuesFile); err != nil {
+	} else if opts.Base64EncodedValuesFile != "" {
+		if config, err = DecodeConfig(opts.Base64EncodedValuesFile); err != nil {
 			return "", err
 		}
 	}

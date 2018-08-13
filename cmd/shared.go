@@ -18,7 +18,7 @@ func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions
 
 	// Templates & values files
 	f.StringVar(&opts.ValuesFile, "values", "", "the values file to use")
-	f.StringVar(&opts.Base64EncodedValuesFile, "encoded-values", "", "a Base64 encoded values file")
+	f.StringVar(&opts.Base64EncodedValuesFile, "encoded-values", "", "a Base64 encoded values file (overrides the values file if one is specified)")
 	f.StringArrayVar(&opts.TemplateValues, "set", []string{}, "set values on the command line (use `--set` multiple times or use commas: key1=val1,key2=val2)")
 
 	// Base rendering options
