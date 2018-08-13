@@ -11,21 +11,21 @@ import (
 func TestParseDockerBuildCmd(t *testing.T) {
 	tests := []struct {
 		id         int
-		cmd        string
+		build      string
 		dockerfile string
 		context    string
 	}{
-		{1, "build -f Dockerfile -t {{.Run.ID}}:latest https://github.com/Azure/acr-builder.git", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
-		{2, "build https://github.com/Azure/acr-builder.git -f Dockerfile -t foo:bar", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
-		{3, "build https://github.com/Azure/acr-builder.git#master:blah -f Dockerfile -t foo:bar", "Dockerfile", "https://github.com/Azure/acr-builder.git#master:blah"},
-		{4, "build .", "Dockerfile", "."},
-		{5, "build --file src/Dockerfile . -t foo:bar", "src/Dockerfile", "."},
-		{6, "build -f src/Dockerfile .", "src/Dockerfile", "."},
-		{7, "build -t foo https://github.com/Azure/acr-builder.git#:HelloWorld", "Dockerfile", "https://github.com/Azure/acr-builder.git#:HelloWorld"},
+		{1, "-f Dockerfile -t {{.Run.ID}}:latest https://github.com/Azure/acr-builder.git", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
+		{2, "https://github.com/Azure/acr-builder.git -f Dockerfile -t foo:bar", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
+		{3, "https://github.com/Azure/acr-builder.git#master:blah -f Dockerfile -t foo:bar", "Dockerfile", "https://github.com/Azure/acr-builder.git#master:blah"},
+		{4, ".", "Dockerfile", "."},
+		{5, "--file src/Dockerfile . -t foo:bar", "src/Dockerfile", "."},
+		{6, "-f src/Dockerfile .", "src/Dockerfile", "."},
+		{7, "-t foo https://github.com/Azure/acr-builder.git#:HelloWorld", "Dockerfile", "https://github.com/Azure/acr-builder.git#:HelloWorld"},
 	}
 
 	for _, test := range tests {
-		dockerfile, context := parseDockerBuildCmd(test.cmd)
+		dockerfile, context := parseDockerBuildCmd(test.build)
 		if test.dockerfile != dockerfile {
 			t.Errorf("Test %d failed. Expected %s as the dockerfile, got %s", test.id, test.dockerfile, dockerfile)
 		}
@@ -38,20 +38,20 @@ func TestParseDockerBuildCmd(t *testing.T) {
 // TestReplacePositionalContext tests replacing the positional context parameter in a build command.
 func TestReplacePositionalContext(t *testing.T) {
 	tests := []struct {
-		cmd         string
+		build       string
 		replacement string
 		expected    string
 	}{
-		{"build -f Dockerfile -t blah:latest https://github.com/Azure/acr-builder.git", ".", "build -f Dockerfile -t blah:latest ."},
-		{"build https://github.com/Azure/acr-builder.git -f Dockerfile -t foo:bar", "HelloWorld", "build HelloWorld -f Dockerfile -t foo:bar"},
-		{"build .", "HelloWorld", "build HelloWorld"},
-		{"build --file src/Dockerfile . -t foo:bar", "src/Dockerfile", "build --file src/Dockerfile src/Dockerfile -t foo:bar"},
-		{"build -f src/Dockerfile .", "test/another-repo", "build -f src/Dockerfile test/another-repo"},
-		{"build -f src/Dockerfile https://foo.visualstudio.com/ACR/_git/Build/#master:.", "vstsreplacement", "build -f src/Dockerfile vstsreplacement"},
+		{"-f Dockerfile -t blah:latest https://github.com/Azure/acr-builder.git", ".", "-f Dockerfile -t blah:latest ."},
+		{"https://github.com/Azure/acr-builder.git -f Dockerfile -t foo:bar", "HelloWorld", "HelloWorld -f Dockerfile -t foo:bar"},
+		{".", "HelloWorld", "HelloWorld"},
+		{"--file src/Dockerfile . -t foo:bar", "src/Dockerfile", "--file src/Dockerfile src/Dockerfile -t foo:bar"},
+		{"-f src/Dockerfile .", "test/another-repo", "-f src/Dockerfile test/another-repo"},
+		{"-f src/Dockerfile https://foo.visualstudio.com/ACR/_git/Build/#master:.", "vstsreplacement", "-f src/Dockerfile vstsreplacement"},
 	}
 
 	for _, test := range tests {
-		if actual := replacePositionalContext(test.cmd, test.replacement); actual != test.expected {
+		if actual := replacePositionalContext(test.build, test.replacement); actual != test.expected {
 			t.Errorf("Failed to replace positional context. Got %s, expected %s", actual, test.expected)
 		}
 	}
@@ -60,7 +60,7 @@ func TestReplacePositionalContext(t *testing.T) {
 // TestGetContextFromGitURL tests getting context from a git URL.
 func TestGetContextFromGitURL(t *testing.T) {
 	tests := []struct {
-		cmd      string
+		build    string
 		expected string
 	}{
 		{"https://github.com/Azure/acr-builder.git#stable:.", "."},
@@ -79,7 +79,7 @@ func TestGetContextFromGitURL(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if actual := getContextFromGitURL(test.cmd); actual != test.expected {
+		if actual := getContextFromGitURL(test.build); actual != test.expected {
 			t.Errorf("Failed to get context from git url. Got %s, expected %s", actual, test.expected)
 		}
 	}

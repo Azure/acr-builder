@@ -6,7 +6,6 @@ package graph
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
@@ -19,14 +18,15 @@ const (
 )
 
 var (
-	errMissingID  = errors.New("Step is missing an ID")
-	errMissingCmd = errors.New("Step is missing a cmd property")
+	errMissingID    = errors.New("Step is missing an ID")
+	errMissingProps = errors.New("Step is missing a cmd or build property")
 )
 
 // Step is a step in the execution task.
 type Step struct {
 	ID            string   `yaml:"id"`
 	Cmd           string   `yaml:"cmd"`
+	Build         string   `yaml:"build"`
 	WorkDir       string   `yaml:"workDir"`
 	EntryPoint    string   `yaml:"entryPoint"`
 	Envs          []string `yaml:"envs"`
@@ -60,8 +60,8 @@ func (s *Step) Validate() error {
 	if s.ID == "" {
 		return errMissingID
 	}
-	if s.Cmd == "" {
-		return errMissingCmd
+	if s.Cmd == "" && s.Build == "" {
+		return errMissingProps
 	}
 	for _, dep := range s.When {
 		if dep == s.ID {
@@ -85,6 +85,7 @@ func (s *Step) Equals(t *Step) bool {
 		s.Keep != t.Keep ||
 		s.Detach != t.Detach ||
 		s.Cmd != t.Cmd ||
+		s.Build != t.Build ||
 		s.WorkDir != t.WorkDir ||
 		s.EntryPoint != t.EntryPoint ||
 		!util.StringSequenceEquals(s.Ports, t.Ports) ||
@@ -122,5 +123,5 @@ func (s *Step) HasNoWhen() bool {
 
 // IsBuildStep returns true if the Step is a build step, false otherwise.
 func (s *Step) IsBuildStep() bool {
-	return strings.HasPrefix(s.Cmd, "build ")
+	return s.Build != ""
 }

@@ -1,2 +1,2 @@
 steps:
-  - cmd: build -f Windows.Dockerfile . -t acb:windows-{{.Run.ID}}
+  - build: -f Windows.Dockerfile . -t acb:windows-{{.Run.ID}}

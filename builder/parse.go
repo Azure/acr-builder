@@ -19,7 +19,7 @@ func parseDockerBuildCmd(cmd string) (dockerfile string, context string) {
 	dockerfile = "Dockerfile"
 	context = "."
 
-	for i := 1; i < len(fields); i++ {
+	for i := 0; i < len(fields); i++ {
 		v := fields[i]
 
 		if prev == "-f" || prev == "--file" {
@@ -40,7 +40,7 @@ func replacePositionalContext(runCmd string, replacement string) string {
 	fields := strings.Fields(runCmd)
 	prev := ""
 
-	for i := 1; i < len(fields); i++ {
+	for i := 0; i < len(fields); i++ {
 		if !strings.HasPrefix(prev, "-") && !strings.HasPrefix(fields[i], "-") {
 			fields[i] = replacement
 			return strings.Join(fields, " ")
