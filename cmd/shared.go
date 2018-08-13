@@ -14,7 +14,7 @@ import (
 
 // AddBaseRenderingOptions adds base rendering options to the specified flagset and maps the flags
 // to the options struct.
-func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions, cmd *cobra.Command, usesSteps bool) {
+func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions, cmd *cobra.Command, usesTask bool) {
 
 	// Templates & values files
 	f.StringVar(&opts.ValuesFile, "values", "", "the values file to use")
@@ -31,9 +31,9 @@ func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions
 
 	opts.Date = time.Now().UTC()
 
-	// exec and render both use steps and it's required, but build doesn't
-	if usesSteps {
-		f.StringVar(&opts.StepsFile, "steps", "", "the steps file to use")
-		_ = cmd.MarkFlagRequired("steps")
+	// exec and render both use task and it's required, but build doesn't
+	if usesTask {
+		f.StringVar(&opts.TaskFile, "task", "", "the task file to use")
+		_ = cmd.MarkFlagRequired("task")
 	}
 }

@@ -13,8 +13,8 @@ import (
 
 // BaseRenderOptions represents additional information for the composition of the final rendering.
 type BaseRenderOptions struct {
-	// Path to the steps file. Required.
-	StepsFile string
+	// Path to the task file. Required.
+	TaskFile string
 
 	// Path to a values file. Optional.
 	ValuesFile string
