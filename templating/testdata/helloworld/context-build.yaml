@@ -2,14 +2,11 @@
 # Run a git clone, which clones the context into `cloned-repository-ctx`
 steps:
   - cmd: git clone https://github.com/Azure/acr-builder.git cloned-repository-ctx
-    rm: true
 
   # Run `ls` on the cloned content
   - cmd: bash ls -la
     workDir: cloned-repository-ctx
-    rm: true
 
   # Build using the previously stored content from `cloned-repository-ctx`
   - cmd: build -f Dockerfile .
     workDir: cloned-repository-ctx
-    rm: true

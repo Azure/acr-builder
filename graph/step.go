@@ -36,7 +36,7 @@ type Step struct {
 	ExitedWith    []int    `yaml:"exitedWith"`
 	ExitedWithout []int    `yaml:"exitedWithout"`
 	Timeout       int      `yaml:"timeout"`
-	Rm            bool     `yaml:"rm"`
+	Keep          bool     `yaml:"keep"`
 	Detach        bool     `yaml:"detach"`
 	StartDelay    int      `yaml:"startDelay"`
 	Privileged    bool     `yaml:"privileged"`
@@ -82,7 +82,7 @@ func (s *Step) Equals(t *Step) bool {
 	}
 
 	if s.ID != t.ID ||
-		s.Rm != t.Rm ||
+		s.Keep != t.Keep ||
 		s.Detach != t.Detach ||
 		s.Cmd != t.Cmd ||
 		s.WorkDir != t.WorkDir ||

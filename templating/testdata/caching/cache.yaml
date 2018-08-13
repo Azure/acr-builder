@@ -1,13 +1,10 @@
 steps:
   - id: "{{.Values.pullStep}}"
     cmd: docker pull golang:1.10.1-stretch
-    rm: true
 
   - id: build-foo
     cmd: build -f Dockerfile https://github.com/Azure/acr-builder.git --cache-from=ubuntu
-    rm: true
   
   - id: build-bar
     cmd: build -f Dockerfile https://github.com/Azure/acr-builder.git --cache-from=ubuntu
-    rm: true
     when: ["{{.Values.pullStep}}"]

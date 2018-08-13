@@ -21,7 +21,6 @@ steps:
   - id: build-qux
     cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu
     when: ["-"]
-    rm: false
     detach: true
     startDelay: 50
 
@@ -32,7 +31,7 @@ steps:
       - "8000:8000"
       - "8080:8080"
     exitedWith: [0, 1, 2, 3, 4]
-    rm: true
+    keep: true
 
   - id: build-bar
     cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/bar --cache-from=ubuntu

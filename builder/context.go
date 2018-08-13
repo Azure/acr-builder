@@ -31,7 +31,7 @@ func (b *Builder) getDockerRunArgs(
 	step *graph.Step) []string {
 	args := []string{"docker", "run"}
 
-	if step.Rm {
+	if !step.Keep {
 		args = append(args, "--rm")
 	}
 
