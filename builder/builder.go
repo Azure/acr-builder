@@ -146,6 +146,7 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 }
 
 func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
+	log.Printf("Executing step: %s\n", step.ID)
 	if step.StartDelay > 0 {
 		log.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
 		time.Sleep(time.Duration(step.StartDelay) * time.Second)
