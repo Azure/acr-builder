@@ -74,7 +74,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 
 	qazStep := &Step{
 		ID:         "build-qaz",
-		Cmd:        "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu",
+		Build:      "-f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu",
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
 		Privileged: true,

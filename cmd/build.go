@@ -136,7 +136,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	procManager := procmanager.NewProcManager(b.dryRun)
 	defaultStep := &graph.Step{
-		Cmd:     rendered,
+		Build:   rendered,
 		Timeout: timeoutInSec,
 	}
 
@@ -203,7 +203,7 @@ func (b *buildCmd) validateCmdArgs() error {
 }
 
 func (b *buildCmd) createRunCmd() string {
-	args := []string{"build"}
+	args := []string{}
 	if b.isolation != "" {
 		args = append(args, fmt.Sprintf("--isolation=%s", b.isolation))
 	}

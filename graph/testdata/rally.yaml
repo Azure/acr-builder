@@ -48,6 +48,6 @@ steps:
     secretEnvs: [someAkvSecretEnv]
 
   - id: build-qaz
-    cmd: "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu"
+    build: "-f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu"
     privileged: true
     user: root

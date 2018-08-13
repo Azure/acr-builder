@@ -5,12 +5,12 @@ import "strings"
 var buildArgLookup = map[string]bool{"--build-arg": true}
 var tagLookup = map[string]bool{"-t": true, "--tag": true}
 
-// ParseTags parses tags off the "Run" command.
+// ParseTags parses tags off a command.
 func ParseTags(cmd string) []string {
 	return parseArgs(cmd, tagLookup)
 }
 
-// ParseBuildArgs parses build args off the "Run" command.
+// ParseBuildArgs parses build args off a command.
 func ParseBuildArgs(cmd string) []string {
 	return parseArgs(cmd, buildArgLookup)
 }

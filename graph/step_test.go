@@ -11,7 +11,7 @@ func TestIsBuildStep(t *testing.T) {
 	}{
 		{
 			&Step{
-				Cmd: "build -t foo .",
+				Build: "-t foo .",
 			},
 			true,
 		},
@@ -23,7 +23,7 @@ func TestIsBuildStep(t *testing.T) {
 		},
 		{
 			&Step{
-				Cmd: "build",
+				Cmd: "build -f Dockerfile -t blah .",
 			},
 			false,
 		},

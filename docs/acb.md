@@ -8,7 +8,8 @@ A task config consists of steps. Each step is tailored to an independent contain
 ## It consists of the following properties:
 
 id: string (optional)
-cmd: string (required)
+cmd: string (optional)
+build: string (optional) # Build takes precedence over cmd. Build is required if cmd is not present.
 workDir: string (optional)
 entryPoint: string (optional)
 envs: [string, string, ...] (optional)
@@ -78,7 +79,11 @@ The `id` property is a unique identifier to reference the step throughout the ta
 
 ### cmd
 
-The `cmd` property of a step specifies which image to use when running the operation as well as any additional command-line parameters.
+The `cmd` property of a step specifies which image to use when running the operation as well as any additional command-line parameters. This property is required if `build` is not present.
+
+### build
+
+The `build` property of a step specifies how to build a set of images. If build is specified, it takes precedence over `cmd`. It is required if `cmd` is not present.
 
 ### workDir
 
