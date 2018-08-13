@@ -59,7 +59,7 @@ func newExecCmd(out io.Writer) *cobra.Command {
 }
 
 func (e *execCmd) run(cmd *cobra.Command, args []string) error {
-	template, err := templating.LoadTemplate(e.opts.StepsFile)
+	template, err := templating.LoadTemplate(e.opts.TaskFile)
 	if err != nil {
 		return err
 	}

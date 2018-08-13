@@ -6,4 +6,3 @@ push: ["acr-builder:{{.Run.ID}}"]
 steps:
   - id: git-context
     cmd: "build -f Dockerfile -t acr-builder:{{.Run.ID}} https://github.com/Azure/acr-builder.git"
-    rm: true

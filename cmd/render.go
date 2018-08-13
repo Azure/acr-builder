@@ -39,7 +39,7 @@ func newRenderCmd(out io.Writer) *cobra.Command {
 }
 
 func (r *renderCmd) run(cmd *cobra.Command, args []string) error {
-	template, err := templating.LoadTemplate(r.opts.StepsFile)
+	template, err := templating.LoadTemplate(r.opts.TaskFile)
 	if err != nil {
 		return err
 	}

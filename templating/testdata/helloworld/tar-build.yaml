@@ -2,4 +2,3 @@
 
 steps:
   - cmd: build https://acrbuild.blob.core.windows.net/public/aspnetcore-helloworld.tar.gz -f HelloWorld/Dockerfile -t aspnetcore:{{.Run.ID}}
-    rm: true

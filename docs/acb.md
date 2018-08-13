@@ -18,7 +18,7 @@ when: [string, string, ...] (optional)
 exitedWith: [int, int, ...] (optional)
 exitedWithout: [int, int, ...] (optional)
 timeout: int (in seconds) (optional)
-rm: bool (optional)
+keep: bool (optional)
 detach: bool (optional)
 startDelay: int (in seconds) (optional)
 ```
@@ -36,7 +36,7 @@ For details on each specific property in a Step, follow these links:
 - [exitedWith](#exitedwith)
 - [exitedWithout](#exitedwithout)
 - [timeout](#timeout)
-- [rm](#rm)
+- [keep](#keep)
 - [detach](#deatch)
 - [startDelay](#startdelay)
 
@@ -104,9 +104,9 @@ The `cmd` property of a step specifies which image to use when running the opera
 
 `timeout` is the maximum duration for a step to execute.
 
-### rm
+### keep
 
-`rm` determines whether or not the step's container should be removed after execution.
+`keep` determines whether or not the step's container should be kept after execution.
 
 ### detach
 

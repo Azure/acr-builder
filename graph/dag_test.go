@@ -33,7 +33,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		StepStatus: Skipped,
 		Ports:      []string{"8000:8000", "8080:8080"},
 		Timeout:    defaultStepTimeoutInSeconds,
-		Rm:         true,
+		Keep:       true,
 	}
 
 	bStep := &Step{
