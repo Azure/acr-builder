@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -59,9 +60,20 @@ func newExecCmd(out io.Writer) *cobra.Command {
 }
 
 func (e *execCmd) run(cmd *cobra.Command, args []string) error {
-	template, err := templating.LoadTemplate(e.opts.TaskFile)
-	if err != nil {
-		return err
+	if e.opts.TaskFile == "" && e.opts.Base64EncodedTaskFile == "" {
+		return errors.New("A task file or Base64 encoded task file is required")
+	}
+
+	var template *templating.Template
+	var err error
+	if e.opts.TaskFile == "" {
+		if template, err = templating.DecodeTemplate(e.opts.Base64EncodedTaskFile); err != nil {
+			return err
+		}
+	} else {
+		if template, err = templating.LoadTemplate(e.opts.TaskFile); err != nil {
+			return err
+		}
 	}
 
 	rendered, err := templating.LoadAndRenderSteps(template, e.opts)
