@@ -13,37 +13,43 @@ import (
 
 // BaseRenderOptions represents additional information for the composition of the final rendering.
 type BaseRenderOptions struct {
-	// Path to the task file. Required.
+	// Path to the task file.
 	TaskFile string
 
-	// Path to a values file. Optional.
+	// Base64 encoded task file.
+	Base64EncodedTaskFile string
+
+	// Path to a values file.
 	ValuesFile string
 
-	// Override values. Optional.
+	// Base64 encoded values file.
+	Base64EncodedValuesFile string
+
+	// Override values.
 	TemplateValues []string
 
-	// ID is the build ID. Required.
+	// ID is the build ID.
 	ID string
 
-	// Commit is the commit used when running the build. Optional.
+	// Commit is the commit used when running the build.
 	Commit string
 
-	// Repository is the repository used when running the build. Optional.
+	// Repository is the repository used when running the build.
 	Repository string
 
-	// Branch is the branch used when running the build. Optional.
+	// Branch is the branch used when running the build.
 	Branch string
 
-	// TriggeredBy is the reason the build was triggered. Required.
+	// TriggeredBy is the reason the build was triggered.
 	TriggeredBy string
 
-	// GitTag is a Git tag. Optional.
+	// GitTag is a Git tag.
 	GitTag string
 
-	// Registry is the ACR being used. Optional.
+	// Registry is the ACR being used.
 	Registry string
 
-	// Date is the date of the Build. Required.
+	// Date is the date of the Build.
 	Date time.Time
 }
 
@@ -80,7 +86,11 @@ func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, er
 	var err error
 
 	config := &Config{}
-	if opts.ValuesFile != "" {
+	if opts.Base64EncodedValuesFile != "" {
+		if config, err = DecodeConfig(opts.Base64EncodedValuesFile); err != nil {
+			return "", err
+		}
+	} else if opts.ValuesFile != "" {
 		if config, err = LoadConfig(opts.ValuesFile); err != nil {
 			return "", err
 		}

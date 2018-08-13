@@ -4,60 +4,93 @@
 package templating
 
 import (
-	"io/ioutil"
 	"testing"
 )
 
 const (
 	thamesValuesPath = "testdata/thames/values.yaml"
 	thamesPath       = "testdata/thames/thames.yaml"
+
+	expectedConfig = `# Default values for the Thames job
+name: Thames
+country: England
+counties: [Gloucestershire, Wiltshire, Oxfordshire, Berkshire, Buckinghamshire, Surrey]
+length: 346
+elevation: 0
+apiName: v1`
+
+	expectedTemplate = `apiName: "{{.Values.apiName}}"
+
+metadata:
+  - buildId: "{{.Run.ID | upper}}"
+    commit: "{{.Run.Commit | lower}}"
+    tag: "{{.Run.Tag}}"
+    repository: "{{.Run.Repository}}"
+    branch: "{{.Run.Branch}}"
+    triggeredBy: "{{.Run.TriggeredBy}}"`
 )
 
-// TestLoadConfig tests loading a Config.
 func TestLoadConfig(t *testing.T) {
 	c, err := LoadConfig(thamesValuesPath)
 	if err != nil {
 		t.Fatalf("failed to load config from path %s. Err: %v", thamesValuesPath, err)
 	}
-
 	if c == nil {
 		t.Fatalf("resulting config at path %s was nil", thamesValuesPath)
 	}
-
-	data, err := ioutil.ReadFile(thamesValuesPath)
-	if err != nil {
-		t.Fatalf("failed to read file %s. Err: %v", thamesValuesPath, err)
-	}
-
-	expected := string(data)
-	if expected != c.GetRawValue() {
-		t.Fatalf("expected %s but got %s", expected, c.GetRawValue())
+	actual := c.GetRawValue()
+	if expectedConfig != actual {
+		t.Fatalf("expected %s but got %s", expectedConfig, actual)
 	}
 }
 
-// TestLoadTemplate tests loading a Template.
+func TestDecodeConfig(t *testing.T) {
+	enc := "IyBEZWZhdWx0IHZhbHVlcyBmb3IgdGhlIFRoYW1lcyBqb2IKbmFtZTogVGhhbWVzCmNvdW50cnk6IEVuZ2xhbmQKY291bnRpZXM6IFtHbG91Y2VzdGVyc2hpcmUsIFdpbHRzaGlyZSwgT3hmb3Jkc2hpcmUsIEJlcmtzaGlyZSwgQnVja2luZ2hhbXNoaXJlLCBTdXJyZXldCmxlbmd0aDogMzQ2CmVsZXZhdGlvbjogMAphcGlOYW1lOiB2MQ=="
+	c, err := DecodeConfig(enc)
+	if err != nil {
+		t.Fatalf("failed to decode config, err: %v", err)
+	}
+	if c == nil {
+		t.Fatal("resulting config was nil")
+	}
+	actual := c.GetRawValue()
+	if expectedConfig != actual {
+		t.Fatalf("expected %s but got %s", expectedConfig, actual)
+	}
+}
+
 func TestLoadTemplate(t *testing.T) {
 	template, err := LoadTemplate(thamesPath)
 	if err != nil {
 		t.Fatalf("failed to load config from path %s. Err: %v", thamesPath, err)
 	}
-
 	if template == nil {
 		t.Fatalf("resulting template at path %s was nil", thamesPath)
 	}
-
-	data, err := ioutil.ReadFile(thamesPath)
-	if err != nil {
-		t.Fatalf("failed to read file %s. Err: %v", thamesPath, err)
+	actual := string(template.GetData())
+	if expectedTemplate != actual {
+		t.Fatalf("expected %s as the data but got %s", expectedTemplate, actual)
 	}
-
-	expectedData := string(data)
-	actualData := string(template.GetData())
-	if expectedData != actualData {
-		t.Fatalf("expected %s as the data but got %s", expectedData, actualData)
-	}
-
 	expectedName := thamesPath
+	if expectedName != template.GetName() {
+		t.Fatalf("expected %s as the template's name but got %s", expectedName, template.GetName())
+	}
+}
+
+func TestDecodeTemplate(t *testing.T) {
+	enc := "YXBpTmFtZTogInt7LlZhbHVlcy5hcGlOYW1lfX0iCgptZXRhZGF0YToKICAtIGJ1aWxkSWQ6ICJ7ey5SdW4uSUQgfCB1cHBlcn19IgogICAgY29tbWl0OiAie3suUnVuLkNvbW1pdCB8IGxvd2VyfX0iCiAgICB0YWc6ICJ7ey5SdW4uVGFnfX0iCiAgICByZXBvc2l0b3J5OiAie3suUnVuLlJlcG9zaXRvcnl9fSIKICAgIGJyYW5jaDogInt7LlJ1bi5CcmFuY2h9fSIKICAgIHRyaWdnZXJlZEJ5OiAie3suUnVuLlRyaWdnZXJlZEJ5fX0i"
+	template, err := DecodeTemplate(enc)
+	if err != nil {
+		t.Fatalf("failed to decode template, err: %v", err)
+	}
+	if template == nil {
+		t.Fatal("resulting template was nil")
+	}
+	actual := string(template.GetData())
+	if expectedTemplate != actual {
+		t.Fatalf("expected %s as the data but got %s", expectedTemplate, actual)
+	}
+	expectedName := decodedTemplateName
 	if expectedName != template.GetName() {
 		t.Fatalf("expected %s as the template's name but got %s", expectedName, template.GetName())
 	}

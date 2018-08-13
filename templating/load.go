@@ -4,11 +4,16 @@
 package templating
 
 import (
+	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
+)
+
+const (
+	decodedTemplateName = "decoded"
 )
 
 // LoadConfig creates a Config from the specified path.
@@ -21,6 +26,15 @@ func LoadConfig(path string) (*Config, error) {
 	return &Config{RawValue: string(data)}, nil
 }
 
+// DecodeConfig loads a Config from a Base64 encoded string.
+func DecodeConfig(encoded string) (*Config, error) {
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decode Base64 config")
+	}
+	return &Config{RawValue: string(decoded)}, nil
+}
+
 // LoadTemplate loads a Template from the specified path.
 func LoadTemplate(path string) (*Template, error) {
 	data, err := readFile(path)
@@ -29,6 +43,15 @@ func LoadTemplate(path string) (*Template, error) {
 	}
 
 	return &Template{Name: path, Data: data}, nil
+}
+
+// DecodeTemplate loads a Template from a Base64 encoded string.
+func DecodeTemplate(encoded string) (*Template, error) {
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decode Base64 template")
+	}
+	return &Template{Name: decodedTemplateName, Data: decoded}, nil
 }
 
 func readFile(path string) ([]byte, error) {
