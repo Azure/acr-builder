@@ -196,7 +196,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		if step.EntryPoint != "" {
 			args = append(args, "--entrypoint", step.EntryPoint)
 		}
-		args = append(args, strings.Fields(step.Cmd)...)
+		args = append(args, step.GetArgs()...)
 	}
 
 	if b.debug {

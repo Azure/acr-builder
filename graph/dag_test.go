@@ -64,7 +64,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 
 	quxStep := &Step{
 		ID:         "build-qux",
-		Cmd:        "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu",
+		Args:       []string{"azure/images/acr-builder", "build", "-f", "Dockerfile", "https://github.com/ehotinger/qux", "--cache-from=ubuntu"},
 		When:       []string{ImmediateExecutionToken},
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
@@ -156,7 +156,7 @@ func verifyChildren(expected map[string]*Step, actual []*Node) error {
 	for _, node := range actual {
 		if lookup, ok := expected[node.Name]; ok {
 			if !lookup.Equals(node.Value) {
-				return fmt.Errorf("Node provided does not match the expected node for %v", node.Name)
+				return fmt.Errorf("Node provided: %v does not match the expected: %v", lookup, node.Value)
 			}
 		} else {
 			return fmt.Errorf("Node %v was not expected", node.Name)
