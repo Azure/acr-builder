@@ -14,6 +14,11 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		t.Fatalf("Failed to create task from file. Err: %v", err)
 	}
 
+	expectedVersion := "v1.0.0"
+	if task.Version != expectedVersion {
+		t.Errorf("Expected %s as the version, but got %s", expectedVersion, task.Version)
+	}
+
 	pullerStep := &Step{
 		ID:            "puller",
 		Cmd:           "azure/images/docker pull ubuntu",
