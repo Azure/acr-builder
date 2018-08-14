@@ -64,7 +64,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 
 	quxStep := &Step{
 		ID:         "build-qux",
-		Args:       []string{"azure/images/acr-builder", "build", "-f", "Dockerfile", "https://github.com/ehotinger/qux", "--cache-from=ubuntu"},
+		Cmd:        "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu",
 		When:       []string{ImmediateExecutionToken},
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,

@@ -11,6 +11,7 @@ import (
 	"log"
 	"path"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/Azure/acr-builder/graph"
@@ -28,40 +29,53 @@ var (
 func (b *Builder) getDockerRunArgs(
 	volName string,
 	stepWorkDir string,
-	step *graph.Step) []string {
-	args := []string{"docker", "run"}
+	step *graph.Step,
+	envs []string,
+	entrypoint string,
+	cmd string) []string {
 
+	var args []string
+	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
+	// so we don't have to write our own argv parser for exec.Command.
+	if runtime.GOOS == "windows" {
+		// TODO: finalize on how to handle the Windows shell.
+		args = []string{"powershell.exe", "-Command"}
+	} else {
+		args = []string{"/bin/sh", "-c"}
+	}
+
+	var sb strings.Builder
+	sb.WriteString("docker run")
 	if !step.Keep {
-		args = append(args, "--rm")
+		sb.WriteString(" --rm")
 	}
-
 	if step.Detach {
-		args = append(args, "--detach")
+		sb.WriteString(" --detach")
 	}
-
 	for _, port := range step.Ports {
-		args = append(args, "-p", port)
+		sb.WriteString(" -p " + port)
 	}
-
 	if step.Privileged {
-		args = append(args, "--privileged")
+		sb.WriteString(" --privileged")
 	}
-
 	if step.User != "" {
-		args = append(args, "--user", step.User)
+		sb.WriteString(" --user " + step.User)
 	}
+	for _, env := range envs {
+		sb.WriteString(" --env " + env)
+	}
+	if entrypoint != "" {
+		sb.WriteString(" --entrypoint " + entrypoint)
+	}
+	sb.WriteString(" --name " + step.ID)
+	sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
+	sb.WriteString(" --volume " + util.GetDockerSock())
+	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
+	sb.WriteString(" --env " + homeEnv)
+	sb.WriteString(" --workdir " + normalizeWorkDir(stepWorkDir))
+	sb.WriteString(" " + cmd)
 
-	args = append(args,
-		"--name", step.ID,
-		"--volume", volName+":"+containerWorkspaceDir,
-
-		// Mount home
-		"--volume", util.GetDockerSock(),
-		"--volume", homeVol+":"+homeWorkDir,
-		"--env", homeEnv,
-
-		"--workdir", normalizeWorkDir(stepWorkDir),
-	)
+	args = append(args, sb.String())
 	return args
 }
 
