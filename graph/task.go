@@ -147,8 +147,10 @@ func (t *Task) initialize() error {
 		// Mark the step as skipped initially
 		s.StepStatus = Skipped
 
-		s.Tags = util.ParseTags(s.Build)
-		s.BuildArgs = util.ParseBuildArgs(s.Build)
+		if s.IsBuildStep() {
+			s.Tags = util.ParseTags(s.Build)
+			s.BuildArgs = util.ParseBuildArgs(s.Build)
+		}
 	}
 
 	t.Push = getNormalizedDockerImageNames(t.Push, t.RegistryName)

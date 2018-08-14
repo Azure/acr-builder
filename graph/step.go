@@ -4,8 +4,10 @@
 package graph
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Azure/acr-builder/baseimages/scanner/models"
@@ -19,13 +21,14 @@ const (
 
 var (
 	errMissingID    = errors.New("Step is missing an ID")
-	errMissingProps = errors.New("Step is missing a cmd or build property")
+	errMissingProps = errors.New("Step is missing a cmd, build, or args property")
 )
 
 // Step is a step in the execution task.
 type Step struct {
 	ID            string   `yaml:"id"`
 	Cmd           string   `yaml:"cmd"`
+	Args          []string `yaml:"args"`
 	Build         string   `yaml:"build"`
 	WorkDir       string   `yaml:"workDir"`
 	EntryPoint    string   `yaml:"entryPoint"`
@@ -60,7 +63,7 @@ func (s *Step) Validate() error {
 	if s.ID == "" {
 		return errMissingID
 	}
-	if s.Cmd == "" && s.Build == "" {
+	if s.Cmd == "" && s.Build == "" && len(s.Args) <= 0 {
 		return errMissingProps
 	}
 	for _, dep := range s.When {
@@ -76,16 +79,15 @@ func (s *Step) Equals(t *Step) bool {
 	if s == nil && t == nil {
 		return true
 	}
-
 	if s == nil || t == nil {
 		return false
 	}
-
 	if s.ID != t.ID ||
 		s.Keep != t.Keep ||
 		s.Detach != t.Detach ||
 		s.Cmd != t.Cmd ||
 		s.Build != t.Build ||
+		!util.StringSequenceEquals(s.Args, t.Args) ||
 		s.WorkDir != t.WorkDir ||
 		s.EntryPoint != t.EntryPoint ||
 		!util.StringSequenceEquals(s.Ports, t.Ports) ||
@@ -124,4 +126,22 @@ func (s *Step) HasNoWhen() bool {
 // IsBuildStep returns true if the Step is a build step, false otherwise.
 func (s *Step) IsBuildStep() bool {
 	return s.Build != ""
+}
+
+// GetArgs returns the Step's args.
+func (s *Step) GetArgs() []string {
+	if len(s.Args) <= 0 {
+		s.Args = toArgv(s.Cmd)
+	}
+	return s.Args
+}
+
+func toArgv(s string) []string {
+	r := csv.NewReader(strings.NewReader(s))
+	r.Comma = ' '
+	split, err := r.Read()
+	if err != nil {
+		return strings.Fields(s)
+	}
+	return split
 }
