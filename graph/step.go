@@ -19,7 +19,7 @@ const (
 
 var (
 	errMissingID    = errors.New("Step is missing an ID")
-	errMissingProps = errors.New("Step is missing a cmd, or build property")
+	errMissingProps = errors.New("Step is missing a cmd or build property")
 )
 
 // Step is a step in the execution task.
