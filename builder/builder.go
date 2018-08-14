@@ -185,23 +185,13 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 
 			step.Build = replacePositionalContext(step.Build, ".")
 		}
-
-		args = b.getDockerRunArgs(volName, workDir, step)
-		args = append(args, "docker", "build")
-		args = append(args, strings.Fields(step.Build)...)
+		args = b.getDockerRunArgs(volName, workDir, step, nil, "", "docker build "+step.Build)
 	} else {
-		args = b.getDockerRunArgs(b.workspaceDir, step.WorkDir, step)
-		for _, env := range step.Envs {
-			args = append(args, "--env", env)
-		}
-		if step.EntryPoint != "" {
-			args = append(args, "--entrypoint", step.EntryPoint)
-		}
-		args = append(args, step.GetArgs()...)
+		args = b.getDockerRunArgs(b.workspaceDir, step.WorkDir, step, step.Envs, step.EntryPoint, step.Cmd)
 	}
 
 	if b.debug {
-		log.Printf("Step args: %v\n", args)
+		log.Printf("Step args: %v\n", strings.Join(args, ", "))
 	}
 	// NB: ctx refers to the global ctx here,
 	// so when running individual processes use the individual
