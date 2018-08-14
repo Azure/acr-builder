@@ -8,7 +8,7 @@ WORKDIR /go/src/github.com/Azure/acr-builder
 COPY . .
 RUN make static && mv acb /usr/bin/acb
 
-FROM docker:18.03.1-ce-git
+FROM docker:18.06.0-ce-git
 COPY --from=acb /usr/bin/acb /usr/bin/acb
 ENTRYPOINT [ "acb" ]
 CMD [ "--help" ]
