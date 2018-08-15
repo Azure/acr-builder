@@ -53,6 +53,7 @@ Azure Container Builder is able to chain steps together to allow parallel and se
 stepTimeout: int (optional)
 totalTimeout: int (optional)
 push: [string, string, ...]
+version: string
 
 steps:
   - id: someID
@@ -70,6 +71,7 @@ For details on specific properties in the `acb.yaml`, review the following prope
 - [stepTimeout](#steptimeout)
 - [totalTimeout](#totaltimeout)
 - [push](#push)
+- [version](#version)
 
 ## Step properties
 
@@ -150,3 +152,7 @@ The `build` property of a step specifies how to build a set of images. If build 
 ### push
 
 `push` is an optional list of images and tags to push after the build has completed. This is a shortcut to creating multiple `push` commands after `build`s.
+
+### version
+
+`version` is the semantic version of the task.

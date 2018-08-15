@@ -42,6 +42,7 @@ type Task struct {
 	Push             []string  `yaml:"push,omitempty"`
 	Secrets          []*Secret `yaml:"secrets,omitempty"`
 	WorkDir          string    `yaml:"workDir,omitempty"`
+	Version          string    `yaml:"version,omitempty"`
 	RegistryName     string
 	RegistryUsername string
 	RegistryPassword string
