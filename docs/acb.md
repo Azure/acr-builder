@@ -2,11 +2,10 @@
 
 A task config consists of steps. Each step is tailored to an independent container and describes how the task can interact with the container.
 
-
 ```yaml
 # Example task that builds and runs an image
-stepTimeout: 60 
-steps: 
+stepTimeout: 60
+steps:
   - build: -t myimage .
   - cmd: myimage
 ```
@@ -14,8 +13,8 @@ steps:
 Properties can define the execution characteristics of the entire task or individual step.
 
 * [Task Properties](#task-properties) apply to the entire task or all steps in a task, like timeouts.  
-* [Step Properties](#step-properties) define the behavior of a single step in the entire task and how they interact with other steps. 
-* [Template Values](templates.md) can be used in a task config file. 
+* [Step Properties](#step-properties) define the behavior of a single step in the entire task and how they interact with other steps.
+* [Template Values](templates.md) can be used in a task config file.
 
 ## Context
 
@@ -33,24 +32,16 @@ version: string
 
 steps:
   - id: someID
-
-...
-
-secrets:
-  - akv: string (optional)
-    secretEnv: string (optional)
 ```
 
 ## Task Properties
 
 For details on specific properties in the `acb.yaml`, review the following properties:
 
-
-- [version](#version)
-- [push](#push)
-- [stepTimeout](#steptimeout)
-- [totalTimeout](#totaltimeout)
-- [secrets](#secrets)
+* [version](#version)
+* [push](#push)
+* [stepTimeout](#steptimeout)
+* [totalTimeout](#totaltimeout)
 
 ### version
 
@@ -60,11 +51,6 @@ For details on specific properties in the `acb.yaml`, review the following prope
 
 `stepTimeout` can be used to set the maximum time a step has to execute. This property can be overridden by a particular Step's individual `timeout` property in seconds.
 
-### secrets
-
-`secrets` defines secrets to decrypt using Azure Key Vault. The decrypted value is set as the field specified in `secretEnv` which can be reference in scripts via `secretEnvs`
-
-
 ### totalTimeout
 
 `totalTimeout` can be used to set the maximum time all steps must execute within.
@@ -72,7 +58,6 @@ For details on specific properties in the `acb.yaml`, review the following prope
 ### push
 
 `push` is an optional list of images and tags to push after the build has completed. This is a shortcut to creating multiple `push` commands after `build`s.
-
 
 ## Step properties
 
@@ -87,7 +72,6 @@ build: string (optional) # Build takes precedence over cmd. Build is required if
 workDir: string (optional)
 entryPoint: string (optional)
 envs: [string, string, ...] (optional)
-secretEnvs: [string, string, ...] (optional)
 ports: [string, string, ...] (optional)
 when: [string, string, ...] (optional)
 exitedWith: [int, int, ...] (optional)
@@ -100,20 +84,19 @@ startDelay: int (in seconds) (optional)
 
 For details on each specific property in a Step, follow these links:
 
-- [id](#id)
-- [cmd](#cmd)
-- [workDir](#workdir)
-- [entryPoint](#entrypoint)
-- [envs](#envs)
-- [secretEnvs](#secretenvs)
-- [ports](#ports)
-- [when](#when)
-- [exitedWith](#exitedwith)
-- [exitedWithout](#exitedwithout)
-- [timeout](#timeout)
-- [keep](#keep)
-- [detach](#deatch)
-- [startDelay](#startdelay)
+* [id](#id)
+* [cmd](#cmd)
+* [workDir](#workdir)
+* [entryPoint](#entrypoint)
+* [envs](#envs)
+* [ports](#ports)
+* [when](#when)
+* [exitedWith](#exitedwith)
+* [exitedWithout](#exitedwithout)
+* [timeout](#timeout)
+* [keep](#keep)
+* [detach](#deatch)
+* [startDelay](#startdelay)
 
 ### id
 
@@ -138,10 +121,6 @@ The `build` property of a step specifies how to build a set of images. If build 
 ### envs
 
 `envs` sets environment variables for a step.
-
-### secretEnvs
-
-`secretEnvs` is a list of environment variables which are encrypted using Azure Key Vault. These values are decrypted using the [secrets](#secrets) property.
 
 ### ports
 
