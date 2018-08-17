@@ -61,6 +61,9 @@ func (b *Builder) getDockerRunArgs(
 	if step.User != "" {
 		sb.WriteString(" --user " + step.User)
 	}
+	if step.Network != "" {
+		sb.WriteString(" --network " + step.Network)
+	}
 	for _, env := range envs {
 		sb.WriteString(" --env " + env)
 	}

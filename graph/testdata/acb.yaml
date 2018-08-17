@@ -52,3 +52,4 @@ steps:
     build: "-f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu"
     privileged: true
     user: root
+    network: host
