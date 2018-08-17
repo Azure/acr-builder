@@ -39,6 +39,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Ports:      []string{"8000:8000", "8080:8080"},
 		Timeout:    defaultStepTimeoutInSeconds,
 		Keep:       true,
+		Isolation:  "default",
 	}
 
 	bStep := &Step{

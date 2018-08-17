@@ -33,6 +33,7 @@ steps:
       - "8080:8080"
     exitedWith: [0, 1, 2, 3, 4]
     keep: true
+    isolation: default
 
   - id: build-bar
     cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/bar --cache-from=ubuntu
