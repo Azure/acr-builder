@@ -9,7 +9,7 @@ import (
 )
 
 func TestDagCreation_ValidFile(t *testing.T) {
-	task, err := UnmarshalTaskFromFile("testdata/rally.yaml", "", "", "")
+	task, err := UnmarshalTaskFromFile("testdata/acb.yaml", "", "", "")
 	if err != nil {
 		t.Fatalf("Failed to create task from file. Err: %v", err)
 	}
@@ -84,6 +84,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Timeout:    defaultStepTimeoutInSeconds,
 		Privileged: true,
 		User:       "root",
+		Network:    "host",
 	}
 
 	dict := make(map[string]*Step)
