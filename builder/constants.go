@@ -17,4 +17,9 @@ const (
 
 	scannerImageName   = "scanner"
 	dockerCLIImageName = "docker"
+
+	configTimeoutInSec  = 60 * 5  // 5 minutes
+	loginTimeoutInSec   = 60 * 5  // 5 minutes
+	digestsTimeoutInSec = 60 * 5  // 5 minutes
+	scrapeTimeoutInSec  = 60 * 15 // 15 minutes
 )

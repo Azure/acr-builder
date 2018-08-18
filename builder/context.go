@@ -64,6 +64,9 @@ func (b *Builder) getDockerRunArgs(
 	if step.Network != "" {
 		sb.WriteString(" --network " + step.Network)
 	}
+	if step.Isolation != "" {
+		sb.WriteString(" --isolation " + step.Isolation)
+	}
 	for _, env := range envs {
 		sb.WriteString(" --env " + env)
 	}

@@ -41,13 +41,19 @@ func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *B
 func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	if !b.procManager.DryRun {
 		log.Printf("Setting up Docker configuration...")
-		if err := b.setupConfig(ctx); err != nil {
+		timeout := time.Duration(configTimeoutInSec) * time.Second
+		configCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		if err := b.setupConfig(configCtx); err != nil {
 			return err
 		}
 		log.Printf("Successfully set up Docker configuration")
 		if task.UsingRegistryCreds() {
 			log.Printf("Logging in to registry: %s\n", task.RegistryName)
-			if err := b.dockerLoginWithRetries(ctx, task.RegistryName, task.RegistryUsername, task.RegistryPassword, 0); err != nil {
+			timeout := time.Duration(loginTimeoutInSec) * time.Second
+			loginCtx, cancel := context.WithTimeout(ctx, timeout)
+			defer cancel()
+			if err := b.dockerLoginWithRetries(loginCtx, task.RegistryName, task.RegistryUsername, task.RegistryPassword, 0); err != nil {
 				return err
 			}
 			log.Println("Successfully logged in")
@@ -89,9 +95,14 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		log.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
 
 		if len(step.ImageDependencies) > 0 {
-			if err := b.populateDigests(ctx, step.ImageDependencies); err != nil {
+			log.Printf("Populating digests for step: %s\n", step.ID)
+			timeout := time.Duration(digestsTimeoutInSec) * time.Second
+			digestCtx, cancel := context.WithTimeout(ctx, timeout)
+			defer cancel()
+			if err := b.populateDigests(digestCtx, step.ImageDependencies); err != nil {
 				return err
 			}
+			log.Printf("Successfully populated digests for step: %s\n", step.ID)
 			deps = append(deps, step.ImageDependencies...)
 		}
 	}
@@ -161,24 +172,29 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 	var args []string
 
 	if step.IsBuildStep() {
-		dockerfile, context := parseDockerBuildCmd(step.Build)
+		dockerfile, dockerContext := parseDockerBuildCmd(step.Build)
 		volName := b.workspaceDir
 
-		deps, err := b.scrapeDependencies(ctx, volName, step.WorkDir, step.ID, dockerfile, context, step.Tags, step.BuildArgs)
+		log.Println("Obtaining source code and scanning for dependencies...")
+		timeout := time.Duration(scrapeTimeoutInSec) * time.Second
+		scrapeCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		deps, err := b.scrapeDependencies(scrapeCtx, volName, step.WorkDir, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs)
 		if err != nil {
 			return errors.Wrap(err, "failed to scan dependencies")
 		}
+		log.Println("Successfully obtained source code and scanned for dependencies")
 		step.ImageDependencies = deps
 
 		workDir := step.WorkDir
 		// Modify the Run command if it's a tar or a git URL.
-		if !scannerutil.IsLocalContext(context) {
+		if !scannerutil.IsLocalContext(dockerContext) {
 			// NB: use step.ID as the working directory if the context is remote,
 			// since we obtained the source code from the scanner and put it in this location.
 			// If the remote context also has additional context specified, we have to append it
 			// to the working directory.
-			if scannerutil.IsGitURL(context) || scannerutil.IsVstsGitURL(context) {
-				workDir = step.ID + "/" + getContextFromGitURL(context)
+			if scannerutil.IsGitURL(dockerContext) || scannerutil.IsVstsGitURL(dockerContext) {
+				workDir = step.ID + "/" + getContextFromGitURL(dockerContext)
 			} else {
 				workDir = step.ID
 			}
@@ -193,13 +209,11 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 	if b.debug {
 		log.Printf("Step args: %v\n", strings.Join(args, ", "))
 	}
-	// NB: ctx refers to the global ctx here,
-	// so when running individual processes use the individual
-	// step's ctx instead.
+
 	timeout := time.Duration(step.Timeout) * time.Second
-	currCtx, cancel := context.WithTimeout(ctx, timeout)
+	stepCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	return b.procManager.Run(currCtx, args, nil, os.Stdout, os.Stderr, "")
+	return b.procManager.Run(stepCtx, args, nil, os.Stdout, os.Stderr, "")
 }
 
 // populateDigests populates digests on dependencies
