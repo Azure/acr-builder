@@ -908,7 +908,10 @@ func Unpack(decompressedArchive io.Reader, dest string, options *TarOptions) err
 
 	var dirs []*tar.Header
 	idMappings := idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps)
-	rootIDs := idMappings.RootPair()
+	// NOTE (bindu): change owner of new created dir to root will throw "operation not permitted" error.
+	// In our case, we don't need to change the owner in unpack, so replace the root id with current user to avoid attempting to change owner
+	// BTW: On windows, the existing code already skips changing owner.
+	rootIDs := idtools.IDPair{UID: os.Getuid(), GID: os.Getgid()}
 	whiteoutConverter := getWhiteoutConverter(options.WhiteoutFormat)
 
 	// Iterate through the files in the archive.
