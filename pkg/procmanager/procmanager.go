@@ -77,7 +77,7 @@ func (pm *ProcManager) Run(
 	case <-ctx.Done():
 		go func() {
 			if err := cmd.Process.Kill(); err != nil {
-				log.Printf("Failed to kill process. Path: %s, Args: %v, Err: %v", cmd.Path, cmd.Args, err)
+				log.Printf("Failed to kill process. Path: %s, Args: %v, Err: %v\n", cmd.Path, cmd.Args, err)
 			}
 		}()
 
