@@ -15,7 +15,7 @@ const (
 	// homeVol is the volume to manage $HOME
 	homeVol = "home"
 
-	scannerImageName   = "scanner"
+	scannerImageName   = "acb"
 	dockerCLIImageName = "docker"
 
 	configTimeoutInSec  = 60 * 5  // 5 minutes

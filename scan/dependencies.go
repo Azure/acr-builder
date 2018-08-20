@@ -11,12 +11,12 @@ import (
 	"path"
 	"strings"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/models"
+	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/docker/distribution/reference"
 )
 
 // ScanForDependencies scans for base image dependencies.
-func (s *Scanner) ScanForDependencies(workingDir string, dockerfile string, buildArgs []string, pushTo []string) (deps []*models.ImageDependencies, err error) {
+func (s *Scanner) ScanForDependencies(workingDir string, dockerfile string, buildArgs []string, pushTo []string) (deps []*image.Dependencies, err error) {
 	path := path.Clean(path.Join(workingDir, dockerfile))
 	runtime, buildtime, err := ResolveDockerfileDependencies(path, buildArgs)
 	if err != nil {
@@ -45,20 +45,20 @@ func (s *Scanner) ScanForDependencies(workingDir string, dockerfile string, buil
 	return deps, err
 }
 
-// NewImageDependencies creates ImageDependencies with no references registered
-func (s *Scanner) NewImageDependencies(image string, runtime string, buildtimes []string) (*models.ImageDependencies, error) {
-	var dependencies *models.ImageDependencies
-	if len(image) > 0 {
-		imageReference, err := NewImageReference(NormalizeImageTag(image))
+// NewImageDependencies creates Dependencies with no references registered
+func (s *Scanner) NewImageDependencies(img string, runtime string, buildtimes []string) (*image.Dependencies, error) {
+	var dependencies *image.Dependencies
+	if len(img) > 0 {
+		imageReference, err := NewImageReference(NormalizeImageTag(img))
 		if err != nil {
 			return nil, err
 		}
-		dependencies = &models.ImageDependencies{
+		dependencies = &image.Dependencies{
 			Image: imageReference,
 		}
 	} else {
 		// we allow build without pushing image to registry so the image can be empty
-		dependencies = &models.ImageDependencies{
+		dependencies = &image.Dependencies{
 			Image: nil,
 		}
 	}
@@ -106,12 +106,12 @@ func NormalizeImageTag(img string) string {
 }
 
 // NewImageReference parses a path of a image and creates a ImageReference object
-func NewImageReference(path string) (*models.ImageReference, error) {
+func NewImageReference(path string) (*image.Reference, error) {
 	ref, err := reference.Parse(path)
 	if err != nil {
 		return nil, err
 	}
-	result := &models.ImageReference{
+	result := &image.Reference{
 		Reference: ref.String(),
 	}
 

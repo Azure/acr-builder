@@ -10,8 +10,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/scan"
 	"github.com/Azure/acr-builder/pkg/procmanager"
+	"github.com/Azure/acr-builder/scan"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -40,7 +40,7 @@ func newDownloadCmd(out io.Writer) *cobra.Command {
 		RunE:  d.run,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
-				return errors.New("scanner download requires exactly 1 argument. See scanner download --help")
+				return errors.New("download requires exactly 1 argument. See acb download --help")
 			}
 
 			return nil

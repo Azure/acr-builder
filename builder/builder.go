@@ -13,9 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/models"
-	scannerutil "github.com/Azure/acr-builder/baseimages/scanner/util"
 	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
@@ -89,7 +88,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		return err
 	}
 
-	var deps []*models.ImageDependencies
+	var deps []*image.Dependencies
 	for _, n := range task.Dag.Nodes {
 		step := n.Value
 		log.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
@@ -188,12 +187,12 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 
 		workDir := step.WorkDir
 		// Modify the Run command if it's a tar or a git URL.
-		if !scannerutil.IsLocalContext(dockerContext) {
+		if !util.IsLocalContext(dockerContext) {
 			// NB: use step.ID as the working directory if the context is remote,
 			// since we obtained the source code from the scanner and put it in this location.
 			// If the remote context also has additional context specified, we have to append it
 			// to the working directory.
-			if scannerutil.IsGitURL(dockerContext) || scannerutil.IsVstsGitURL(dockerContext) {
+			if util.IsGitURL(dockerContext) || util.IsVstsGitURL(dockerContext) {
 				workDir = step.ID + "/" + getContextFromGitURL(dockerContext)
 			} else {
 				workDir = step.ID
@@ -217,7 +216,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 }
 
 // populateDigests populates digests on dependencies
-func (b *Builder) populateDigests(ctx context.Context, dependencies []*models.ImageDependencies) error {
+func (b *Builder) populateDigests(ctx context.Context, dependencies []*image.Dependencies) error {
 	for _, entry := range dependencies {
 		if err := b.queryDigest(ctx, entry.Image); err != nil {
 			return err
@@ -234,7 +233,7 @@ func (b *Builder) populateDigests(ctx context.Context, dependencies []*models.Im
 	return nil
 }
 
-func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageReference) error {
+func (b *Builder) queryDigest(ctx context.Context, reference *image.Reference) error {
 	if reference != nil {
 		// refString will always have the tag specified at this point.
 		// For "scratch", we have to compare it against "scratch:latest" even though
@@ -274,7 +273,7 @@ func (b *Builder) queryDigest(ctx context.Context, reference *models.ImageRefere
 	return nil
 }
 
-func getRepoDigest(jsonContent string, reference *models.ImageReference) string {
+func getRepoDigest(jsonContent string, reference *image.Reference) string {
 	prefix := reference.Repository + "@"
 	// If the reference has "library/" prefixed, we have to remove it - otherwise
 	// we'll fail to query the digest, since image names aren't prefixed with "library/"

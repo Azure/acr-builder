@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/models"
+	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/util"
 )
 
@@ -52,7 +52,7 @@ type Step struct {
 	// that the step has been processed.
 	CompletedChan chan bool
 
-	ImageDependencies []*models.ImageDependencies
+	ImageDependencies []*image.Dependencies
 	Tags              []string
 	BuildArgs         []string
 }

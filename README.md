@@ -27,15 +27,13 @@ $ docker build -f Windows.Dockerfile -t acb .
 
 ## Linux Images
 
-The following images are required:
-
-- `scanner`
+- `acb`
 - `docker`
 - `ubuntu`
 
 ## Windows Images
 
-- `scanner`
+- `acb`
 - `docker`
 - `microsoft/windowsservercore:1803`
 
@@ -49,10 +47,11 @@ Usage:
 
 Available Commands:
   build       Run a build
+  download    Download the specified context to a destination folder
   exec        Execute a task
   help        Help about any command
-  init        Initialize a default template
   render      Render a template
+  scan        Scan a Dockerfile
   version     Print version information
 
 Flags:

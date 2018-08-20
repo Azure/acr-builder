@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/Azure/acr-builder/scan"
 	"github.com/Azure/acr-builder/util"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/scan"
 	"github.com/pkg/errors"
 )
 

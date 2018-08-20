@@ -6,7 +6,7 @@ package builder
 import (
 	"testing"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/models"
+	"github.com/Azure/acr-builder/pkg/image"
 )
 
 func TestGetImageDependencies(t *testing.T) {
@@ -36,21 +36,21 @@ func TestGetImageDependencies(t *testing.T) {
 		t.Fatal("git shouldn't be nil")
 	}
 
-	expectedImage := &models.ImageReference{
+	expectedImage := &image.Reference{
 		Registry:   "registry.hub.docker.com",
 		Repository: "library/scanner",
 		Tag:        "latest",
 		Digest:     "",
 		Reference:  "scanner:latest",
 	}
-	expectedRuntimeDep := &models.ImageReference{
+	expectedRuntimeDep := &image.Reference{
 		Registry:   "registry.hub.docker.com",
 		Repository: "library/alpine",
 		Tag:        "latest",
 		Digest:     "",
 		Reference:  "alpine:latest",
 	}
-	expectedBuildDep := &models.ImageReference{
+	expectedBuildDep := &image.Reference{
 		Registry:   "registry.hub.docker.com",
 		Repository: "library/golang",
 		Tag:        "1.10-alpine",
@@ -59,13 +59,13 @@ func TestGetImageDependencies(t *testing.T) {
 	}
 	expectedGitHeadRev := "abcdef"
 
-	if !models.ImageReferencesEquals(r.Image, expectedImage) {
+	if !image.ReferencesEquals(r.Image, expectedImage) {
 		t.Errorf("Invalid image ref. Expected %s, got %s", expectedImage.String(), r.Image.String())
 	}
-	if !models.ImageReferencesEquals(r.Runtime, expectedRuntimeDep) {
+	if !image.ReferencesEquals(r.Runtime, expectedRuntimeDep) {
 		t.Errorf("Invalid runtime dep. Expected %s, got %s", expectedRuntimeDep.String(), r.Runtime.String())
 	}
-	if !models.ImageReferencesEquals(r.Buildtime[0], expectedBuildDep) {
+	if !image.ReferencesEquals(r.Buildtime[0], expectedBuildDep) {
 		t.Errorf("Invalid buildtime dep. Expected %s, got %s", expectedBuildDep.String(), r.Buildtime[0].String())
 	}
 	if r.Git.GitHeadRev != expectedGitHeadRev {
