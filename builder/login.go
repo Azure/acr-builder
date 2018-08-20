@@ -57,7 +57,7 @@ func (b *Builder) dockerLoginWithRetries(ctx context.Context, registry string, u
 	err := b.dockerLogin(ctx, registry, user, pw)
 	if err != nil {
 		if attempt < maxLoginRetries {
-			time.Sleep(500 * time.Millisecond)
+			time.Sleep(util.GetExponentialBackoff(attempt))
 			return b.dockerLoginWithRetries(ctx, registry, user, pw, attempt+1)
 		}
 
