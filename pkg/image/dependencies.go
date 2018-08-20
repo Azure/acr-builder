@@ -1,22 +1,22 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package models
+package image
 
 import (
 	"fmt"
 )
 
-// ImageDependencies denotes docker image dependencies
-type ImageDependencies struct {
-	Image     *ImageReference   `json:"image"`
-	Runtime   *ImageReference   `json:"runtime-dependency"`
-	Buildtime []*ImageReference `json:"buildtime-dependency"`
-	Git       *GitReference     `json:"git,omitempty"`
+// Dependencies denotes docker image dependencies.
+type Dependencies struct {
+	Image     *Reference    `json:"image"`
+	Runtime   *Reference    `json:"runtime-dependency"`
+	Buildtime []*Reference  `json:"buildtime-dependency"`
+	Git       *GitReference `json:"git,omitempty"`
 }
 
-// ImageReference defines the reference to a docker image
-type ImageReference struct {
+// Reference defines the reference to a docker image
+type Reference struct {
 	Registry   string `json:"registry"`
 	Repository string `json:"repository"`
 	Tag        string `json:"tag,omitempty"`
@@ -24,8 +24,8 @@ type ImageReference struct {
 	Reference  string `json:"reference"`
 }
 
-// ImageReferencesEquals determines if two image references are equal.
-func ImageReferencesEquals(img1 *ImageReference, img2 *ImageReference) bool {
+// ReferencesEquals determines if two image references are equal.
+func ReferencesEquals(img1 *Reference, img2 *Reference) bool {
 	if img1 == nil && img2 == nil {
 		return true
 	}
@@ -41,7 +41,7 @@ func ImageReferencesEquals(img1 *ImageReference, img2 *ImageReference) bool {
 }
 
 // String returns a string representation of an ImageReference.
-func (i *ImageReference) String() string {
+func (i *Reference) String() string {
 	if i == nil {
 		return "<nil>"
 	}

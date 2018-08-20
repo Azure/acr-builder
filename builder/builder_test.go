@@ -6,7 +6,7 @@ package builder
 import (
 	"testing"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/models"
+	"github.com/Azure/acr-builder/pkg/image"
 )
 
 var (
@@ -19,13 +19,13 @@ func TestGetRepoDigest(t *testing.T) {
 	tests := []struct {
 		id       int
 		json     string
-		imgRef   *models.ImageReference
+		imgRef   *image.Reference
 		expected string
 	}{
 		{
 			1,
 			acb,
-			&models.ImageReference{
+			&image.Reference{
 				Registry:   "testing.azurecr-test.io",
 				Repository: "testing",
 			},
@@ -34,7 +34,7 @@ func TestGetRepoDigest(t *testing.T) {
 		{
 			2,
 			acb,
-			&models.ImageReference{
+			&image.Reference{
 				Registry:   "acrimageshub.azurecr.io",
 				Repository: "public/acr/acb",
 			},
@@ -43,7 +43,7 @@ func TestGetRepoDigest(t *testing.T) {
 		{
 			3,
 			acb,
-			&models.ImageReference{
+			&image.Reference{
 				Registry:   "mcr.microsoft.com",
 				Repository: "acr/acb",
 			},
@@ -52,7 +52,7 @@ func TestGetRepoDigest(t *testing.T) {
 		{
 			4,
 			acb,
-			&models.ImageReference{
+			&image.Reference{
 				Registry:   "invalid",
 				Repository: "invalid",
 			},

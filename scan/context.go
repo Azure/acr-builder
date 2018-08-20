@@ -14,7 +14,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/util"
+	"github.com/Azure/acr-builder/util"
 	dockerbuild "github.com/docker/cli/cli/command/image/build"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/progress"

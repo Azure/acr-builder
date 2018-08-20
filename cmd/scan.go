@@ -12,8 +12,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/scan"
 	"github.com/Azure/acr-builder/pkg/procmanager"
+	"github.com/Azure/acr-builder/scan"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +46,7 @@ func newScanCmd(out io.Writer) *cobra.Command {
 		RunE:  s.run,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
-				return errors.New("scanner scan requires exactly 1 argument. See scanner scan --help")
+				return errors.New("scan requires exactly 1 argument. See acb scan --help")
 			}
 
 			return nil

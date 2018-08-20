@@ -38,6 +38,5 @@ func IsLocalContext(s string) bool {
 	if IsVstsGitURL(s) || IsGitURL(s) || IsURL(s) {
 		return false
 	}
-
 	return true
 }
