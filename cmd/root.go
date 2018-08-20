@@ -45,7 +45,8 @@ func newRootCmd(args []string) *cobra.Command {
 		newExecCmd(out),
 		newBuildCmd(out),
 		newRenderCmd(out),
-		newInitCmd(out),
+		newDownloadCmd(out),
+		newScanCmd(out),
 	)
 
 	_ = flags.Parse(args)

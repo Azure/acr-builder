@@ -1,35 +1,11 @@
-# Scanner
+# Scanning
 
-## Build
+## Examples
 
-Using Docker:
-
-Execute the following commands from the root of the repository.
-
-Linux:
-
-```sh
-$ docker build -f baseimages/scanner/Dockerfile -t scanner .
-```
-
-Windows:
-
-```sh
-$ docker build -f baseimages/scanner/Windows.Dockerfile -t scanner .
-```
-
-Using make:
-
-```sh
-$ make
-```
-
-### Examples
-
-Scanning a local file:
+### Scanning a local file
 
 ```json
-$ scanner scan -f Dockerfile . -t scanner
+$ acb scan -f Dockerfile . -t scanner
 
 Dependencies:
 [
@@ -64,10 +40,10 @@ Dependencies:
 ]
 ```
 
-Scanning a git source:
+### Scanning a git source
 
 ```json
-$ scanner scan -f Dockerfile https://github.com/Azure/acr-builder.git -t acr-builder
+$ acb scan -f Dockerfile https://github.com/Azure/acr-builder.git -t acr-builder
 
 Dependencies:
 [
@@ -102,10 +78,10 @@ Dependencies:
 ]
 ```
 
-Scanning a tar:
+### Scanning a tar
 
 ```json
-$ scanner scan -f "HelloWorld/Dockerfile" "https://acrbuild.blob.core.windows.net/public/aspnetcore-helloworld.tar.gz" -t hello-world
+$ acb scan -f "HelloWorld/Dockerfile" "https://acrbuild.blob.core.windows.net/public/aspnetcore-helloworld.tar.gz" -t hello-world
 
 Dependencies:
 [

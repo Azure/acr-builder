@@ -15,9 +15,9 @@ import (
 	"strings"
 
 	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/util"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/models"
 	"github.com/google/uuid"
 )
 
@@ -85,7 +85,7 @@ func (b *Builder) getDockerRunArgs(
 	return args
 }
 
-func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWorkDir string, outputDir string, dockerfile string, context string, tags []string, buildArgs []string) ([]*models.ImageDependencies, error) {
+func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWorkDir string, outputDir string, dockerfile string, context string, tags []string, buildArgs []string) ([]*image.Dependencies, error) {
 	containerName := fmt.Sprintf("acb_dep_scanner_%s", uuid.New())
 	args := []string{
 		"docker",
@@ -129,8 +129,8 @@ func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWo
 	return getImageDependencies(output)
 }
 
-func getImageDependencies(s string) ([]*models.ImageDependencies, error) {
-	var deps []*models.ImageDependencies
+func getImageDependencies(s string) ([]*image.Dependencies, error) {
+	var deps []*image.Dependencies
 	lines := strings.Split(s, "\n")
 	for _, line := range lines {
 		matches := dependenciesRE.FindStringSubmatch(line)

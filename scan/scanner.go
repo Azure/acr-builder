@@ -6,7 +6,7 @@ package scan
 import (
 	"context"
 
-	"github.com/Azure/acr-builder/baseimages/scanner/models"
+	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 )
 
@@ -35,7 +35,7 @@ func NewScanner(pm *procmanager.ProcManager, context string, dockerfile string, 
 }
 
 // Scan scans a Dockerfile for dependencies.
-func (s *Scanner) Scan(ctx context.Context) (deps []*models.ImageDependencies, err error) {
+func (s *Scanner) Scan(ctx context.Context) (deps []*image.Dependencies, err error) {
 	workingDir, sha, _, err := s.ObtainSourceCode(ctx, s.context)
 	if err != nil {
 		return deps, err
@@ -47,7 +47,7 @@ func (s *Scanner) Scan(ctx context.Context) (deps []*models.ImageDependencies, e
 	}
 
 	for _, dep := range deps {
-		dep.Git = &models.GitReference{
+		dep.Git = &image.GitReference{
 			GitHeadRev: sha,
 		}
 	}
