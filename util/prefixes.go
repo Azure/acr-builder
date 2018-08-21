@@ -19,15 +19,14 @@ func PrefixRegistryToImageName(registry string, img string) string {
 }
 
 // PrefixTags prefixes tags in the specified command and returns the new command.
-func PrefixTags(cmd string, registry string) string {
-	if registry == "" {
-		return cmd
-	}
+func PrefixTags(cmd string, registry string) (string, []string) {
+	tags := []string{}
 	fields := strings.Fields(cmd)
 	for i := 1; i < len(fields); i++ {
 		if fields[i-1] == "-t" || fields[i-1] == "--tag" {
 			fields[i] = PrefixRegistryToImageName(registry, fields[i])
+			tags = append(tags, fields[i])
 		}
 	}
-	return strings.Join(fields, " ")
+	return strings.Join(fields, " "), tags
 }
