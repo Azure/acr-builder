@@ -8,11 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sort"
 	"strings"
 	"text/template"
 
-	"github.com/Azure/acr-builder/util"
 	"github.com/Masterminds/sprig"
 )
 
@@ -36,25 +34,24 @@ func FuncMap() template.FuncMap {
 }
 
 // Render renders a template.
-func (e *Engine) Render(t *Template, values Values) (map[string]string, error) {
+func (e *Engine) Render(t *Template, values Values) (string, error) {
 	if t == nil {
-		return nil, errors.New("template is required")
+		return "", errors.New("template is required")
 	}
-
 	if values == nil {
-		return nil, errors.New("values is required")
+		return "", errors.New("values is required")
 	}
 
-	templates := map[string]renderableTemplate{}
-	templates[t.Name] = renderableTemplate{
+	rt := renderableTemplate{
+		name:     t.Name,
 		template: string(t.Data),
 		values:   values,
 	}
 
-	return e.render(templates)
+	return e.render(rt)
 }
 
-func (e *Engine) render(templates map[string]renderableTemplate) (rendered map[string]string, err error) {
+func (e *Engine) render(rt renderableTemplate) (rendered string, err error) {
 	// If a template panics, recover the engine.
 	defer func() {
 		if r := recover(); r != nil {
@@ -71,51 +68,23 @@ func (e *Engine) render(templates map[string]renderableTemplate) (rendered map[s
 		t.Option("missingkey=zero")
 	}
 
-	// Gather all the template filenames.
-	files := []string{}
-
-	// Sort the templates for consistent ordering
-	keys := sortTemplates(templates)
-	for _, k := range keys {
-		r := templates[k]
-		t = t.New(k).Funcs(e.FuncMap)
-
-		if _, err := t.Parse(r.template); err != nil {
-			return map[string]string{}, fmt.Errorf("Failed to parse template: %s. Err: %v", k, err)
-		}
-
-		files = append(files, k)
+	t = t.New(rt.name).Funcs(e.FuncMap)
+	if _, err := t.Parse(rt.template); err != nil {
+		return "", fmt.Errorf("Failed to parse template: %s. Err: %v", rt.name, err)
 	}
 
-	// Render all of the templates.
-	rendered = make(map[string]string, len(files))
 	var buf bytes.Buffer
-	for _, f := range files {
-		if err := t.ExecuteTemplate(&buf, f, templates[f].values); err != nil {
-			return map[string]string{}, fmt.Errorf("Failed to execute template: %s. Err: %v", f, err)
-		}
-
-		// NB: handle `missingkey=zero` by removing the string.
-		rendered[f] = strings.Replace(buf.String(), "<no value>", "", -1)
-		buf.Reset()
+	if err := t.ExecuteTemplate(&buf, rt.name, rt.values); err != nil {
+		return "", fmt.Errorf("Failed to execute template: %s. Err: %v", rt.name, err)
 	}
 
+	// NB: handle `missingkey=zero` by removing the string.
+	rendered = strings.Replace(buf.String(), "<no value>", "", -1)
 	return rendered, nil
 }
 
-// sortTemplates sorts the provided map of templates by path length.
-func sortTemplates(templates map[string]renderableTemplate) []string {
-	ret := make([]string, len(templates))
-	i := 0
-	for key := range templates {
-		ret[i] = key
-		i++
-	}
-	sort.Sort(sort.Reverse(util.SortablePathLen(ret)))
-	return ret
-}
-
 type renderableTemplate struct {
+	name     string
 	template string
 	values   Values
 }

@@ -27,8 +27,8 @@ func TestRenderAllTemplates(t *testing.T) {
 		t.Errorf("Failed to render. Err: %v", err)
 	}
 
-	if rendered[jobName] != expectedMsg {
-		t.Errorf("Expected %s, but got %s", expectedMsg, rendered[jobName])
+	if rendered != expectedMsg {
+		t.Errorf("Expected %s, but got %s", expectedMsg, rendered)
 	}
 }
 
@@ -60,8 +60,8 @@ bar: 10
 		t.Errorf("Failed to render. Err: %v", err)
 	}
 
-	if rendered[templateName] != expectedMsg {
-		t.Errorf("Expected %s, but got %s", expectedMsg, rendered[templateName])
+	if rendered != expectedMsg {
+		t.Errorf("Expected %s, but got %s", expectedMsg, rendered)
 	}
 }
 
