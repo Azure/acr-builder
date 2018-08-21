@@ -63,7 +63,10 @@ func (d *downloadCmd) run(cmd *cobra.Command, args []string) error {
 
 	pm := procmanager.NewProcManager(d.dryRun)
 
-	scanner := scan.NewScanner(pm, d.context, "", d.destinationFolder, nil, nil, debug)
+	scanner, err := scan.NewScanner(pm, d.context, "", d.destinationFolder, nil, nil, debug)
+	if err != nil {
+		return err
+	}
 	workingDir, _, _, err := scanner.ObtainSourceCode(ctx, d.context)
 	if err != nil {
 		return err
