@@ -136,7 +136,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	procManager := procmanager.NewProcManager(b.dryRun)
 	defaultStep := &graph.Step{
-		Build:   rendered,
+		Build:   util.PrefixTags(rendered, b.opts.Registry),
 		Timeout: timeoutInSec,
 	}
 
