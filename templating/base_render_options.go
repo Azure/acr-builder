@@ -117,11 +117,11 @@ func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, er
 		return "", fmt.Errorf("Error while rendering templates: %v", err)
 	}
 
-	if rendered[template.Name] == "" {
+	if rendered == "" {
 		return "", errors.New("Rendered template was empty")
 	}
 
-	return rendered[template.Name], nil
+	return rendered, nil
 }
 
 // parseValues receives a slice of values in key=val format
