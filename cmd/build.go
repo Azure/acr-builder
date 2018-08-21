@@ -112,49 +112,12 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 	b.context = args[0]
 
-	template := &templating.Template{
-		Name: "build",
-		Data: []byte(b.createRunCmd()),
-	}
-
-	rendered, err := templating.LoadAndRenderSteps(template, b.opts)
+	task, err := b.createBuildTask()
 	if err != nil {
 		return err
-	}
-
-	if debug {
-		fmt.Println("Rendered template:")
-		fmt.Println(rendered)
-	}
-
-	// After the template has rendered, we have to parse the tags again
-	// so we can properly set the build/push tags.
-	b.tags = util.ParseTags(rendered)
-	for i := range b.tags {
-		b.tags[i] = util.PrefixRegistryToImageName(b.opts.Registry, b.tags[i])
 	}
 
 	procManager := procmanager.NewProcManager(b.dryRun)
-	defaultStep := &graph.Step{
-		Build:   util.PrefixTags(rendered, b.opts.Registry),
-		Timeout: timeoutInSec,
-	}
-
-	steps := []*graph.Step{defaultStep}
-
-	push := []string{}
-	if b.push {
-		push = b.tags
-	}
-
-	// TODO: create secrets
-	secrets := []*graph.Secret{}
-
-	task, err := graph.NewTask(steps, push, secrets, b.opts.Registry, b.registryUser, b.registryPw)
-	if err != nil {
-		return err
-	}
-
 	timeout := time.Duration(task.TotalTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -200,6 +163,45 @@ func (b *buildCmd) validateCmdArgs() error {
 	}
 
 	return nil
+}
+
+func (b *buildCmd) createBuildTask() (*graph.Task, error) {
+	template := &templating.Template{
+		Name: "build",
+		Data: []byte(b.createRunCmd()),
+	}
+
+	rendered, err := templating.LoadAndRenderSteps(template, b.opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if debug {
+		fmt.Println("Rendered template:")
+		fmt.Println(rendered)
+	}
+
+	// After the template has rendered, we have to parse the tags again
+	// so we can properly set the build/push tags.
+	rendered, tags := util.PrefixTags(rendered, b.opts.Registry)
+	b.tags = tags
+
+	defaultStep := &graph.Step{
+		Build:   rendered,
+		Timeout: timeoutInSec,
+	}
+
+	steps := []*graph.Step{defaultStep}
+
+	push := []string{}
+	if b.push {
+		push = b.tags
+	}
+
+	// TODO: create secrets
+	secrets := []*graph.Secret{}
+
+	return graph.NewTask(steps, push, secrets, b.opts.Registry, b.registryUser, b.registryPw)
 }
 
 func (b *buildCmd) createRunCmd() string {
