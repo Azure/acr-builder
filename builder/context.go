@@ -102,9 +102,7 @@ func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWo
 		scannerImageName,
 		"scan",
 		"-f", dockerfile,
-		// NOTE (bindu): unpacking a tar file including .git folder can hang if --destination is a relative path
-		// Use the absolute path to workaround the issue.
-		"--destination", path.Join(normalizeWorkDir(stepWorkDir), outputDir),
+		"--destination", outputDir,
 		context,
 	}
 

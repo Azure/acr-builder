@@ -78,7 +78,10 @@ func (s *scanCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	pm := procmanager.NewProcManager(s.dryRun)
-	scanner := scan.NewScanner(pm, s.context, s.dockerfile, s.destinationFolder, s.buildArgs, s.tags, debug)
+	scanner, err := scan.NewScanner(pm, s.context, s.dockerfile, s.destinationFolder, s.buildArgs, s.tags, debug)
+	if err != nil {
+		return err
+	}
 	deps, err := scanner.Scan(ctx)
 	if err != nil {
 		return err
