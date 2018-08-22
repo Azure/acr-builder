@@ -178,14 +178,14 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		timeout := time.Duration(scrapeTimeoutInSec) * time.Second
 		scrapeCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		deps, err := b.scrapeDependencies(scrapeCtx, volName, step.WorkDir, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs)
+		deps, err := b.scrapeDependencies(scrapeCtx, volName, step.WorkingDirectory, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs)
 		if err != nil {
 			return errors.Wrap(err, "failed to scan dependencies")
 		}
 		log.Println("Successfully obtained source code and scanned for dependencies")
 		step.ImageDependencies = deps
 
-		workDir := step.WorkDir
+		workingDirectory := step.WorkingDirectory
 		// Modify the Run command if it's a tar or a git URL.
 		if !util.IsLocalContext(dockerContext) {
 			// NB: use step.ID as the working directory if the context is remote,
@@ -193,16 +193,16 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 			// If the remote context also has additional context specified, we have to append it
 			// to the working directory.
 			if util.IsGitURL(dockerContext) || util.IsVstsGitURL(dockerContext) {
-				workDir = step.ID + "/" + getContextFromGitURL(dockerContext)
+				workingDirectory = step.ID + "/" + getContextFromGitURL(dockerContext)
 			} else {
-				workDir = step.ID
+				workingDirectory = step.ID
 			}
 
 			step.Build = replacePositionalContext(step.Build, ".")
 		}
-		args = b.getDockerRunArgs(volName, workDir, step, nil, "", "docker build "+step.Build)
+		args = b.getDockerRunArgs(volName, workingDirectory, step, nil, "", "docker build "+step.Build)
 	} else {
-		args = b.getDockerRunArgs(b.workspaceDir, step.WorkDir, step, step.Envs, step.EntryPoint, step.Cmd)
+		args = b.getDockerRunArgs(b.workspaceDir, step.WorkingDirectory, step, step.Envs, step.EntryPoint, step.Cmd)
 	}
 
 	if b.debug {

@@ -20,14 +20,15 @@ func TestDagCreation_ValidFile(t *testing.T) {
 	}
 
 	pullerStep := &Step{
-		ID:            "puller",
-		Cmd:           "azure/images/docker pull ubuntu",
-		EntryPoint:    "someEntryPoint",
-		Envs:          []string{"eric=foo", "foo=bar"},
-		SecretEnvs:    []string{"someAkvSecretEnv"},
-		ExitedWithout: []int{0, 255},
-		StepStatus:    Skipped,
-		Timeout:       defaultStepTimeoutInSeconds,
+		ID:               "puller",
+		Cmd:              "azure/images/docker pull ubuntu",
+		EntryPoint:       "someEntryPoint",
+		Envs:             []string{"eric=foo", "foo=bar"},
+		SecretEnvs:       []string{"someAkvSecretEnv"},
+		ExitedWithout:    []int{0, 255},
+		StepStatus:       Skipped,
+		Timeout:          defaultStepTimeoutInSeconds,
+		WorkingDirectory: "pullDir",
 	}
 
 	cStep := &Step{
