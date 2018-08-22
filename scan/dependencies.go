@@ -5,7 +5,9 @@ package scan
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -15,10 +17,20 @@ import (
 	"github.com/docker/distribution/reference"
 )
 
+var (
+	utf8BOM = []byte{0xEF, 0xBB, 0xBF}
+)
+
 // ScanForDependencies scans for base image dependencies.
 func (s *Scanner) ScanForDependencies(workingDir string, dockerfile string, buildArgs []string, pushTo []string) (deps []*image.Dependencies, err error) {
 	path := path.Clean(path.Join(workingDir, dockerfile))
-	runtime, buildtime, err := ResolveDockerfileDependencies(path, buildArgs)
+	file, err := os.Open(path)
+	if err != nil {
+		return deps, fmt.Errorf("Error opening dockerfile %s, error: %v", path, err)
+	}
+	defer func() { _ = file.Close() }()
+
+	runtime, buildtime, err := resolveDockerfileDependencies(file, buildArgs)
 	if err != nil {
 		return deps, err
 	}
@@ -139,15 +151,9 @@ func NewImageReference(path string) (*image.Reference, error) {
 	return result, nil
 }
 
-// ResolveDockerfileDependencies resolves dependencies given a path to a dockerfile.
-func ResolveDockerfileDependencies(path string, buildArgs []string) (string, []string, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return "", nil, fmt.Errorf("Error opening dockerfile %s, error: %v", path, err)
-	}
-	defer func() { _ = file.Close() }()
-
-	scanner := bufio.NewScanner(file)
+// resolveDockerfileDependencies resolves dependencies given an io.Reader for a Dockerfile.
+func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []string, error) {
+	scanner := bufio.NewScanner(r)
 	context, err := parseBuildArgs(buildArgs)
 	if err != nil {
 		return "", nil, err
@@ -155,8 +161,19 @@ func ResolveDockerfileDependencies(path string, buildArgs []string) (string, []s
 	originLookup := map[string]string{} // given an alias, look up its origin
 	allOrigins := map[string]bool{}     // set of all origins
 	var origin string
+
+	firstLine := true
 	for scanner.Scan() {
-		line := scanner.Text()
+		var line string
+		// Trim UTF-8 BOM if necessary.
+		if firstLine {
+			scannedBytes := scanner.Bytes()
+			scannedBytes = bytes.TrimPrefix(scannedBytes, utf8BOM)
+			line = string(scannedBytes)
+			firstLine = false
+		} else {
+			line = scanner.Text()
+		}
 		tokens := strings.Fields(line)
 		if len(tokens) > 0 {
 			switch strings.ToUpper(tokens[0]) {
