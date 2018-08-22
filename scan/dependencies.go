@@ -151,7 +151,7 @@ func NewImageReference(path string) (*image.Reference, error) {
 	return result, nil
 }
 
-// resolveDockerfileDependencies resolves dependencies given a path to a dockerfile.
+// resolveDockerfileDependencies resolves dependencies given an io.Reader for a Dockerfile.
 func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []string, error) {
 	scanner := bufio.NewScanner(r)
 	context, err := parseBuildArgs(buildArgs)
