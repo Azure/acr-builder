@@ -89,19 +89,18 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	}
 
 	var deps []*image.Dependencies
-	for _, n := range task.Dag.Nodes {
-		step := n.Value
-		log.Printf("Step ID %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
+	for _, step := range task.Steps {
+		log.Printf("Step id: %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
 
 		if len(step.ImageDependencies) > 0 {
-			log.Printf("Populating digests for step: %s\n", step.ID)
+			log.Printf("Populating digests for step id: %s...\n", step.ID)
 			timeout := time.Duration(digestsTimeoutInSec) * time.Second
 			digestCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
 			if err := b.populateDigests(digestCtx, step.ImageDependencies); err != nil {
 				return err
 			}
-			log.Printf("Successfully populated digests for step: %s\n", step.ID)
+			log.Printf("Successfully populated digests for step id: %s\n", step.ID)
 			deps = append(deps, step.ImageDependencies...)
 		}
 	}
