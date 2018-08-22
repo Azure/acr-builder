@@ -24,25 +24,25 @@ var (
 
 // Step is a step in the execution task.
 type Step struct {
-	ID            string   `yaml:"id"`
-	Cmd           string   `yaml:"cmd"`
-	Build         string   `yaml:"build"`
-	WorkDir       string   `yaml:"workDir"`
-	EntryPoint    string   `yaml:"entryPoint"`
-	Envs          []string `yaml:"envs"`
-	SecretEnvs    []string `yaml:"secretEnvs"`
-	Ports         []string `yaml:"ports"`
-	When          []string `yaml:"when"`
-	ExitedWith    []int    `yaml:"exitedWith"`
-	ExitedWithout []int    `yaml:"exitedWithout"`
-	Timeout       int      `yaml:"timeout"`
-	Keep          bool     `yaml:"keep"`
-	Detach        bool     `yaml:"detach"`
-	StartDelay    int      `yaml:"startDelay"`
-	Privileged    bool     `yaml:"privileged"`
-	User          string   `yaml:"user"`
-	Network       string   `yaml:"network"`
-	Isolation     string   `yaml:"isolation"`
+	ID               string   `yaml:"id"`
+	Cmd              string   `yaml:"cmd"`
+	Build            string   `yaml:"build"`
+	WorkingDirectory string   `yaml:"workingDirectory"`
+	EntryPoint       string   `yaml:"entryPoint"`
+	Envs             []string `yaml:"envs"`
+	SecretEnvs       []string `yaml:"secretEnvs"`
+	Ports            []string `yaml:"ports"`
+	When             []string `yaml:"when"`
+	ExitedWith       []int    `yaml:"exitedWith"`
+	ExitedWithout    []int    `yaml:"exitedWithout"`
+	Timeout          int      `yaml:"timeout"`
+	Keep             bool     `yaml:"keep"`
+	Detach           bool     `yaml:"detach"`
+	StartDelay       int      `yaml:"startDelay"`
+	Privileged       bool     `yaml:"privileged"`
+	User             string   `yaml:"user"`
+	Network          string   `yaml:"network"`
+	Isolation        string   `yaml:"isolation"`
 
 	StartTime  time.Time
 	EndTime    time.Time
@@ -86,7 +86,7 @@ func (s *Step) Equals(t *Step) bool {
 		s.Detach != t.Detach ||
 		s.Cmd != t.Cmd ||
 		s.Build != t.Build ||
-		s.WorkDir != t.WorkDir ||
+		s.WorkingDirectory != t.WorkingDirectory ||
 		s.EntryPoint != t.EntryPoint ||
 		!util.StringSequenceEquals(s.Ports, t.Ports) ||
 		!util.StringSequenceEquals(s.Envs, t.Envs) ||

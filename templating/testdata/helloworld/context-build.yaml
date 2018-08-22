@@ -5,8 +5,8 @@ steps:
 
   # Run `ls` on the cloned content
   - cmd: bash ls -la
-    workDir: cloned-repository-ctx
+    workingDirectory: cloned-repository-ctx
 
   # Build using the previously stored content from `cloned-repository-ctx`
   - cmd: build -f Dockerfile .
-    workDir: cloned-repository-ctx
+    workingDirectory: cloned-repository-ctx

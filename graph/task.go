@@ -41,7 +41,7 @@ type Task struct {
 	TotalTimeout     int       `yaml:"totalTimeout,omitempty"`
 	Push             []string  `yaml:"push,omitempty"`
 	Secrets          []*Secret `yaml:"secrets,omitempty"`
-	WorkDir          string    `yaml:"workDir,omitempty"`
+	WorkingDirectory string    `yaml:"workingDirectory,omitempty"`
 	Version          string    `yaml:"version,omitempty"`
 	RegistryName     string
 	RegistryUsername string
@@ -136,8 +136,8 @@ func (t *Task) initialize() error {
 		}
 
 		// Override the step's working directory to be the parent's working directory.
-		if s.WorkDir == "" && t.WorkDir != "" {
-			s.WorkDir = t.WorkDir
+		if s.WorkingDirectory == "" && t.WorkingDirectory != "" {
+			s.WorkingDirectory = t.WorkingDirectory
 		}
 
 		// Initialize a completion channel for each step.

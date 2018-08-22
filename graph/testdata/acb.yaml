@@ -18,6 +18,7 @@ steps:
     envs: [eric=foo, foo=bar]
     secretEnvs: [someAkvSecretEnv]
     exitedWithout: [0, 255]
+    workingDirectory: pullDir
 
   - id: build-qux
     cmd: 'azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu'

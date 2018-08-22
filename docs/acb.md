@@ -29,6 +29,7 @@ stepTimeout: int (optional)
 totalTimeout: int (optional)
 push: [string, string, ...]
 version: string
+workingDirectory: string
 
 steps:
   - id: someID
@@ -69,7 +70,7 @@ For details on specific properties in the `acb.yaml`, review the following prope
 id: string (optional)
 cmd: string (optional)
 build: string (optional) # Build takes precedence over cmd. Build is required if cmd is not present.
-workDir: string (optional)
+workingDirectory: string (optional)
 entryPoint: string (optional)
 envs: [string, string, ...] (optional)
 ports: [string, string, ...] (optional)
@@ -86,7 +87,7 @@ For details on each specific property in a Step, follow these links:
 
 * [id](#id)
 * [cmd](#cmd)
-* [workDir](#workdir)
+* [workingDirectory](#workingdirectory)
 * [entryPoint](#entrypoint)
 * [envs](#envs)
 * [ports](#ports)
@@ -110,9 +111,9 @@ The `cmd` property of a step specifies which image to use when running the opera
 
 The `build` property of a step specifies how to build a set of images. If build is specified, it takes precedence over `cmd`. It is required if `cmd` is not present.
 
-### workDir
+### workingDirectory
 
-`workDir` can be used to set a working directory when executing a step. By default, Azure Container Builder will produce a default root directory as the working directory. However, if your build has more than one step, you can share the artifacts created from previous steps.
+`workingDirectory` can be used to set a working directory when executing a step. By default, Azure Container Builder will produce a default root directory as the working directory. However, if your build has more than one step, you can share the artifacts created from previous steps.
 
 ### entryPoint
 
