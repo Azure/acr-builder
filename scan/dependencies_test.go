@@ -4,8 +4,8 @@
 package scan
 
 import (
+	"bytes"
 	"fmt"
-	"path/filepath"
 	"testing"
 )
 
@@ -20,10 +20,41 @@ func TestResolveDockerfileDependencies(t *testing.T) {
 		"imaginary/cert-generator:1.0":                true,
 	}
 
-	path := filepath.Join("testdata", "multistage.Dockerfile")
 	args := []string{fmt.Sprintf("build_image=%s", buildImg), fmt.Sprintf("build_version=%s", ver)}
 
-	runtimeDep, buildDeps, err := ResolveDockerfileDependencies(path, args)
+	df := []byte(`# This dockerfile is just a test resource and is not buildable
+ARG runtime_version="2.0.6"
+FROM microsoft/aspnetcore:${runtime_version} AS base
+WORKDIR /app
+EXPOSE 80
+
+FROM base AS secondary
+RUN nothing
+
+ARG build_image
+ARG build_version=2.0
+FROM microsoft/$build_image:$build_version AS builder
+WORKDIR /src
+COPY *.sln ./
+COPY Web/Web.csproj Web/
+RUN dotnet restore
+COPY . .
+WORKDIR /src/Web
+RUN dotnet build -c Release -o /app
+
+FROM builder AS publish
+RUN dotnet publish -c Release -o /app
+
+FROM imaginary/cert-generator:1.0
+RUN generate-cert.sh
+
+FROM secondary AS production
+WORKDIR /app
+COPY --from=publish /app .
+COPY --from=3 /cert /app
+ENTRYPOINT ["dotnet", "Web.dll"]`)
+
+	runtimeDep, buildDeps, err := resolveDockerfileDependencies(bytes.NewReader(df), args)
 
 	if err != nil {
 		t.Errorf("Failed to resolve dependencies: %v", err)
@@ -38,7 +69,40 @@ func TestResolveDockerfileDependencies(t *testing.T) {
 			t.Errorf("Unexpected build-time dependencies. Got %v which wasn't expected", buildDep)
 		}
 	}
+}
 
+func TestResolveDockerfileDependencies_WithBOM(t *testing.T) {
+	expectedRuntime := "scratch"
+	expectedBuildDeps := map[string]bool{
+		fmt.Sprintf("golang:1.10-alpine"): true,
+	}
+	df := []byte(`FROM golang:1.10-alpine AS gobuild-base
+RUN apk add --no-cache \
+	git \
+	make
+
+FROM gobuild-base AS base
+WORKDIR /go/src/github.com/scratch/scratch
+COPY . .
+RUN make static && mv scratch /usr/bin/scratch
+
+FROM scratch
+COPY --from=base /usr/bin/scratch /usr/bin/scratch
+ENTRYPOINT [ "scratch" ]
+CMD [ ]`)
+	bomPrefixDockerfile := append(utf8BOM, df...)
+	runtimeDep, buildDeps, err := resolveDockerfileDependencies(bytes.NewReader(bomPrefixDockerfile), nil)
+	if err != nil {
+		t.Errorf("Failed to resolve dependencies: %v", err)
+	}
+	if runtimeDep != expectedRuntime {
+		t.Errorf("Unexpected runtime. Got %s, expected %s", runtimeDep, expectedRuntime)
+	}
+	for _, buildDep := range buildDeps {
+		if ok := expectedBuildDeps[buildDep]; !ok {
+			t.Errorf("Unexpected build-time dependencies. Got %v which wasn't expected", buildDep)
+		}
+	}
 }
 
 func TestRemoveSurroundingQuotes(t *testing.T) {
