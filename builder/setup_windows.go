@@ -29,7 +29,7 @@ func (b *Builder) setupConfig(ctx context.Context) error {
 		"--env", homeEnv,
 		"--entrypoint", "powershell",
 		configImageName,
-		"mkdir ~/.docker; echo \"" + config + "\" > ~/.docker/config.json",
+		"mkdir ~/.docker; Out-File -InputObject '" + config + "' -FilePath ~/.docker/config.json -Encoding ASCII",
 	}
 
 	var buf bytes.Buffer
