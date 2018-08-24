@@ -21,7 +21,7 @@ func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions
 	f.StringVar(&opts.Base64EncodedValuesFile, "encoded-values", "", "a Base64 encoded values file (overrides the values file if one is specified)")
 	f.StringArrayVar(&opts.TemplateValues, "set", []string{}, "set values on the command line (use `--set` multiple times or use commas: key1=val1,key2=val2)")
 
-	f.StringVar(&opts.SharedContextDir, "homevol", "", "the home volume to use")
+	f.StringVar(&opts.SharedContextDirectory, "homevol", "", "the home volume to use")
 
 	// Base rendering options
 	f.StringVar(&opts.ID, "id", "", "the build ID")
