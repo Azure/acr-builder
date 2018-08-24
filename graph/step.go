@@ -29,7 +29,7 @@ type Step struct {
 	Build            string   `yaml:"build"`
 	WorkingDirectory string   `yaml:"workingDirectory"`
 	EntryPoint       string   `yaml:"entryPoint"`
-	Envs             []string `yaml:"envs"`
+	Envs             []string `yaml:"env"`
 	SecretEnvs       []string `yaml:"secretEnvs"`
 	Ports            []string `yaml:"ports"`
 	When             []string `yaml:"when"`

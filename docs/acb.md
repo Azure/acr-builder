@@ -72,7 +72,7 @@ cmd: string (optional)
 build: string (optional) # Build takes precedence over cmd. Build is required if cmd is not present.
 workingDirectory: string (optional)
 entryPoint: string (optional)
-envs: [string, string, ...] (optional)
+env: [string, string, ...] (optional)
 ports: [string, string, ...] (optional)
 when: [string, string, ...] (optional)
 exitedWith: [int, int, ...] (optional)
@@ -89,7 +89,7 @@ For details on each specific property in a Step, follow these links:
 * [cmd](#cmd)
 * [workingDirectory](#workingdirectory)
 * [entryPoint](#entrypoint)
-* [envs](#envs)
+* [env](#env)
 * [ports](#ports)
 * [when](#when)
 * [exitedWith](#exitedwith)
@@ -119,9 +119,9 @@ The `build` property of a step specifies how to build a set of images. If build 
 
 `entryPoint` overrides the entry point of a step's container.
 
-### envs
+### env
 
-`envs` sets environment variables for a step.
+`env` is a list of strings in `key=val` format which define environment variables for a step.
 
 ### ports
 
