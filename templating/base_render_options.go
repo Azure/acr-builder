@@ -52,8 +52,8 @@ type BaseRenderOptions struct {
 	// Date is the UTC date of the run.
 	Date time.Time
 
-	// SharedContextDir is the name of the shared context directory.
-	SharedContextDir string
+	// SharedContextDirectory is the name of the shared context directory.
+	SharedContextDirectory string
 }
 
 // OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
@@ -63,15 +63,15 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 			"ID": opts.ID,
 		},
 		"Run": map[string]interface{}{
-			"ID":               opts.ID,
-			"Commit":           opts.Commit,
-			"Repository":       opts.Repository,
-			"Branch":           opts.Branch,
-			"GitTag":           opts.GitTag,
-			"TriggeredBy":      opts.TriggeredBy,
-			"Registry":         opts.Registry,
-			"Date":             opts.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
-			"SharedContextDir": opts.SharedContextDir,
+			"ID":          opts.ID,
+			"Commit":      opts.Commit,
+			"Repository":  opts.Repository,
+			"Branch":      opts.Branch,
+			"GitTag":      opts.GitTag,
+			"TriggeredBy": opts.TriggeredBy,
+			"Registry":    opts.Registry,
+			"Date":        opts.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
+			"SharedContextDirectory": opts.SharedContextDirectory,
 		},
 	}
 
