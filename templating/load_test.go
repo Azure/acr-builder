@@ -69,7 +69,7 @@ func TestLoadTemplate(t *testing.T) {
 	}
 	actual := string(template.GetData())
 	if expectedTemplate != actual {
-		t.Fatalf("expected %s as the data but got %s", expectedTemplate, actual)
+		t.Fatalf("expected \n'%s'\n as the data but got \n'%s'\n", expectedTemplate, actual)
 	}
 	expectedName := thamesPath
 	if expectedName != template.GetName() {

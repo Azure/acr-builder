@@ -37,10 +37,10 @@ func TestRenderMath(t *testing.T) {
 	expectedMsg := "15,-5,50"
 	engine := NewEngine()
 	templateName := "math"
-	template := &Template{
-		Name: templateName,
-		Data: []byte("{{.foo | add .bar}}, {{- .bar | sub .foo }}, {{- .foo | mul .bar}}"),
-	}
+	template := NewTemplate(
+		templateName,
+		[]byte("{{.foo | add .bar}}, {{- .bar | sub .foo }}, {{- .foo | mul .bar}}"),
+	)
 
 	c1 := &Config{
 		RawValue: `
@@ -66,10 +66,10 @@ bar: 10
 }
 
 func makeTestTemplate(name string) *Template {
-	return &Template{
-		Name: name,
-		Data: []byte("{{ .jobName | upper }} - {{ .description | lower }}"),
-	}
+	return NewTemplate(
+		name,
+		[]byte("{{ .jobName | upper }} - {{ .description | lower }}"),
+	)
 }
 
 func makeDefaultTestConfig() *Config {

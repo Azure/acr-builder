@@ -42,7 +42,7 @@ func LoadTemplate(path string) (*Template, error) {
 		return nil, errors.Wrapf(err, "failed to load template at path %s", path)
 	}
 
-	return &Template{Name: path, Data: data}, nil
+	return NewTemplate(path, data), nil
 }
 
 // DecodeTemplate loads a Template from a Base64 encoded string.
@@ -51,7 +51,7 @@ func DecodeTemplate(encoded string) (*Template, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode Base64 template")
 	}
-	return &Template{Name: decodedTemplateName, Data: decoded}, nil
+	return NewTemplate(decodedTemplateName, decoded), nil
 }
 
 func readFile(path string) ([]byte, error) {
