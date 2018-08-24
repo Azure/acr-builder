@@ -136,7 +136,14 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 	degree := child.GetDegree()
 	if degree == 0 {
 		step := child.Value
-		if err := b.runStep(ctx, step); err != nil {
+		err := b.runStep(ctx, step)
+		if err != nil && step.IgnoreErrors {
+			log.Printf("Step id: %s encountered an error: %v, but is set to ignore errors. Continuing...", step.ID, err)
+			step.StepStatus = graph.Successful
+			for _, c := range child.Children() {
+				go b.processVertex(ctx, task, child, c, errorChan)
+			}
+		} else if err != nil {
 			step.StepStatus = graph.Failed
 			errorChan <- errors.Wrapf(err, "failed to run step id: %s", step.ID)
 		} else {
