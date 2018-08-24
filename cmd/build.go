@@ -40,7 +40,6 @@ type buildCmd struct {
 	registryUser    string
 	registryPw      string
 	isolation       string
-	network         string
 	platform        string
 	tags            []string
 	buildArgs       []string
@@ -88,7 +87,6 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringVarP(&r.registryPw, "password", "p", "", "the password to use when logging into the registry")
 
 	f.StringVar(&r.isolation, "isolation", "", "the isolation to use")
-	f.StringVar(&r.network, "network", "", "set the networking mode during build")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
 	f.StringVar(&r.platform, "platform", "", "sets the platform if the server is capable of multiple platforms")
 
@@ -214,10 +212,6 @@ func (b *buildCmd) createRunCmd() string {
 
 	if b.pull {
 		args = append(args, "--pull")
-	}
-
-	if b.network != "" {
-		args = append(args, fmt.Sprintf("--network=%s", b.network))
 	}
 
 	for _, label := range b.labels {

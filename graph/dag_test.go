@@ -87,7 +87,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Timeout:    defaultStepTimeoutInSeconds,
 		Privileged: true,
 		User:       "root",
-		Network:    "host",
+		Networks:   []string{"host", "foo"},
 	}
 
 	dict := make(map[string]*Step)
