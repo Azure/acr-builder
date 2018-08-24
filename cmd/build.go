@@ -166,10 +166,7 @@ func (b *buildCmd) validateCmdArgs() error {
 }
 
 func (b *buildCmd) createBuildTask() (*graph.Task, error) {
-	template := &templating.Template{
-		Name: "build",
-		Data: []byte(b.createRunCmd()),
-	}
+	template := templating.NewTemplate("build", []byte(b.createRunCmd()))
 
 	rendered, err := templating.LoadAndRenderSteps(template, b.opts)
 	if err != nil {
