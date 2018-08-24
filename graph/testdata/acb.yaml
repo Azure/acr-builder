@@ -42,6 +42,7 @@ steps:
   - id: B
     when: [C]
     cmd: azure/images/git clone https://github.com/ehotinger/clone
+    ignoreErrors: true
 
   - id: build-foo
     cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu

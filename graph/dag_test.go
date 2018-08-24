@@ -44,11 +44,12 @@ func TestDagCreation_ValidFile(t *testing.T) {
 	}
 
 	bStep := &Step{
-		ID:         "B",
-		When:       []string{"C"},
-		Cmd:        "azure/images/git clone https://github.com/ehotinger/clone",
-		StepStatus: Skipped,
-		Timeout:    defaultStepTimeoutInSeconds,
+		ID:           "B",
+		When:         []string{"C"},
+		Cmd:          "azure/images/git clone https://github.com/ehotinger/clone",
+		StepStatus:   Skipped,
+		Timeout:      defaultStepTimeoutInSeconds,
+		IgnoreErrors: true,
 	}
 
 	fooStep := &Step{

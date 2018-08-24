@@ -44,6 +44,7 @@ type Step struct {
 	User             string   `yaml:"user"`
 	Network          string   `yaml:"network"`
 	Isolation        string   `yaml:"isolation"`
+	IgnoreErrors     bool     `yaml:"ignoreErrors"`
 
 	StartTime  time.Time
 	EndTime    time.Time
@@ -104,7 +105,8 @@ func (s *Step) Equals(t *Step) bool {
 		s.Privileged != t.Privileged ||
 		s.User != t.User ||
 		s.Network != t.Network ||
-		s.Isolation != t.Isolation {
+		s.Isolation != t.Isolation ||
+		s.IgnoreErrors != t.IgnoreErrors {
 		return false
 	}
 

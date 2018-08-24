@@ -76,6 +76,7 @@ timeout: int (in seconds) (optional)
 keep: bool (optional)
 detach: bool (optional)
 startDelay: int (in seconds) (optional)
+ignoreErrors: bool (optional)
 ```
 
 For details on each specific property in a Step, follow these links:
@@ -95,6 +96,7 @@ For details on each specific property in a Step, follow these links:
 * [keep](#keep)
 * [detach](#deatch)
 * [startDelay](#startdelay)
+* [ignoreErrors](#ignoreerrors)
 
 ### id
 
@@ -155,3 +157,7 @@ The `build` property of a step specifies how to build a set of images. If build 
 ### startDelay
 
 `startDelay` can be used to delay a step's execution. This is an integer value measured in seconds.
+
+### ignoreErrors
+
+If `ignoreErrors` is set to `true`, the step will be marked as complete regardless of whether or not an error occurred during its execution.
