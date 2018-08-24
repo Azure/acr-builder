@@ -42,7 +42,6 @@ type buildCmd struct {
 	isolation       string
 	network         string
 	platform        string
-	homeVol         string
 	tags            []string
 	buildArgs       []string
 	secretBuildArgs []string
@@ -92,7 +91,6 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringVar(&r.network, "network", "", "set the networking mode during build")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
 	f.StringVar(&r.platform, "platform", "", "sets the platform if the server is capable of multiple platforms")
-	f.StringVar(&r.homeVol, "homevol", "", "the home volume to use")
 
 	f.BoolVar(&r.pull, "pull", false, "attempt to pull a newer version of the base images")
 	f.BoolVar(&r.noCache, "no-cache", false, "true to ignore all cached layers when building the image")
@@ -111,21 +109,13 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	b.context = args[0]
-
-	task, err := b.createBuildTask()
-	if err != nil {
-		return err
-	}
+	ctx := context.Background()
 
 	procManager := procmanager.NewProcManager(b.dryRun)
-	timeout := time.Duration(task.TotalTimeout) * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	homeVolName := ""
-	if b.homeVol == "" {
-		homeVolName = fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
+	if b.opts.SharedContextDir == "" {
 		if !b.dryRun {
+			homeVolName := fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
+			b.opts.SharedContextDir = homeVolName
 			v := volume.NewVolume(homeVolName, procManager)
 			if msg, err := v.Create(ctx); err != nil {
 				return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
@@ -134,12 +124,20 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 				_, _ = v.Delete(ctx)
 			}()
 		}
-	} else {
-		homeVolName = b.homeVol
+	}
+	log.Printf("Using %s as the home volume\n", b.opts.SharedContextDir)
+
+	// Render the template and create the task.
+	task, err := b.createBuildTask()
+	if err != nil {
+		return err
 	}
 
-	log.Printf("Using %s as the home volume\n", homeVolName)
-	builder := builder.NewBuilder(procManager, debug, homeVolName)
+	timeout := time.Duration(task.TotalTimeout) * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	builder := builder.NewBuilder(procManager, debug, b.opts.SharedContextDir)
 	defer builder.CleanTask(context.Background(), task)
 	return builder.RunTask(ctx, task)
 }
