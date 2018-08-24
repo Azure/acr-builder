@@ -30,7 +30,6 @@ type execCmd struct {
 
 	registryUser string
 	registryPw   string
-	homeVol      string
 
 	opts *templating.BaseRenderOptions
 }
@@ -52,7 +51,6 @@ func newExecCmd(out io.Writer) *cobra.Command {
 
 	f.StringVarP(&e.registryUser, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&e.registryPw, "password", "p", "", "the password to use when logging into the registry")
-	f.StringVar(&e.homeVol, "homevol", "", "the home volume to use")
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the task but doesn't execute it")
 
 	AddBaseRenderingOptions(f, e.opts, cmd, true)
@@ -63,6 +61,24 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	if e.opts.TaskFile == "" && e.opts.Base64EncodedTaskFile == "" {
 		return errors.New("A task file or Base64 encoded task file is required")
 	}
+
+	ctx := context.Background()
+
+	procManager := procmanager.NewProcManager(e.dryRun)
+	if e.opts.SharedContextDir == "" {
+		if !e.dryRun {
+			homeVolName := fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
+			e.opts.SharedContextDir = homeVolName
+			v := volume.NewVolume(homeVolName, procManager)
+			if msg, err := v.Create(ctx); err != nil {
+				return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
+			}
+			defer func() {
+				_, _ = v.Delete(ctx)
+			}()
+		}
+	}
+	log.Printf("Using %s as the home volume\n", e.opts.SharedContextDir)
 
 	var template *templating.Template
 	var err error
@@ -95,30 +111,11 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	procManager := procmanager.NewProcManager(e.dryRun)
-
 	timeout := time.Duration(task.TotalTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	homeVolName := ""
-	if e.homeVol == "" {
-		homeVolName = fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
-		if !e.dryRun {
-			v := volume.NewVolume(homeVolName, procManager)
-			if msg, err := v.Create(ctx); err != nil {
-				return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
-			}
-			defer func() {
-				_, _ = v.Delete(ctx)
-			}()
-		}
-	} else {
-		homeVolName = e.homeVol
-	}
-
-	log.Printf("Using %s as the home volume\n", homeVolName)
-	builder := builder.NewBuilder(procManager, debug, homeVolName)
+	builder := builder.NewBuilder(procManager, debug, e.opts.SharedContextDir)
 	defer builder.CleanTask(context.Background(), task)
 	return builder.RunTask(ctx, task)
 }

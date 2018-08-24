@@ -28,46 +28,50 @@ type BaseRenderOptions struct {
 	// Override values.
 	TemplateValues []string
 
-	// ID is the build ID.
+	// ID is a unique identifier for the run.
 	ID string
 
-	// Commit is the commit used when running the build.
+	// Commit is the SHA the run was triggered against.
 	Commit string
 
-	// Repository is the repository used when running the build.
+	// Repository is the repository the run was triggered against.
 	Repository string
 
-	// Branch is the branch used when running the build.
+	// Branch is the branch the run was triggered against.
 	Branch string
 
-	// TriggeredBy is the reason the build was triggered.
+	// TriggeredBy is the reason the run was triggered.
 	TriggeredBy string
 
-	// GitTag is a Git tag.
+	// GitTag is the git tag the run was triggered against.
 	GitTag string
 
-	// Registry is the ACR being used.
+	// Registry is the container registry being used.
 	Registry string
 
-	// Date is the date of the Build.
+	// Date is the UTC date of the run.
 	Date time.Time
+
+	// SharedContextDir is the name of the shared context directory.
+	SharedContextDir string
 }
 
 // OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
-func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, options *BaseRenderOptions) (Values, error) {
+func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions) (Values, error) {
 	base := map[string]interface{}{
 		"Build": map[string]interface{}{
-			"ID": options.ID,
+			"ID": opts.ID,
 		},
 		"Run": map[string]interface{}{
-			"ID":          options.ID,
-			"Commit":      options.Commit,
-			"Repository":  options.Repository,
-			"Branch":      options.Branch,
-			"GitTag":      options.GitTag,
-			"TriggeredBy": options.TriggeredBy,
-			"Registry":    options.Registry,
-			"Date":        options.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
+			"ID":               opts.ID,
+			"Commit":           opts.Commit,
+			"Repository":       opts.Repository,
+			"Branch":           opts.Branch,
+			"GitTag":           opts.GitTag,
+			"TriggeredBy":      opts.TriggeredBy,
+			"Registry":         opts.Registry,
+			"Date":             opts.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
+			"SharedContextDir": opts.SharedContextDir,
 		},
 	}
 

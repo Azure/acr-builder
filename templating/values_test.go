@@ -120,6 +120,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedTrigger := "triggered from someone cool!!1"
 	expectedRegistry := "foo.azurecr.io"
 	expectedGitTag := "some git tag"
+	expectedSharedContextDir := "acb_home_vol_12345"
 
 	parsedTime, err := time.Parse("20060102-150405", "20100520-131422")
 	if err != nil {
@@ -129,14 +130,15 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedTime := "20100520-131422z"
 
 	options := &BaseRenderOptions{
-		ID:          expectedID,
-		Commit:      expectedCommit,
-		Repository:  expectedRepo,
-		Branch:      expectedBranch,
-		TriggeredBy: expectedTrigger,
-		Registry:    expectedRegistry,
-		GitTag:      expectedGitTag,
-		Date:        parsedTime,
+		ID:               expectedID,
+		Commit:           expectedCommit,
+		Repository:       expectedRepo,
+		Branch:           expectedBranch,
+		TriggeredBy:      expectedTrigger,
+		Registry:         expectedRegistry,
+		GitTag:           expectedGitTag,
+		Date:             parsedTime,
+		SharedContextDir: expectedSharedContextDir,
 	}
 	vals, err := OverrideValuesWithBuildInfo(c1, c2, options)
 	if err != nil {
@@ -154,6 +156,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		{"{{.Run.Registry}}", expectedRegistry},
 		{"{{.Run.GitTag}}", expectedGitTag},
 		{"{{.Run.Date}}", expectedTime},
+		{"{{.Run.SharedContextDir}}", expectedSharedContextDir},
 		{"{{.Values.born}}", eCurieBorn},
 		{"{{.Values.first}}", eCurieFirst},
 		{"{{.Values.last}}", eCurieLast},

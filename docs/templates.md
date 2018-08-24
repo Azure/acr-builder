@@ -29,6 +29,7 @@ The following variables can be accessed using `{{ .Run.VariableName }}`, where `
 - Registry
 - GitTag
 - Date
+- SharedContextDir
 
 ## Tasks
 
