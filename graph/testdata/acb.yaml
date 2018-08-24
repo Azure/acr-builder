@@ -4,7 +4,6 @@
 #      -> build-bar
 stepTimeout: 600
 totalTimeout: 900
-push: [push1, push2, push3]
 version: v1.0.0
 
 secrets:

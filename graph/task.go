@@ -39,7 +39,6 @@ type Task struct {
 	Steps            []*Step   `yaml:"steps"`
 	StepTimeout      int       `yaml:"stepTimeout,omitempty"`
 	TotalTimeout     int       `yaml:"totalTimeout,omitempty"`
-	Push             []string  `yaml:"push,omitempty"`
 	Secrets          []*Secret `yaml:"secrets,omitempty"`
 	WorkingDirectory string    `yaml:"workingDirectory,omitempty"`
 	Version          string    `yaml:"version,omitempty"`
@@ -78,7 +77,6 @@ func UnmarshalTaskFromFile(file, registry, user, pw string) (*Task, error) {
 // NewTask returns a default Task object.
 func NewTask(
 	steps []*Step,
-	push []string,
 	secrets []*Secret,
 	registry string,
 	user string,
@@ -87,7 +85,6 @@ func NewTask(
 		Steps:            steps,
 		StepTimeout:      defaultStepTimeoutInSeconds,
 		TotalTimeout:     defaultTotalTimeoutInSeconds,
-		Push:             push,
 		Secrets:          secrets,
 		RegistryName:     registry,
 		RegistryUsername: user,
@@ -151,10 +148,10 @@ func (t *Task) initialize() error {
 		if s.IsBuildStep() {
 			s.Tags = util.ParseTags(s.Build)
 			s.BuildArgs = util.ParseBuildArgs(s.Build)
+		} else if s.IsPushStep() {
+			s.Push = getNormalizedDockerImageNames(s.Push, t.RegistryName)
 		}
 	}
-
-	t.Push = getNormalizedDockerImageNames(t.Push, t.RegistryName)
 
 	var err error
 	t.Dag, err = NewDagFromTask(t)

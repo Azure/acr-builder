@@ -91,7 +91,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := e.validateCmdArgs(task.Push); err != nil {
+	if err := e.validateCmdArgs(); err != nil {
 		return err
 	}
 
@@ -123,10 +123,6 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	return builder.RunTask(ctx, task)
 }
 
-func (e *execCmd) validateCmdArgs(imgs []string) error {
-	if err := validateRegistryCreds(e.registryUser, e.registryPw); err != nil {
-		return err
-	}
-
-	return validatePush(len(imgs) > 0, e.opts.Registry, e.registryUser, e.registryPw)
+func (e *execCmd) validateCmdArgs() error {
+	return validateRegistryCreds(e.registryUser, e.registryPw)
 }
