@@ -19,7 +19,7 @@ const (
 
 var (
 	errMissingID    = errors.New("Step is missing an ID")
-	errMissingProps = errors.New("Step is missing a cmd or build property")
+	errMissingProps = errors.New("Step is missing a cmd, build, or push property")
 )
 
 // Step is a step in the execution task.
@@ -27,6 +27,7 @@ type Step struct {
 	ID               string   `yaml:"id"`
 	Cmd              string   `yaml:"cmd"`
 	Build            string   `yaml:"build"`
+	Push             []string `yaml:"push"`
 	WorkingDirectory string   `yaml:"workingDirectory"`
 	EntryPoint       string   `yaml:"entryPoint"`
 	Envs             []string `yaml:"env"`
@@ -62,7 +63,7 @@ func (s *Step) Validate() error {
 	if s.ID == "" {
 		return errMissingID
 	}
-	if s.Cmd == "" && s.Build == "" {
+	if !s.IsCmdStep() && !s.IsBuildStep() && !s.IsPushStep() {
 		return errMissingProps
 	}
 	for _, dep := range s.When {
@@ -86,6 +87,7 @@ func (s *Step) Equals(t *Step) bool {
 		s.Detach != t.Detach ||
 		s.Cmd != t.Cmd ||
 		s.Build != t.Build ||
+		!util.StringSequenceEquals(s.Push, t.Push) ||
 		s.WorkingDirectory != t.WorkingDirectory ||
 		s.EntryPoint != t.EntryPoint ||
 		!util.StringSequenceEquals(s.Ports, t.Ports) ||
@@ -123,7 +125,17 @@ func (s *Step) HasNoWhen() bool {
 	return len(s.When) == 0
 }
 
+// IsCmdStep returns true if the Step is a command step, false otherwise.
+func (s *Step) IsCmdStep() bool {
+	return s.Cmd != ""
+}
+
 // IsBuildStep returns true if the Step is a build step, false otherwise.
 func (s *Step) IsBuildStep() bool {
 	return s.Build != ""
+}
+
+// IsPushStep returns true if a Step is a push step, false otherwise.
+func (s *Step) IsPushStep() bool {
+	return len(s.Push) > 0
 }

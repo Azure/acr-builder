@@ -27,7 +27,6 @@ Azure Container Builder is able to chain steps together to allow parallel and se
 ```yaml
 stepTimeout: int (optional)
 totalTimeout: int (optional)
-push: [string, string, ...]
 version: string
 workingDirectory: string
 
@@ -40,7 +39,6 @@ steps:
 For details on specific properties in the `acb.yaml`, review the following properties:
 
 * [version](#version)
-* [push](#push)
 * [stepTimeout](#steptimeout)
 * [totalTimeout](#totaltimeout)
 
@@ -56,10 +54,6 @@ For details on specific properties in the `acb.yaml`, review the following prope
 
 `totalTimeout` can be used to set the maximum time all steps must execute within.
 
-### push
-
-`push` is an optional list of images and tags to push after the build has completed. This is a shortcut to creating multiple `push` commands after `build`s.
-
 ## Step properties
 
 ```yaml
@@ -70,6 +64,7 @@ For details on specific properties in the `acb.yaml`, review the following prope
 id: string (optional)
 cmd: string (optional)
 build: string (optional) # Build takes precedence over cmd. Build is required if cmd is not present.
+push: [string, string, ...]
 workingDirectory: string (optional)
 entryPoint: string (optional)
 env: [string, string, ...] (optional)
@@ -87,6 +82,8 @@ For details on each specific property in a Step, follow these links:
 
 * [id](#id)
 * [cmd](#cmd)
+* [build](#build)
+* [push](#push)
 * [workingDirectory](#workingdirectory)
 * [entryPoint](#entrypoint)
 * [env](#env)
@@ -110,6 +107,10 @@ The `cmd` property of a step specifies which image to use when running the opera
 ### build
 
 The `build` property of a step specifies how to build a set of images. If build is specified, it takes precedence over `cmd`. It is required if `cmd` is not present.
+
+### push
+
+`push` is an optional list of images and tags to push after the build has completed. This is a shortcut to creating multiple `push` commands after `build`s.
 
 ### workingDirectory
 

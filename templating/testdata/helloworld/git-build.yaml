@@ -1,8 +1,6 @@
 # This template demonstrates a single-step build which builds from a git repository.
-{{ if .Values.pushEnabled }}
-push: ["acr-builder:{{.Run.ID}}"]
-{{ end }}
-
 steps:
   - id: git-context
     cmd: "build -f Dockerfile -t acr-builder:{{.Run.ID}} https://github.com/Azure/acr-builder.git"
+
+  - push: ["acr-builder:{{.Run.ID}}"]

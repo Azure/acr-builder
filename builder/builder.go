@@ -84,10 +84,6 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		}
 	}
 
-	if err := b.pushWithRetries(ctx, task.Push); err != nil {
-		return err
-	}
-
 	var deps []*image.Dependencies
 	for _, step := range task.Steps {
 		log.Printf("Step id: %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
@@ -200,6 +196,13 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 			step.Build = replacePositionalContext(step.Build, ".")
 		}
 		args = b.getDockerRunArgs(volName, workingDirectory, step, nil, "", "docker build "+step.Build)
+	} else if step.IsPushStep() {
+		// TODO: Refactor this to simply set args
+		// once step retries and retry delay are implemented.
+		timeout := time.Duration(step.Timeout) * time.Second
+		pushCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		return b.pushWithRetries(pushCtx, step.Push)
 	} else {
 		args = b.getDockerRunArgs(b.workspaceDir, step.WorkingDirectory, step, step.Envs, step.EntryPoint, step.Cmd)
 	}

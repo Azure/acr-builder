@@ -28,8 +28,8 @@ const (
 This command can be used to build images.
 `
 
-	// 8 hours
-	timeoutInSec = 60 * 60 * 8
+	buildTimeoutInSec = 60 * 60 * 8 // 8 hours
+	pushTimeoutInSec  = 60 * 30     // 30 minutes
 )
 
 type buildCmd struct {
@@ -186,22 +186,29 @@ func (b *buildCmd) createBuildTask() (*graph.Task, error) {
 	rendered, tags := util.PrefixTags(rendered, b.opts.Registry)
 	b.tags = tags
 
-	defaultStep := &graph.Step{
+	buildStep := &graph.Step{
+		ID:      "build",
 		Build:   rendered,
-		Timeout: timeoutInSec,
+		Timeout: buildTimeoutInSec,
 	}
 
-	steps := []*graph.Step{defaultStep}
+	steps := []*graph.Step{buildStep}
 
-	push := []string{}
 	if b.push {
-		push = b.tags
+		pushStep := &graph.Step{
+			ID:      "push",
+			Push:    b.tags,
+			Timeout: pushTimeoutInSec,
+			When:    []string{buildStep.ID},
+		}
+
+		steps = append(steps, pushStep)
 	}
 
 	// TODO: create secrets
 	secrets := []*graph.Secret{}
 
-	return graph.NewTask(steps, push, secrets, b.opts.Registry, b.registryUser, b.registryPw)
+	return graph.NewTask(steps, secrets, b.opts.Registry, b.registryUser, b.registryPw)
 }
 
 func (b *buildCmd) createRunCmd() string {
