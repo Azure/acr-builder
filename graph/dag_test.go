@@ -29,6 +29,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		StepStatus:       Skipped,
 		Timeout:          defaultStepTimeoutInSeconds,
 		WorkingDirectory: "pullDir",
+		Network:          DefaultNetworkName,
 	}
 
 	cStep := &Step{
@@ -41,6 +42,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Timeout:    defaultStepTimeoutInSeconds,
 		Keep:       true,
 		Isolation:  "default",
+		Network:    DefaultNetworkName,
 	}
 
 	bStep := &Step{
@@ -50,6 +52,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		StepStatus:   Skipped,
 		Timeout:      defaultStepTimeoutInSeconds,
 		IgnoreErrors: true,
+		Network:      DefaultNetworkName,
 	}
 
 	fooStep := &Step{
@@ -60,6 +63,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		SecretEnvs: []string{"someAkvSecretEnv"},
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
+		Network:    DefaultNetworkName,
 	}
 
 	barStep := &Step{
@@ -68,6 +72,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		When:       []string{ImmediateExecutionToken},
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
+		Network:    DefaultNetworkName,
 	}
 
 	quxStep := &Step{
@@ -78,6 +83,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Timeout:    defaultStepTimeoutInSeconds,
 		Detach:     true,
 		StartDelay: 50,
+		Network:    DefaultNetworkName,
 	}
 
 	qazStep := &Step{
@@ -87,7 +93,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Timeout:    defaultStepTimeoutInSeconds,
 		Privileged: true,
 		User:       "root",
-		Networks:   []string{"host", "foo"},
+		Network:    "host",
 	}
 
 	dict := make(map[string]*Step)
