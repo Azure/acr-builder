@@ -39,7 +39,15 @@ func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *B
 // RunTask executes a Task.
 func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	if !b.procManager.DryRun {
-		log.Printf("Setting up Docker configuration...")
+		for _, network := range task.Networks {
+			log.Printf("Creating Docker network: %s\n", network.Name)
+			if msg, err := network.Create(ctx, b.procManager); err != nil {
+				return fmt.Errorf("Failed to create network: %s, err: %v, msg: %s", network.Name, err, msg)
+			}
+			log.Printf("Successfully set up Docker network: %s\n", network.Name)
+		}
+
+		log.Println("Setting up Docker configuration...")
 		timeout := time.Duration(configTimeoutInSec) * time.Second
 		configCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
@@ -118,10 +126,17 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 func (b *Builder) CleanTask(ctx context.Context, task *graph.Task) {
 	args := []string{"docker", "rm", "-f"}
 	for _, n := range task.Dag.Nodes {
-		// TODO: Optimization - only execute on nodes which have been initiated.
 		step := n.Value
-		killArgs := append(args, step.ID)
-		_ = b.procManager.Run(ctx, killArgs, nil, nil, nil, "")
+		if step.StepStatus != graph.Skipped {
+			killArgs := append(args, step.ID)
+			_ = b.procManager.Run(ctx, killArgs, nil, nil, nil, "")
+		}
+	}
+
+	for _, network := range task.Networks {
+		if msg, err := network.Delete(ctx, b.procManager); err != nil {
+			log.Printf("Failed to delete network: %s, err: %v, msg: %s\n", network.Name, err, msg)
+		}
 	}
 	_ = b.procManager.Stop()
 }
@@ -138,7 +153,7 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 		step := child.Value
 		err := b.runStep(ctx, step)
 		if err != nil && step.IgnoreErrors {
-			log.Printf("Step id: %s encountered an error: %v, but is set to ignore errors. Continuing...", step.ID, err)
+			log.Printf("Step id: %s encountered an error: %v, but is set to ignore errors. Continuing...\n", step.ID, err)
 			step.StepStatus = graph.Successful
 			for _, c := range child.Children() {
 				go b.processVertex(ctx, task, child, c, errorChan)

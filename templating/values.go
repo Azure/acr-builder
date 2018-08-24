@@ -83,7 +83,7 @@ func merge(c *Config, merged map[string]interface{}) (map[string]interface{}, er
 			} else if sink, ok := lookup.(map[string]interface{}); ok {
 				source, ok := v.(map[string]interface{})
 				if !ok {
-					log.Printf("Skip merging: %s. Not a map", k)
+					log.Printf("Skip merging: %s. Not a map\n", k)
 					continue
 				}
 
@@ -114,12 +114,12 @@ func mergeMaps(sink, source map[string]interface{}) map[string]interface{} {
 			} else if util.IsMap(innerV) {
 				mergeMaps(innerV.(map[string]interface{}), v.(map[string]interface{}))
 			} else {
-				log.Printf("Skip merging: %s. Can't override a map with a scalar %v", k, v)
+				log.Printf("Skip merging: %s. Can't override a map with a scalar %v\n", k, v)
 			}
 		} else {
 			sv, ok := sink[k]
 			if ok && util.IsMap(sv) {
-				log.Printf("Skip merging: %s is a map but %v is not", k, v)
+				log.Printf("Skip merging: %s is a map but %v is not\n", k, v)
 			} else {
 				sink[k] = v
 			}

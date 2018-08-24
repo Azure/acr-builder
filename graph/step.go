@@ -42,7 +42,7 @@ type Step struct {
 	StartDelay       int      `yaml:"startDelay"`
 	Privileged       bool     `yaml:"privileged"`
 	User             string   `yaml:"user"`
-	Networks         []string `yaml:"networks"`
+	Network          string   `yaml:"network"`
 	Isolation        string   `yaml:"isolation"`
 	IgnoreErrors     bool     `yaml:"ignoreErrors"`
 
@@ -104,7 +104,7 @@ func (s *Step) Equals(t *Step) bool {
 		s.StepStatus != t.StepStatus ||
 		s.Privileged != t.Privileged ||
 		s.User != t.User ||
-		!util.StringSequenceEquals(s.Networks, t.Networks) ||
+		s.Network != t.Network ||
 		s.Isolation != t.Isolation ||
 		s.IgnoreErrors != t.IgnoreErrors {
 		return false

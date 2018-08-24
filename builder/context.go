@@ -61,8 +61,8 @@ func (b *Builder) getDockerRunArgs(
 	if step.User != "" {
 		sb.WriteString(" --user " + step.User)
 	}
-	for _, network := range step.Networks {
-		sb.WriteString(" --network " + network)
+	if step.Network != "" {
+		sb.WriteString(" --network " + step.Network)
 	}
 	if step.Isolation != "" {
 		sb.WriteString(" --isolation " + step.Isolation)

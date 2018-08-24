@@ -211,7 +211,7 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []s
 					originLookup[alias] = origin
 					// Just ignore the rest of the tokens...
 					if len(tokens) > 4 {
-						log.Printf("Ignoring chunks from FROM clause: %v", tokens[4:])
+						log.Printf("Ignoring chunks from FROM clause: %v\n", tokens[4:])
 					}
 				}
 			case "ARG":

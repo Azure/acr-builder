@@ -36,16 +36,18 @@ const (
 
 // Task represents a task execution.
 type Task struct {
-	Steps            []*Step   `yaml:"steps"`
-	StepTimeout      int       `yaml:"stepTimeout,omitempty"`
-	TotalTimeout     int       `yaml:"totalTimeout,omitempty"`
-	Secrets          []*Secret `yaml:"secrets,omitempty"`
-	WorkingDirectory string    `yaml:"workingDirectory,omitempty"`
-	Version          string    `yaml:"version,omitempty"`
+	Steps            []*Step    `yaml:"steps"`
+	StepTimeout      int        `yaml:"stepTimeout,omitempty"`
+	TotalTimeout     int        `yaml:"totalTimeout,omitempty"`
+	Secrets          []*Secret  `yaml:"secrets,omitempty"`
+	Networks         []*Network `yaml:"networks,omitempty"`
+	WorkingDirectory string     `yaml:"workingDirectory,omitempty"`
+	Version          string     `yaml:"version,omitempty"`
 	RegistryName     string
 	RegistryUsername string
 	RegistryPassword string
 	Dag              *Dag
+	IsBuildTask      bool // Used to skip the default network creation for build.
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
@@ -80,7 +82,8 @@ func NewTask(
 	secrets []*Secret,
 	registry string,
 	user string,
-	pw string) (*Task, error) {
+	pw string,
+	isBuildTask bool) (*Task, error) {
 	t := &Task{
 		Steps:            steps,
 		StepTimeout:      defaultStepTimeoutInSeconds,
@@ -89,6 +92,7 @@ func NewTask(
 		RegistryName:     registry,
 		RegistryUsername: user,
 		RegistryPassword: pw,
+		IsBuildTask:      isBuildTask,
 	}
 
 	err := t.initialize()
@@ -97,6 +101,15 @@ func NewTask(
 
 // initialize normalizes a Task's values.
 func (t *Task) initialize() error {
+
+	// Add the default network if none are specified.
+	// Only add the default network if we're using tasks.
+	addDefaultNetworkToSteps := false
+	if !t.IsBuildTask && len(t.Networks) <= 0 {
+		t.Networks = append(t.Networks, NewNetwork(DefaultNetworkName, false))
+		addDefaultNetworkToSteps = true
+	}
+
 	if t.StepTimeout <= 0 {
 		t.StepTimeout = defaultStepTimeoutInSeconds
 	}
@@ -126,6 +139,10 @@ func (t *Task) initialize() error {
 		// stamp the global timeout on them.
 		if s.Timeout <= 0 {
 			s.Timeout = t.StepTimeout
+		}
+
+		if addDefaultNetworkToSteps && s.Network == "" {
+			s.Network = DefaultNetworkName
 		}
 
 		if s.ID == "" {
