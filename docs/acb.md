@@ -160,4 +160,4 @@ The `build` property of a step specifies how to build a set of images. If build 
 
 ### ignoreErrors
 
-If `ignoreErrors` is set to `true`, the step will be marked as complete regardless of whether or not an error occurred during its execution.
+If `ignoreErrors` is set to `true`, the step will be marked as complete regardless of whether or not an error occurred during its execution. Defaults to false.
