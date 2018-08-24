@@ -17,6 +17,10 @@ import (
 	"github.com/docker/distribution/reference"
 )
 
+const (
+	dockerfileComment = "#"
+)
+
 var (
 	utf8BOM = []byte{0xEF, 0xBB, 0xBF}
 )
@@ -174,6 +178,13 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []s
 		} else {
 			line = scanner.Text()
 		}
+
+		line = strings.TrimSpace(line)
+		// Skip comments.
+		if line == "" || strings.HasPrefix(line, dockerfileComment) {
+			continue
+		}
+
 		tokens := strings.Fields(line)
 		if len(tokens) > 0 {
 			switch strings.ToUpper(tokens[0]) {
