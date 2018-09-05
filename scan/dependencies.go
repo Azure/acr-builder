@@ -15,6 +15,7 @@ import (
 
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/docker/distribution/reference"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -125,7 +126,7 @@ func NormalizeImageTag(img string) string {
 func NewImageReference(path string) (*image.Reference, error) {
 	ref, err := reference.Parse(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "Failed to parse image reference, ensure tags have a valid format: %s", path)
 	}
 	result := &image.Reference{
 		Reference: ref.String(),
