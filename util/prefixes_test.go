@@ -32,10 +32,31 @@ func TestPrefixTags(t *testing.T) {
 		expected     string
 		expectedTags []string
 	}{
-		{"foo.azurecr.io", "build -f Dockerfile . -t test:latest --tag bar", "build -f Dockerfile . -t foo.azurecr.io/test:latest --tag foo.azurecr.io/bar", []string{"foo.azurecr.io/test:latest", "foo.azurecr.io/bar"}},
-		{"", "build -t bar/foo:latest . --tag bar", "build -t bar/foo:latest . --tag bar", []string{"bar/foo:latest", "bar"}},
+		{
+			"foo.azurecr.io",
+			"build -f Dockerfile . -t test:latest --tag bar",
+			"build -f Dockerfile . -t foo.azurecr.io/test:latest --tag foo.azurecr.io/bar",
+			[]string{"foo.azurecr.io/test:latest", "foo.azurecr.io/bar"},
+		},
+		{
+			"",
+			"build -t bar/foo:latest . --tag bar",
+			"build -t bar/foo:latest . --tag bar",
+			[]string{"bar/foo:latest", "bar"},
+		},
 		{"foo.azurecr.io", "build -f Dockerfile . -t foo.azurecr.io/test:latest", "build -f Dockerfile . -t foo.azurecr.io/test:latest", []string{"foo.azurecr.io/test:latest"}},
-		{"foo.azurecr.io", "build -f Dockerfile -t library/test:latest", "build -f Dockerfile -t library/test:latest", []string{"library/test:latest"}},
+		{
+			"sample.azurecr.io",
+			"build -f src/Dockerfile https://github.com/Azure/acr-builder.git -t testing/sub/repo:l",
+			"build -f src/Dockerfile https://github.com/Azure/acr-builder.git -t sample.azurecr.io/testing/sub/repo:l",
+			[]string{"sample.azurecr.io/testing/sub/repo:l"},
+		},
+		{
+			"foo.azurecr.io",
+			"build -f Dockerfile -t library/test:latest",
+			"build -f Dockerfile -t library/test:latest",
+			[]string{"library/test:latest"},
+		},
 	}
 	for _, test := range tests {
 		actual, actualTags := PrefixTags(test.cmd, test.registry)
