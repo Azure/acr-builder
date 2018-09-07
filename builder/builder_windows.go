@@ -217,7 +217,8 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 
 			step.Build = replacePositionalContext(step.Build, ".")
 		}
-		args = b.getDockerRunArgs(volName, workingDirectory, step, nil, "", "docker build "+step.Build)
+		// Needs hyperv isolation for older version windows images
+		args = b.getDockerRunArgs(volName, workingDirectory, step, nil, "", "docker build --isolation hyperv "+step.Build)
 	} else if step.IsPushStep() {
 		// TODO: Refactor this to simply set args
 		// once step retries and retry delay are implemented.
