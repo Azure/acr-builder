@@ -1,3 +1,3 @@
 # Required.
-# docker build -f baseimages/docker/Dockerfile -t docker .
-FROM docker:18.03.0-ce-git
+# docker build -f baseimages/docker-cli/Dockerfile -t docker .
+FROM docker:18.06.0-ce-git
