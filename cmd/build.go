@@ -206,6 +206,7 @@ func (b *buildCmd) createBuildTask() (*graph.Task, error) {
 
 func (b *buildCmd) createRunCmd() string {
 	args := []string{}
+
 	if b.isolation != "" {
 		args = append(args, fmt.Sprintf("--isolation=%s", b.isolation))
 	}

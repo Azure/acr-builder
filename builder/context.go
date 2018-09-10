@@ -35,7 +35,7 @@ func (b *Builder) getDockerRunArgs(
 	cmd string) []string {
 
 	var args []string
-	var sb strings.Builder	
+	var sb strings.Builder
 	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
 	// so we don't have to write our own argv parser for exec.Command.
 	if runtime.GOOS == "windows" {
@@ -44,11 +44,6 @@ func (b *Builder) getDockerRunArgs(
 
 		if step.Isolation == "" {
 			step.Isolation = "hyperv"
-		}
-		// windows container doesn't support network yet
-		// https://github.com/docker/for-win/issues/1960
-		if step.Network != "" {
-			step.Network = ""
 		}
 	} else {
 		args = []string{"/bin/sh", "-c"}

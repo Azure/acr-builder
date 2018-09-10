@@ -53,6 +53,7 @@ func (pm *ProcManager) Run(
 	cmd.Stdout = stdOut
 	cmd.Stderr = stdErr
 
+
 	if err := cmd.Start(); err != nil {
 		return err
 	}

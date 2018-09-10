@@ -19,11 +19,6 @@ const (
 
 // setupConfig initializes ~/.docker/config.json
 func (b *Builder) setupConfig(ctx context.Context) error {
-	imageName := ""
-	if imageName = os.Getenv("ACB_CONFIGIMAGENAME"); imageName == "" {
-		imageName = configImageName
-	}
-
 	args := []string{
 		"docker",
 		"run",
@@ -34,7 +29,7 @@ func (b *Builder) setupConfig(ctx context.Context) error {
 		"--volume", homeVol + ":" + homeWorkDir,
 		"--env", homeEnv,
 		"--entrypoint", "powershell",
-		imageName,
+		getConfigImageName(),
 		"mkdir ~/.docker; Out-File -InputObject '" + config + "' -FilePath ~/.docker/config.json -Encoding ASCII",
 	}
 
@@ -44,4 +39,13 @@ func (b *Builder) setupConfig(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func getConfigImageName() string {
+	imageName := ""
+	if imageName = os.Getenv("ACB_CONFIGIMAGENAME"); imageName == "" {
+		imageName = configImageName
+	}
+
+	return imageName
 }

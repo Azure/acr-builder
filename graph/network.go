@@ -6,6 +6,7 @@ package graph
 import (
 	"bytes"
 	"context"
+	"runtime"
 
 	"github.com/Azure/acr-builder/pkg/procmanager"
 )
@@ -36,6 +37,12 @@ func (n *Network) Create(ctx context.Context, pm *procmanager.ProcManager) (stri
 	if n.Ipv6 {
 		cmd = append(cmd, "--ipv6")
 	}
+
+	if runtime.GOOS == "windows" {
+		cmd = append(cmd, "--driver")
+		cmd = append(cmd, "nat")
+	}
+
 	err := pm.Run(ctx, cmd, nil, &buf, &buf, "")
 	return buf.String(), err
 }
