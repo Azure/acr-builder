@@ -36,7 +36,7 @@ func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions
 
 	// exec and render both use task and it's required, but build doesn't
 	if usesTask {
-		f.StringVar(&opts.TaskFile, "task", "", "the task file to use")
-		f.StringVar(&opts.Base64EncodedTaskFile, "encoded-task", "", "a Base64 encoded task file")
+		f.StringVarP(&opts.TaskFile, "file", "f", "", "the task file to use")
+		f.StringVar(&opts.Base64EncodedTaskFile, "encoded-file", "", "a Base64 encoded task file")
 	}
 }
