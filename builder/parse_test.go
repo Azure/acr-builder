@@ -75,7 +75,7 @@ func TestGetContextFromGitURL(t *testing.T) {
 		{"https://foo.visualstudio.com/ACR/_git/Build/", "."},
 		{"https://foo.visualstudio.com/ACR/_git/Build/#master", "."},
 
-		{"https://foo.visualstudio.com/ACR/_git/Build#master:HelloWorld", "HelloWorld"},
+		{"https://foo.VISUALstuDIo.com/ACR/_git/Build#master:HelloWorld", "HelloWorld"},
 	}
 
 	for _, test := range tests {

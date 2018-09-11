@@ -52,7 +52,8 @@ func replacePositionalContext(runCmd string, replacement string) string {
 }
 
 func getContextFromGitURL(gitURL string) string {
-	if httpPrefix.MatchString(gitURL) && (strings.Contains(gitURL, ".visualstudio.com") || gitURLWithSuffix.MatchString(gitURL)) {
+	lower := strings.ToLower(gitURL)
+	if httpPrefix.MatchString(gitURL) && (strings.Contains(lower, ".visualstudio.com") || gitURLWithSuffix.MatchString(gitURL)) {
 		pos := strings.LastIndex(gitURL, "#")
 		if pos >= 0 {
 			frag := gitURL[pos+1:]
