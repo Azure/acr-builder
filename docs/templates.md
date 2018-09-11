@@ -33,10 +33,10 @@ The following variables can be accessed using `{{ .Run.VariableName }}`, where `
 
 ## Tasks
 
-You can execute a task with `exec`. It requires a `--task` file and optionally a `--values` file. You can also use `--set` to override values specified in `--values`, or to provide new values not covered by `--values`.
+You can execute a task with `exec`. It requires a `-f` file and optionally a `--values` file. You can also use `--set` to override values specified in `--values`, or to provide new values not covered by `--values`.
 
 ```sh
-$ acb exec --task templating/testdata/helloworld/git-build.yaml --values templating/testdata/helloworld/values.yaml --id demo
+$ acb exec -f templating/testdata/helloworld/git-build.yaml --values templating/testdata/helloworld/values.yaml --id demo
 
 ...
 
@@ -45,7 +45,7 @@ Successfully tagged acr-builder:demo
 
 ## Build
 
-Templating in `build` works the same as `exec`, except that you don't have to provide a `--task` file.
+Templating in `build` works the same as `exec`, except that you don't have to provide a `Task` file.
 
 ```sh
 $ acb build https://github.com/Azure/acr-builder.git -f Dockerfile -t "acr-builder:{{.Run.ID}}" --id demo
