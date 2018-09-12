@@ -59,7 +59,7 @@ type BaseRenderOptions struct {
 	OS string
 
 	// Arch is the GOARCH.
-	Architecture string
+	// Architecture string // TODO: Not exposed yet.
 }
 
 // OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
