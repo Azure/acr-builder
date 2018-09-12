@@ -94,17 +94,17 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 
 	var deps []*image.Dependencies
 	for _, step := range task.Steps {
-		log.Printf("Step id: %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
+		log.Printf("Step ID: %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
 
 		if len(step.ImageDependencies) > 0 {
-			log.Printf("Populating digests for step id: %s...\n", step.ID)
+			log.Printf("Populating digests for step ID: %s...\n", step.ID)
 			timeout := time.Duration(digestsTimeoutInSec) * time.Second
 			digestCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
 			if err := b.populateDigests(digestCtx, step.ImageDependencies); err != nil {
 				return err
 			}
-			log.Printf("Successfully populated digests for step id: %s\n", step.ID)
+			log.Printf("Successfully populated digests for step ID: %s\n", step.ID)
 			deps = append(deps, step.ImageDependencies...)
 		}
 	}
@@ -153,14 +153,14 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 		step := child.Value
 		err := b.runStep(ctx, step)
 		if err != nil && step.IgnoreErrors {
-			log.Printf("Step id: %s encountered an error: %v, but is set to ignore errors. Continuing...\n", step.ID, err)
+			log.Printf("Step ID: %s encountered an error: %v, but is set to ignore errors. Continuing...\n", step.ID, err)
 			step.StepStatus = graph.Successful
 			for _, c := range child.Children() {
 				go b.processVertex(ctx, task, child, c, errorChan)
 			}
 		} else if err != nil {
 			step.StepStatus = graph.Failed
-			errorChan <- errors.Wrapf(err, "failed to run step id: %s", step.ID)
+			errorChan <- errors.Wrapf(err, "failed to run step ID: %s", step.ID)
 		} else {
 			step.StepStatus = graph.Successful
 			for _, c := range child.Children() {
@@ -173,7 +173,7 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 }
 
 func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
-	log.Printf("Executing step: %s. Step working directory: '%s'\n", step.ID, step.WorkingDirectory)
+	log.Printf("Executing step ID: %s. Step working directory: '%s'\n", step.ID, step.WorkingDirectory)
 	if step.StartDelay > 0 {
 		log.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
 		time.Sleep(time.Duration(step.StartDelay) * time.Second)
