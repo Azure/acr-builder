@@ -122,7 +122,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedGitTag := "some git tag"
 	expectedSharedContextDirectory := "acb_home_vol_12345"
 	expectedOS := "linux"
-	expectedArch := "amd64"
+	// expectedArch := "amd64" // TODO: Not exposed yet.
 
 	parsedTime, err := time.Parse("20060102-150405", "20100520-131422")
 	if err != nil {
@@ -141,8 +141,8 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		GitTag:      expectedGitTag,
 		Date:        parsedTime,
 		SharedContextDirectory: expectedSharedContextDirectory,
-		OS:   expectedOS,
-		Arch: expectedArch,
+		OS: expectedOS,
+		// Architecture: expectedArch, // TODO: Not exposed yet.
 	}
 	vals, err := OverrideValuesWithBuildInfo(c1, c2, options)
 	if err != nil {
@@ -162,7 +162,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		{"{{.Run.Date}}", expectedTime},
 		{"{{.Run.SharedContextDirectory}}", expectedSharedContextDirectory},
 		{"{{.Run.OS}}", expectedOS},
-		{"{{.Run.Arch}}", expectedArch},
+		// {"{{.Run.Architecture}}", expectedArch}, // TODO: Not exposed yet.
 		{"{{.Values.born}}", eCurieBorn},
 		{"{{.Values.first}}", eCurieFirst},
 		{"{{.Values.last}}", eCurieLast},

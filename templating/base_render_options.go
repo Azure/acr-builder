@@ -59,7 +59,7 @@ type BaseRenderOptions struct {
 	OS string
 
 	// Arch is the GOARCH.
-	Arch string
+	Architecture string
 }
 
 // OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
@@ -78,8 +78,8 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 			"Registry":    opts.Registry,
 			"Date":        opts.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
 			"SharedContextDirectory": opts.SharedContextDirectory,
-			"OS":   opts.OS,
-			"Arch": opts.Arch,
+			"OS": opts.OS,
+			// "Arch": opts.Architecture, // TODO: Not exposed yet.
 		},
 	}
 
