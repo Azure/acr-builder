@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"strings"
+	"runtime"
 
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/util"
@@ -140,4 +142,10 @@ func (s *Step) IsBuildStep() bool {
 // IsPushStep returns true if a Step is a push step, false otherwise.
 func (s *Step) IsPushStep() bool {
 	return len(s.Push) > 0
+}
+
+func (s *Step) UpdateBuildStepWithDefaults() {
+	if s.IsBuildStep() && runtime.GOOS == "windows" && !strings.Contains(s.Build, "--isolation") {
+		s.Build = fmt.Sprintf("--isolation hyperv %s", s.Build)
+	}
 }

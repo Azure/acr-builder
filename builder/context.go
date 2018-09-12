@@ -35,16 +35,20 @@ func (b *Builder) getDockerRunArgs(
 	cmd string) []string {
 
 	var args []string
+	var sb strings.Builder
 	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
 	// so we don't have to write our own argv parser for exec.Command.
 	if runtime.GOOS == "windows" {
 		// TODO: finalize on how to handle the Windows shell.
 		args = []string{"powershell.exe", "-Command"}
+
+		if step.Isolation == "" {
+			step.Isolation = "hyperv"
+		}
 	} else {
 		args = []string{"/bin/sh", "-c"}
 	}
 
-	var sb strings.Builder
 	sb.WriteString("docker run")
 	if !step.Keep {
 		sb.WriteString(" --rm")

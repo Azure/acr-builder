@@ -138,6 +138,7 @@ func (b *Builder) CleanTask(ctx context.Context, task *graph.Task) {
 			log.Printf("Failed to delete network: %s, err: %v, msg: %s\n", network.Name, err, msg)
 		}
 	}
+
 	_ = b.procManager.Stop()
 }
 
@@ -217,6 +218,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 
 			step.Build = replacePositionalContext(step.Build, ".")
 		}
+		step.UpdateBuildStepWithDefaults()
 		args = b.getDockerRunArgs(volName, workingDirectory, step, nil, "", "docker build "+step.Build)
 	} else if step.IsPushStep() {
 		// TODO: Refactor this to simply set args
