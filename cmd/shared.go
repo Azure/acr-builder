@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"runtime"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -33,6 +34,8 @@ func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions
 	f.StringVarP(&opts.Registry, "registry", "r", "", "the name of the registry")
 
 	opts.Date = time.Now().UTC()
+	opts.OS = runtime.GOOS
+	// opts.Architecture = runtime.GOARCH // TODO: Not exposed yet.
 
 	// exec and render both use task and it's required, but build doesn't
 	if usesTask {

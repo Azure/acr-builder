@@ -54,6 +54,12 @@ type BaseRenderOptions struct {
 
 	// SharedContextDirectory is the name of the shared context directory.
 	SharedContextDirectory string
+
+	// OS is the GOOS.
+	OS string
+
+	// Arch is the GOARCH.
+	// Architecture string // TODO: Not exposed yet.
 }
 
 // OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
@@ -72,6 +78,8 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 			"Registry":    opts.Registry,
 			"Date":        opts.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
 			"SharedContextDirectory": opts.SharedContextDirectory,
+			"OS": opts.OS,
+			// "Arch": opts.Architecture, // TODO: Not exposed yet.
 		},
 	}
 
