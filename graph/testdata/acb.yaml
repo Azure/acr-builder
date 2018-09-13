@@ -31,6 +31,9 @@ steps:
     ports:
       - "8000:8000"
       - "8080:8080"
+    expose:
+      - "80"
+      - "81"
     exitedWith: [0, 1, 2, 3, 4]
     keep: true
     isolation: default
