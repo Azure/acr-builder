@@ -39,9 +39,7 @@ func (b *Builder) getDockerRunArgs(
 	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
 	// so we don't have to write our own argv parser for exec.Command.
 	if runtime.GOOS == "windows" {
-		// TODO: finalize on how to handle the Windows shell.
 		args = []string{"powershell.exe", "-Command"}
-
 		if step.Isolation == "" {
 			step.Isolation = "hyperv"
 		}
