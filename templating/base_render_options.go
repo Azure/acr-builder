@@ -58,7 +58,7 @@ type BaseRenderOptions struct {
 	// OS is the GOOS.
 	OS string
 
-	// Arch is the GOARCH.
+	// Architecture is the GOARCH.
 	// Architecture string // TODO: Not exposed yet.
 }
 
