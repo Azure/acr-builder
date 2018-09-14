@@ -31,7 +31,7 @@ func (s *Scanner) ScanForDependencies(workingDir string, dockerfile string, buil
 	path := path.Clean(path.Join(workingDir, dockerfile))
 	file, err := os.Open(path)
 	if err != nil {
-		return deps, fmt.Errorf("Error opening dockerfile %s, error: %v", path, err)
+		return deps, fmt.Errorf("Error opening dockerfile: %s, error: %v", path, err)
 	}
 	defer func() { _ = file.Close() }()
 

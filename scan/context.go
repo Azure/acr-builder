@@ -52,12 +52,11 @@ func (s *Scanner) ObtainSourceCode(ctx context.Context, context string) (working
 }
 
 func (s *Scanner) getContext(ctx context.Context, context string) (DockerSourceType, string, error) {
-	isGitURL := util.IsGitURL(context)
-	isVstsURL := util.IsVstsGitURL(context)
+	isSourceControlURL := util.IsSourceControlURL(context)
 	isURL := util.IsURL(context)
 
 	// If the context is remote, make the destination folder to clone or untar into.
-	if isGitURL || isVstsURL || isURL {
+	if isSourceControlURL || isURL {
 		if _, err := os.Stat(s.destinationFolder); os.IsNotExist(err) {
 			// Creates the destination folder if necessary, granting full permissions to the owner.
 			if innerErr := os.Mkdir(s.destinationFolder, 0700); innerErr != nil {
@@ -66,7 +65,7 @@ func (s *Scanner) getContext(ctx context.Context, context string) (DockerSourceT
 		}
 	}
 
-	if isGitURL || isVstsURL {
+	if isSourceControlURL {
 		workingDir, err := s.getContextFromGitURL(context)
 		return dockerSourceGit, workingDir, err
 	} else if isURL {
@@ -85,7 +84,6 @@ func (s *Scanner) getContextFromGitURL(gitURL string) (contextDir string, err er
 	if err != nil {
 		return contextDir, errors.Wrapf(err, "unable to git clone to %s", s.destinationFolder)
 	}
-
 	return contextDir, err
 }
 

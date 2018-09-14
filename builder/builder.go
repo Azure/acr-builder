@@ -208,7 +208,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 			// since we obtained the source code from the scanner and put it in this location.
 			// If the remote context also has additional context specified, we have to append it
 			// to the working directory.
-			if util.IsGitURL(dockerContext) || util.IsVstsGitURL(dockerContext) {
+			if util.IsSourceControlURL(dockerContext) {
 				workingDirectory = step.ID + "/" + getContextFromGitURL(dockerContext)
 			} else {
 				workingDirectory = step.ID
