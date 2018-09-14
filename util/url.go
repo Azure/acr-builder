@@ -10,6 +10,11 @@ import (
 	"github.com/docker/docker/pkg/urlutil"
 )
 
+const (
+	azureDevOpsHost = "dev.azure.com"
+	vstsHost        = ".visualstudio.com"
+)
+
 // IsAzureDevOpsGitURL determines whether or not the specified string is an Azure DevOps Git URL.
 func IsAzureDevOpsGitURL(s string) bool {
 	url, err := url.Parse(strings.ToLower(s))
@@ -17,7 +22,7 @@ func IsAzureDevOpsGitURL(s string) bool {
 		return false
 	}
 	return url.Scheme == "https" &&
-		strings.Contains(url.Host, "dev.azure.com") &&
+		url.Host == azureDevOpsHost &&
 		strings.Contains(url.Path, "/_git/") &&
 		len(url.Query()) == 0
 }
@@ -30,7 +35,7 @@ func IsVstsGitURL(s string) bool {
 	}
 
 	return url.Scheme == "https" &&
-		strings.HasSuffix(url.Host, ".visualstudio.com") &&
+		strings.HasSuffix(url.Host, vstsHost) &&
 		strings.Contains(url.Path, "/_git/") &&
 		len(url.Query()) == 0
 }
