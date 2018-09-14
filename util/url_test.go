@@ -16,6 +16,7 @@ var (
 		"https://github.com/Azure/acr-builder",
 		"https://github.com/Azure/acr-builder.git#",
 		"https://sometarcontext.com",
+		"短.co",
 	}
 	validVSTSURLs = []string{
 		"https://azure.visualstudio.com/ACR/_git/Build/",
@@ -25,6 +26,7 @@ var (
 	}
 	invalidVSTSURLs = []string{
 		"   https://azure.visualstudio.com/ACR/_git/Build/", // leading spaces cause a parse error
+		"短.co",
 	}
 	validDevOpsURLs = []string{
 		"https://foo@dev.azure.com/foo/dockerfiles/_git/dockerfiles",
@@ -33,6 +35,7 @@ var (
 	}
 	invalidDevOpsURLs = []string{
 		"  https://foo@dev.azure.com/foo/dockerfiles/_git/dockerfiles", // leading spaces cause a parse error
+		"短.co",
 	}
 )
 
