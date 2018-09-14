@@ -31,7 +31,7 @@ func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
 			"--rm",
 
 			// Mount home
-			"--volume", util.GetDockerSock(),
+			"--volume", util.DockerSocketVolumeMapping,
 			"--volume", homeVol + ":" + homeWorkDir,
 			"--env", homeEnv,
 

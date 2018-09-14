@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 package util
 
 import (
@@ -8,6 +11,7 @@ import (
 )
 
 func TestGetExponentialBackoff(t *testing.T) {
+	equal(t, GetExponentialBackoff(math.MinInt64), minBackoffDuration)
 	equal(t, GetExponentialBackoff(-5), minBackoffDuration)
 	equal(t, GetExponentialBackoff(0), minBackoffDuration)
 	equal(t, GetExponentialBackoff(1), 500*time.Millisecond)

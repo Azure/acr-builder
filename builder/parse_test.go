@@ -48,6 +48,7 @@ func TestReplacePositionalContext(t *testing.T) {
 		{"--file src/Dockerfile . -t foo:bar", "src/Dockerfile", "--file src/Dockerfile src/Dockerfile -t foo:bar"},
 		{"-f src/Dockerfile .", "test/another-repo", "-f src/Dockerfile test/another-repo"},
 		{"-f src/Dockerfile https://foo.visualstudio.com/ACR/_git/Build/#master:.", "vstsreplacement", "-f src/Dockerfile vstsreplacement"},
+		{"", "apple", ""}, // Nothing to replace
 	}
 
 	for _, test := range tests {
