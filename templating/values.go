@@ -111,14 +111,14 @@ func mergeMaps(sink, source map[string]interface{}) map[string]interface{} {
 			// case print a warning message and skip it.
 			if innerV, ok := sink[k]; !ok {
 				sink[k] = v
-			} else if util.IsMap(innerV) {
+			} else if util.IsInterfaceMap(innerV) {
 				mergeMaps(innerV.(map[string]interface{}), v.(map[string]interface{}))
 			} else {
 				log.Printf("Skip merging: %s. Can't override a map with a scalar %v\n", k, v)
 			}
 		} else {
 			sv, ok := sink[k]
-			if ok && util.IsMap(sv) {
+			if ok && util.IsInterfaceMap(sv) {
 				log.Printf("Skip merging: %s is a map but %v is not\n", k, v)
 			} else {
 				sink[k] = v

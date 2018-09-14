@@ -13,7 +13,7 @@ func TestIsMap(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if actual := IsMap(test.v); actual != test.expected {
+		if actual := IsInterfaceMap(test.v); actual != test.expected {
 			t.Errorf("Expected %v to be %v but got %v", test.v, test.expected, actual)
 		}
 	}
