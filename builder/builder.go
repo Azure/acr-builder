@@ -38,33 +38,31 @@ func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *B
 
 // RunTask executes a Task.
 func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
-	if !b.procManager.DryRun {
-		for _, network := range task.Networks {
-			log.Printf("Creating Docker network: %s\n", network.Name)
-			if msg, err := network.Create(ctx, b.procManager); err != nil {
-				return fmt.Errorf("Failed to create network: %s, err: %v, msg: %s", network.Name, err, msg)
-			}
-			log.Printf("Successfully set up Docker network: %s\n", network.Name)
+	for _, network := range task.Networks {
+		log.Printf("Creating Docker network: %s\n", network.Name)
+		if msg, err := network.Create(ctx, b.procManager); err != nil {
+			return fmt.Errorf("Failed to create network: %s, err: %v, msg: %s", network.Name, err, msg)
 		}
+		log.Printf("Successfully set up Docker network: %s\n", network.Name)
+	}
 
-		log.Println("Setting up Docker configuration...")
-		timeout := time.Duration(configTimeoutInSec) * time.Second
-		configCtx, cancel := context.WithTimeout(ctx, timeout)
+	log.Println("Setting up Docker configuration...")
+	timeout := time.Duration(configTimeoutInSec) * time.Second
+	configCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	if err := b.setupConfig(configCtx); err != nil {
+		return err
+	}
+	log.Printf("Successfully set up Docker configuration")
+	if task.UsingRegistryCreds() {
+		log.Printf("Logging in to registry: %s\n", task.RegistryName)
+		timeout := time.Duration(loginTimeoutInSec) * time.Second
+		loginCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		if err := b.setupConfig(configCtx); err != nil {
+		if err := b.dockerLoginWithRetries(loginCtx, task.RegistryName, task.RegistryUsername, task.RegistryPassword, 0); err != nil {
 			return err
 		}
-		log.Printf("Successfully set up Docker configuration")
-		if task.UsingRegistryCreds() {
-			log.Printf("Logging in to registry: %s\n", task.RegistryName)
-			timeout := time.Duration(loginTimeoutInSec) * time.Second
-			loginCtx, cancel := context.WithTimeout(ctx, timeout)
-			defer cancel()
-			if err := b.dockerLoginWithRetries(loginCtx, task.RegistryName, task.RegistryUsername, task.RegistryPassword, 0); err != nil {
-				return err
-			}
-			log.Println("Successfully logged in")
-		}
+		log.Println("Successfully logged in")
 	}
 
 	var completedChans []chan bool

@@ -57,6 +57,9 @@ func (b *Builder) getDockerRunArgs(
 	for _, port := range step.Ports {
 		sb.WriteString(" -p " + port)
 	}
+	for _, exp := range step.Expose {
+		sb.WriteString(" --expose " + exp)
+	}
 	if step.Privileged {
 		sb.WriteString(" --privileged")
 	}

@@ -6,9 +6,9 @@ package graph
 import (
 	"errors"
 	"fmt"
-	"time"
-	"strings"
 	"runtime"
+	"strings"
+	"time"
 
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/util"
@@ -34,6 +34,7 @@ type Step struct {
 	EntryPoint       string   `yaml:"entryPoint"`
 	Envs             []string `yaml:"env"`
 	SecretEnvs       []string `yaml:"secretEnvs"`
+	Expose           []string `yaml:"expose"`
 	Ports            []string `yaml:"ports"`
 	When             []string `yaml:"when"`
 	ExitedWith       []int    `yaml:"exitedWith"`
@@ -94,6 +95,7 @@ func (s *Step) Equals(t *Step) bool {
 		s.WorkingDirectory != t.WorkingDirectory ||
 		s.EntryPoint != t.EntryPoint ||
 		!util.StringSequenceEquals(s.Ports, t.Ports) ||
+		!util.StringSequenceEquals(s.Expose, t.Expose) ||
 		!util.StringSequenceEquals(s.Envs, t.Envs) ||
 		!util.StringSequenceEquals(s.SecretEnvs, t.SecretEnvs) ||
 		s.Timeout != t.Timeout ||
@@ -144,6 +146,7 @@ func (s *Step) IsPushStep() bool {
 	return len(s.Push) > 0
 }
 
+// UpdateBuildStepWithDefaults updates a build step with hyperv isolation on Windows.
 func (s *Step) UpdateBuildStepWithDefaults() {
 	if s.IsBuildStep() && runtime.GOOS == "windows" && !strings.Contains(s.Build, "--isolation") {
 		s.Build = fmt.Sprintf("--isolation hyperv %s", s.Build)
