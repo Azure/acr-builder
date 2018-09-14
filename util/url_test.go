@@ -10,6 +10,7 @@ func TestIsVstsGitURL(t *testing.T) {
 		url      string
 		expected bool
 	}{
+		{"   https://azure.visualstudio.com/ACR/_git/Build/", false}, // leading spaces cause a parse error
 		{"https://azure.visualstudio.com/ACR/_git/Build/", true},
 		{"https://azure.visualstudio.com/ACR/_git/Build", true},
 		{"https://github.com/Azure/acr-builder", false},
