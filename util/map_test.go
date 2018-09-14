@@ -2,7 +2,7 @@ package util
 
 import "testing"
 
-func TestIsMap(t *testing.T) {
+func TestIsInterfaceMap(t *testing.T) {
 	tests := []struct {
 		v        interface{}
 		expected bool
