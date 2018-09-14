@@ -80,7 +80,7 @@ func (b *Builder) getDockerRunArgs(
 	}
 	sb.WriteString(" --name " + step.ID)
 	sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
-	sb.WriteString(" --volume " + util.GetDockerSock())
+	sb.WriteString(" --volume " + util.DockerSocketVolumeMapping)
 	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
 	sb.WriteString(" --env " + homeEnv)
 	sb.WriteString(" --workdir " + normalizeWorkDir(stepWorkDir))

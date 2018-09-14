@@ -271,7 +271,7 @@ func (b *Builder) queryDigest(ctx context.Context, reference *image.Reference) e
 			"--rm",
 
 			// Mount home
-			"--volume", util.GetDockerSock(),
+			"--volume", util.DockerSocketVolumeMapping,
 			"--volume", homeVol + ":" + homeWorkDir,
 			"--env", homeEnv,
 
