@@ -22,9 +22,7 @@ func GetExponentialBackoff(attempt int) time.Duration {
 		return maxBackoffDuration
 	}
 	duration := time.Duration(durationf)
-	if duration < minBackoffDuration {
-		return minBackoffDuration
-	} else if duration > maxBackoffDuration {
+	if duration > maxBackoffDuration {
 		return maxBackoffDuration
 	}
 	return duration
