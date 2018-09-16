@@ -71,8 +71,7 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 
 # Build the docker executable
 FROM environment as dockercli
-# v18.06
-ARG DOCKER_CLI_LKG_COMMIT=2cb2e84287c916d484cf5d6fc93987ba537f3aab
+ARG DOCKER_CLI_LKG_COMMIT=c98c4080a323fb0e4fdf7429d8af4e2e946d09b5
 WORKDIR \\gopath\\src\\github.com\\docker\\cli
 RUN git clone https://github.com/docker/cli.git \gopath\src\github.com\docker\cli; \
     git checkout $DOCKER_CLI_LKG_COMMIT; \
