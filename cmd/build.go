@@ -48,7 +48,6 @@ type buildCmd struct {
 	pull            bool
 	noCache         bool
 	push            bool
-	oci             bool
 	dryRun          bool
 
 	opts *templating.BaseRenderOptions
@@ -93,7 +92,6 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.BoolVar(&r.pull, "pull", false, "attempt to pull a newer version of the base images")
 	f.BoolVar(&r.noCache, "no-cache", false, "true to ignore all cached layers when building the image")
 	f.BoolVar(&r.push, "push", false, "push on success")
-	f.BoolVar(&r.oci, "oci", false, "use the OCI builder")
 	f.BoolVar(&r.dryRun, "dry-run", false, "evaluates the build but doesn't execute it")
 
 	AddBaseRenderingOptions(f, r.opts, cmd, false)
@@ -151,11 +149,6 @@ func (b *buildCmd) validateCmdArgs() error {
 
 	if err := validatePush(b.push, b.opts.Registry, b.registryUser, b.registryPw); err != nil {
 		return err
-	}
-
-	// TODO: OCI build support
-	if b.oci {
-		return errors.New("OCI builder isn't implemented yet")
 	}
 
 	return nil
