@@ -127,7 +127,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedTrigger := "triggered from someone cool!!1"
 	expectedRegistry := "foo.azurecr.io"
 	expectedGitTag := "some git tag"
-	expectedSharedContextDirectory := "acb_home_vol_12345"
+	expectedSharedVolume := "acb_home_vol_12345"
 	expectedOS := "linux"
 	// expectedArch := "amd64" // TODO: Not exposed yet.
 
@@ -139,16 +139,16 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedTime := "20100520-131422z"
 
 	options := &BaseRenderOptions{
-		ID:          expectedID,
-		Commit:      expectedCommit,
-		Repository:  expectedRepo,
-		Branch:      expectedBranch,
-		TriggeredBy: expectedTrigger,
-		Registry:    expectedRegistry,
-		GitTag:      expectedGitTag,
-		Date:        parsedTime,
-		SharedContextDirectory: expectedSharedContextDirectory,
-		OS: expectedOS,
+		ID:           expectedID,
+		Commit:       expectedCommit,
+		Repository:   expectedRepo,
+		Branch:       expectedBranch,
+		TriggeredBy:  expectedTrigger,
+		Registry:     expectedRegistry,
+		GitTag:       expectedGitTag,
+		Date:         parsedTime,
+		SharedVolume: expectedSharedVolume,
+		OS:           expectedOS,
 		// Architecture: expectedArch, // TODO: Not exposed yet.
 	}
 	vals, err := OverrideValuesWithBuildInfo(c1, c2, options)
@@ -167,7 +167,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		{"{{.Run.Registry}}", expectedRegistry},
 		{"{{.Run.GitTag}}", expectedGitTag},
 		{"{{.Run.Date}}", expectedTime},
-		{"{{.Run.SharedContextDirectory}}", expectedSharedContextDirectory},
+		{"{{.Run.SharedVolume}}", expectedSharedVolume},
 		{"{{.Run.OS}}", expectedOS},
 		// {"{{.Run.Architecture}}", expectedArch}, // TODO: Not exposed yet.
 		{"{{.Values.born}}", eCurieBorn},
