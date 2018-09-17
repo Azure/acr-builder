@@ -59,13 +59,13 @@ func TestGetImageDependencies(t *testing.T) {
 	}
 	expectedGitHeadRev := "abcdef"
 
-	if !image.ReferencesEquals(r.Image, expectedImage) {
+	if !image.Equals(r.Image, expectedImage) {
 		t.Errorf("Invalid image ref. Expected %s, got %s", expectedImage.String(), r.Image.String())
 	}
-	if !image.ReferencesEquals(r.Runtime, expectedRuntimeDep) {
+	if !image.Equals(r.Runtime, expectedRuntimeDep) {
 		t.Errorf("Invalid runtime dep. Expected %s, got %s", expectedRuntimeDep.String(), r.Runtime.String())
 	}
-	if !image.ReferencesEquals(r.Buildtime[0], expectedBuildDep) {
+	if !image.Equals(r.Buildtime[0], expectedBuildDep) {
 		t.Errorf("Invalid buildtime dep. Expected %s, got %s", expectedBuildDep.String(), r.Buildtime[0].String())
 	}
 	if r.Git.GitHeadRev != expectedGitHeadRev {
