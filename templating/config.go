@@ -17,14 +17,6 @@ func (c *Config) GetRawValue() string {
 	return c.RawValue
 }
 
-// GetValues returns the Config's values.
-func (c *Config) GetValues() map[string]*Value {
-	if c == nil {
-		return nil
-	}
-	return c.Values
-}
-
 // IsValidConfig determines whether or not the Config is valid.
 func (c *Config) IsValidConfig() bool {
 	return c != nil && c.RawValue != ""
@@ -33,12 +25,4 @@ func (c *Config) IsValidConfig() bool {
 // Value represents a configuration value.
 type Value struct {
 	Value string
-}
-
-// GetValue returns the Value's value.
-func (v *Value) GetValue() string {
-	if v == nil {
-		return ""
-	}
-	return v.Value
 }

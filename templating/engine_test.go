@@ -32,6 +32,17 @@ func TestRenderAllTemplates(t *testing.T) {
 	}
 }
 
+func TestRender_RequiredParameters(t *testing.T) {
+	engine := NewEngine()
+	if _, err := engine.Render(nil, Values{}); err == nil {
+		t.Fatal("Expected an error when rendering a nil template")
+	}
+
+	if _, err := engine.Render(&Template{}, nil); err == nil {
+		t.Fatalf("Expected an error when rendering nil values")
+	}
+}
+
 // TestRenderMath verifies that the engine can render math sprig funcs.
 func TestRenderMath(t *testing.T) {
 	expectedMsg := "15,-5,50"

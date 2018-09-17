@@ -46,7 +46,7 @@ func OverrideValues(c1 *Config, c2 *Config) (Values, error) {
 	merged := Values{}
 
 	if c2 != nil {
-		v, err := Deserialize([]byte(c2.RawValue))
+		v, err := Deserialize([]byte(c2.GetRawValue()))
 		if err != nil {
 			return merged, err
 		}
@@ -67,7 +67,7 @@ func merge(c *Config, merged map[string]interface{}) (map[string]interface{}, er
 		return merged, nil
 	}
 
-	vals, err := Deserialize([]byte(c.RawValue))
+	vals, err := Deserialize([]byte(c.GetRawValue()))
 	if err != nil {
 		return merged, fmt.Errorf("Failed to deserialize values. Try rendering your template locally using the instructions found at https://github.com/Azure/acr-builder. Err: %v", err)
 	}
