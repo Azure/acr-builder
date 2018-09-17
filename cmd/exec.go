@@ -70,10 +70,10 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
 	procManager := procmanager.NewProcManager(e.dryRun)
-	if e.opts.SharedContextDirectory == "" {
+	if e.opts.SharedVolume == "" {
 		if !e.dryRun {
 			homeVolName := fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
-			e.opts.SharedContextDirectory = homeVolName
+			e.opts.SharedVolume = homeVolName
 			v := volume.NewVolume(homeVolName, procManager)
 			if msg, err := v.Create(ctx); err != nil {
 				return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
@@ -83,7 +83,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 			}()
 		}
 	}
-	log.Printf("Using %s as the home volume\n", e.opts.SharedContextDirectory)
+	log.Printf("Using %s as the home volume\n", e.opts.SharedVolume)
 
 	var template *templating.Template
 	var err error
@@ -120,7 +120,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	builder := builder.NewBuilder(procManager, debug, e.opts.SharedContextDirectory)
+	builder := builder.NewBuilder(procManager, debug, e.opts.SharedVolume)
 	defer builder.CleanTask(context.Background(), task)
 	return builder.RunTask(ctx, task)
 }

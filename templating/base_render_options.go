@@ -52,8 +52,8 @@ type BaseRenderOptions struct {
 	// Date is the UTC date of the run.
 	Date time.Time
 
-	// SharedContextDirectory is the name of the shared context directory.
-	SharedContextDirectory string
+	// SharedVolume is the name of the shared volume.
+	SharedVolume string
 
 	// OS is the GOOS.
 	OS string
@@ -69,16 +69,16 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 			"ID": opts.ID,
 		},
 		"Run": map[string]interface{}{
-			"ID":          opts.ID,
-			"Commit":      opts.Commit,
-			"Repository":  opts.Repository,
-			"Branch":      opts.Branch,
-			"GitTag":      opts.GitTag,
-			"TriggeredBy": opts.TriggeredBy,
-			"Registry":    opts.Registry,
-			"Date":        opts.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
-			"SharedContextDirectory": opts.SharedContextDirectory,
-			"OS": opts.OS,
+			"ID":           opts.ID,
+			"Commit":       opts.Commit,
+			"Repository":   opts.Repository,
+			"Branch":       opts.Branch,
+			"GitTag":       opts.GitTag,
+			"TriggeredBy":  opts.TriggeredBy,
+			"Registry":     opts.Registry,
+			"Date":         opts.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
+			"SharedVolume": opts.SharedVolume,
+			"OS":           opts.OS,
 			// "Arch": opts.Architecture, // TODO: Not exposed yet.
 		},
 	}
