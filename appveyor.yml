@@ -1,18 +1,22 @@
 version: "{build}"
 
 clone_folder: c:\gopath\src\github.com\Azure\acr-builder
-
 environment:
   GOPATH: c:\gopath
+  matrix:
+    - GOVERSION: 1.10.3
 
 install:
-  - set Path=c:\go\bin;c:\gopath\bin;
-  - go version
-  - go env
+  - set PATH=%GOPATH%\bin;c:\go\bin;%PATH%
+  - rmdir c:\go /s /q
+  - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.zip
+  - 7z x go%GOVERSION%.windows-amd64.zip -y -oC:\ > NUL
 
 build: false
-deploy: false
 
 test_script:
   - go build github.com/Azure/acr-builder
-  - go test ./...
+  - for /f "" %%G in ('go list ./... ^| find /i /v "/vendor/"') do ( go test %%G & IF ERRORLEVEL == 1 EXIT 1)
+
+matrix:
+  fast_finish: true
