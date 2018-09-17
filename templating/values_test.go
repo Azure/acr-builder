@@ -50,6 +50,13 @@ func TestDeserializeFromFile(t *testing.T) {
 	matchFruits(t, v)
 }
 
+func TestDeserializeFromFile_Defaults(t *testing.T) {
+	_, err := DeserializeFromFile("")
+	if err == nil {
+		t.Fatal("Expected to receive an error from an invalid file name")
+	}
+}
+
 // TestToYAMLString converts a string to YAML.
 func TestToYAMLString(t *testing.T) {
 	vals := Values{"id": true, "hello": 1, "someString": "something"}

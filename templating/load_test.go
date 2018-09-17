@@ -44,6 +44,13 @@ func TestLoadConfig(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_Invalid(t *testing.T) {
+	_, err := LoadConfig("")
+	if err == nil {
+		t.Fatal("Expected load config to fail because of an invalid path")
+	}
+}
+
 func TestDecodeConfig(t *testing.T) {
 	enc := "IyBEZWZhdWx0IHZhbHVlcyBmb3IgdGhlIFRoYW1lcyBqb2IKbmFtZTogVGhhbWVzCmNvdW50cnk6IEVuZ2xhbmQKY291bnRpZXM6IFtHbG91Y2VzdGVyc2hpcmUsIFdpbHRzaGlyZSwgT3hmb3Jkc2hpcmUsIEJlcmtzaGlyZSwgQnVja2luZ2hhbXNoaXJlLCBTdXJyZXldCmxlbmd0aDogMzQ2CmVsZXZhdGlvbjogMAphcGlOYW1lOiB2MQ=="
 	c, err := DecodeConfig(enc)
@@ -56,6 +63,14 @@ func TestDecodeConfig(t *testing.T) {
 	actual := c.GetRawValue()
 	if expectedConfig != actual {
 		t.Fatalf("expected %s but got %s", expectedConfig, actual)
+	}
+}
+
+func TestDecodeConfig_Invalid(t *testing.T) {
+	enc := "invalidencoding"
+	_, err := DecodeConfig(enc)
+	if err == nil {
+		t.Fatal("expected to fail the decoding with an invalid base64 encoding")
 	}
 }
 
@@ -77,6 +92,13 @@ func TestLoadTemplate(t *testing.T) {
 	}
 }
 
+func TestLoadTemplate_Invalid(t *testing.T) {
+	_, err := LoadTemplate("")
+	if err == nil {
+		t.Fatal("expected to fail template load because of an invalid file path")
+	}
+}
+
 func TestDecodeTemplate(t *testing.T) {
 	enc := "YXBpTmFtZTogInt7LlZhbHVlcy5hcGlOYW1lfX0iCgptZXRhZGF0YToKICAtIGJ1aWxkSWQ6ICJ7ey5SdW4uSUQgfCB1cHBlcn19IgogICAgY29tbWl0OiAie3suUnVuLkNvbW1pdCB8IGxvd2VyfX0iCiAgICB0YWc6ICJ7ey5SdW4uVGFnfX0iCiAgICByZXBvc2l0b3J5OiAie3suUnVuLlJlcG9zaXRvcnl9fSIKICAgIGJyYW5jaDogInt7LlJ1bi5CcmFuY2h9fSIKICAgIHRyaWdnZXJlZEJ5OiAie3suUnVuLlRyaWdnZXJlZEJ5fX0i"
 	template, err := DecodeTemplate(enc)
@@ -93,5 +115,13 @@ func TestDecodeTemplate(t *testing.T) {
 	expectedName := decodedTemplateName
 	if expectedName != template.GetName() {
 		t.Fatalf("expected %s as the template's name but got %s", expectedName, template.GetName())
+	}
+}
+
+func TestDecodeTemplate_Invalid(t *testing.T) {
+	enc := "invalidbase64encoding"
+	_, err := DecodeTemplate(enc)
+	if err == nil {
+		t.Fatal("expected to fail template decoding because of an invalid base64 encoding")
 	}
 }
