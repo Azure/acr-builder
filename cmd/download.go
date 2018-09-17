@@ -67,7 +67,7 @@ func (d *downloadCmd) run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	workingDir, _, _, err := scanner.ObtainSourceCode(ctx, d.context)
+	workingDir, _, err := scanner.ObtainSourceCode(ctx, d.context)
 	if err != nil {
 		return err
 	}
