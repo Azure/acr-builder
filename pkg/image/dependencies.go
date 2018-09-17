@@ -7,7 +7,11 @@ import (
 	"fmt"
 )
 
-// Dependencies denotes docker image dependencies.
+const (
+	defaultStringValue = "<nil>"
+)
+
+// Dependencies denotes Docker image dependencies.
 type Dependencies struct {
 	Image     *Reference    `json:"image"`
 	Runtime   *Reference    `json:"runtime-dependency"`
@@ -15,7 +19,7 @@ type Dependencies struct {
 	Git       *GitReference `json:"git,omitempty"`
 }
 
-// Reference defines the reference to a docker image
+// Reference defines the reference to a Docker image
 type Reference struct {
 	Registry   string `json:"registry"`
 	Repository string `json:"repository"`
@@ -24,8 +28,8 @@ type Reference struct {
 	Reference  string `json:"reference"`
 }
 
-// ReferencesEquals determines if two image references are equal.
-func ReferencesEquals(img1 *Reference, img2 *Reference) bool {
+// Equals determines if two image references are equal.
+func Equals(img1 *Reference, img2 *Reference) bool {
 	if img1 == nil && img2 == nil {
 		return true
 	}
@@ -43,7 +47,7 @@ func ReferencesEquals(img1 *Reference, img2 *Reference) bool {
 // String returns a string representation of an ImageReference.
 func (i *Reference) String() string {
 	if i == nil {
-		return "<nil>"
+		return defaultStringValue
 	}
 	return fmt.Sprintf("Registry: %s\nRepository: %s\nTag: %s\nDigest: %s\nReference: %s\n", i.Registry, i.Repository, i.Tag, i.Digest, i.Reference)
 }
