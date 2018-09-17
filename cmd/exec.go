@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -20,9 +19,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const execLongDesc = `
+const (
+	execUse = "exec"
+
+	execShortDesc = "Execute a task"
+
+	execLongDesc = `
 This command can be used to execute a task.
 `
+
+	defaultTaskFile = "acb.yaml"
+)
 
 type execCmd struct {
 	out    io.Writer
@@ -41,8 +48,8 @@ func newExecCmd(out io.Writer) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "exec",
-		Short: "Execute a task",
+		Use:   execUse,
+		Short: execShortDesc,
 		Long:  execLongDesc,
 		RunE:  e.run,
 	}
@@ -58,9 +65,7 @@ func newExecCmd(out io.Writer) *cobra.Command {
 }
 
 func (e *execCmd) run(cmd *cobra.Command, args []string) error {
-	if e.opts.TaskFile == "" && e.opts.Base64EncodedTaskFile == "" {
-		return errors.New("A task file or Base64 encoded task file is required")
-	}
+	e.setDefaultTaskFile()
 
 	ctx := context.Background()
 
@@ -122,4 +127,10 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 
 func (e *execCmd) validateCmdArgs() error {
 	return validateRegistryCreds(e.registryUser, e.registryPw)
+}
+
+func (e *execCmd) setDefaultTaskFile() {
+	if e.opts.TaskFile == "" && e.opts.Base64EncodedTaskFile == "" {
+		e.opts.TaskFile = defaultTaskFile
+	}
 }
