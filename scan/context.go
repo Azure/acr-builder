@@ -22,36 +22,25 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DockerSourceType indicates whether or not the source is a Git repository, archive, or local directory.
-type DockerSourceType int
-
-// TODO: review and eliminate this.
-const (
-	dockerSourceUnknown DockerSourceType = iota
-	dockerSourceLocal
-	dockerSourceGit
-	dockerSourceArchive
-)
-
 const (
 	archiveHeaderSize = 512
 )
 
 // ObtainSourceCode obtains the source code from the specified context.
-func (s *Scanner) ObtainSourceCode(ctx context.Context, context string) (workingDir string, sha string, sourceType DockerSourceType, err error) {
-	sourceType, workingDir, err = s.getContext(ctx, context)
+func (s *Scanner) ObtainSourceCode(ctx context.Context, context string) (workingDir string, sha string, err error) {
+	isGitURL, workingDir, err := s.getContext(ctx, context)
 	if err != nil {
-		return workingDir, sha, sourceType, err
+		return workingDir, sha, err
 	}
 
-	if sourceType == dockerSourceGit {
+	if isGitURL {
 		sha, err = s.GetGitCommitID(ctx, workingDir)
 	}
 
-	return workingDir, sha, sourceType, err
+	return workingDir, sha, err
 }
 
-func (s *Scanner) getContext(ctx context.Context, context string) (DockerSourceType, string, error) {
+func (s *Scanner) getContext(ctx context.Context, context string) (bool, string, error) {
 	isSourceControlURL := util.IsSourceControlURL(context)
 	isURL := util.IsURL(context)
 
@@ -60,20 +49,20 @@ func (s *Scanner) getContext(ctx context.Context, context string) (DockerSourceT
 		if _, err := os.Stat(s.destinationFolder); os.IsNotExist(err) {
 			// Creates the destination folder if necessary, granting full permissions to the owner.
 			if innerErr := os.Mkdir(s.destinationFolder, 0700); innerErr != nil {
-				return dockerSourceUnknown, context, innerErr
+				return false, context, innerErr
 			}
 		}
 	}
 
 	if isSourceControlURL {
 		workingDir, err := s.getContextFromGitURL(context)
-		return dockerSourceGit, workingDir, err
+		return true, workingDir, err
 	} else if isURL {
-		sourceType, err := s.getContextFromURL(context)
-		return sourceType, s.destinationFolder, err
+		err := s.getContextFromURL(context)
+		return false, s.destinationFolder, err
 	}
 
-	return dockerSourceLocal, context, nil
+	return false, context, nil
 }
 
 func (s *Scanner) getContextFromGitURL(gitURL string) (contextDir string, err error) {
@@ -87,10 +76,10 @@ func (s *Scanner) getContextFromGitURL(gitURL string) (contextDir string, err er
 	return contextDir, err
 }
 
-func (s *Scanner) getContextFromURL(remoteURL string) (sourceType DockerSourceType, err error) {
+func (s *Scanner) getContextFromURL(remoteURL string) (err error) {
 	response, err := getWithStatusError(remoteURL)
 	if err != nil {
-		return dockerSourceUnknown, errors.Wrapf(err, "unable to download remote context from %s", remoteURL)
+		return errors.Wrapf(err, "unable to download remote context from %s", remoteURL)
 	}
 
 	// TODO: revamp streaming, for now just pipe to buf and discard it.
@@ -102,7 +91,7 @@ func (s *Scanner) getContextFromURL(remoteURL string) (sourceType DockerSourceTy
 	}(response)
 
 	err = s.getContextFromReader(r)
-	return dockerSourceArchive, err
+	return err
 }
 
 func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
