@@ -6,6 +6,7 @@ package graph
 import (
 	"fmt"
 	"io/ioutil"
+	"runtime"
 
 	"github.com/Azure/acr-builder/scan"
 	"github.com/Azure/acr-builder/util"
@@ -101,12 +102,15 @@ func NewTask(
 
 // initialize normalizes a Task's values.
 func (t *Task) initialize() error {
-
 	// Add the default network if none are specified.
 	// Only add the default network if we're using tasks.
 	addDefaultNetworkToSteps := false
 	if !t.IsBuildTask && len(t.Networks) <= 0 {
-		t.Networks = append(t.Networks, NewNetwork(DefaultNetworkName, false))
+		defaultNetwork := NewNetwork(DefaultNetworkName, false, "bridge")
+		if runtime.GOOS == "windows" {
+			defaultNetwork.Driver = "nat"
+		}
+		t.Networks = append(t.Networks, defaultNetwork)
 		addDefaultNetworkToSteps = true
 	}
 

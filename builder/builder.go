@@ -39,7 +39,7 @@ func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *B
 // RunTask executes a Task.
 func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	for _, network := range task.Networks {
-		log.Printf("Creating Docker network: %s\n", network.Name)
+		log.Printf("Creating Docker network: %s, driver: '%s'\n", network.Name, network.Driver)
 		if msg, err := network.Create(ctx, b.procManager); err != nil {
 			return fmt.Errorf("Failed to create network: %s, err: %v, msg: %s", network.Name, err, msg)
 		}
@@ -172,7 +172,7 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 }
 
 func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
-	log.Printf("Executing step ID: %s. Step working directory: '%s'\n", step.ID, step.WorkingDirectory)
+	log.Printf("Executing step ID: %s. Working directory: '%s', Network: '%s'\n", step.ID, step.WorkingDirectory, step.Network)
 	if step.StartDelay > 0 {
 		log.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
 		time.Sleep(time.Duration(step.StartDelay) * time.Second)

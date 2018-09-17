@@ -122,7 +122,6 @@ func (s *Step) ShouldExecuteImmediately() bool {
 	if len(s.When) == 1 && s.When[0] == ImmediateExecutionToken {
 		return true
 	}
-
 	return false
 }
 
