@@ -4,8 +4,10 @@
 package graph
 
 import (
+	"context"
 	"testing"
 
+	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/util"
 )
 
@@ -32,6 +34,7 @@ func TestNetwork(t *testing.T) {
 			[]string{"docker", "network", "rm", "bar"},
 		},
 	}
+	procManager := procmanager.NewProcManager(true)
 
 	for _, test := range tests {
 		network := NewNetwork(test.name, test.ipv6, test.driver)
@@ -44,13 +47,27 @@ func TestNetwork(t *testing.T) {
 		if network.Driver != test.driver {
 			t.Fatalf("Expected network: %s to have driver of %s, but got %s", test.name, test.driver, network.Driver)
 		}
-
 		if actual := network.getDockerCreateArgs(); !util.StringSequenceEquals(actual, test.expectedCreateArgs) {
 			t.Fatalf("Expected %v as the create args, but got %v", test.expectedCreateArgs, actual)
 		}
-
 		if actual := network.getDockerRmArgs(); !util.StringSequenceEquals(actual, test.expectedDeleteArgs) {
 			t.Fatalf("Expected %v as the delete args, but got %v", test.expectedCreateArgs, actual)
+		}
+
+		out, err := network.Create(context.Background(), procManager)
+		if err != nil {
+			t.Fatalf("Unexpected err during network creation: %v", err)
+		}
+		if out != "" {
+			t.Fatalf("Unexpected output from network creation: %s", out)
+		}
+
+		out, err = network.Delete(context.Background(), procManager)
+		if err != nil {
+			t.Fatalf("Unexpected err during network deletion: %v", err)
+		}
+		if out != "" {
+			t.Fatalf("Unexpected output from network deletion: %s", out)
 		}
 	}
 }
