@@ -42,6 +42,14 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			&Step{
+				ID:   "a",
+				Cmd:  "b",
+				When: []string{"-", "c"},
+			},
+			true,
+		},
+		{
+			&Step{
 				ID:  "a",
 				Cmd: "b",
 			},

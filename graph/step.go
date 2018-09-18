@@ -23,6 +23,7 @@ var (
 	errMissingID       = errors.New("Step is missing an ID")
 	errMissingProps    = errors.New("Step is missing a cmd, build, or push property")
 	errIDContainsSpace = errors.New("Step ID cannot contain spaces")
+	errInvalidDeps     = errors.New("Step cannot contain other IDs in when if the immediate execution token is specified")
 )
 
 // Step is a step in the execution task.
@@ -80,6 +81,9 @@ func (s *Step) Validate() error {
 		return errMissingProps
 	}
 	for _, dep := range s.When {
+		if dep == ImmediateExecutionToken && len(s.When) > 1 {
+			return errInvalidDeps
+		}
 		if dep == s.ID {
 			return NewSelfReferencedStepError(fmt.Sprintf("Step ID: %v is self-referenced", s.ID))
 		}
