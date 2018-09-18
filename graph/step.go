@@ -64,6 +64,9 @@ type Step struct {
 
 // Validate validates the step and returns an error if the Step has problems.
 func (s *Step) Validate() error {
+	if s == nil {
+		return nil
+	}
 	if s.ID == "" {
 		return errMissingID
 	}
