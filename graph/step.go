@@ -119,6 +119,9 @@ func (s *Step) Equals(t *Step) bool {
 
 // ShouldExecuteImmediately returns true if the Step should be executed immediately.
 func (s *Step) ShouldExecuteImmediately() bool {
+	if s == nil {
+		return false
+	}
 	if len(s.When) == 1 && s.When[0] == ImmediateExecutionToken {
 		return true
 	}
@@ -127,21 +130,33 @@ func (s *Step) ShouldExecuteImmediately() bool {
 
 // HasNoWhen returns true if the Step has no when clause, false otherwise.
 func (s *Step) HasNoWhen() bool {
+	if s == nil {
+		return true
+	}
 	return len(s.When) == 0
 }
 
 // IsCmdStep returns true if the Step is a command step, false otherwise.
 func (s *Step) IsCmdStep() bool {
+	if s == nil {
+		return false
+	}
 	return s.Cmd != ""
 }
 
 // IsBuildStep returns true if the Step is a build step, false otherwise.
 func (s *Step) IsBuildStep() bool {
+	if s == nil {
+		return false
+	}
 	return s.Build != ""
 }
 
 // IsPushStep returns true if a Step is a push step, false otherwise.
 func (s *Step) IsPushStep() bool {
+	if s == nil {
+		return false
+	}
 	return len(s.Push) > 0
 }
 
