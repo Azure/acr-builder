@@ -213,14 +213,11 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 			} else {
 				workingDirectory = step.ID
 			}
-
 			step.Build = replacePositionalContext(step.Build, ".")
 		}
 		step.UpdateBuildStepWithDefaults()
 		args = b.getDockerRunArgs(volName, workingDirectory, step, nil, "", "docker build "+step.Build)
 	} else if step.IsPushStep() {
-		// TODO: Refactor this to simply set args
-		// once step retries and retry delay are implemented.
 		timeout := time.Duration(step.Timeout) * time.Second
 		pushCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
@@ -236,7 +233,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 	timeout := time.Duration(step.Timeout) * time.Second
 	stepCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	return b.procManager.Run(stepCtx, args, nil, os.Stdout, os.Stderr, "")
+	return b.procManager.RunWithRetries(stepCtx, args, nil, os.Stdout, os.Stderr, "", step.Retries, step.RetryDelayInSeconds)
 }
 
 // populateDigests populates digests on dependencies

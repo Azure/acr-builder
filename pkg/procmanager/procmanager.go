@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"time"
 
 	"github.com/Azure/acr-builder/pkg/util"
 )
@@ -28,6 +29,29 @@ func NewProcManager(dryRun bool) *ProcManager {
 		processes: map[int]*os.Process{},
 		mu:        sync.Mutex{},
 	}
+}
+
+// RunWithRetries performs Run with retries.
+func (pm *ProcManager) RunWithRetries(
+	ctx context.Context,
+	args []string,
+	stdIn io.Reader,
+	stdOut io.Writer,
+	stdErr io.Writer,
+	cmdDir string,
+	retries int,
+	retryDelay int) error {
+	attempt := 0
+	var err error
+	for attempt <= retries {
+		if err = pm.Run(ctx, args, stdIn, stdOut, stdErr, cmdDir); err == nil {
+			break
+		} else {
+			attempt++
+			time.Sleep(time.Duration(retryDelay) * time.Second)
+		}
+	}
+	return err
 }
 
 // Run runs an exec.Command based on the specified args.
