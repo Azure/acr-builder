@@ -5,6 +5,9 @@ clone_folder: c:\gopath\src\github.com\Azure\acr-builder
 environment:
   GOPATH: c:\gopath
 
+init:
+  - git config --global core.autocrlf true
+
 install:
   - set Path=c:\go\bin;c:\gopath\bin;
   - go version

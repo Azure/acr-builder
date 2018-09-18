@@ -4,6 +4,8 @@
 package templating
 
 import (
+	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -39,7 +41,7 @@ func TestLoadConfig(t *testing.T) {
 		t.Fatalf("resulting config at path %s was nil", thamesValuesPath)
 	}
 	actual := c.GetRawValue()
-	if expectedConfig != actual {
+	if adjustCRInExpectedStringOnWindows(expectedConfig) != actual {
 		t.Fatalf("expected %s but got %s", expectedConfig, actual)
 	}
 }
@@ -83,7 +85,7 @@ func TestLoadTemplate(t *testing.T) {
 		t.Fatalf("resulting template at path %s was nil", thamesPath)
 	}
 	actual := string(template.GetData())
-	if expectedTemplate != actual {
+	if adjustCRInExpectedStringOnWindows(expectedTemplate) != actual {
 		t.Fatalf("expected \n'%s'\n as the data but got \n'%s'\n", expectedTemplate, actual)
 	}
 	expectedName := thamesPath
@@ -124,4 +126,11 @@ func TestDecodeTemplate_Invalid(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected to fail template decoding because of an invalid base64 encoding")
 	}
+}
+
+func adjustCRInExpectedStringOnWindows(expectedStr string) string{
+	if runtime.GOOS == "windows" {
+		return strings.Replace(expectedStr, "\n", "\r\n", -1)
+	}
+	return expectedStr
 }
