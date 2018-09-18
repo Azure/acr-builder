@@ -44,6 +44,10 @@ func (pm *ProcManager) Run(
 		return nil
 	}
 
+	if args == nil {
+		return nil
+	}
+
 	cmd := exec.Command(args[0], args[1:]...)
 	if cmdDir != "" {
 		cmd.Dir = cmdDir
@@ -64,7 +68,6 @@ func (pm *ProcManager) Run(
 	pm.mu.Unlock()
 
 	defer pm.DeletePid(pid)
-
 	errChan := make(chan error)
 	go func() {
 		errChan <- cmd.Wait()
