@@ -6,6 +6,53 @@ import (
 	"testing"
 )
 
+func TestValidate(t *testing.T) {
+	tests := []struct {
+		step        *Step
+		shouldError bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&Step{},
+			true,
+		},
+		{
+			&Step{
+				ID: "a",
+			},
+			true,
+		},
+		{
+			&Step{
+				ID:   "a",
+				Cmd:  "b",
+				When: []string{"a"},
+			},
+			true,
+		},
+		{
+			&Step{
+				ID:  "a",
+				Cmd: "b",
+			},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		err := test.step.Validate()
+		if test.shouldError && err == nil {
+			t.Fatalf("Expected step: %v to error but it didn't", test.step)
+		}
+		if !test.shouldError && err != nil {
+			t.Fatalf("step: %v shouldn't have errored, but it did; err: %v", test.step, err)
+		}
+	}
+}
+
 func TestIsBuildStep(t *testing.T) {
 	tests := []struct {
 		step     *Step
