@@ -35,7 +35,7 @@ func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions
 
 	opts.Date = time.Now().UTC()
 	opts.OS = runtime.GOOS
-	// opts.Architecture = runtime.GOARCH // TODO: Not exposed yet.
+	opts.Architecture = runtime.GOARCH
 
 	// exec and render both use task and it's required, but build doesn't
 	if usesTask {
