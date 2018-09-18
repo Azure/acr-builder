@@ -20,16 +20,18 @@ func TestDagCreation_ValidFile(t *testing.T) {
 	}
 
 	pullerStep := &Step{
-		ID:               "puller",
-		Cmd:              "azure/images/docker pull ubuntu",
-		EntryPoint:       "someEntryPoint",
-		Envs:             []string{"eric=foo", "foo=bar"},
-		SecretEnvs:       []string{"someAkvSecretEnv"},
-		ExitedWithout:    []int{0, 255},
-		StepStatus:       Skipped,
-		Timeout:          defaultStepTimeoutInSeconds,
-		WorkingDirectory: "pullDir",
-		Network:          DefaultNetworkName,
+		ID:                  "puller",
+		Cmd:                 "azure/images/docker pull ubuntu",
+		EntryPoint:          "someEntryPoint",
+		Envs:                []string{"eric=foo", "foo=bar"},
+		SecretEnvs:          []string{"someAkvSecretEnv"},
+		ExitedWithout:       []int{0, 255},
+		StepStatus:          Skipped,
+		Timeout:             defaultStepTimeoutInSeconds,
+		WorkingDirectory:    "pullDir",
+		Network:             DefaultNetworkName,
+		Retries:             5,
+		RetryDelayInSeconds: 90,
 	}
 
 	cStep := &Step{

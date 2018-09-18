@@ -33,6 +33,9 @@ const (
 
 	// The maximum total timeout is 6 hours.
 	maxTotalTimeoutInSeconds = 60 * 60 * 6
+
+	// The default step retry delay is 5 seconds.
+	defaultStepRetryDelayInSeconds = 5
 )
 
 // Task represents a task execution.
@@ -143,6 +146,10 @@ func (t *Task) initialize() error {
 		// stamp the global timeout on them.
 		if s.Timeout <= 0 {
 			s.Timeout = t.StepTimeout
+		}
+
+		if s.Retries > 0 && s.RetryDelayInSeconds <= 0 {
+			s.RetryDelayInSeconds = defaultStepRetryDelayInSeconds
 		}
 
 		if addDefaultNetworkToSteps && s.Network == "" {
