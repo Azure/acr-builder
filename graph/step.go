@@ -20,8 +20,9 @@ const (
 )
 
 var (
-	errMissingID    = errors.New("Step is missing an ID")
-	errMissingProps = errors.New("Step is missing a cmd, build, or push property")
+	errMissingID       = errors.New("Step is missing an ID")
+	errMissingProps    = errors.New("Step is missing a cmd, build, or push property")
+	errIDContainsSpace = errors.New("Step ID cannot contain spaces")
 )
 
 // Step is a step in the execution task.
@@ -71,6 +72,9 @@ func (s *Step) Validate() error {
 	}
 	if s.ID == "" {
 		return errMissingID
+	}
+	if util.ContainsSpace(s.ID) {
+		return errIDContainsSpace
 	}
 	if !s.IsCmdStep() && !s.IsBuildStep() && !s.IsPushStep() {
 		return errMissingProps
