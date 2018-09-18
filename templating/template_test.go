@@ -38,3 +38,17 @@ steps:
 		}
 	}
 }
+
+func TestNewTemplate_Nil(t *testing.T) {
+	var nilTemplate *Template
+	expectedData := ""
+	actualData := string(nilTemplate.GetData())
+	expectedName := ""
+	actualName := nilTemplate.GetName()
+	if actualData != expectedData {
+		t.Errorf("expected %s but got %s for the data", expectedData, actualData)
+	}
+	if actualName != expectedName {
+		t.Errorf("expected %s but got %s for the name", expectedName, actualName)
+	}
+}
