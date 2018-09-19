@@ -56,6 +56,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Timeout:      defaultStepTimeoutInSeconds,
 		IgnoreErrors: true,
 		Network:      DefaultNetworkName,
+		DisableWorkingDirectoryOverride: true,
 	}
 
 	fooStep := &Step{
