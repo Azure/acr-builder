@@ -28,30 +28,31 @@ var (
 
 // Step is a step in the execution task.
 type Step struct {
-	ID                  string   `yaml:"id"`
-	Cmd                 string   `yaml:"cmd"`
-	Build               string   `yaml:"build"`
-	Push                []string `yaml:"push"`
-	WorkingDirectory    string   `yaml:"workingDirectory"`
-	EntryPoint          string   `yaml:"entryPoint"`
-	Envs                []string `yaml:"env"`
-	SecretEnvs          []string `yaml:"secretEnvs"`
-	Expose              []string `yaml:"expose"`
-	Ports               []string `yaml:"ports"`
-	When                []string `yaml:"when"`
-	ExitedWith          []int    `yaml:"exitedWith"`
-	ExitedWithout       []int    `yaml:"exitedWithout"`
-	Timeout             int      `yaml:"timeout"`
-	Keep                bool     `yaml:"keep"`
-	Detach              bool     `yaml:"detach"`
-	StartDelay          int      `yaml:"startDelay"`
-	Privileged          bool     `yaml:"privileged"`
-	User                string   `yaml:"user"`
-	Network             string   `yaml:"network"`
-	Isolation           string   `yaml:"isolation"`
-	IgnoreErrors        bool     `yaml:"ignoreErrors"`
-	Retries             int      `yaml:"retries"`
-	RetryDelayInSeconds int      `yaml:"retryDelay"`
+	ID                              string   `yaml:"id"`
+	Cmd                             string   `yaml:"cmd"`
+	Build                           string   `yaml:"build"`
+	Push                            []string `yaml:"push"`
+	WorkingDirectory                string   `yaml:"workingDirectory"`
+	EntryPoint                      string   `yaml:"entryPoint"`
+	Envs                            []string `yaml:"env"`
+	SecretEnvs                      []string `yaml:"secretEnvs"`
+	Expose                          []string `yaml:"expose"`
+	Ports                           []string `yaml:"ports"`
+	When                            []string `yaml:"when"`
+	ExitedWith                      []int    `yaml:"exitedWith"`
+	ExitedWithout                   []int    `yaml:"exitedWithout"`
+	Timeout                         int      `yaml:"timeout"`
+	Keep                            bool     `yaml:"keep"`
+	Detach                          bool     `yaml:"detach"`
+	StartDelay                      int      `yaml:"startDelay"`
+	Privileged                      bool     `yaml:"privileged"`
+	User                            string   `yaml:"user"`
+	Network                         string   `yaml:"network"`
+	Isolation                       string   `yaml:"isolation"`
+	IgnoreErrors                    bool     `yaml:"ignoreErrors"`
+	Retries                         int      `yaml:"retries"`
+	RetryDelayInSeconds             int      `yaml:"retryDelay"`
+	DisableWorkingDirectoryOverride bool     `yaml:"disableWorkingDirectoryOverride"`
 
 	StartTime  time.Time
 	EndTime    time.Time
@@ -125,7 +126,8 @@ func (s *Step) Equals(t *Step) bool {
 		s.Isolation != t.Isolation ||
 		s.IgnoreErrors != t.IgnoreErrors ||
 		s.Retries != t.Retries ||
-		s.RetryDelayInSeconds != t.RetryDelayInSeconds {
+		s.RetryDelayInSeconds != t.RetryDelayInSeconds ||
+		s.DisableWorkingDirectoryOverride != t.DisableWorkingDirectoryOverride {
 		return false
 	}
 

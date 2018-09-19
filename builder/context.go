@@ -83,7 +83,9 @@ func (b *Builder) getDockerRunArgs(
 	sb.WriteString(" --volume " + util.DockerSocketVolumeMapping)
 	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
 	sb.WriteString(" --env " + homeEnv)
-	sb.WriteString(" --workdir " + normalizeWorkDir(stepWorkDir))
+	if !step.DisableWorkingDirectoryOverride {
+		sb.WriteString(" --workdir " + normalizeWorkDir(stepWorkDir))
+	}
 	sb.WriteString(" " + cmd)
 
 	args = append(args, sb.String())
