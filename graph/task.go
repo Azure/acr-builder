@@ -55,10 +55,13 @@ type Task struct {
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(data, registry, user, pw string) (*Task, error) {
+func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir string) (*Task, error) {
 	t := &Task{}
 	if err := yaml.Unmarshal([]byte(data), t); err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task")
+	}
+	if defaultWorkDir != "" && t.WorkingDirectory == "" {
+		t.WorkingDirectory = defaultWorkDir
 	}
 	t.setRegistryInfo(registry, user, pw)
 	err := t.initialize()
