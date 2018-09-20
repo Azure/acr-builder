@@ -35,8 +35,9 @@ type execCmd struct {
 	out    io.Writer
 	dryRun bool
 
-	registryUser string
-	registryPw   string
+	registryUser   string
+	registryPw     string
+	defaultWorkDir string
 
 	opts *templating.BaseRenderOptions
 }
@@ -59,6 +60,7 @@ func newExecCmd(out io.Writer) *cobra.Command {
 	f.StringVarP(&e.registryUser, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&e.registryPw, "password", "p", "", "the password to use when logging into the registry")
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the task but doesn't execute it")
+	f.StringVar(&e.defaultWorkDir, "working-directory", "", "the default working directory to use if the underlying Task doesn't have one specified")
 
 	AddBaseRenderingOptions(f, e.opts, cmd, true)
 	return cmd
@@ -107,7 +109,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		fmt.Println(rendered)
 	}
 
-	task, err := graph.UnmarshalTaskFromString(rendered, e.opts.Registry, e.registryUser, e.registryPw)
+	task, err := graph.UnmarshalTaskFromString(rendered, e.opts.Registry, e.registryUser, e.registryPw, e.defaultWorkDir)
 	if err != nil {
 		return err
 	}
