@@ -52,10 +52,11 @@ type Task struct {
 	RegistryPassword string
 	Dag              *Dag
 	IsBuildTask      bool // Used to skip the default network creation for build.
+	Env              string
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir string) (*Task, error) {
+func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, env, network string) (*Task, error) {
 	t := &Task{}
 	if err := yaml.Unmarshal([]byte(data), t); err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task")
@@ -64,6 +65,14 @@ func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir string) (*
 		t.WorkingDirectory = defaultWorkDir
 	}
 	t.setRegistryInfo(registry, user, pw)
+
+	t.Env = env
+
+	if network != "" {
+		externalNetwork := NewNetwork(network, false, "bridge", true)
+		t.Networks = append(t.Networks, externalNetwork)
+	}
+
 	err := t.initialize()
 	return t, err
 }
@@ -112,7 +121,7 @@ func (t *Task) initialize() error {
 	// Only add the default network if we're using tasks.
 	addDefaultNetworkToSteps := false
 	if !t.IsBuildTask && len(t.Networks) <= 0 {
-		defaultNetwork := NewNetwork(DefaultNetworkName, false, "bridge")
+		defaultNetwork := NewNetwork(DefaultNetworkName, false, "bridge", false)
 		if runtime.GOOS == "windows" {
 			defaultNetwork.Driver = "nat"
 		}
@@ -155,8 +164,16 @@ func (t *Task) initialize() error {
 			s.RetryDelayInSeconds = defaultStepRetryDelayInSeconds
 		}
 
+		if len(t.Networks) > 0 {
+			s.Network = t.Networks[0].Name
+		}
+
 		if addDefaultNetworkToSteps && s.Network == "" {
 			s.Network = DefaultNetworkName
+		}
+
+		if t.Env != "" {
+			s.Envs = append(s.Envs, t.Env)
 		}
 
 		if s.ID == "" {

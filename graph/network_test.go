@@ -37,7 +37,7 @@ func TestNetwork(t *testing.T) {
 	procManager := procmanager.NewProcManager(true)
 
 	for _, test := range tests {
-		network := NewNetwork(test.name, test.ipv6, test.driver)
+		network := NewNetwork(test.name, test.ipv6, test.driver, false)
 		if network.Name != test.name {
 			t.Fatalf("Expected network name: %s but got %s", test.name, network.Name)
 		}

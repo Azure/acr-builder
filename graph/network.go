@@ -17,17 +17,19 @@ const (
 
 // Network defines a Docker network.
 type Network struct {
-	Name   string `yaml:"name"`
-	Ipv6   bool   `yaml:"ipv6"`
-	Driver string `yaml:"driver"`
+	Name       string `yaml:"name"`
+	Ipv6       bool   `yaml:"ipv6"`
+	Driver     string `yaml:"driver"`
+	IsExternal bool
 }
 
 // NewNetwork creates a new network.
-func NewNetwork(name string, ipv6 bool, driver string) *Network {
+func NewNetwork(name string, ipv6 bool, driver string, isExternal bool) *Network {
 	return &Network{
-		Name:   name,
-		Ipv6:   ipv6,
-		Driver: driver,
+		Name:       name,
+		Ipv6:       ipv6,
+		Driver:     driver,
+		IsExternal: isExternal,
 	}
 }
 

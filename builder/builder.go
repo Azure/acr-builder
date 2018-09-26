@@ -39,11 +39,13 @@ func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *B
 // RunTask executes a Task.
 func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	for _, network := range task.Networks {
-		log.Printf("Creating Docker network: %s, driver: '%s'\n", network.Name, network.Driver)
-		if msg, err := network.Create(ctx, b.procManager); err != nil {
-			return fmt.Errorf("Failed to create network: %s, err: %v, msg: %s", network.Name, err, msg)
+		if !network.IsExternal {
+			log.Printf("Creating Docker network: %s, driver: '%s'\n", network.Name, network.Driver)
+			if msg, err := network.Create(ctx, b.procManager); err != nil {
+				return fmt.Errorf("Failed to create network: %s, err: %v, msg: %s", network.Name, err, msg)
+			}
+			log.Printf("Successfully set up Docker network: %s\n", network.Name)
 		}
-		log.Printf("Successfully set up Docker network: %s\n", network.Name)
 	}
 
 	log.Println("Setting up Docker configuration...")
@@ -132,11 +134,12 @@ func (b *Builder) CleanTask(ctx context.Context, task *graph.Task) {
 	}
 
 	for _, network := range task.Networks {
-		if msg, err := network.Delete(ctx, b.procManager); err != nil {
-			log.Printf("Failed to delete network: %s, err: %v, msg: %s\n", network.Name, err, msg)
+		if !network.IsExternal {
+			if msg, err := network.Delete(ctx, b.procManager); err != nil {
+				log.Printf("Failed to delete network: %s, err: %v, msg: %s\n", network.Name, err, msg)
+			}
 		}
 	}
-
 	_ = b.procManager.Stop()
 }
 
