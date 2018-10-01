@@ -1,7 +1,7 @@
 # Required.
 # docker build -f baseimages/docker-cli/Windows.Dockerfile -t docker .
 
-ARG WINDOWS_IMAGE=microsoft/windowsservercore:1803
+ARG WINDOWS_IMAGE=microsoft/windowsservercore:ltsc2019
 FROM $WINDOWS_IMAGE as environment
 
 # set the default shell as powershell.
