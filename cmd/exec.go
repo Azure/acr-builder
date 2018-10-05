@@ -39,7 +39,7 @@ type execCmd struct {
 	registryPw     string
 	defaultWorkDir string
 	network        string
-	env            string
+	envs           []string
 
 	opts *templating.BaseRenderOptions
 }
@@ -64,8 +64,8 @@ func newExecCmd(out io.Writer) *cobra.Command {
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the task but doesn't execute it")
 	f.StringVar(&e.defaultWorkDir, "working-directory", "", "the default working directory to use if the underlying Task doesn't have one specified")
 
-	f.StringVar(&e.network, "network", "", "the network to use")
-	f.StringVar(&e.env, "env", "", "environment variable to use")
+	f.StringVar(&e.network, "network", "", "the default network to use")
+	f.StringArrayVar(&e.envs, "env", []string{}, "the default environment variables which are applied to each step (use `--env` multiple times or use commas: env1=val1,env2=val2)")
 
 	AddBaseRenderingOptions(f, e.opts, cmd, true)
 	return cmd
@@ -114,7 +114,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		fmt.Println(rendered)
 	}
 
-	task, err := graph.UnmarshalTaskFromString(rendered, e.opts.Registry, e.registryUser, e.registryPw, e.defaultWorkDir, e.env, e.network)
+	task, err := graph.UnmarshalTaskFromString(rendered, e.opts.Registry, e.registryUser, e.registryPw, e.defaultWorkDir, e.network, e.envs)
 
 	if err != nil {
 		return err

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"runtime"
+	"strings"
 
 	"github.com/Azure/acr-builder/scan"
 	"github.com/Azure/acr-builder/util"
@@ -51,12 +52,12 @@ type Task struct {
 	RegistryUsername string
 	RegistryPassword string
 	Dag              *Dag
-	IsBuildTask      bool // Used to skip the default network creation for build.
-	Env              string
+	IsBuildTask      bool     // Used to skip the default network creation for build.
+	Envs             []string `yaml:"envs,omitempty"`
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, env, network string) (*Task, error) {
+func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, network string, envs []string) (*Task, error) {
 	t := &Task{}
 	if err := yaml.Unmarshal([]byte(data), t); err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task")
@@ -66,7 +67,7 @@ func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, env, netw
 	}
 	t.setRegistryInfo(registry, user, pw)
 
-	t.Env = env
+	t.Envs = envs
 
 	if network != "" {
 		externalNetwork := NewNetwork(network, false, "bridge", true)
@@ -117,9 +118,15 @@ func NewTask(
 
 // initialize normalizes a Task's values.
 func (t *Task) initialize() error {
+	newDefaultNetworkName := DefaultNetworkName
+	// The default network being created is equal to the default network name passed in through CLI, if provided
+	addDefaultNetworkToSteps := false
+	if len(t.Networks) > 0 && t.Networks[len(t.Networks)-1].SkipCreation == true {
+		newDefaultNetworkName = t.Networks[len(t.Networks)-1].Name
+		addDefaultNetworkToSteps = true
+	}
 	// Add the default network if none are specified.
 	// Only add the default network if we're using tasks.
-	addDefaultNetworkToSteps := false
 	if !t.IsBuildTask && len(t.Networks) <= 0 {
 		defaultNetwork := NewNetwork(DefaultNetworkName, false, "bridge", false)
 		if runtime.GOOS == "windows" {
@@ -164,16 +171,14 @@ func (t *Task) initialize() error {
 			s.RetryDelayInSeconds = defaultStepRetryDelayInSeconds
 		}
 
-		if len(t.Networks) > 0 {
-			s.Network = t.Networks[0].Name
-		}
-
 		if addDefaultNetworkToSteps && s.Network == "" {
-			s.Network = DefaultNetworkName
+			s.Network = newDefaultNetworkName
 		}
 
-		if t.Env != "" {
-			s.Envs = append(s.Envs, t.Env)
+		if newEnvs, err := mergeEnvs(s.Envs, t.Envs); err != nil {
+			return fmt.Errorf("bad format of environment variables, err: %v", err)
+		} else {
+			s.Envs = newEnvs
 		}
 
 		if s.ID == "" {
@@ -241,4 +246,46 @@ func getNormalizedDockerImageNames(dockerImages []string, registry string) []str
 	}
 
 	return normalizedDockerImages
+}
+
+// the step's environment variables should override the task's default ones if provided
+func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
+	if len(taskEnvs) < 1 {
+		return stepEnvs, nil
+	}
+
+	//preprocess the coma case
+	var newTaskEnvs []string
+	for _, env := range taskEnvs {
+		newEnv := strings.Split(env, ",")
+		newTaskEnvs = append(newTaskEnvs, newEnv...)
+	}
+
+	var stepmap = make(map[string]string)
+	//parse stepEnvs into a map
+	for _, env := range stepEnvs {
+		stringSlice := strings.Split(env, "=")
+		if len(stringSlice) != 2 {
+			err := fmt.Errorf("can not parse step environment variable %s correctly", env)
+			return stepEnvs, err
+		}
+		stepmap[stringSlice[0]] = stringSlice[1]
+	}
+
+	//merge the unique taskEnvs into stepEnvs
+	for _, env := range newTaskEnvs {
+		stringSlice := strings.Split(env, "=")
+		if len(stringSlice) != 2 {
+			err := fmt.Errorf("can not parse task environment variable %s correctly", env)
+			return stepEnvs, err
+		}
+
+		//if the env has not been provided, add to step env
+		if _, ok := stepmap[stringSlice[0]]; !ok {
+			stepEnvs = append(stepEnvs, stringSlice[0]+"="+stringSlice[1])
+		}
+
+	}
+
+	return stepEnvs, nil
 }
