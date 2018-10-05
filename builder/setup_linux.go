@@ -15,7 +15,7 @@ import (
 const (
 	config = `{
 		"experimental": "enabled",
-		"HttpHeaders": {"X-Meta-Source-Client": "ACR-BUILDER"}
+		"HttpHeaders": {"X-Meta-Source-Client": "azure/acr/tasks"}
 	}`
 )
 

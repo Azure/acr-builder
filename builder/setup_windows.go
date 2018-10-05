@@ -14,7 +14,10 @@ import (
 )
 
 const (
-	config = `{"experimental": "enabled", "HttpHeaders": {"X-Meta-Source-Client": "ACR-BUILDER"}}`
+	config = `{
+		"experimental": "enabled",
+		"HttpHeaders": {"X-Meta-Source-Client": "azure/acr/tasks"}
+	}`
 )
 
 // setupConfig initializes ~/.docker/config.json
