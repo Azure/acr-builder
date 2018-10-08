@@ -40,7 +40,7 @@ func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *B
 func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	for _, network := range task.Networks {
 		if network.SkipCreation {
-			log.Printf("skip creating network " + network.Name)
+			log.Printf("Skip creating network: %s\n", network.Name)
 			continue
 		}
 		log.Printf("Creating Docker network: %s, driver: '%s'\n", network.Name, network.Driver)
@@ -137,7 +137,7 @@ func (b *Builder) CleanTask(ctx context.Context, task *graph.Task) {
 
 	for _, network := range task.Networks {
 		if network.SkipCreation {
-			log.Printf("skip deleting network " + network.Name)
+			log.Printf("Skip deleting network: %s\n", network.Name)
 			continue
 		}
 		if msg, err := network.Delete(ctx, b.procManager); err != nil {

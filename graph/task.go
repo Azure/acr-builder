@@ -70,7 +70,7 @@ func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, network s
 	t.Envs = envs
 
 	if network != "" {
-		externalNetwork := NewNetwork(network, false, "bridge", true)
+		externalNetwork := NewNetwork(network, false, "external", true)
 		t.Networks = append(t.Networks, externalNetwork)
 	}
 
@@ -119,16 +119,21 @@ func NewTask(
 // initialize normalizes a Task's values.
 func (t *Task) initialize() error {
 	newDefaultNetworkName := DefaultNetworkName
-	// The default network being created is equal to the default network name passed in through CLI, if provided
 	addDefaultNetworkToSteps := false
-	if len(t.Networks) > 0 && t.Networks[len(t.Networks)-1].SkipCreation == true {
-		newDefaultNetworkName = t.Networks[len(t.Networks)-1].Name
-		addDefaultNetworkToSteps = true
+
+	// The default network being created is equal to the default network name passed in through CLI, if provided
+	for _, network := range t.Networks {
+		if network.SkipCreation == true {
+			newDefaultNetworkName = network.Name
+			addDefaultNetworkToSteps = true
+			break
+		}
 	}
+
 	// Add the default network if none are specified.
 	// Only add the default network if we're using tasks.
 	if !t.IsBuildTask && len(t.Networks) <= 0 {
-		defaultNetwork := NewNetwork(DefaultNetworkName, false, "bridge", false)
+		defaultNetwork := NewNetwork(newDefaultNetworkName, false, "bridge", false)
 		if runtime.GOOS == "windows" {
 			defaultNetwork.Driver = "nat"
 		}
@@ -176,7 +181,7 @@ func (t *Task) initialize() error {
 		}
 
 		if newEnvs, err := mergeEnvs(s.Envs, t.Envs); err != nil {
-			return fmt.Errorf("bad format of environment variables, err: %v", err)
+			return fmt.Errorf("Bad format of environment variables, err: %v", err)
 		} else {
 			s.Envs = newEnvs
 		}
@@ -254,7 +259,7 @@ func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 		return stepEnvs, nil
 	}
 
-	//preprocess the coma case
+	//preprocess the comma case
 	var newTaskEnvs []string
 	for _, env := range taskEnvs {
 		newEnv := strings.Split(env, ",")
@@ -264,25 +269,26 @@ func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 	var stepmap = make(map[string]string)
 	//parse stepEnvs into a map
 	for _, env := range stepEnvs {
-		stringSlice := strings.Split(env, "=")
-		if len(stringSlice) != 2 {
-			err := fmt.Errorf("can not parse step environment variable %s correctly", env)
+		pair := strings.SplitN(env, "=", 2)
+		if len(pair) != 2 {
+			err := fmt.Errorf("Can not parse step environment variable %s correctly", env)
 			return stepEnvs, err
 		}
-		stepmap[stringSlice[0]] = stringSlice[1]
+		stepmap[pair[0]] = pair[1]
 	}
 
 	//merge the unique taskEnvs into stepEnvs
 	for _, env := range newTaskEnvs {
-		stringSlice := strings.Split(env, "=")
-		if len(stringSlice) != 2 {
-			err := fmt.Errorf("can not parse task environment variable %s correctly", env)
+		pair := strings.SplitN(env, "=", 2)
+
+		if len(pair) != 2 {
+			err := fmt.Errorf("Can not parse task environment variable %s correctly", env)
 			return stepEnvs, err
 		}
 
 		//if the env has not been provided, add to step env
-		if _, ok := stepmap[stringSlice[0]]; !ok {
-			stepEnvs = append(stepEnvs, stringSlice[0]+"="+stringSlice[1])
+		if _, ok := stepmap[pair[0]]; !ok {
+			stepEnvs = append(stepEnvs, pair[0]+"="+pair[1])
 		}
 
 	}

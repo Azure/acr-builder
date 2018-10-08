@@ -37,10 +37,10 @@ func TestMergingEnvs(t *testing.T) {
 	stepEnvsTests := [][]string{
 		{},
 		{"key1=newVal1", "key2=newVal2"},
-		{"key1=newVal1", "key2=newVal2", "key3=newVal3"},
+		{"key1=newVal1", "key2=newVal2", "key3=newVal3="},
 		{},
 		{"key1=newVal1", "key2=newVal2"},
-		{"key1=newVal1", "key2=newVal2", "key3=newVal3"},
+		{"key1=newVal1", "key2=newVal2", "key3=newVal3="},
 	}
 	taskEnvsTests := [][]string{
 		{"key1=val1", "key2=val2", "key3=val3"},
@@ -55,10 +55,10 @@ func TestMergingEnvs(t *testing.T) {
 	expects := [][]string{
 		{"key1=val1", "key2=val2", "key3=val3"},
 		{"key1=newVal1", "key2=newVal2", "key3=val3"},
-		{"key1=newVal1", "key2=newVal2", "key3=newVal3"},
+		{"key1=newVal1", "key2=newVal2", "key3=newVal3="},
 		{"key1=val1", "key2=val2", "key3=val3"},
 		{"key1=newVal1", "key2=newVal2", "key3=val3", "key4=val4"},
-		{"key1=newVal1", "key2=newVal2", "key3=newVal3", "key4=val4"},
+		{"key1=newVal1", "key2=newVal2", "key3=newVal3=", "key4=val4"},
 	}
 
 	for i := range taskEnvsTests {
