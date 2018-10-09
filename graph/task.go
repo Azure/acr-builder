@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"runtime"
+	"strings"
 
 	"github.com/Azure/acr-builder/scan"
 	"github.com/Azure/acr-builder/util"
@@ -51,11 +52,12 @@ type Task struct {
 	RegistryUsername string
 	RegistryPassword string
 	Dag              *Dag
-	IsBuildTask      bool // Used to skip the default network creation for build.
+	IsBuildTask      bool     // Used to skip the default network creation for build.
+	Envs             []string `yaml:"envs,omitempty"`
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir string) (*Task, error) {
+func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, network string, envs []string) (*Task, error) {
 	t := &Task{}
 	if err := yaml.Unmarshal([]byte(data), t); err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task")
@@ -64,6 +66,16 @@ func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir string) (*
 		t.WorkingDirectory = defaultWorkDir
 	}
 	t.setRegistryInfo(registry, user, pw)
+
+	t.Envs = envs
+
+	//External network parsed in from CLI will be set as default network, it will be used for any step if no network provide for them
+	//The external network is append at the end of the list of networks, later we will do reverse iteration to get this network
+	if network != "" {
+		externalNetwork := NewNetwork(network, false, "external", true, true)
+		t.Networks = append(t.Networks, externalNetwork)
+	}
+
 	err := t.initialize()
 	return t, err
 }
@@ -108,11 +120,23 @@ func NewTask(
 
 // initialize normalizes a Task's values.
 func (t *Task) initialize() error {
+	newDefaultNetworkName := DefaultNetworkName
+	addDefaultNetworkToSteps := false
+
+	// Reverse iterate the list to get the default network
+	for i := len(t.Networks) - 1; i >= 0; i-- {
+		network := t.Networks[i]
+		if network.IsDefault {
+			newDefaultNetworkName = network.Name
+			addDefaultNetworkToSteps = true
+			break
+		}
+	}
+
 	// Add the default network if none are specified.
 	// Only add the default network if we're using tasks.
-	addDefaultNetworkToSteps := false
 	if !t.IsBuildTask && len(t.Networks) <= 0 {
-		defaultNetwork := NewNetwork(DefaultNetworkName, false, "bridge")
+		defaultNetwork := NewNetwork(newDefaultNetworkName, false, "bridge", false, true)
 		if runtime.GOOS == "windows" {
 			defaultNetwork.Driver = "nat"
 		}
@@ -156,7 +180,13 @@ func (t *Task) initialize() error {
 		}
 
 		if addDefaultNetworkToSteps && s.Network == "" {
-			s.Network = DefaultNetworkName
+			s.Network = newDefaultNetworkName
+		}
+
+		if newEnvs, err := mergeEnvs(s.Envs, t.Envs); err != nil {
+			return fmt.Errorf("Bad format of environment variables, err: %v", err)
+		} else {
+			s.Envs = newEnvs
 		}
 
 		if s.ID == "" {
@@ -224,4 +254,47 @@ func getNormalizedDockerImageNames(dockerImages []string, registry string) []str
 	}
 
 	return normalizedDockerImages
+}
+
+// the step's environment variables should override the task's default ones if provided
+func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
+	if len(taskEnvs) < 1 {
+		return stepEnvs, nil
+	}
+
+	//preprocess the comma case
+	var newTaskEnvs []string
+	for _, env := range taskEnvs {
+		newEnv := strings.Split(env, ",")
+		newTaskEnvs = append(newTaskEnvs, newEnv...)
+	}
+
+	var stepmap = make(map[string]string)
+	//parse stepEnvs into a map
+	for _, env := range stepEnvs {
+		pair := strings.SplitN(env, "=", 2)
+		if len(pair) != 2 {
+			err := fmt.Errorf("Can not parse step environment variable %s correctly", env)
+			return stepEnvs, err
+		}
+		stepmap[pair[0]] = pair[1]
+	}
+
+	//merge the unique taskEnvs into stepEnvs
+	for _, env := range newTaskEnvs {
+		pair := strings.SplitN(env, "=", 2)
+
+		if len(pair) != 2 {
+			err := fmt.Errorf("Can not parse task environment variable %s correctly", env)
+			return stepEnvs, err
+		}
+
+		//if the env has not been provided, add to step env
+		if _, ok := stepmap[pair[0]]; !ok {
+			stepEnvs = append(stepEnvs, pair[0]+"="+pair[1])
+		}
+
+	}
+
+	return stepEnvs, nil
 }

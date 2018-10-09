@@ -46,23 +46,25 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Keep:       true,
 		Isolation:  "default",
 		Network:    DefaultNetworkName,
+		Envs:       []string{"foo=taskEnv"},
 	}
 
 	bStep := &Step{
-		ID:           "B",
-		When:         []string{"C"},
-		Cmd:          "azure/images/git clone https://github.com/ehotinger/clone",
-		StepStatus:   Skipped,
-		Timeout:      defaultStepTimeoutInSeconds,
-		IgnoreErrors: true,
-		Network:      DefaultNetworkName,
+		ID:                              "B",
+		When:                            []string{"C"},
+		Cmd:                             "azure/images/git clone https://github.com/ehotinger/clone",
+		StepStatus:                      Skipped,
+		Timeout:                         defaultStepTimeoutInSeconds,
+		IgnoreErrors:                    true,
+		Network:                         DefaultNetworkName,
 		DisableWorkingDirectoryOverride: true,
+		Envs:                            []string{"foo=taskEnv"},
 	}
 
 	fooStep := &Step{
 		ID:         "build-foo",
 		Cmd:        "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu",
-		Envs:       []string{"eric=foo"},
+		Envs:       []string{"eric=foo", "foo=taskEnv"},
 		When:       []string{"build-qux"},
 		SecretEnvs: []string{"someAkvSecretEnv"},
 		StepStatus: Skipped,
@@ -77,6 +79,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		StepStatus: Skipped,
 		Timeout:    defaultStepTimeoutInSeconds,
 		Network:    DefaultNetworkName,
+		Envs:       []string{"foo=taskEnv"},
 	}
 
 	quxStep := &Step{
@@ -88,6 +91,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Detach:     true,
 		StartDelay: 50,
 		Network:    DefaultNetworkName,
+		Envs:       []string{"foo=taskEnv"},
 	}
 
 	qazStep := &Step{
@@ -98,6 +102,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Privileged: true,
 		User:       "root",
 		Network:    "host",
+		Envs:       []string{"foo=taskEnv"},
 	}
 
 	dict := make(map[string]*Step)

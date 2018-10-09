@@ -61,3 +61,6 @@ steps:
     privileged: true
     user: root
     network: "host"
+
+envs:
+  - "foo=taskEnv"
