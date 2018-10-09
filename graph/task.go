@@ -69,8 +69,10 @@ func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, network s
 
 	t.Envs = envs
 
+	//External network parsed in from CLI will be set as default network, it will be used for any step if no network provide for them
+	//The external network is append at the end of the list of networks, later we will do reverse iteration to get this network
 	if network != "" {
-		externalNetwork := NewNetwork(network, false, "external", true)
+		externalNetwork := NewNetwork(network, false, "external", true, true)
 		t.Networks = append(t.Networks, externalNetwork)
 	}
 
@@ -121,8 +123,9 @@ func (t *Task) initialize() error {
 	newDefaultNetworkName := DefaultNetworkName
 	addDefaultNetworkToSteps := false
 
-	// The default network being created is equal to the default network name passed in through CLI, if provided
-	for _, network := range t.Networks {
+	// Reverse iterate the list to get the default network
+	for i := len(t.Networks) - 1; i >= 0; i-- {
+		network := t.Networks[i]
 		if network.SkipCreation == true {
 			newDefaultNetworkName = network.Name
 			addDefaultNetworkToSteps = true
@@ -133,7 +136,7 @@ func (t *Task) initialize() error {
 	// Add the default network if none are specified.
 	// Only add the default network if we're using tasks.
 	if !t.IsBuildTask && len(t.Networks) <= 0 {
-		defaultNetwork := NewNetwork(newDefaultNetworkName, false, "bridge", false)
+		defaultNetwork := NewNetwork(newDefaultNetworkName, false, "bridge", false, true)
 		if runtime.GOOS == "windows" {
 			defaultNetwork.Driver = "nat"
 		}

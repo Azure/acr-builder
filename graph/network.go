@@ -21,15 +21,17 @@ type Network struct {
 	Ipv6         bool   `yaml:"ipv6"`
 	Driver       string `yaml:"driver"`
 	SkipCreation bool   `yaml:"skipCreation"`
+	IsDefault    bool   `yaml:"isDefault"`
 }
 
 // NewNetwork creates a new network.
-func NewNetwork(name string, ipv6 bool, driver string, skipCreation bool) *Network {
+func NewNetwork(name string, ipv6 bool, driver string, skipCreation bool, isDefault bool) *Network {
 	return &Network{
 		Name:         name,
 		Ipv6:         ipv6,
 		Driver:       driver,
 		SkipCreation: skipCreation,
+		IsDefault:    isDefault,
 	}
 }
 

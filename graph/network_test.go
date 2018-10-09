@@ -17,6 +17,7 @@ func TestNetwork(t *testing.T) {
 		ipv6               bool
 		driver             string
 		skipCreation       bool
+		isDefault          bool
 		expectedCreateArgs []string
 		expectedDeleteArgs []string
 	}{
@@ -24,6 +25,7 @@ func TestNetwork(t *testing.T) {
 			"foo",
 			true,
 			"",
+			false,
 			false,
 			[]string{"docker", "network", "create", "foo", "--ipv6"},
 			[]string{"docker", "network", "rm", "foo"},
@@ -33,14 +35,24 @@ func TestNetwork(t *testing.T) {
 			false,
 			"nat",
 			false,
+			false,
 			[]string{"docker", "network", "create", "bar", "--driver", "nat"},
 			[]string{"docker", "network", "rm", "bar"},
+		},
+		{
+			"foo",
+			false,
+			"",
+			true,
+			true,
+			[]string{"docker", "network", "create", "foo"},
+			[]string{"docker", "network", "rm", "foo"},
 		},
 	}
 	procManager := procmanager.NewProcManager(true)
 
 	for _, test := range tests {
-		network := NewNetwork(test.name, test.ipv6, test.driver, test.skipCreation)
+		network := NewNetwork(test.name, test.ipv6, test.driver, test.skipCreation, test.isDefault)
 		if network.Name != test.name {
 			t.Fatalf("Expected network name: %s but got %s", test.name, network.Name)
 		}
