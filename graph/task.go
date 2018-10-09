@@ -126,7 +126,7 @@ func (t *Task) initialize() error {
 	// Reverse iterate the list to get the default network
 	for i := len(t.Networks) - 1; i >= 0; i-- {
 		network := t.Networks[i]
-		if network.SkipCreation == true {
+		if network.IsDefault {
 			newDefaultNetworkName = network.Name
 			addDefaultNetworkToSteps = true
 			break
