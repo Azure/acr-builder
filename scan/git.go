@@ -6,6 +6,7 @@ package scan
 import (
 	"bytes"
 	"context"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -89,7 +90,29 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 		return "", errors.Wrapf(err, "error initializing submodules: %s", output)
 	}
 
+	err = gitLfs(root)
+	if err != nil {
+		return "", err
+	}
+
 	return checkoutDir, nil
+}
+
+func gitLfs(root string) error {
+	_, err := exec.LookPath("git-lfs")
+	if err == nil {
+		cmd := exec.Command("git", "lfs", "pull")
+		cmd.Dir = root
+
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return errors.Wrapf(err, "error executing 'git lfs pull': %s", output)
+		}
+	} else {
+		log.Println("WARNING: git-lfs is not installed")
+	}
+
+	return nil
 }
 
 // ref: https://github.com/moby/moby/blob/master/builder/remotecontext/git/gitutils.go
@@ -148,6 +171,13 @@ func parseRemoteURL(remoteURL string) (gitRepo, error) {
 
 		repo.ref, repo.subdir = getRefAndSubdir(u.Fragment)
 		u.Fragment = ""
+
+		if userName := u.User.Username(); userName != "" {
+			if _, passwordSet := u.User.Password(); !passwordSet {
+				// add a dummy password as git-lfs doesn't support http://PAT@gitbhub.com/user/repo.git
+				u.User = url.UserPassword(userName, "dummy")
+			}
+		}
 		repo.remote = u.String()
 	}
 	return repo, nil

@@ -34,6 +34,27 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_DOWNLOAD_URL); \
 	\
 	Write-Host 'Complete.';
 
+# install git-lfs
+ENV GIT_LFS_DOWNLOAD_URL https://github.com/git-lfs/git-lfs/releases/download/v2.5.2/git-lfs-windows-amd64-v2.5.2.zip
+RUN Write-Host ('Downloading {0} ...' -f $env:GIT_LFS_DOWNLOAD_URL); \
+	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
+	Invoke-WebRequest -Uri $env:GIT_LFS_DOWNLOAD_URL -OutFile 'git-lfs.zip'; \
+	\
+	Write-Host 'Expanding ...'; \
+	Expand-Archive -Path git-lfs.zip -DestinationPath C:\git-lfs\.; \
+	\
+	Write-Host 'Removing ...'; \
+	Remove-Item git-lfs.zip -Force; \
+	\
+	Write-Host 'Updating PATH ...'; \
+	$env:PATH = 'C:\git-lfs;' + $env:PATH; \
+	[Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine); \
+	\
+	Write-Host 'Installing ...'; \
+	Write-Host 'git lfs install'; git lfs install; \
+	\
+	Write-Host 'Complete.';
+
 # ideally, this would be C:\go to match Linux a bit closer, but C:\go is the recommended install path for Go itself on Windows
 ENV GOPATH C:\\gopath
 
