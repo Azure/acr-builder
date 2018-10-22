@@ -2,17 +2,19 @@ ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:ltsc2019
 FROM $WINDOWS_IMAGE as environment
 
 # set the default shell as powershell.
-# $ProgressPreference: https://github.com/PowerShell/PowerShell/issues/2138#issuecomment-251261324 
+# $ProgressPreference: https://github.com/PowerShell/PowerShell/issues/2138#issuecomment-251261324
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-# install MinGit (especially for "go get" and docker build by git repos) 
+# install MinGit (especially for "go get" and docker build by git repos)
 ENV GIT_VERSION 2.17.1
 ENV GIT_TAG v${GIT_VERSION}.windows.1
 ENV GIT_DOWNLOAD_URL https://github.com/git-for-windows/git/releases/download/${GIT_TAG}/MinGit-${GIT_VERSION}-64-bit.zip
 ENV GIT_DOWNLOAD_SHA256 668d16a799dd721ed126cc91bed49eb2c072ba1b25b50048280a4e2c5ed56e59
+# disable prompt asking for credential
+ENV GIT_TERMINAL_PROMPT 0
 RUN Write-Host ('Downloading {0} ...' -f $env:GIT_DOWNLOAD_URL); \
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
-	Invoke-WebRequest -Uri $env:GIT_DOWNLOAD_URL -OutFile 'git.zip'; \	
+	Invoke-WebRequest -Uri $env:GIT_DOWNLOAD_URL -OutFile 'git.zip'; \
 	\
 	Write-Host 'Expanding ...'; \
 	Expand-Archive -Path git.zip -DestinationPath C:\git\.; \
@@ -40,7 +42,7 @@ RUN $newPath = ('{0}\bin;C:\go\bin;{1}' -f $env:GOPATH, $env:PATH); \
 # install go lang
 # ideally we should be able to use FROM golang:windowsservercore-1803. This is not done due to two reasons
 # 1. The go lang for 1803 tag is not available.
-# 2. The image pulls 2.11.1 version of MinGit which has an issue with git submodules command. https://github.com/git-for-windows/git/issues/1007#issuecomment-384281260 
+# 2. The image pulls 2.11.1 version of MinGit which has an issue with git submodules command. https://github.com/git-for-windows/git/issues/1007#issuecomment-384281260
 
 ENV GOLANG_VERSION 1.10.3
 
