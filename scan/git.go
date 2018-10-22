@@ -99,7 +99,7 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 }
 
 func gitLfs(root string) error {
-	err := exec.Command("git-lfs", "version").Run()
+	_, err := exec.LookPath("git-lfs")
 	if err == nil {
 		cmd := exec.Command("git", "lfs", "pull")
 		cmd.Dir = root
@@ -171,6 +171,13 @@ func parseRemoteURL(remoteURL string) (gitRepo, error) {
 
 		repo.ref, repo.subdir = getRefAndSubdir(u.Fragment)
 		u.Fragment = ""
+
+		if userName := u.User.Username(); userName != "" {
+			if _, passwordSet := u.User.Password(); !passwordSet {
+				// add a dummy password as git-lfs doesn't support http://PAT@gitbhub.com/user/repo.git
+				u.User = url.UserPassword(userName, "dummy")
+			}
+		}
 		repo.remote = u.String()
 	}
 	return repo, nil
