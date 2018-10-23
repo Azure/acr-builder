@@ -11,9 +11,8 @@ import (
 
 	"github.com/Azure/acr-builder/scan"
 	"github.com/Azure/acr-builder/util"
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/pkg/errors"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -183,11 +182,11 @@ func (t *Task) initialize() error {
 			s.Network = newDefaultNetworkName
 		}
 
-		if newEnvs, err := mergeEnvs(s.Envs, t.Envs); err != nil {
+		newEnvs, err := mergeEnvs(s.Envs, t.Envs)
+		if err != nil {
 			return fmt.Errorf("Bad format of environment variables, err: %v", err)
-		} else {
-			s.Envs = newEnvs
 		}
+		s.Envs = newEnvs
 
 		if s.ID == "" {
 			s.ID = fmt.Sprintf("acb_step_%d", i)
