@@ -27,9 +27,9 @@ const (
 	buildLongDesc = `
 This command can be used to build images.
 `
-
-	buildTimeoutInSec = 60 * 60 * 8 // 8 hours
-	pushTimeoutInSec  = 60 * 30     // 30 minutes
+	taskTotalTimeoutInSec = 60 * 60 * 9 // 9 hours
+	buildTimeoutInSec     = 60 * 60 * 8 // 8 hours
+	pushTimeoutInSec      = 60 * 30     // 30 minutes
 )
 
 type buildCmd struct {
@@ -194,7 +194,7 @@ func (b *buildCmd) createBuildTask() (*graph.Task, error) {
 	// TODO: create secrets
 	secrets := []*graph.Secret{}
 
-	return graph.NewTask(steps, secrets, b.opts.Registry, b.registryUser, b.registryPw, buildTimeoutInSec+pushTimeoutInSec, true)
+	return graph.NewTask(steps, secrets, b.opts.Registry, b.registryUser, b.registryPw, taskTotalTimeoutInSec, true)
 }
 
 func (b *buildCmd) createRunCmd() string {
