@@ -194,7 +194,7 @@ func (b *buildCmd) createBuildTask() (*graph.Task, error) {
 	// TODO: create secrets
 	secrets := []*graph.Secret{}
 
-	return graph.NewTask(steps, secrets, b.opts.Registry, b.registryUser, b.registryPw, true)
+	return graph.NewTask(steps, secrets, b.opts.Registry, b.registryUser, b.registryPw, buildTimeoutInSec+pushTimeoutInSec, true)
 }
 
 func (b *buildCmd) createRunCmd() string {

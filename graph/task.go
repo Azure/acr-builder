@@ -19,20 +19,8 @@ const (
 	// The default step timeout is 10 minutes.
 	defaultStepTimeoutInSeconds = 60 * 10
 
-	// The minimum step timeout is 10 seconds.
-	minStepTimeoutInSeconds = 10
-
-	// The maximum step timeout is 2 hours.
-	maxStepTimeoutInSeconds = 60 * 60 * 2
-
 	// The default total timeout is 1 hour.
 	defaultTotalTimeoutInSeconds = 60 * 60 * 1
-
-	// The minimum total timeout is 10 seconds.
-	minTotalTimeoutInSeconds = 10
-
-	// The maximum total timeout is 6 hours.
-	maxTotalTimeoutInSeconds = 60 * 60 * 6
 
 	// The default step retry delay is 5 seconds.
 	defaultStepRetryDelayInSeconds = 5
@@ -101,11 +89,12 @@ func NewTask(
 	registry string,
 	user string,
 	pw string,
+	totalTimeout int,
 	isBuildTask bool) (*Task, error) {
 	t := &Task{
 		Steps:            steps,
 		StepTimeout:      defaultStepTimeoutInSeconds,
-		TotalTimeout:     defaultTotalTimeoutInSeconds,
+		TotalTimeout:     totalTimeout,
 		Secrets:          secrets,
 		RegistryName:     registry,
 		RegistryUsername: user,
@@ -153,18 +142,6 @@ func (t *Task) initialize() error {
 	// Force total timeout to be greater than the individual step timeout.
 	if t.TotalTimeout < t.StepTimeout {
 		t.TotalTimeout = t.StepTimeout
-	}
-
-	if t.StepTimeout < minStepTimeoutInSeconds {
-		t.StepTimeout = minStepTimeoutInSeconds
-	} else if t.StepTimeout > maxStepTimeoutInSeconds {
-		t.StepTimeout = maxStepTimeoutInSeconds
-	}
-
-	if t.TotalTimeout < minTotalTimeoutInSeconds {
-		t.TotalTimeout = minTotalTimeoutInSeconds
-	} else if t.TotalTimeout > maxTotalTimeoutInSeconds {
-		t.TotalTimeout = maxTotalTimeoutInSeconds
 	}
 
 	for i, s := range t.Steps {
