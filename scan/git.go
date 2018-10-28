@@ -174,8 +174,12 @@ func parseRemoteURL(remoteURL string) (gitRepo, error) {
 
 		if userName := u.User.Username(); userName != "" {
 			if _, passwordSet := u.User.Password(); !passwordSet {
-				// add a dummy password as git-lfs doesn't support http://PAT@gitbhub.com/user/repo.git
-				u.User = url.UserPassword(userName, "dummy")
+				// For private git repositories, GitHub and Azure DevOps support git urls like http://pat@gitbhub.com/user/repo.git
+				// However git-lfs requires the credential in "user:pat" format. So we need to add a dummy user name.
+				// Other git services like GitLab, BitBucket only support "user:pat" credential.
+				// NOTE: If the git repository is public, the user section in git url doesn't matter.
+				pat := userName
+				u.User = url.UserPassword("dummy", pat)
 			}
 		}
 		repo.remote = u.String()
