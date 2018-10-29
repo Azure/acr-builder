@@ -151,7 +151,7 @@ func (t *Task) initialize() error {
 			s.Timeout = t.StepTimeout
 		}
 
-		if s.Retries > 0 && s.RetryDelayInSeconds <= 0 {
+		if s.RetryDelayInSeconds <= 0 {
 			s.RetryDelayInSeconds = defaultStepRetryDelayInSeconds
 		}
 
