@@ -2,11 +2,20 @@
 
 [![Build Status](https://travis-ci.org/Azure/acr-builder.svg?branch=master)](https://travis-ci.org/Azure/acr-builder)
 
-## Build
+ACR Builder is the backbone behind [Azure Container Registry Tasks](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-overview).
 
-Using Docker:
+It can be used to automate container image patching and execute arbitrary containers for complex workflows.
 
-Execute the following commands from the root of the repository.
+You can find examples of how to create multi-step tasks [here](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-multi-step) and a reference to the YAML properties [here](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-reference-yaml).
+
+## Requirements
+
+- Docker
+- There are also dependency images that are used throughout the task. Refer to the `baseimages` folder for corresponding Dockerfiles to generate these images, and review the list below for Linux/Windows.
+
+## Building
+
+With Docker, execute the following commands from the root of the repository.
 
 Linux:
 
@@ -19,11 +28,6 @@ Windows:
 ```sh
 $ docker build -f Windows.Dockerfile -t acb .
 ```
-
-## Requirements
-
-- Docker
-- There are also dependency images that are used throughout the task. Refer to the `baseimages` folder for corresponding Dockerfiles to generate these images, and review the list below for Linux/Windows.
 
 ## Linux Images
 
