@@ -7,10 +7,9 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/Azure/acr-builder/templating"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
-
-	"github.com/Azure/acr-builder/templating"
 )
 
 // AddBaseRenderingOptions adds base rendering options to the specified flagset and maps the flags
@@ -31,7 +30,7 @@ func AddBaseRenderingOptions(f *flag.FlagSet, opts *templating.BaseRenderOptions
 	f.StringVarP(&opts.Branch, "branch", "b", "", "the build branch")
 	f.StringVar(&opts.TriggeredBy, "triggered-by", "", "what the build was triggered by")
 	f.StringVar(&opts.GitTag, "git-tag", "", "the git tag")
-	f.StringVarP(&opts.Registry, "registry", "r", "", "the name of the registry")
+	f.StringVarP(&opts.Registry, "registry", "r", "", "the fully qualified name of the registry")
 
 	opts.Date = time.Now().UTC()
 	opts.OS = runtime.GOOS
