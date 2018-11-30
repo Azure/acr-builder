@@ -42,7 +42,7 @@ func (b *Builder) getDockerRunArgs(
 		args = []string{"powershell.exe", "-Command"}
 		if step.Isolation == "" && !step.IsBuildStep() {
 			// Use hyperv isolation for non-build steps.
-			// Use default isolation for build step to improve performance. It assumes the docker-cli image is compatbile with the host os.
+			// Use default isolation for build step to improve performance. It assumes the docker-cli image is compatible with the host os.
 			step.Isolation = "hyperv"
 		}
 	} else {
