@@ -40,7 +40,9 @@ func (b *Builder) getDockerRunArgs(
 	// so we don't have to write our own argv parser for exec.Command.
 	if runtime.GOOS == "windows" {
 		args = []string{"powershell.exe", "-Command"}
-		if step.Isolation == "" {
+		if step.Isolation == "" && !step.IsBuildStep() {
+			// Use hyperv isolation for non-build steps.
+			// Use default isolation for build step to improve performance. It assumes the docker-cli image is compatbile with the host os.
 			step.Isolation = "hyperv"
 		}
 	} else {
