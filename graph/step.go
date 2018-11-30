@@ -24,6 +24,7 @@ var (
 	errMissingProps    = errors.New("Step is missing a cmd, build, or push property")
 	errIDContainsSpace = errors.New("Step ID cannot contain spaces")
 	errInvalidDeps     = errors.New("Step cannot contain other IDs in when if the immediate execution token is specified")
+	errInvalidStepType = errors.New("Step must only contain a single build, cmd, or push property")
 )
 
 // Step is a step in the execution task.
@@ -74,6 +75,11 @@ func (s *Step) Validate() error {
 	}
 	if s.ID == "" {
 		return errMissingID
+	}
+	lPush := len(s.Push)
+	// Only one out of build/cmd/push can be specified.
+	if (s.Cmd != "" && lPush > 0) || (s.Cmd != "" && s.Build != "") || (s.Build != "" && lPush > 0) {
+		return errInvalidStepType
 	}
 	if util.ContainsSpace(s.ID) {
 		return errIDContainsSpace

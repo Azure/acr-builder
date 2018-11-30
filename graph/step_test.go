@@ -55,6 +55,44 @@ func TestValidate(t *testing.T) {
 			},
 			false,
 		},
+		{
+			&Step{
+				ID:   "a",
+				Push: []string{"b"},
+			},
+			false,
+		},
+		{
+			&Step{
+				ID:    "a",
+				Build: "b",
+			},
+			false,
+		},
+		{
+			&Step{
+				ID:   "a",
+				Cmd:  "b",
+				Push: []string{"a"},
+			},
+			true,
+		},
+		{
+			&Step{
+				ID:    "a",
+				Cmd:   "b",
+				Build: "f",
+			},
+			true,
+		},
+		{
+			&Step{
+				ID:    "a",
+				Build: "b",
+				Push:  []string{"c"},
+			},
+			true,
+		},
 	}
 
 	for _, test := range tests {
