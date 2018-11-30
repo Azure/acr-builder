@@ -86,7 +86,7 @@ func TestGetNonBuildDockerRunArgs(t *testing.T) {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",
-			"docker run --rm --env value1 --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --workdir c:\\workspace\\stepWorkDir docker build -f Dockerfile .",
+			"docker run --rm --env value1 --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --workdir c:\\workspace/stepWorkDir docker build -f Dockerfile .",
 		}
 	} else {
 		expectedCmds = []string{
@@ -111,7 +111,7 @@ func TestGetBuildDockerRunArgs(t *testing.T) {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",
-			"docker run --rm --env value1 --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --isolation hyperv --env USERPROFILE=c:\\acb\\home --workdir c:\\workspace\\stepWorkDir hello-world",
+			"docker run --rm --isolation hyperv --env value1 --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --workdir c:\\workspace/stepWorkDir hello-world",
 		}
 	} else {
 		expectedCmds = []string{
