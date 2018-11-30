@@ -76,7 +76,7 @@ func TestGetImageDependencies(t *testing.T) {
 	}
 }
 
-func TestGetNonBuildDockerRunArgs(t *testing.T) {
+func TestGetBuildDockerRunArgs(t *testing.T) {
 	builder := &Builder{}
 	actualCmds := builder.getDockerRunArgs("volName", "stepWorkDir", &graph.Step{ID: "id", Build: "-f Dockerfile ."}, []string{"value1"}, "", "docker build -f Dockerfile .")
 
@@ -101,7 +101,7 @@ func TestGetNonBuildDockerRunArgs(t *testing.T) {
 	}
 }
 
-func TestGetBuildDockerRunArgs(t *testing.T) {
+func TestGetNonBuildDockerRunArgs(t *testing.T) {
 	builder := &Builder{}
 	actualCmds := builder.getDockerRunArgs("volName", "stepWorkDir", &graph.Step{ID: "id"}, []string{"value1"}, "", "hello-world")
 
