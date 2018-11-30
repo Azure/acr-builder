@@ -76,9 +76,7 @@ func (s *Step) Validate() error {
 	if s.ID == "" {
 		return errMissingID
 	}
-	lPush := len(s.Push)
-	// Only one out of build/cmd/push can be specified.
-	if (s.Cmd != "" && lPush > 0) || (s.Cmd != "" && s.Build != "") || (s.Build != "" && lPush > 0) {
+	if (s.IsCmdStep() && s.IsPushStep()) || (s.IsCmdStep() && s.IsBuildStep()) || (s.IsBuildStep() && s.IsPushStep()) {
 		return errInvalidStepType
 	}
 	if util.ContainsSpace(s.ID) {
