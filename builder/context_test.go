@@ -4,8 +4,11 @@
 package builder
 
 import (
+	"reflect"
+	"runtime"
 	"testing"
 
+	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/image"
 )
 
@@ -70,5 +73,55 @@ func TestGetImageDependencies(t *testing.T) {
 	}
 	if r.Git.GitHeadRev != expectedGitHeadRev {
 		t.Errorf("Invalid git head rev. Expected %s, got %s", expectedGitHeadRev, r.Git.GitHeadRev)
+	}
+}
+
+func TestGetBuildDockerRunArgs(t *testing.T) {
+	builder := &Builder{}
+	actualCmds := builder.getDockerRunArgs("volName", "stepWorkDir", &graph.Step{ID: "id", Build: "-f Dockerfile ."}, []string{"value1"}, "", "docker build -f Dockerfile .")
+
+	var expectedCmds []string
+
+	if runtime.GOOS == "windows" {
+		expectedCmds = []string{
+			"powershell.exe",
+			"-Command",
+			"docker run --rm --env value1 --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --workdir c:\\workspace/stepWorkDir docker build -f Dockerfile .",
+		}
+	} else {
+		expectedCmds = []string{
+			"/bin/sh",
+			"-c",
+			"docker run --rm --env value1 --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --workdir /workspace/stepWorkDir docker build -f Dockerfile .",
+		}
+	}
+
+	if !reflect.DeepEqual(actualCmds, expectedCmds) {
+		t.Errorf("invalid docker run args, expected %v but got %v", expectedCmds, actualCmds)
+	}
+}
+
+func TestGetNonBuildDockerRunArgs(t *testing.T) {
+	builder := &Builder{}
+	actualCmds := builder.getDockerRunArgs("volName", "stepWorkDir", &graph.Step{ID: "id"}, []string{"value1"}, "", "hello-world")
+
+	var expectedCmds []string
+
+	if runtime.GOOS == "windows" {
+		expectedCmds = []string{
+			"powershell.exe",
+			"-Command",
+			"docker run --rm --isolation hyperv --env value1 --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --workdir c:\\workspace/stepWorkDir hello-world",
+		}
+	} else {
+		expectedCmds = []string{
+			"/bin/sh",
+			"-c",
+			"docker run --rm --env value1 --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --workdir /workspace/stepWorkDir hello-world",
+		}
+	}
+
+	if !reflect.DeepEqual(actualCmds, expectedCmds) {
+		t.Errorf("invalid docker run args, expected %v but got %v", expectedCmds, actualCmds)
 	}
 }
