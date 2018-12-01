@@ -99,7 +99,10 @@ func TestInitializeTimeouts(t *testing.T) {
 			TotalTimeout: test.totalTimeout,
 			StepTimeout:  test.stepTimeout,
 		}
-		task.initialize()
+		err := task.initialize()
+		if err != nil {
+			t.Fatalf("Unexpected err during initialization: %v", err)
+		}
 
 		if task.StepTimeout != test.expectedStepTimeout {
 			t.Fatalf("Expected %v as the step timeout but got %v", test.expectedStepTimeout, task.StepTimeout)
