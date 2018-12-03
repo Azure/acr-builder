@@ -76,6 +76,7 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 			"GitTag":       opts.GitTag,
 			"TriggeredBy":  opts.TriggeredBy,
 			"Registry":     opts.Registry,
+			"RegistryName": parseRegistryName(opts.Registry),
 			"Date":         opts.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
 			"SharedVolume": opts.SharedVolume,
 			"OS":           opts.OS,
@@ -155,4 +156,15 @@ func parseValues(values []string) (string, error) {
 	}
 
 	return ret.ToYAMLString()
+}
+
+// parseRegistryName parses the fully qualified registry name and extracts only the registry name.
+// NB: This function is currently designed and provided for Azure Container Registry and may not
+// work as expected for all other registries' formats.
+func parseRegistryName(fullyQualifiedRegistryName string) string {
+	idx := strings.Index(fullyQualifiedRegistryName, ".")
+	if idx < 0 {
+		return fullyQualifiedRegistryName
+	}
+	return fullyQualifiedRegistryName[:idx]
 }

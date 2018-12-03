@@ -51,3 +51,22 @@ func TestParseValues_Invalid(t *testing.T) {
 		}
 	}
 }
+
+func TestParseRegistryName(t *testing.T) {
+	tests := []struct {
+		fullyQualifiedRegistryName string
+		expectedRegistryName       string
+	}{
+		{"", ""},
+		{"foo", "foo"},
+		{"foo.azurecr.io", "foo"},
+		{"foo-bar.azurecr-test.io", "foo-bar"},
+		{"  ", "  "},
+	}
+
+	for _, test := range tests {
+		if actual := parseRegistryName(test.fullyQualifiedRegistryName); actual != test.expectedRegistryName {
+			t.Errorf("Expected %s but got %s for the registry name", test.expectedRegistryName, actual)
+		}
+	}
+}

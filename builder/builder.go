@@ -243,7 +243,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 	timeout := time.Duration(step.Timeout) * time.Second
 	stepCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	return b.procManager.RunWithRetries(stepCtx, args, nil, os.Stdout, os.Stderr, "", step.Retries, step.RetryDelayInSeconds)
+	return b.procManager.RunWithRetries(stepCtx, args, nil, os.Stdout, os.Stderr, "", step.Retries, step.RetryDelayInSeconds, step.ID)
 }
 
 // populateDigests populates digests on dependencies
