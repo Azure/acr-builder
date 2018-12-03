@@ -3,7 +3,9 @@
 
 package templating
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestParseValues_Valid(t *testing.T) {
 	tests := []struct {
@@ -68,5 +70,37 @@ func TestParseRegistryName(t *testing.T) {
 		if actual := parseRegistryName(test.fullyQualifiedRegistryName); actual != test.expectedRegistryName {
 			t.Errorf("Expected %s but got %s for the registry name", test.expectedRegistryName, actual)
 		}
+	}
+}
+
+func TestLoadAndRenderSteps(t *testing.T) {
+	opts := &BaseRenderOptions{
+		TaskFile:   "testdata/caching/cache.yaml",
+		ValuesFile: "testdata/caching/values.yaml",
+	}
+	expected := `steps:
+  - id: "puller"
+    cmd: docker pull golang:1.10.1-stretch
+
+  - id: build-foo
+    cmd: build -f Dockerfile https://github.com/Azure/acr-builder.git --cache-from=ubuntu
+
+  - id: build-bar
+    cmd: build -f Dockerfile https://github.com/Azure/acr-builder.git --cache-from=ubuntu
+    when: ["puller"]`
+
+	var template *Template
+	template, err := LoadTemplate(opts.TaskFile)
+	if err != nil {
+		t.Fatalf("Unexpected err: %v", err)
+	}
+
+	actual, err := LoadAndRenderSteps(template, opts)
+	if err != nil {
+		t.Fatalf("Unexpected err: %v", err)
+	}
+	expected = adjustCRInExpectedStringOnWindows(expected)
+	if actual != expected {
+		t.Errorf("Expected \n%s\n but got \n%s\n", expected, actual)
 	}
 }
