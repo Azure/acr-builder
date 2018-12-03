@@ -5,6 +5,7 @@ package templating
 
 import (
 	"bytes"
+	"reflect"
 	"testing"
 	"text/template"
 	"time"
@@ -182,6 +183,33 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		if o, err := executeTemplate(test.tpl, vals); err != nil || o != test.expect {
 			t.Errorf("Expected %q to expand to %q. Received %q", test.tpl, test.expect, o)
 		}
+	}
+}
+
+func TestMergeMaps(t *testing.T) {
+	sink := make(map[string]interface{})
+	nestedMap := make(map[string]interface{})
+	nestedMap["innerMap"] = "innerValue"
+	nestedMap["innerString"] = "innerStringValue"
+	nestedMap["innerInt"] = 30
+
+	sink["foo"] = 3
+	sink["bar"] = ""
+	sink["nested"] = nestedMap
+
+	source := make(map[string]interface{})
+	source["foo"] = 5
+	sink["bar"] = "qux"
+
+	expected := make(map[string]interface{})
+	expected["foo"] = 5
+	expected["bar"] = "qux"
+	expected["nested"] = nestedMap
+
+	actual := mergeMaps(sink, source)
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected %v but got %v", expected, actual)
 	}
 }
 
