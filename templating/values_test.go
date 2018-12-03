@@ -126,6 +126,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedBranch := "br"
 	expectedTrigger := "triggered from someone cool!!1"
 	expectedRegistry := "foo.azurecr.io"
+	expectedRegistryName := "foo"
 	expectedGitTag := "some git tag"
 	expectedSharedVolume := "acb_home_vol_12345"
 	expectedOS := "linux"
@@ -165,6 +166,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		{"{{.Run.Branch}}", expectedBranch},
 		{"{{.Run.TriggeredBy}}", expectedTrigger},
 		{"{{.Run.Registry}}", expectedRegistry},
+		{"{{.Run.RegistryName}}", expectedRegistryName},
 		{"{{.Run.GitTag}}", expectedGitTag},
 		{"{{.Run.Date}}", expectedTime},
 		{"{{.Run.SharedVolume}}", expectedSharedVolume},
