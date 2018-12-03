@@ -198,6 +198,8 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		dockerfile, dockerContext := parseDockerBuildCmd(step.Build)
 		volName := b.workspaceDir
 
+		validateDockerContext(dockerContext)
+
 		log.Println("Obtaining source code and scanning for dependencies...")
 		timeout := time.Duration(scrapeTimeoutInSec) * time.Second
 		scrapeCtx, cancel := context.WithTimeout(ctx, timeout)
@@ -321,4 +323,11 @@ func getRepoDigest(jsonContent string, reference *image.Reference) string {
 		}
 	}
 	return ""
+}
+
+func validateDockerContext(context string) {
+	context = strings.ToLower(context)
+	if strings.Contains(context, "github") && !strings.Contains(context, ".git") {
+		log.Printf("WARNING: %s might not be valid context. Valid Git repositories should end with .git.\n", context)
+	}
 }
