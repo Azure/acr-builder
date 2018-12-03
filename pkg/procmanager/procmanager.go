@@ -40,14 +40,18 @@ func (pm *ProcManager) RunWithRetries(
 	stdErr io.Writer,
 	cmdDir string,
 	retries int,
-	retryDelay int) error {
+	retryDelay int,
+	containerName string) error {
 	attempt := 0
 	var err error
 	for attempt <= retries {
+		log.Printf("Launching container with name: %s\n...", containerName)
 		if err = pm.Run(ctx, args, stdIn, stdOut, stdErr, cmdDir); err == nil {
+			log.Printf("Successfully executed container: %s\n", containerName)
 			break
 		} else {
 			attempt++
+			log.Printf("Failed to launch container: %s, waiting %d seconds before retrying...\n", containerName, retryDelay)
 			time.Sleep(time.Duration(retryDelay) * time.Second)
 		}
 	}
