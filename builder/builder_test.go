@@ -65,3 +65,21 @@ func TestGetRepoDigest(t *testing.T) {
 		}
 	}
 }
+
+func TestParseImageNameFromArgs(t *testing.T) {
+	tests := []struct {
+		args     string
+		expected string
+	}{
+		{"bash", "bash"},
+		{"", ""},
+		{"bash echo hello world", "bash"},
+		{"foo bar > qux &", "foo"},
+		{"foo    ", "foo"},
+	}
+	for _, test := range tests {
+		if actual := parseImageNameFromArgs(test.args); actual != test.expected {
+			t.Errorf("Expected %s but got %s", test.expected, actual)
+		}
+	}
+}

@@ -20,6 +20,7 @@ steps:
     workingDirectory: pullDir
     retries: 5
     retryDelay: 90
+    pull: true
 
   - id: build-qux
     cmd: 'azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu'

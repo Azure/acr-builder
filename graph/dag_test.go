@@ -32,6 +32,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Network:             DefaultNetworkName,
 		Retries:             5,
 		RetryDelayInSeconds: 90,
+		Pull:                true,
 	}
 
 	cStep := &Step{
