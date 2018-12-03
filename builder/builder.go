@@ -186,6 +186,13 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		time.Sleep(time.Duration(step.StartDelay) * time.Second)
 	}
 
+	if step.IsCmdStep() && step.Pull {
+		log.Printf("Step specified pull. Performing an explicit pull...\n")
+		if err := b.pullImageBeforeRun(ctx, step.Cmd); err != nil {
+			return err
+		}
+	}
+
 	step.StepStatus = graph.InProgress
 	step.StartTime = time.Now()
 	defer func() {
@@ -330,4 +337,30 @@ func validateDockerContext(context string) {
 	if strings.Contains(context, "github") && !strings.Contains(context, ".git") {
 		log.Printf("WARNING: %s might not be valid context. Valid Git repositories should end with .git.\n", context)
 	}
+}
+
+func (b *Builder) pullImageBeforeRun(ctx context.Context, cmdArgs string) error {
+	imageName := parseImageNameFromArgs(cmdArgs)
+	args := []string{
+		"docker",
+		"run",
+		"--rm",
+		"--volume", util.DockerSocketVolumeMapping,
+		"docker",
+		"pull",
+		imageName,
+	}
+	if b.debug {
+		log.Printf("pull image args: %v\n", args)
+	}
+	return b.procManager.Run(ctx, args, nil, os.Stdout, os.Stdout, "")
+}
+
+// parseImageNameFromArgs parses an image's name from a command step's arguments.
+func parseImageNameFromArgs(cmdArgs string) string {
+	idx := strings.Index(cmdArgs, " ")
+	if idx < 0 {
+		return cmdArgs
+	}
+	return cmdArgs[:idx]
 }

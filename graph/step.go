@@ -54,6 +54,7 @@ type Step struct {
 	Retries                         int      `yaml:"retries"`
 	RetryDelayInSeconds             int      `yaml:"retryDelay"`
 	DisableWorkingDirectoryOverride bool     `yaml:"disableWorkingDirectoryOverride"`
+	Pull                            bool     `yaml:"pull"`
 
 	StartTime  time.Time
 	EndTime    time.Time
@@ -131,7 +132,8 @@ func (s *Step) Equals(t *Step) bool {
 		s.IgnoreErrors != t.IgnoreErrors ||
 		s.Retries != t.Retries ||
 		s.RetryDelayInSeconds != t.RetryDelayInSeconds ||
-		s.DisableWorkingDirectoryOverride != t.DisableWorkingDirectoryOverride {
+		s.DisableWorkingDirectoryOverride != t.DisableWorkingDirectoryOverride ||
+		s.Pull != t.Pull {
 		return false
 	}
 
