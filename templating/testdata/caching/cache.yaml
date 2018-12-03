@@ -4,7 +4,7 @@ steps:
 
   - id: build-foo
     cmd: build -f Dockerfile https://github.com/Azure/acr-builder.git --cache-from=ubuntu
-  
+
   - id: build-bar
     cmd: build -f Dockerfile https://github.com/Azure/acr-builder.git --cache-from=ubuntu
     when: ["{{.Values.pullStep}}"]
