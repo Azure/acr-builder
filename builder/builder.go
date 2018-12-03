@@ -326,6 +326,7 @@ func getRepoDigest(jsonContent string, reference *image.Reference) string {
 }
 
 func validateDockerContext(context string) {
+	context = strings.ToLower(context)
 	if strings.Contains(context, "github") && !strings.Contains(context, ".git") {
 		log.Printf("WARNING: %s might not be valid context. Valid Git repositories should end with .git.\n", context)
 	}
