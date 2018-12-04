@@ -191,6 +191,7 @@ func TestEquals(t *testing.T) {
 				RetryDelayInSeconds:             3,
 				DisableWorkingDirectoryOverride: true,
 				Pull:                            true,
+				Repeat:                          45,
 			},
 			&Step{
 				ID:                              "a",
@@ -219,6 +220,7 @@ func TestEquals(t *testing.T) {
 				RetryDelayInSeconds:             3,
 				DisableWorkingDirectoryOverride: true,
 				Pull:                            true,
+				Repeat:                          45,
 			},
 			true,
 		},

@@ -51,10 +51,13 @@ type Step struct {
 	Network                         string   `yaml:"network"`
 	Isolation                       string   `yaml:"isolation"`
 	IgnoreErrors                    bool     `yaml:"ignoreErrors"`
-	Retries                         int      `yaml:"retries"`
 	RetryDelayInSeconds             int      `yaml:"retryDelay"`
 	DisableWorkingDirectoryOverride bool     `yaml:"disableWorkingDirectoryOverride"`
 	Pull                            bool     `yaml:"pull"`
+	// Retries specifies how many times a Step will be retried if it fails after its initial execution.
+	Retries int `yaml:"retries"`
+	// Repeat specifies how many times a Step will be repeated after its initial execution.
+	Repeat int `yaml:"repeat"`
 
 	StartTime  time.Time
 	EndTime    time.Time
@@ -133,7 +136,8 @@ func (s *Step) Equals(t *Step) bool {
 		s.Retries != t.Retries ||
 		s.RetryDelayInSeconds != t.RetryDelayInSeconds ||
 		s.DisableWorkingDirectoryOverride != t.DisableWorkingDirectoryOverride ||
-		s.Pull != t.Pull {
+		s.Pull != t.Pull ||
+		s.Repeat != t.Repeat {
 		return false
 	}
 

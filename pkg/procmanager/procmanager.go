@@ -31,6 +31,30 @@ func NewProcManager(dryRun bool) *ProcManager {
 	}
 }
 
+// RunRepeatWithRetries performs a Run multiple times with retries.
+// If an error occurs during the repetition, the last error will be returned.
+func (pm *ProcManager) RunRepeatWithRetries(
+	ctx context.Context,
+	args []string,
+	stdIn io.Reader,
+	stdOut io.Writer,
+	stdErr io.Writer,
+	cmdDir string,
+	retries int,
+	retryDelay int,
+	containerName string,
+	repeat int,
+	ignoreErrors bool) error {
+	var err error
+	for i := 0; i <= repeat; i++ {
+		innerErr := pm.RunWithRetries(ctx, args, stdIn, stdOut, stdErr, cmdDir, retries, retryDelay, containerName)
+		if innerErr != nil {
+			err = innerErr
+		}
+	}
+	return err
+}
+
 // RunWithRetries performs Run with retries.
 func (pm *ProcManager) RunWithRetries(
 	ctx context.Context,
@@ -45,14 +69,18 @@ func (pm *ProcManager) RunWithRetries(
 	attempt := 0
 	var err error
 	for attempt <= retries {
-		log.Printf("Launching container with name: %s...\n", containerName)
+		log.Printf("Launching container with name: %s\n", containerName)
 		if err = pm.Run(ctx, args, stdIn, stdOut, stdErr, cmdDir); err == nil {
 			log.Printf("Successfully executed container: %s\n", containerName)
 			break
 		} else {
 			attempt++
-			log.Printf("Failed to launch container: %s, waiting %d seconds before retrying...\n", containerName, retryDelay)
-			time.Sleep(time.Duration(retryDelay) * time.Second)
+			if attempt <= retries {
+				log.Printf("Container failed during run: %s, waiting %d seconds before retrying...\n", containerName, retryDelay)
+				time.Sleep(time.Duration(retryDelay) * time.Second)
+			} else {
+				log.Printf("Container failed during run: %s. No retries remaining.\n", containerName)
+			}
 		}
 	}
 	return err
