@@ -37,6 +37,7 @@ func TestCreateBuildTask(t *testing.T) {
 	}
 
 	// When registry information is provided, the resulting tags will be
+	// prefixed with the fully qualified registry's name.
 	buildStep := task.Steps[0]
 	expectedTags := []string{"foo.azurecr.io/foo:latest", "foo.azurecr.io/bar/qux"}
 	if !util.StringSequenceEquals(buildStep.Tags, expectedTags) {
