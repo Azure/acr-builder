@@ -5,8 +5,8 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"io"
+	"log"
 
 	"github.com/Azure/acr-builder/templating"
 	"github.com/spf13/cobra"
@@ -61,7 +61,7 @@ func (r *renderCmd) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println("Rendered template:")
-	fmt.Println(rendered)
+	log.Println("Rendered template:")
+	log.Println(rendered)
 	return nil
 }

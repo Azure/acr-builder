@@ -17,12 +17,11 @@ import (
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/util"
-
 	"github.com/google/uuid"
 )
 
 var (
-	dependenciesRE = regexp.MustCompile(`^(\[{"image.*?\])$`)
+	dependenciesRE = regexp.MustCompile(`(\[{"image.*?\])$`)
 )
 
 // getDockerRunArgs populates the args for running a Docker container.

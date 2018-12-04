@@ -6,10 +6,9 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"os"
-
 	"io"
+	"log"
+	"os"
 	"time"
 
 	"github.com/Azure/acr-builder/pkg/procmanager"
@@ -92,7 +91,7 @@ func (s *scanCmd) run(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "failed to unmarshal image dependencies")
 	}
 
-	fmt.Println("Dependencies:")
-	fmt.Println(string(bytes))
+	log.Println("Dependencies:")
+	log.Println(string(bytes))
 	return nil
 }
