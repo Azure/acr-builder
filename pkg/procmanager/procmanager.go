@@ -53,7 +53,10 @@ func (pm *ProcManager) RunRepeatWithRetries(
 			aggErrors = append(aggErrors, innerErr)
 		}
 	}
-	return errors.New(aggErrors.String())
+	if len(aggErrors) > 0 {
+		return errors.New(aggErrors.String())
+	}
+	return nil
 }
 
 // RunWithRetries performs Run with retries.
