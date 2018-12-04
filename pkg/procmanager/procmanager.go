@@ -5,6 +5,7 @@ package procmanager
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -45,14 +46,14 @@ func (pm *ProcManager) RunRepeatWithRetries(
 	containerName string,
 	repeat int,
 	ignoreErrors bool) error {
-	var err error
+	var aggErrors util.Errors
 	for i := 0; i <= repeat; i++ {
 		innerErr := pm.RunWithRetries(ctx, args, stdIn, stdOut, stdErr, cmdDir, retries, retryDelay, containerName)
 		if innerErr != nil {
-			err = innerErr
+			aggErrors = append(aggErrors, innerErr)
 		}
 	}
-	return err
+	return errors.New(aggErrors.String())
 }
 
 // RunWithRetries performs Run with retries.
