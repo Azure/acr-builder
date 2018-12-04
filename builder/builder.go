@@ -116,8 +116,8 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to unmarshal image dependencies")
 		}
-		fmt.Println("The following dependencies were found:")
-		fmt.Println(string(bytes))
+		log.Println("The following dependencies were found:")
+		log.Println("\n" + string(bytes))
 	}
 
 	return nil

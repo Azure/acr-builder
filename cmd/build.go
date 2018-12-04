@@ -19,7 +19,6 @@ import (
 	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/util"
 	"github.com/google/uuid"
-
 	"github.com/spf13/cobra"
 )
 
@@ -163,8 +162,8 @@ func (b *buildCmd) createBuildTask() (*graph.Task, error) {
 	}
 
 	if debug {
-		fmt.Println("Rendered template:")
-		fmt.Println(rendered)
+		log.Println("Rendered template:")
+		log.Println(rendered)
 	}
 
 	// After the template has rendered, we have to parse the tags again

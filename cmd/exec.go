@@ -110,8 +110,8 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	if debug {
-		fmt.Println("Rendered template:")
-		fmt.Println(rendered)
+		log.Println("Rendered template:")
+		log.Println(rendered)
 	}
 
 	task, err := graph.UnmarshalTaskFromString(rendered, e.opts.Registry, e.registryUser, e.registryPw, e.defaultWorkDir, e.network, e.envs)
