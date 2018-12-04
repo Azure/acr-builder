@@ -110,6 +110,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 		Network:             "host",
 		Envs:                []string{"foo=taskEnv"},
 		RetryDelayInSeconds: defaultStepRetryDelayInSeconds,
+		Repeat:              2,
 	}
 
 	dict := make(map[string]*Step)
