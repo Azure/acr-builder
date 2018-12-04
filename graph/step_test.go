@@ -87,9 +87,25 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			&Step{
-				ID:    "a",
-				Build: "b",
-				Push:  []string{"c"},
+				ID:    "apple",
+				Build: "banana",
+				Push:  []string{"d"},
+			},
+			true,
+		},
+		{
+			&Step{
+				ID:     "repeat",
+				Build:  "b",
+				Repeat: -1,
+			},
+			true,
+		},
+		{
+			&Step{
+				ID:      "retries",
+				Build:   "b",
+				Retries: -1,
 			},
 			true,
 		},

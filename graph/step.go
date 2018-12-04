@@ -25,6 +25,8 @@ var (
 	errIDContainsSpace = errors.New("Step ID cannot contain spaces")
 	errInvalidDeps     = errors.New("Step cannot contain other IDs in when if the immediate execution token is specified")
 	errInvalidStepType = errors.New("Step must only contain a single build, cmd, or push property")
+	errInvalidRetries  = errors.New("Step must specify retries >= 0")
+	errInvalidRepeat   = errors.New("Step must specify repeat >= 0")
 )
 
 // Step is a step in the execution task.
@@ -79,6 +81,12 @@ func (s *Step) Validate() error {
 	}
 	if s.ID == "" {
 		return errMissingID
+	}
+	if s.Retries < 0 {
+		return errInvalidRetries
+	}
+	if s.Repeat < 0 {
+		return errInvalidRepeat
 	}
 	if (s.IsCmdStep() && s.IsPushStep()) || (s.IsCmdStep() && s.IsBuildStep()) || (s.IsBuildStep() && s.IsPushStep()) {
 		return errInvalidStepType
