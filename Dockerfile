@@ -1,4 +1,4 @@
-FROM golang:1.10-alpine AS gobuild-base
+FROM golang:1.11.2-alpine AS gobuild-base
 RUN apk add --no-cache \
 	git \
 	make
