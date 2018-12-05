@@ -114,14 +114,13 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 
 // getWithStatusError does an http.Get() and returns an error if the
 // status code is 4xx or 5xx.
-// It retries 10 times either if
+// It retries if either:
 // - There was an error making GET request OR
 // - The response is 5xx
 func getWithStatusError(url string) (resp *http.Response, err error) {
 	attempt := 0
 
 	for attempt < maxRetries {
-		fmt.Printf("Attempt # %d for url %s", attempt, url)
 		resp, err = http.Get(url)
 
 		if err != nil {
