@@ -1,0 +1,78 @@
+# github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
+github.com/Azure/go-ansiterm/winterm
+github.com/Azure/go-ansiterm
+# github.com/Masterminds/semver v1.4.2
+github.com/Masterminds/semver
+# github.com/Masterminds/sprig v2.15.0+incompatible
+github.com/Masterminds/sprig
+# github.com/Microsoft/go-winio v0.4.7
+github.com/Microsoft/go-winio
+# github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5
+github.com/Nvveen/Gotty
+# github.com/aokoli/goutils v1.0.1
+github.com/aokoli/goutils
+# github.com/containerd/continuity v0.0.0-20180322171221-3e8f2ea4b190
+github.com/containerd/continuity/pathdriver
+# github.com/docker/cli v0.0.0-20180414015416-e5980c541ac8
+github.com/docker/cli/cli/command/image/build
+# github.com/docker/distribution v0.0.0-20180105232752-277ed486c948
+github.com/docker/distribution/reference
+github.com/docker/distribution/digestset
+# github.com/docker/docker v0.0.0-20180413235638-61138fb5fc0f
+github.com/docker/docker/pkg/archive
+github.com/docker/docker/pkg/progress
+github.com/docker/docker/pkg/streamformatter
+github.com/docker/docker/pkg/symlink
+github.com/docker/docker/pkg/urlutil
+github.com/docker/docker/builder/dockerignore
+github.com/docker/docker/builder/remotecontext/git
+github.com/docker/docker/pkg/fileutils
+github.com/docker/docker/pkg/ioutils
+github.com/docker/docker/pkg/longpath
+github.com/docker/docker/pkg/pools
+github.com/docker/docker/pkg/stringid
+github.com/docker/docker/pkg/idtools
+github.com/docker/docker/pkg/system
+github.com/docker/docker/pkg/jsonmessage
+github.com/docker/docker/pkg/mount
+github.com/docker/docker/pkg/term
+github.com/docker/docker/pkg/term/windows
+# github.com/docker/go-units v0.3.3
+github.com/docker/go-units
+# github.com/google/uuid v0.0.0-20161128191214-064e2069ce9c
+github.com/google/uuid
+# github.com/huandu/xstrings v1.0.0
+github.com/huandu/xstrings
+# github.com/imdario/mergo v0.3.5
+github.com/imdario/mergo
+# github.com/inconshreveable/mousetrap v1.0.0
+github.com/inconshreveable/mousetrap
+# github.com/opencontainers/go-digest v1.0.0-rc1
+github.com/opencontainers/go-digest
+# github.com/opencontainers/image-spec v1.0.1
+github.com/opencontainers/image-spec/specs-go/v1
+github.com/opencontainers/image-spec/specs-go
+# github.com/opencontainers/runc v0.1.1
+github.com/opencontainers/runc/libcontainer/system
+github.com/opencontainers/runc/libcontainer/user
+# github.com/pkg/errors v0.8.0
+github.com/pkg/errors
+# github.com/sirupsen/logrus v1.0.4
+github.com/sirupsen/logrus
+# github.com/spf13/cobra v0.0.3
+github.com/spf13/cobra
+# github.com/spf13/pflag v1.0.1
+github.com/spf13/pflag
+# golang.org/x/crypto v0.0.0-20171231215028-0fcca4842a8d
+golang.org/x/crypto/scrypt
+golang.org/x/crypto/ssh/terminal
+golang.org/x/crypto/pbkdf2
+# golang.org/x/net v0.0.0-20180906233101-161cd47e91fd
+golang.org/x/net/context
+# golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+# golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
+golang.org/x/time/rate
+# gopkg.in/yaml.v2 v2.2.1
+gopkg.in/yaml.v2

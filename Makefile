@@ -5,6 +5,7 @@ BINDIR := /usr/local/bin
 # Setup name variables for the package/tool
 NAME := acb
 PKG := $(NAME)
+GO := go
 
 # Set any default go build tags
 BUILDTAGS :=
@@ -154,9 +155,17 @@ clean: ## Cleanup any build binaries or packages
 	$(RM) -r $(BUILDDIR)
 
 .PHONY: vendor
-vendor: ## Runs `dep ensure`
-	@echo "+ $@"
-	@dep ensure
+vendor: ## Updates the vendor directory.
+	@$(RM) go.sum
+	@$(RM) -r vendor
+	GO111MODULE=on $(GO) mod init || true
+	GO111MODULE=on $(GO) mod tidy
+	GO111MODULE=on $(GO) mod vendor
+	@$(RM) Gopkg.toml Gopkg.lock
+
+.PHONY: verify-vendor
+verify-vendor: ## Verifies the vendor directory.
+	GO111MODULE=on $(GO) mod verify
 
 .PHONY: help
 help: ## Prints this help menu
