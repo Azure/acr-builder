@@ -122,19 +122,18 @@ func getWithStatusError(url string) (resp *http.Response, err error) {
 
 	for attempt < maxRetries {
 		resp, err = http.Get(url)
-
 		if err != nil {
 			continue
 		}
-
 		if resp.StatusCode < 400 {
 			return resp, nil
 		}
 
 		msg := fmt.Sprintf("failed to GET %s with status %s", url, resp.Status)
 
-		// if the StatusCode is 4xx; Don't retry and return with an error message
-		if resp.StatusCode < 500 {
+		// If the status code is 4xx then read the body and return an error
+		// If the status code is a 5xx then check the body on the final attempt and return an error.
+		if resp.StatusCode < 500 || attempt == maxRetries-1 {
 			body, bodyReadErr := ioutil.ReadAll(resp.Body)
 			if bodyReadErr != nil {
 				return nil, errors.Wrapf(bodyReadErr, msg+": error reading body")
