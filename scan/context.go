@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/Azure/acr-builder/util"
 	dockerbuild "github.com/docker/cli/cli/command/image/build"
@@ -24,6 +25,7 @@ import (
 
 const (
 	archiveHeaderSize = 512
+	maxRetries        = 3
 )
 
 // ObtainSourceCode obtains the source code from the specified context.
@@ -112,19 +114,40 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 
 // getWithStatusError does an http.Get() and returns an error if the
 // status code is 4xx or 5xx.
+// It retries 10 times either if
+// - There was an error making GET request OR
+// - The response is 5xx
 func getWithStatusError(url string) (resp *http.Response, err error) {
-	if resp, err = http.Get(url); err != nil {
-		return nil, err
-	}
-	if resp.StatusCode < 400 {
-		return resp, nil
-	}
-	msg := fmt.Sprintf("failed to GET %s with status %s", url, resp.Status)
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrapf(err, msg+": error reading body")
+	attempt := 0
+
+	for attempt < maxRetries {
+		fmt.Printf("Attempt # %d for url %s", attempt, url)
+		resp, err = http.Get(url)
+
+		if err != nil {
+			continue
+		}
+
+		if resp.StatusCode < 400 {
+			return resp, nil
+		}
+
+		msg := fmt.Sprintf("failed to GET %s with status %s", url, resp.Status)
+
+		// if the StatusCode is 4xx; Don't retry and return with an error message
+		if resp.StatusCode < 500 {
+			body, bodyReadErr := ioutil.ReadAll(resp.Body)
+			if bodyReadErr != nil {
+				return nil, errors.Wrapf(bodyReadErr, msg+": error reading body")
+			}
+
+			_ = resp.Body.Close()
+			return nil, errors.Errorf(msg+": %s", bytes.TrimSpace(body))
+		}
+
+		time.Sleep(util.GetExponentialBackoff(attempt))
+		attempt++
 	}
 
-	_ = resp.Body.Close()
-	return nil, errors.Errorf(msg+": %s", bytes.TrimSpace(body))
+	return resp, err
 }
