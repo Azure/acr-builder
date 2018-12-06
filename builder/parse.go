@@ -12,7 +12,8 @@ var httpPrefix = regexp.MustCompile("^https?://")
 var gitURLWithSuffix = regexp.MustCompile("\\.git(?:#.+)?$")
 
 const (
-	visualStudioSubstr = ".visualstudio.com"
+	azureDevOpsHost = "dev.azure.com"
+	vstsHost        = ".visualstudio.com"
 )
 
 // parseDockerBuildCmd parses a docker build command and extracts the
@@ -57,7 +58,10 @@ func replacePositionalContext(runCmd string, replacement string) string {
 
 func getContextFromGitURL(gitURL string) string {
 	lower := strings.ToLower(gitURL)
-	if httpPrefix.MatchString(gitURL) && (strings.Contains(lower, visualStudioSubstr) || gitURLWithSuffix.MatchString(gitURL)) {
+	if httpPrefix.MatchString(gitURL) &&
+		(strings.Contains(lower, vstsHost) ||
+			gitURLWithSuffix.MatchString(gitURL) ||
+			strings.Contains(lower, azureDevOpsHost)) {
 		pos := strings.LastIndex(gitURL, "#")
 		if pos >= 0 {
 			frag := gitURL[pos+1:]

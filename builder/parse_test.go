@@ -64,19 +64,27 @@ func TestGetContextFromGitURL(t *testing.T) {
 		build    string
 		expected string
 	}{
+		// GitHub
 		{"https://github.com/Azure/acr-builder.git#stable:.", "."},
 		{"https://github.com/Azure/acr-builder.git#master:HelloWorld", "HelloWorld"},
 		{"https://github.com/Azure/acr-builder.git#:Foo", "Foo"},
 		{"https://github.com/Azure/acr-builder.git", "."},
 		{"https://github.com/Azure/acr-builder.git#master", "."},
 
+		// VSO
 		{"https://foo.visualstudio.com/ACR/_git/Build/#master:.", "."},
 		{"https://foo.visualstudio.com/ACR/_git/Build/#master:HelloWorld", "HelloWorld"},
 		{"https://foo.visualstudio.com/ACR/_git/Build/#:Foo", "Foo"},
 		{"https://foo.visualstudio.com/ACR/_git/Build/", "."},
 		{"https://foo.visualstudio.com/ACR/_git/Build/#master", "."},
-
 		{"https://foo.VISUALstuDIo.com/ACR/_git/Build#master:HelloWorld", "HelloWorld"},
+
+		// Azure Devops
+		{"https://dev.azure.com/foo/_git/dockerfiles#stable:.", "."},
+		{"https://dev.azure.com/foo/_git/dockerfiles#master:HelloWorld", "HelloWorld"},
+		{"https://dev.azure.com/foo/_git/dockerfiles#:Foo", "Foo"},
+		{"https://dev.azure.com/foo/_git/dockerfiles", "."},
+		{"https://dev.azure.com/foo/_git/dockerfiles#branch", "."},
 	}
 
 	for _, test := range tests {
