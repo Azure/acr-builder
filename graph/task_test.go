@@ -21,10 +21,16 @@ func TestUsingRegistryCreds(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		task := &Task{
+		var credentials []*Credential
+
+		credentials = append(credentials, &Credential{
 			RegistryName:     test.registry,
 			RegistryUsername: test.user,
 			RegistryPassword: test.pw,
+		})
+		task := &Task{
+			RegistryName: test.registry,
+			Credentials:  credentials,
 		}
 		actual := task.UsingRegistryCreds()
 		if test.expected != actual {
@@ -49,7 +55,15 @@ func TestNewTask(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		task, err := NewTask(test.steps, test.secrets, test.registry, test.username, test.password, test.totalTimeout, test.isBuildTask)
+		var credentials []*Credential
+
+		// First add the creds provided by the user
+		credentials = append(credentials, &Credential{
+			RegistryName:     test.registry,
+			RegistryUsername: test.username,
+			RegistryPassword: test.password,
+		})
+		task, err := NewTask(test.steps, test.secrets, test.registry, credentials, test.totalTimeout, test.isBuildTask)
 		if err != nil {
 			t.Fatalf("Unexpected err while creating task: %v", err)
 		}
@@ -66,11 +80,11 @@ func TestNewTask(t *testing.T) {
 		if task.RegistryName != test.registry {
 			t.Fatalf("Expected %v as the registry but got %v", test.registry, task.RegistryName)
 		}
-		if task.RegistryUsername != test.username {
-			t.Fatalf("Expected %v as the registry username but got %v", test.username, task.RegistryUsername)
+		if task.Credentials[0].RegistryUsername != test.username {
+			t.Fatalf("Expected %v as the registry username but got %v", test.username, task.Credentials[0].RegistryUsername)
 		}
-		if task.RegistryPassword != test.password {
-			t.Fatalf("Expected %v as the registry password but got %v", test.password, task.RegistryPassword)
+		if task.Credentials[0].RegistryPassword != test.password {
+			t.Fatalf("Expected %v as the registry password but got %v", test.password, task.Credentials[0].RegistryPassword)
 		}
 		if task.TotalTimeout != test.expectedTotalTimeout {
 			t.Fatalf("Expected %v as the timeout but got %v", test.expectedTotalTimeout, task.TotalTimeout)

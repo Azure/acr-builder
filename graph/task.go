@@ -36,8 +36,7 @@ type Task struct {
 	WorkingDirectory string     `yaml:"workingDirectory,omitempty"`
 	Version          string     `yaml:"version,omitempty"`
 	RegistryName     string
-	RegistryUsername string
-	RegistryPassword string
+	Credentials      []*Credential
 	Dag              *Dag
 	IsBuildTask      bool     // Used to skip the default network creation for build.
 	Envs             []string `yaml:"envs,omitempty"`
@@ -87,19 +86,17 @@ func NewTask(
 	steps []*Step,
 	secrets []*Secret,
 	registry string,
-	user string,
-	pw string,
+	credentials []*Credential,
 	totalTimeout int,
 	isBuildTask bool) (*Task, error) {
 	t := &Task{
-		Steps:            steps,
-		StepTimeout:      defaultStepTimeoutInSeconds,
-		TotalTimeout:     totalTimeout,
-		Secrets:          secrets,
-		RegistryName:     registry,
-		RegistryUsername: user,
-		RegistryPassword: pw,
-		IsBuildTask:      isBuildTask,
+		Steps:        steps,
+		StepTimeout:  defaultStepTimeoutInSeconds,
+		TotalTimeout: totalTimeout,
+		Secrets:      secrets,
+		RegistryName: registry,
+		Credentials:  credentials,
+		IsBuildTask:  isBuildTask,
 	}
 
 	err := t.initialize()
@@ -197,16 +194,22 @@ func (t *Task) initialize() error {
 
 // UsingRegistryCreds determines whether or not the Task is using registry creds.
 func (t *Task) UsingRegistryCreds() bool {
-	return t.RegistryName != "" &&
-		t.RegistryPassword != "" &&
-		t.RegistryUsername != ""
+	if len(t.Credentials) > 0 {
+		cred := t.Credentials[0]
+		return cred.RegistryName != "" &&
+			cred.RegistryPassword != "" &&
+			cred.RegistryUsername != ""
+	}
+	return false
 }
 
 // SetRegistryInfo sets registry information.
 func (t *Task) setRegistryInfo(registry, user, pw string) {
-	t.RegistryName = registry
-	t.RegistryUsername = user
-	t.RegistryPassword = pw
+	t.Credentials = append(t.Credentials, &Credential{
+		RegistryName:     registry,
+		RegistryUsername: user,
+		RegistryPassword: pw,
+	})
 }
 
 // getNormalizedDockerImageNames normalizes the list of docker images

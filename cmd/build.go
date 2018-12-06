@@ -38,6 +38,7 @@ type buildCmd struct {
 	target          string
 	registryUser    string
 	registryPw      string
+	credentials     []string
 	isolation       string
 	platform        string
 	tags            []string
@@ -83,6 +84,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 
 	f.StringVarP(&r.registryUser, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&r.registryPw, "password", "p", "", "the password to use when logging into the registry")
+	f.StringArrayVar(&r.credentials, "credentials", []string{}, "all credentials for private repos")
 
 	f.StringVar(&r.isolation, "isolation", "", "the isolation to use")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
@@ -193,7 +195,26 @@ func (b *buildCmd) createBuildTask() (*graph.Task, error) {
 	// TODO: create secrets
 	secrets := []*graph.Secret{}
 
-	return graph.NewTask(steps, secrets, b.opts.Registry, b.registryUser, b.registryPw, taskTotalTimeoutInSec, true)
+	var credentials []*graph.Credential
+
+	// First add the creds provided by the user
+	credentials = append(credentials, &graph.Credential{
+		RegistryName:     b.opts.Registry,
+		RegistryUsername: b.registryUser,
+		RegistryPassword: b.registryPw,
+	})
+
+	// Add any additional creds provided by the user in the --credentials flag
+	for _, creds := range b.credentials {
+		// creds should be of the form of "regName;userName;password"
+		splitCreds := strings.Split(creds, ";")
+		credentials = append(credentials, &graph.Credential{
+			RegistryName:     splitCreds[0],
+			RegistryUsername: splitCreds[1],
+			RegistryPassword: splitCreds[2],
+		})
+	}
+	return graph.NewTask(steps, secrets, b.opts.Registry, credentials, taskTotalTimeoutInSec, true)
 }
 
 func (b *buildCmd) createRunCmd() string {

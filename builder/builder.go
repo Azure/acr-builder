@@ -63,8 +63,10 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		timeout := time.Duration(loginTimeoutInSec) * time.Second
 		loginCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		if err := b.dockerLoginWithRetries(loginCtx, task.RegistryName, task.RegistryUsername, task.RegistryPassword, 0); err != nil {
-			return err
+		for _, creds := range task.Credentials {
+			if err := b.dockerLoginWithRetries(loginCtx, creds.RegistryName, creds.RegistryUsername, creds.RegistryPassword, 0); err != nil {
+				return err
+			}
 		}
 		log.Println("Successfully logged in")
 	}
