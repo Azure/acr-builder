@@ -56,8 +56,8 @@ func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, network s
 
 	t.Envs = envs
 
-	//External network parsed in from CLI will be set as default network, it will be used for any step if no network provide for them
-	//The external network is append at the end of the list of networks, later we will do reverse iteration to get this network
+	// External network parsed in from CLI will be set as default network, it will be used for any step if no network provide for them
+	// The external network is append at the end of the list of networks, later we will do reverse iteration to get this network
 	if network != "" {
 		externalNetwork := NewNetwork(network, false, "external", true, true)
 		t.Networks = append(t.Networks, externalNetwork)
@@ -232,13 +232,13 @@ func getNormalizedDockerImageNames(dockerImages []string, registry string) []str
 	return normalizedDockerImages
 }
 
-// the step's environment variables should override the task's default ones if provided
+// mergeEnvs merges the step's environment variables, overriding the task's default ones if provided.
 func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 	if len(taskEnvs) < 1 {
 		return stepEnvs, nil
 	}
 
-	//preprocess the comma case
+	// preprocess the comma case
 	var newTaskEnvs []string
 	for _, env := range taskEnvs {
 		newEnv := strings.Split(env, ",")
@@ -246,7 +246,7 @@ func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 	}
 
 	var stepmap = make(map[string]string)
-	//parse stepEnvs into a map
+	// parse stepEnvs into a map
 	for _, env := range stepEnvs {
 		pair := strings.SplitN(env, "=", 2)
 		if len(pair) != 2 {
@@ -256,7 +256,7 @@ func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 		stepmap[pair[0]] = pair[1]
 	}
 
-	//merge the unique taskEnvs into stepEnvs
+	// merge the unique taskEnvs into stepEnvs
 	for _, env := range newTaskEnvs {
 		pair := strings.SplitN(env, "=", 2)
 
@@ -265,7 +265,7 @@ func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 			return stepEnvs, err
 		}
 
-		//if the env has not been provided, add to step env
+		// if the env has not been provided, add to step env
 		if _, ok := stepmap[pair[0]]; !ok {
 			stepEnvs = append(stepEnvs, pair[0]+"="+pair[1])
 		}

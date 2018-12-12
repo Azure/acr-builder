@@ -131,7 +131,7 @@ func TestMergingEnvs(t *testing.T) {
 		{"key1=val1,key2=val2", "key3=val3,key4=val4"},
 	}
 
-	//Expect: stepEnvs should overwrite envs that exist in taskEnvs
+	// stepEnvs should overwrite envs that exist in taskEnvs
 	expects := [][]string{
 		{"key1=val1", "key2=val2", "key3=val3"},
 		{"key1=newVal1", "key2=newVal2", "key3=val3"},

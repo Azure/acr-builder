@@ -93,7 +93,15 @@ func (b *Builder) getDockerRunArgs(
 	return args
 }
 
-func (b *Builder) scrapeDependencies(ctx context.Context, volName string, stepWorkDir string, outputDir string, dockerfile string, context string, tags []string, buildArgs []string) ([]*image.Dependencies, error) {
+func (b *Builder) scrapeDependencies(
+	ctx context.Context,
+	volName string,
+	stepWorkDir string,
+	outputDir string,
+	dockerfile string,
+	context string,
+	tags []string,
+	buildArgs []string) ([]*image.Dependencies, error) {
 	containerName := fmt.Sprintf("acb_dep_scanner_%s", uuid.New())
 	args := []string{
 		"docker",
