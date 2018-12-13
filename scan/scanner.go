@@ -51,7 +51,7 @@ func (s *Scanner) Scan(ctx context.Context) (deps []*image.Dependencies, err err
 		return deps, err
 	}
 
-	deps, err = s.ScanForDependencies(workingDir, s.dockerfile, s.buildArgs, s.tags)
+	deps, err = s.ScanForDependencies(s.context, workingDir, s.dockerfile, s.buildArgs, s.tags)
 	if err != nil {
 		return deps, err
 	}
