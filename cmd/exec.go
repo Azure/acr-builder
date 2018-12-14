@@ -62,7 +62,7 @@ func newExecCmd(out io.Writer) *cobra.Command {
 
 	f.StringVarP(&e.registryUser, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&e.registryPw, "password", "p", "", "the password to use when logging into the registry")
-	f.StringArrayVar(&r.credentials, "credentials", []string{}, "all credentials for private repos")
+	f.StringArrayVar(&e.credentials, "credentials", []string{}, "all credentials for private repos")
 
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the task but doesn't execute it")
 	f.StringVar(&e.defaultWorkDir, "working-directory", "", "the default working directory to use if the underlying Task doesn't have one specified")
@@ -129,7 +129,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		// creds should be of the form of "regName;userName;password". If not, return an error
 		cred, err := graph.CreateCredentialFromString(credString)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		credentials = append(credentials, cred)

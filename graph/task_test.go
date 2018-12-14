@@ -22,9 +22,17 @@ func TestUsingRegistryCreds(t *testing.T) {
 
 	for _, test := range tests {
 		cred, err := NewCredential(test.registry, test.user, test.pw)
-		if err != nil {
-			t.Fatalf("Unexpected err: %v", err)
+		if !test.expected {
+			if err == nil {
+				t.Fatalf("Expected to error out, but did not: %v", test)
+			}
+			continue
 		}
+
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
 		task := &Task{
 			RegistryName: test.registry,
 			Credentials:  []*Credential{cred},
@@ -43,18 +51,22 @@ func TestNewTask(t *testing.T) {
 		registry             string
 		username             string
 		password             string
+		okCredentials        bool
 		totalTimeout         int
 		isBuildTask          bool
 		expectedTotalTimeout int
 	}{
-		{nil, nil, "registry", "username", "password", 100, true, 600},
-		{[]*Step{}, []*Secret{}, "", "", "", 720, false, 720},
+		{nil, nil, "registry", "username", "password", true, 100, true, 600},
+		{[]*Step{}, []*Secret{}, "", "", "", false, 720, false, 720},
 	}
 
 	for _, test := range tests {
 		cred, err := NewCredential(test.registry, test.username, test.password)
-		if err != nil {
-			t.Fatalf("Unexpected err: %v", err)
+
+		if !test.okCredentials {
+			if err == nil {
+				t.Fatalf("Expected to error out, but did not: %v", test)
+			}
 		}
 
 		task, err := NewTask(test.steps, test.secrets, test.registry, []*Credential{cred}, test.totalTimeout, test.isBuildTask)
@@ -74,10 +86,10 @@ func TestNewTask(t *testing.T) {
 		if task.RegistryName != test.registry {
 			t.Fatalf("Expected %v as the registry but got %v", test.registry, task.RegistryName)
 		}
-		if task.Credentials[0].RegistryUsername != test.username {
+		if test.username != "" && task.Credentials[0].RegistryUsername != test.username {
 			t.Fatalf("Expected %v as the registry username but got %v", test.username, task.Credentials[0].RegistryUsername)
 		}
-		if task.Credentials[0].RegistryPassword != test.password {
+		if test.password != "" && task.Credentials[0].RegistryPassword != test.password {
 			t.Fatalf("Expected %v as the registry password but got %v", test.password, task.Credentials[0].RegistryPassword)
 		}
 		if task.TotalTimeout != test.expectedTotalTimeout {
