@@ -120,7 +120,10 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	var credentials []*graph.Credential
 	// If the user provides the username and password, add it to the Credentials
 	if e.opts.Registry != "" && e.registryUser != "" && e.registryPw != "" {
-		cred, _ := graph.NewCredential(e.opts.Registry, e.registryUser, e.registryPw)
+		cred, err := graph.NewCredential(e.opts.Registry, e.registryUser, e.registryPw)
+		if err != nil {
+			return err
+		}
 		credentials = append(credentials, cred)
 	}
 

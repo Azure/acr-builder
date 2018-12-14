@@ -10,20 +10,20 @@ import (
 )
 
 var (
-	errInvalidRegName    = errors.New("registry name can't be empty")
+	errInvalidRegName    = errors.New("Registry name can't be empty")
 	errInvalidUsername   = errors.New("Username can't be empty")
 	errInvalidPassword   = errors.New("Password can't be empty")
 	errInsufficientCreds = errors.New("Need to provide registry name, username, and password in a string delimited by ';'")
 )
 
-// Credential defines a combination of registry, username and password
+// Credential defines a combination of registry, username and password.
 type Credential struct {
 	RegistryName     string
 	RegistryUsername string
 	RegistryPassword string
 }
 
-// NewCredential creates a new Credential
+// NewCredential creates a new Credential.
 func NewCredential(regName, regUser, regPw string) (*Credential, error) {
 	if regName == "" {
 		return nil, errInvalidRegName
@@ -51,5 +51,4 @@ func CreateCredentialFromString(str string) (*Credential, error) {
 	}
 
 	return NewCredential(strs[0], strs[1], strs[2])
-
 }

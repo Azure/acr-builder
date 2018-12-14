@@ -198,7 +198,10 @@ func (b *buildCmd) createBuildTask() (*graph.Task, error) {
 	var credentials []*graph.Credential
 	// If the user provides the username and password, add it to the Credentials
 	if b.opts.Registry != "" && b.registryUser != "" && b.registryPw != "" {
-		creds, _ := graph.NewCredential(b.opts.Registry, b.registryUser, b.registryPw)
+		creds, err := graph.NewCredential(b.opts.Registry, b.registryUser, b.registryPw)
+		if err != nil {
+			return nil, err
+		}
 		credentials = append(credentials, creds)
 	}
 

@@ -23,7 +23,7 @@ func TestCreateCredentialFromString(t *testing.T) {
 		actual, err := CreateCredentialFromString(test.str)
 		if test.shouldError {
 			if err == nil {
-				t.Fatalf("Test should have errored out,but did not: %v", test)
+				t.Fatalf("Test should have errored out, but did not: %v", test)
 			}
 			continue
 		}
