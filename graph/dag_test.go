@@ -9,7 +9,7 @@ import (
 )
 
 func TestDagCreation_ValidFile(t *testing.T) {
-	task, err := UnmarshalTaskFromFile("testdata/acb.yaml", "", "", "")
+	task, err := UnmarshalTaskFromFile("testdata/acb.yaml", nil)
 	if err != nil {
 		t.Fatalf("Failed to create task from file. Err: %v", err)
 	}

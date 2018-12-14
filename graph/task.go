@@ -36,15 +36,14 @@ type Task struct {
 	WorkingDirectory string     `yaml:"workingDirectory,omitempty"`
 	Version          string     `yaml:"version,omitempty"`
 	RegistryName     string
-	RegistryUsername string
-	RegistryPassword string
+	Credentials      []*Credential
 	Dag              *Dag
 	IsBuildTask      bool     // Used to skip the default network creation for build.
 	Envs             []string `yaml:"envs,omitempty"`
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, network string, envs []string) (*Task, error) {
+func UnmarshalTaskFromString(data string, defaultWorkDir string, network string, envs []string, creds []*Credential) (*Task, error) {
 	t := &Task{}
 	if err := yaml.Unmarshal([]byte(data), t); err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task")
@@ -52,9 +51,9 @@ func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, network s
 	if defaultWorkDir != "" && t.WorkingDirectory == "" {
 		t.WorkingDirectory = defaultWorkDir
 	}
-	t.setRegistryInfo(registry, user, pw)
 
 	t.Envs = envs
+	t.Credentials = creds
 
 	// External network parsed in from CLI will be set as default network, it will be used for any step if no network provide for them
 	// The external network is append at the end of the list of networks, later we will do reverse iteration to get this network
@@ -68,8 +67,8 @@ func UnmarshalTaskFromString(data, registry, user, pw, defaultWorkDir, network s
 }
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
-func UnmarshalTaskFromFile(file, registry, user, pw string) (*Task, error) {
-	t := &Task{}
+func UnmarshalTaskFromFile(file string, creds []*Credential) (*Task, error) {
+	t := &Task{Credentials: creds}
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return t, err
@@ -77,7 +76,6 @@ func UnmarshalTaskFromFile(file, registry, user, pw string) (*Task, error) {
 	if err := yaml.Unmarshal([]byte(data), &t); err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task")
 	}
-	t.setRegistryInfo(registry, user, pw)
 	err = t.initialize()
 	return t, err
 }
@@ -87,19 +85,17 @@ func NewTask(
 	steps []*Step,
 	secrets []*Secret,
 	registry string,
-	user string,
-	pw string,
+	credentials []*Credential,
 	totalTimeout int,
 	isBuildTask bool) (*Task, error) {
 	t := &Task{
-		Steps:            steps,
-		StepTimeout:      defaultStepTimeoutInSeconds,
-		TotalTimeout:     totalTimeout,
-		Secrets:          secrets,
-		RegistryName:     registry,
-		RegistryUsername: user,
-		RegistryPassword: pw,
-		IsBuildTask:      isBuildTask,
+		Steps:        steps,
+		StepTimeout:  defaultStepTimeoutInSeconds,
+		TotalTimeout: totalTimeout,
+		Secrets:      secrets,
+		RegistryName: registry,
+		Credentials:  credentials,
+		IsBuildTask:  isBuildTask,
 	}
 
 	err := t.initialize()
@@ -197,16 +193,7 @@ func (t *Task) initialize() error {
 
 // UsingRegistryCreds determines whether or not the Task is using registry creds.
 func (t *Task) UsingRegistryCreds() bool {
-	return t.RegistryName != "" &&
-		t.RegistryPassword != "" &&
-		t.RegistryUsername != ""
-}
-
-// SetRegistryInfo sets registry information.
-func (t *Task) setRegistryInfo(registry, user, pw string) {
-	t.RegistryName = registry
-	t.RegistryUsername = user
-	t.RegistryPassword = pw
+	return len(t.Credentials) > 0
 }
 
 // getNormalizedDockerImageNames normalizes the list of docker images
