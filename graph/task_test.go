@@ -21,16 +21,13 @@ func TestUsingRegistryCreds(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		var credentials []*Credential
-
-		credentials = append(credentials, &Credential{
-			RegistryName:     test.registry,
-			RegistryUsername: test.user,
-			RegistryPassword: test.pw,
-		})
+		cred, err := NewCredential(test.registry, test.user, test.pw)
+		if err != nil {
+			t.Fatalf("Unexpected err: %v", err)
+		}
 		task := &Task{
 			RegistryName: test.registry,
-			Credentials:  credentials,
+			Credentials:  []*Credential{cred},
 		}
 		actual := task.UsingRegistryCreds()
 		if test.expected != actual {
@@ -55,15 +52,12 @@ func TestNewTask(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		var credentials []*Credential
+		cred, err := NewCredential(test.registry, test.username, test.password)
+		if err != nil {
+			t.Fatalf("Unexpected err: %v", err)
+		}
 
-		// First add the creds provided by the user
-		credentials = append(credentials, &Credential{
-			RegistryName:     test.registry,
-			RegistryUsername: test.username,
-			RegistryPassword: test.password,
-		})
-		task, err := NewTask(test.steps, test.secrets, test.registry, credentials, test.totalTimeout, test.isBuildTask)
+		task, err := NewTask(test.steps, test.secrets, test.registry, []*Credential{cred}, test.totalTimeout, test.isBuildTask)
 		if err != nil {
 			t.Fatalf("Unexpected err while creating task: %v", err)
 		}
