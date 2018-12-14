@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/Azure/acr-builder/pkg/image"
+	"github.com/Azure/acr-builder/util"
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
 )
@@ -27,11 +28,18 @@ var (
 )
 
 // ScanForDependencies scans for base image dependencies.
-func (s *Scanner) ScanForDependencies(workingDir string, dockerfile string, buildArgs []string, pushTo []string) (deps []*image.Dependencies, err error) {
-	path := path.Clean(path.Join(workingDir, dockerfile))
-	file, err := os.Open(path)
+func (s *Scanner) ScanForDependencies(context string, workingDir string, dockerfile string, buildArgs []string, pushTo []string) (deps []*image.Dependencies, err error) {
+	dockerfilePath := dockerfile
+	// If the context is local, the Dockerfile path is simply the Dockerfile.
+	// In the case of remote contexts, it's scoped to the clone or downloaded location and the working directory.
+	// For example, for a git URL ending with .git#:foo/bar which was downloaded to a directory "build",
+	// the path is scoped to build/foo/bar/Dockerfile.
+	if !util.IsLocalContext(s.context) {
+		dockerfilePath = path.Clean(path.Join(workingDir, dockerfile))
+	}
+	file, err := os.Open(dockerfilePath)
 	if err != nil {
-		return deps, fmt.Errorf("Error opening dockerfile: %s, error: %v", path, err)
+		return deps, fmt.Errorf("Error opening dockerfile: %s, error: %v", dockerfilePath, err)
 	}
 	defer func() { _ = file.Close() }()
 

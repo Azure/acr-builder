@@ -205,6 +205,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		dockerfile, dockerContext := parseDockerBuildCmd(step.Build)
 		volName := b.workspaceDir
 
+		// Print out a warning message if a remote context doesn't appear to be valid, i.e. doesn't end with .git.
 		validateDockerContext(dockerContext)
 
 		log.Println("Obtaining source code and scanning for dependencies...")
