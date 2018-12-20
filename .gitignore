@@ -1,7 +1,4 @@
 *.exe
-*.dll
-*.so
-*.dylib
 .vscode/
 /bin/
 coverage.txt
