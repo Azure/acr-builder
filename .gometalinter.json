@@ -14,7 +14,8 @@
       "unconvert",
       "unused",
       "varcheck",
-      "vet"
+      "vet",
+      "maligned"
     ]
   }
   

@@ -18,8 +18,8 @@ const (
 // Network defines a Docker network.
 type Network struct {
 	Name         string `yaml:"name"`
-	Ipv6         bool   `yaml:"ipv6"`
 	Driver       string `yaml:"driver"`
+	Ipv6         bool   `yaml:"ipv6"`
 	SkipCreation bool   `yaml:"skipCreation"`
 	IsDefault    bool   `yaml:"isDefault"`
 }
