@@ -3,10 +3,6 @@
 
 package main
 
-import (
-	"github.com/Azure/acr-builder/cmd"
-)
-
 func main() {
-	cmd.Execute()
+	Execute()
 }
