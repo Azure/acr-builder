@@ -54,7 +54,6 @@ binaries: $(BINARIES) ## Build the binaries
 FORCE:
 bin/%: cmd/% FORCE
 	@echo "+ $@${BINARY_SUFFIX}"
-	echo ${GO_GCFLAGS} ${GO_BUILD_FLAGS} -o $@${BINARY_SUFFIX} ${GO_LDFLAGS} ${GO_TAGS}
 	@CGO_ENABLED=0 go build ${GO_GCFLAGS} ${GO_BUILD_FLAGS} -o $@${BINARY_SUFFIX} ${GO_LDFLAGS} ${GO_TAGS} ./$<
 
 .PHONY: build
