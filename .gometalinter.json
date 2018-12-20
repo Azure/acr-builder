@@ -9,13 +9,13 @@
       "goimports",
       "golint",
       "ineffassign",
+      "maligned",
       "staticcheck",
       "structcheck",
       "unconvert",
       "unused",
       "varcheck",
-      "vet",
-      "maligned"
+      "vet"
     ]
   }
   
