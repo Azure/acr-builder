@@ -73,7 +73,7 @@ func UnmarshalTaskFromFile(file string, creds []*Credential) (*Task, error) {
 	if err != nil {
 		return t, err
 	}
-	if err := yaml.Unmarshal([]byte(data), &t); err != nil {
+	if err := yaml.Unmarshal(data, &t); err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task")
 	}
 	err = t.initialize()

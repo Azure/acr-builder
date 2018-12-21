@@ -1,19 +1,9 @@
-# Binaries for programs and plugins
-*.exe
-*.dll
-*.so
-*.dylib
-
-acb
 *.exe
 .vscode/
-
-# Test binary, build with `go test -c`
+/bin/
+coverage.txt
 *.test
-
-# Output of the go coverage tool and any resulting html during translation.
 *.out
 *.html
-
 # temp folder when downloading tars
 temp/

@@ -1,13 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package cmd
+package main
 
 import (
 	"context"
-	"log"
-
 	"io"
+	"log"
 	"time"
 
 	"github.com/Azure/acr-builder/pkg/procmanager"
@@ -36,7 +35,7 @@ func newDownloadCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "download [OPTIONS] PATH | URL",
 		Short: "Download the specified context to a destination folder",
-		Long:  scanLongDesc,
+		Long:  downloadLongDesc,
 		RunE:  d.run,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {

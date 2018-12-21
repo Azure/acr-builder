@@ -31,35 +31,35 @@ var (
 
 // Step is a step in the execution task.
 type Step struct {
-	ID                              string   `yaml:"id"`
-	Cmd                             string   `yaml:"cmd"`
-	Build                           string   `yaml:"build"`
-	Push                            []string `yaml:"push"`
-	WorkingDirectory                string   `yaml:"workingDirectory"`
-	EntryPoint                      string   `yaml:"entryPoint"`
-	Envs                            []string `yaml:"env"`
-	SecretEnvs                      []string `yaml:"secretEnvs"`
-	Expose                          []string `yaml:"expose"`
-	Ports                           []string `yaml:"ports"`
-	When                            []string `yaml:"when"`
-	ExitedWith                      []int    `yaml:"exitedWith"`
-	ExitedWithout                   []int    `yaml:"exitedWithout"`
-	Timeout                         int      `yaml:"timeout"`
-	Keep                            bool     `yaml:"keep"`
-	Detach                          bool     `yaml:"detach"`
-	StartDelay                      int      `yaml:"startDelay"`
-	Privileged                      bool     `yaml:"privileged"`
-	User                            string   `yaml:"user"`
-	Network                         string   `yaml:"network"`
-	Isolation                       string   `yaml:"isolation"`
-	IgnoreErrors                    bool     `yaml:"ignoreErrors"`
-	RetryDelayInSeconds             int      `yaml:"retryDelay"`
-	DisableWorkingDirectoryOverride bool     `yaml:"disableWorkingDirectoryOverride"`
-	Pull                            bool     `yaml:"pull"`
+	ID                  string   `yaml:"id"`
+	Cmd                 string   `yaml:"cmd"`
+	Build               string   `yaml:"build"`
+	WorkingDirectory    string   `yaml:"workingDirectory"`
+	EntryPoint          string   `yaml:"entryPoint"`
+	User                string   `yaml:"user"`
+	Network             string   `yaml:"network"`
+	Isolation           string   `yaml:"isolation"`
+	Push                []string `yaml:"push"`
+	Envs                []string `yaml:"env"`
+	SecretEnvs          []string `yaml:"secretEnvs"`
+	Expose              []string `yaml:"expose"`
+	Ports               []string `yaml:"ports"`
+	When                []string `yaml:"when"`
+	ExitedWith          []int    `yaml:"exitedWith"`
+	ExitedWithout       []int    `yaml:"exitedWithout"`
+	Timeout             int      `yaml:"timeout"`
+	StartDelay          int      `yaml:"startDelay"`
+	RetryDelayInSeconds int      `yaml:"retryDelay"`
 	// Retries specifies how many times a Step will be retried if it fails after its initial execution.
 	Retries int `yaml:"retries"`
 	// Repeat specifies how many times a Step will be repeated after its initial execution.
-	Repeat int `yaml:"repeat"`
+	Repeat                          int  `yaml:"repeat"`
+	Keep                            bool `yaml:"keep"`
+	Detach                          bool `yaml:"detach"`
+	Privileged                      bool `yaml:"privileged"`
+	IgnoreErrors                    bool `yaml:"ignoreErrors"`
+	DisableWorkingDirectoryOverride bool `yaml:"disableWorkingDirectoryOverride"`
+	Pull                            bool `yaml:"pull"`
 
 	StartTime  time.Time
 	EndTime    time.Time

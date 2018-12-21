@@ -60,25 +60,25 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	log.Printf("Successfully set up Docker configuration")
 	if task.UsingRegistryCreds() {
 		timeout := time.Duration(loginTimeoutInSec) * time.Second
-		for _, creds := range task.Credentials {
+		for _, cred := range task.Credentials {
 			loginCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
-			log.Printf("Logging in to registry: %s\n", creds.RegistryName)
-			if err := b.dockerLoginWithRetries(loginCtx, creds.RegistryName, creds.RegistryUsername, creds.RegistryPassword, 0); err != nil {
+			log.Printf("Logging in to registry: %s\n", cred.RegistryName)
+			if err := b.dockerLoginWithRetries(loginCtx, cred.RegistryName, cred.RegistryUsername, cred.RegistryPassword, 0); err != nil {
 				return err
 			}
-			log.Printf("Successfully logged into %s\n", creds.RegistryName)
+			log.Printf("Successfully logged into %s\n", cred.RegistryName)
 		}
 	}
 
 	var completedChans []chan bool
 	errorChan := make(chan error)
-	for _, n := range task.Dag.Nodes {
-		completedChans = append(completedChans, n.Value.CompletedChan)
+	for _, node := range task.Dag.Nodes {
+		completedChans = append(completedChans, node.Value.CompletedChan)
 	}
 
-	for _, n := range task.Dag.Root.Children() {
-		go b.processVertex(ctx, task, task.Dag.Root, n, errorChan)
+	for _, child := range task.Dag.Root.Children() {
+		go b.processVertex(ctx, task, task.Dag.Root, child, errorChan)
 	}
 
 	// Block until either:

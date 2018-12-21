@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package cmd
+package main
 
 import (
 	"os"
@@ -13,13 +13,12 @@ var (
 	debug bool
 )
 
-const globalUsageMessage = `Welcome to Azure's container builder.
+const globalUsageMessage = `Welcome to Azure Container Builder.
 
-To start working with Azure container builder (acb), run acb --help
+To start working with Azure Container Builder (acb), run acb --help
 `
 
-// Execute executes the root command.
-func Execute() {
+func main() {
 	cmd := newRootCmd(os.Args[1:])
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
@@ -27,7 +26,6 @@ func Execute() {
 }
 
 func newRootCmd(args []string) *cobra.Command {
-
 	cmd := &cobra.Command{
 		Use:          "acb",
 		Short:        "The builder for Azure Container Registry (ACR)",

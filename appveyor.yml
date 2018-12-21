@@ -17,5 +17,5 @@ build: false
 deploy: false
 
 test_script:
-  - go build github.com/Azure/acr-builder
+  - go build -o acb.exe .\cmd\acb
   - go test ./...

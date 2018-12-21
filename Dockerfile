@@ -6,7 +6,7 @@ RUN apk add --no-cache \
 FROM gobuild-base AS acb
 WORKDIR /go/src/github.com/Azure/acr-builder
 COPY . .
-RUN make static && mv acb /usr/bin/acb
+RUN make binaries && mv bin/acb /usr/bin/acb
 
 FROM docker:18.03.0-ce-git
 
