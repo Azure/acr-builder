@@ -17,7 +17,7 @@ var isolations = map[string]bool{
 
 func validateIsolation(isolation string) error {
 	if ok := isolations[isolation]; !ok {
-		return fmt.Errorf("Invalid isolation: %s", isolation)
+		return fmt.Errorf("invalid isolation: %s", isolation)
 	}
 	return nil
 }

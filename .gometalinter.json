@@ -5,6 +5,7 @@
     "Exclude": [],
     "EnableGC": true,
     "Enable": [
+      "deadcode",
       "gofmt",
       "goimports",
       "golint",

@@ -45,7 +45,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		}
 		log.Printf("Creating Docker network: %s, driver: '%s'\n", network.Name, network.Driver)
 		if msg, err := network.Create(ctx, b.procManager); err != nil {
-			return fmt.Errorf("Failed to create network: %s, err: %v, msg: %s", network.Name, err, msg)
+			return fmt.Errorf("failed to create network: %s, err: %v, msg: %s", network.Name, err, msg)
 		}
 		log.Printf("Successfully set up Docker network: %s\n", network.Name)
 	}
@@ -318,7 +318,7 @@ func (b *Builder) queryDigest(ctx context.Context, reference *image.Reference) e
 			return errors.Wrapf(err, "failed to query digests, msg: %s", buf.String())
 		}
 		trimCharPredicate := func(c rune) bool {
-			return '\n' == c || '\r' == c || '"' == c || '\t' == c
+			return c == '\n' || c == '\r' || c == '"' || c == '\t'
 		}
 		reference.Digest = getRepoDigest(strings.TrimFunc(buf.String(), trimCharPredicate), reference)
 	}

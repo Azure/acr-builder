@@ -157,7 +157,7 @@ func (t *Task) initialize() error {
 
 		newEnvs, err := mergeEnvs(s.Envs, t.Envs)
 		if err != nil {
-			return fmt.Errorf("Bad format of environment variables, err: %v", err)
+			return fmt.Errorf("bad format of environment variables, err: %v", err)
 		}
 		s.Envs = newEnvs
 
@@ -237,7 +237,7 @@ func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 	for _, env := range stepEnvs {
 		pair := strings.SplitN(env, "=", 2)
 		if len(pair) != 2 {
-			err := fmt.Errorf("Can not parse step environment variable %s correctly", env)
+			err := fmt.Errorf("cannot parse step environment variable %s correctly", env)
 			return stepEnvs, err
 		}
 		stepmap[pair[0]] = pair[1]
@@ -248,7 +248,7 @@ func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 		pair := strings.SplitN(env, "=", 2)
 
 		if len(pair) != 2 {
-			err := fmt.Errorf("Can not parse task environment variable %s correctly", env)
+			err := fmt.Errorf("cannot parse task environment variable %s correctly", env)
 			return stepEnvs, err
 		}
 

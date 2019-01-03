@@ -9,7 +9,7 @@ import (
 )
 
 var httpPrefix = regexp.MustCompile("^https?://")
-var gitURLWithSuffix = regexp.MustCompile("\\.git(?:#.+)?$")
+var gitURLWithSuffix = regexp.MustCompile(`\.git(?:#.+)?$`)
 
 const (
 	azureDevOpsHost = "dev.azure.com"

@@ -121,17 +121,17 @@ func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, er
 
 	mergedVals, err := OverrideValuesWithBuildInfo(config, setConfig, opts)
 	if err != nil {
-		return "", fmt.Errorf("Failed to override values: %v", err)
+		return "", fmt.Errorf("failed to override values: %v", err)
 	}
 
 	engine := NewEngine()
 	rendered, err := engine.Render(template, mergedVals)
 	if err != nil {
-		return "", fmt.Errorf("Error while rendering templates: %v", err)
+		return "", fmt.Errorf("error while rendering templates: %v", err)
 	}
 
 	if rendered == "" {
-		return "", errors.New("Rendered template was empty")
+		return "", errors.New("rendered template was empty")
 	}
 
 	return rendered, nil
