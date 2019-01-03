@@ -4,7 +4,16 @@ Windows.Dockerfile
 .git
 LICENSE
 *.md
-.vscode
 .github
 .travis.yml
 appveyor.yml
+*.yaml
+*.exe
+.vscode/
+/bin/
+coverage.txt
+*.test
+*.out
+*.html
+# temp folder when downloading tars
+temp/
