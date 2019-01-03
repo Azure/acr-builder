@@ -115,7 +115,7 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 			b.opts.SharedVolume = homeVolName
 			v := volume.NewVolume(homeVolName, procManager)
 			if msg, err := v.Create(ctx); err != nil {
-				return fmt.Errorf("Err creating docker vol. Msg: %s, Err: %v", msg, err)
+				return fmt.Errorf("failed to create Docker volume. Msg: %s, Err: %v", msg, err)
 			}
 			defer func() {
 				_, _ = v.Delete(ctx)

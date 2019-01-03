@@ -70,12 +70,12 @@ func (e *Engine) render(rt renderableTemplate) (rendered string, err error) {
 
 	t = t.New(rt.name).Funcs(e.FuncMap)
 	if _, err := t.Parse(rt.template); err != nil {
-		return "", fmt.Errorf("Failed to parse template: %s. Err: %v", rt.name, err)
+		return "", fmt.Errorf("failed to parse template: %s. Err: %v", rt.name, err)
 	}
 
 	var buf bytes.Buffer
 	if err := t.ExecuteTemplate(&buf, rt.name, rt.values); err != nil {
-		return "", fmt.Errorf("Failed to execute template: %s. Err: %v", rt.name, err)
+		return "", fmt.Errorf("failed to execute template: %s. Err: %v", rt.name, err)
 	}
 
 	// NB: handle `missingkey=zero` by removing the string.

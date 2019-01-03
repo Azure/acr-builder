@@ -53,7 +53,7 @@ func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
 		}
 
 		if attempt == maxPushRetries {
-			return fmt.Errorf("Failed to push images successfully")
+			return fmt.Errorf("failed to push images successfully")
 		}
 	}
 
