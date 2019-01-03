@@ -41,7 +41,7 @@ func newRenderCmd(out io.Writer) *cobra.Command {
 
 func (r *renderCmd) run(cmd *cobra.Command, args []string) error {
 	if r.opts.TaskFile == "" && r.opts.Base64EncodedTaskFile == "" {
-		return errors.New("A task file or Base64 encoded task file is required")
+		return errors.New("a task file or Base64 encoded task file is required")
 	}
 
 	var template *templating.Template

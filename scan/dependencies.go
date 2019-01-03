@@ -39,7 +39,7 @@ func (s *Scanner) ScanForDependencies(context string, workingDir string, dockerf
 	}
 	file, err := os.Open(dockerfilePath)
 	if err != nil {
-		return deps, fmt.Errorf("Error opening dockerfile: %s, error: %v", dockerfilePath, err)
+		return deps, fmt.Errorf("error opening dockerfile: %s, error: %v", dockerfilePath, err)
 	}
 	defer func() { _ = file.Close() }()
 
@@ -199,7 +199,7 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []s
 			switch strings.ToUpper(tokens[0]) {
 			case "FROM":
 				if len(tokens) < 2 {
-					return "", nil, fmt.Errorf("Unable to understand line %s", line)
+					return "", nil, fmt.Errorf("unable to understand line %s", line)
 				}
 				var image = os.Expand(tokens[1], func(key string) string {
 					return context[key]
@@ -213,7 +213,7 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []s
 
 				if len(tokens) > 2 {
 					if len(tokens) < 4 || strings.ToLower(tokens[2]) != "as" {
-						return "", nil, fmt.Errorf("Unable to understand line %s", line)
+						return "", nil, fmt.Errorf("unable to understand line %s", line)
 					}
 					// alias cannot contain variables it seems. So we don't call context.Expand on it
 					alias := tokens[3]
@@ -225,12 +225,12 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []s
 				}
 			case "ARG":
 				if len(tokens) < 2 {
-					return "", nil, fmt.Errorf("Dockerfile syntax requires ARG directive to have exactly 1 argument. LINE: %s", line)
+					return "", nil, fmt.Errorf("dockerfile syntax requires ARG directive to have exactly 1 argument. LINE: %s", line)
 				}
 				if strings.Contains(tokens[1], "=") {
 					varName, varValue, err := parseAssignment(tokens[1])
 					if err != nil {
-						return "", nil, fmt.Errorf("Unable to parse assignment %s, error: %s", tokens[1], err)
+						return "", nil, fmt.Errorf("unable to parse assignment %s, error: %s", tokens[1], err)
 					}
 					// This line matches docker's behavior here
 					// 1. If build arg is passed in, the value will not override
@@ -245,7 +245,7 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []s
 	}
 
 	if len(allOrigins) == 0 {
-		return "", nil, fmt.Errorf("Unexpected dockerfile format")
+		return "", nil, fmt.Errorf("unexpected dockerfile format")
 	}
 
 	// note that origin variable now points to the runtime origin

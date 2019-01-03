@@ -20,13 +20,13 @@ const (
 )
 
 var (
-	errMissingID       = errors.New("Step is missing an ID")
-	errMissingProps    = errors.New("Step is missing a cmd, build, or push property")
-	errIDContainsSpace = errors.New("Step ID cannot contain spaces")
-	errInvalidDeps     = errors.New("Step cannot contain other IDs in when if the immediate execution token is specified")
-	errInvalidStepType = errors.New("Step must only contain a single build, cmd, or push property")
-	errInvalidRetries  = errors.New("Step must specify retries >= 0")
-	errInvalidRepeat   = errors.New("Step must specify repeat >= 0")
+	errMissingID       = errors.New("step is missing an ID")
+	errMissingProps    = errors.New("step is missing a cmd, build, or push property")
+	errIDContainsSpace = errors.New("step ID cannot contain spaces")
+	errInvalidDeps     = errors.New("step cannot contain other IDs in when if the immediate execution token is specified")
+	errInvalidStepType = errors.New("step must only contain a single build, cmd, or push property")
+	errInvalidRetries  = errors.New("step must specify retries >= 0")
+	errInvalidRepeat   = errors.New("step must specify repeat >= 0")
 )
 
 // Step is a step in the execution task.
