@@ -8,6 +8,7 @@ import (
 	"io"
 	"runtime"
 
+	"github.com/Azure/acr-builder/version"
 	"github.com/spf13/cobra"
 )
 
@@ -23,10 +24,12 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 		Short: "Print version information",
 		Long:  versionLongMessage,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Printf(`Go version: %s
+			fmt.Printf(`Version: %s
+Revision: %s
+Go version: %s
 Go compiler: %s
 Platform: %s/%s
-`, runtime.Version(), runtime.Compiler, runtime.GOOS, runtime.GOARCH)
+`, version.Version, version.Revision, runtime.Version(), runtime.Compiler, runtime.GOOS, runtime.GOARCH)
 			return nil
 		},
 	}
