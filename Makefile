@@ -11,7 +11,7 @@ GO_TAGS=
 VERSION=$(shell git describe --match 'v[0-9]*' --dirty='.m' --always)
 GITCOMMIT=$(shell git rev-parse HEAD)$(shell if ! git diff --no-ext-diff --quiet --exit-code; then echo .m; fi)
 PKG=github.com/Azure/acr-builder
-GO_LDFLAGS=
+GO_LDFLAGS=-ldflags '-s -w -X $(PKG)/version.Version=$(VERSION) -X $(PKG)/version.Revision=$(GITCOMMIT)'
 COMMANDS=acb
 BINARIES=$(addprefix bin/,$(COMMANDS))
 INSTALLDIR=/usr/local
