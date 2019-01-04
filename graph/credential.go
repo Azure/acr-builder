@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	errInvalidRegName    = errors.New("Registry name can't be empty")
-	errInvalidUsername   = errors.New("Username can't be empty")
-	errInvalidPassword   = errors.New("Password can't be empty")
-	errInsufficientCreds = errors.New("Need to provide registry name, username, and password in a string delimited by ';'")
+	errInvalidRegName    = errors.New("registry name can't be empty")
+	errInvalidUsername   = errors.New("username can't be empty")
+	errInvalidPassword   = errors.New("password can't be empty")
+	errInsufficientCreds = errors.New("need to provide registry name, username, and password in a string delimited by ';'")
 )
 
 // Credential defines a combination of registry, username and password.
