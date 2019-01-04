@@ -95,11 +95,11 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 
 	valsJSON, err := json.Marshal(vals)
 	if err != nil {
-		return base, err
+		return base, errors.Wrap(err, "failed to serialize Values")
 	}
 	runJSON, err := json.Marshal(base["Run"])
 	if err != nil {
-		return base, err
+		return base, errors.Wrap(err, "failed to serialize Run")
 	}
 
 	base["Values"] = vals
