@@ -20,7 +20,7 @@ const (
 	eCurieBorn     = "1867"
 	eCurieResearch = "radioactivity"
 	eCurieFrom     = "Poland"
-	eCurieAwards   = "[map[id:Nobel Prize in Physics] map[id:Davy Medal] map[id:Albert Medal]]"
+	eCurieAwards   = "[Nobel Prize in Physics Davy Medal Albert Medal]"
 )
 
 // TestDeserialize tests deserialization of bytes to Values.
@@ -123,9 +123,9 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 
 	expectedID := "SomeID"
 	expectedCommit := "Some Commit"
-	expectedRepo := "some RePo"
+	expectedRepository := "some RePo"
 	expectedBranch := "br"
-	expectedTrigger := "triggered from someone cool!!1"
+	expectedTriggeredBy := "triggered from someone cool!!1"
 	expectedRegistry := "foo.azurecr.io"
 	expectedRegistryName := "foo"
 	expectedGitTag := "some git tag"
@@ -143,9 +143,9 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	options := &BaseRenderOptions{
 		ID:           expectedID,
 		Commit:       expectedCommit,
-		Repository:   expectedRepo,
+		Repository:   expectedRepository,
 		Branch:       expectedBranch,
-		TriggeredBy:  expectedTrigger,
+		TriggeredBy:  expectedTriggeredBy,
 		Registry:     expectedRegistry,
 		GitTag:       expectedGitTag,
 		Date:         parsedTime,
@@ -163,9 +163,9 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		{"{{.Build.ID}}", expectedID},
 		{"{{.Run.ID}}", expectedID},
 		{"{{.Run.Commit}}", expectedCommit},
-		{"{{ .Run.Repository}}", expectedRepo},
+		{"{{ .Run.Repository}}", expectedRepository},
 		{"{{.Run.Branch}}", expectedBranch},
-		{"{{.Run.TriggeredBy}}", expectedTrigger},
+		{"{{.Run.TriggeredBy}}", expectedTriggeredBy},
 		{"{{.Run.Registry}}", expectedRegistry},
 		{"{{.Run.RegistryName}}", expectedRegistryName},
 		{"{{.Run.GitTag}}", expectedGitTag},
@@ -178,6 +178,24 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		{"{{.Values.last}}", eCurieLast},
 		{"{{.Values.from}}", eCurieFrom},
 		{"{{.Values.awards }}", eCurieAwards},
+		{"{{.ValuesJSON}}", "'{\"awards\":[\"Nobel Prize in Physics\",\"Davy Medal\",\"Albert Medal\"]," +
+			"\"born\":" + eCurieBorn +
+			",\"first\":\"" + eCurieFirst +
+			"\",\"from\":\"" + eCurieFrom +
+			"\",\"last\":\"" + eCurieLast +
+			"\",\"research\":\"" + eCurieResearch + "\"}'"},
+		{"{{.RunJSON}}", "'{\"Architecture\":\"" + expectedArchitecture +
+			"\",\"Branch\":\"" + expectedBranch +
+			"\",\"Commit\":\"" + expectedCommit +
+			"\",\"Date\":\"" + expectedTime +
+			"\",\"GitTag\":\"" + expectedGitTag +
+			"\",\"ID\":\"" + expectedID +
+			"\",\"OS\":\"" + expectedOS +
+			"\",\"Registry\":\"" + expectedRegistry +
+			"\",\"RegistryName\":\"" + expectedRegistryName +
+			"\",\"Repository\":\"" + expectedRepository +
+			"\",\"SharedVolume\":\"" + expectedSharedVolume +
+			"\",\"TriggeredBy\":\"" + expectedTriggeredBy + "\"}'"},
 	}
 	for _, test := range tests {
 		if o, err := executeTemplate(test.tpl, vals); err != nil || o != test.expect {

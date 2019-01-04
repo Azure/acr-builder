@@ -104,3 +104,25 @@ func TestLoadAndRenderSteps(t *testing.T) {
 		t.Errorf("Expected \n%s\n but got \n%s\n", expected, actual)
 	}
 }
+
+func TestShellQuote(t *testing.T) {
+	tests := []struct {
+		original string
+		expected string
+	}{
+		{"", "''"},
+		{`''`, `''"'"''"'"''`},
+		{`'single quotes'`, `''"'"'single quotes'"'"''`},
+		{"double quotes", "'double quotes'"},
+		{`no quotes`, `'no quotes'`},
+		{`{;$\}`, `'{;$\}'`},
+		{`nothingtoescape`, `nothingtoescape`},
+		{`{"val": "foo", "bar": "something#@$!()"}`, `'{"val": "foo", "bar": "something#@$!()"}'`},
+	}
+
+	for _, test := range tests {
+		if actual := shellQuote(test.original); actual != test.expected {
+			t.Fatalf("Expected %s but got %s", test.expected, actual)
+		}
+	}
+}
