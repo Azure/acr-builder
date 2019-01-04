@@ -4,12 +4,16 @@
 package templating
 
 import (
+	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 )
+
+var shellEscapePattern = regexp.MustCompile(`[^\w_^@=+%,:./-]`)
 
 // BaseRenderOptions represents additional information for the composition of the final rendering.
 type BaseRenderOptions struct {
@@ -89,7 +93,18 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 		return base, err
 	}
 
+	valsJSON, err := json.Marshal(vals)
+	if err != nil {
+		return base, err
+	}
+	runJSON, err := json.Marshal(base["Run"])
+	if err != nil {
+		return base, err
+	}
+
 	base["Values"] = vals
+	base["ValuesJSON"] = shellQuote(string(valsJSON))
+	base["RunJSON"] = shellQuote(string(runJSON))
 	return base, nil
 }
 
@@ -167,4 +182,16 @@ func parseRegistryName(fullyQualifiedRegistryName string) string {
 		return fullyQualifiedRegistryName
 	}
 	return fullyQualifiedRegistryName[:idx]
+}
+
+// shellQuote detects whether or not the string needs to be escaped and escapes double quotes and wraps them
+// with single quotes if necessary.
+func shellQuote(str string) string {
+	if len(str) == 0 {
+		return "''"
+	}
+	if shellEscapePattern.MatchString(str) {
+		return "'" + strings.Replace(str, "'", "'\"'\"'", -1) + "'"
+	}
+	return str
 }

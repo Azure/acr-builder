@@ -5,8 +5,6 @@ research: radioactivity
 from: Poland
 
 awards:
-  - id: Nobel Prize in Physics
-
-  - id: Davy Medal
-
-  - id: Albert Medal
+  - Nobel Prize in Physics
+  - Davy Medal
+  - Albert Medal
