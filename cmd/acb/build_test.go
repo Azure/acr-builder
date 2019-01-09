@@ -6,6 +6,7 @@ package main
 import (
 	"testing"
 
+	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/util"
 )
@@ -27,6 +28,17 @@ func TestCreateBuildTask(t *testing.T) {
 	task, err := buildCmd.createBuildTask()
 	if err != nil {
 		t.Fatalf("failed to create build task, err: %v", err)
+	}
+	if len(task.Credentials) == 0 {
+		t.Fatalf("Expected to create credentials but no credentials were created")
+	}
+
+	taskCreds := task.Credentials[0]
+	expectedCreds, _ := graph.CreateCredentialFromString(buildCmd.credentials[0])
+	if taskCreds.RegistryName != expectedCreds.RegistryName ||
+		taskCreds.RegistryUsername != expectedCreds.RegistryUsername ||
+		taskCreds.RegistryPassword != expectedCreds.RegistryPassword {
+		t.Fatalf("expected %v Creds, got %v", expectedCreds, taskCreds)
 	}
 
 	numSteps := len(task.Steps)

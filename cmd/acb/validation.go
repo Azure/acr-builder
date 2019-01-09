@@ -24,7 +24,7 @@ func validateIsolation(isolation string) error {
 
 func validatePush(push bool, credentials []string) error {
 	if push && len(credentials) == 0 {
-		return errors.New("when specifying push, username, password, and registry are required")
+		return errors.New("when specifying push, at least one credential is required")
 	}
 	return nil
 }
