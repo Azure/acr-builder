@@ -36,8 +36,6 @@ type buildCmd struct {
 	context         string
 	dockerfile      string
 	target          string
-	registryUser    string
-	registryPw      string
 	credentials     []string
 	isolation       string
 	platform        string
@@ -81,11 +79,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringArrayVar(&r.buildArgs, "build-arg", []string{}, "set build time arguments")
 	f.StringArrayVar(&r.secretBuildArgs, "secret-build-arg", []string{}, "set secret build arguments")
 	f.StringArrayVar(&r.labels, "label", []string{}, "set metadata for an image")
-
-	f.StringVarP(&r.registryUser, "username", "u", "", "the username to use when logging into the registry")
-	f.StringVarP(&r.registryPw, "password", "p", "", "the password to use when logging into the registry")
-	f.StringArrayVar(&r.credentials, "credentials", []string{}, "all credentials for private repos")
-
+	f.StringArrayVar(&r.credentials, "credentials", []string{}, "credentials passed on for source registry plus any custom registries")
 	f.StringVar(&r.isolation, "isolation", "", "the isolation to use")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
 	f.StringVar(&r.platform, "platform", "", "sets the platform if the server is capable of multiple platforms")
@@ -144,11 +138,7 @@ func (b *buildCmd) validateCmdArgs() error {
 		return err
 	}
 
-	if err := validateRegistryCreds(b.registryUser, b.registryPw); err != nil {
-		return err
-	}
-
-	if err := validatePush(b.push, b.opts.Registry, b.registryUser, b.registryPw); err != nil {
+	if err := validatePush(b.push, b.credentials); err != nil {
 		return err
 	}
 
@@ -196,16 +186,8 @@ func (b *buildCmd) createBuildTask() (*graph.Task, error) {
 	secrets := []*graph.Secret{}
 
 	var credentials []*graph.Credential
-	// If the user provides the username and password, add it to the Credentials
-	if b.opts.Registry != "" && b.registryUser != "" && b.registryPw != "" {
-		creds, err := graph.NewCredential(b.opts.Registry, b.registryUser, b.registryPw)
-		if err != nil {
-			return nil, err
-		}
-		credentials = append(credentials, creds)
-	}
 
-	// Add any additional creds provided by the user in the --credentials flag
+	// Add all creds provided by the user in the --credentials flag
 	for _, credString := range b.credentials {
 		// creds should be of the form of "regName;userName;password". If not, return an error
 		cred, err := graph.CreateCredentialFromString(credString)

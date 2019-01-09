@@ -35,8 +35,6 @@ type execCmd struct {
 	out    io.Writer
 	dryRun bool
 
-	registryUser   string
-	registryPw     string
 	credentials    []string
 	defaultWorkDir string
 	network        string
@@ -60,9 +58,7 @@ func newExecCmd(out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 
-	f.StringVarP(&e.registryUser, "username", "u", "", "the username to use when logging into the registry")
-	f.StringVarP(&e.registryPw, "password", "p", "", "the password to use when logging into the registry")
-	f.StringArrayVar(&e.credentials, "credentials", []string{}, "all credentials for private repos")
+	f.StringArrayVar(&e.credentials, "credentials", []string{}, "credentials passed on for source registry plus any custom registries")
 
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the task but doesn't execute it")
 	f.StringVar(&e.defaultWorkDir, "working-directory", "", "the default working directory to use if the underlying Task doesn't have one specified")
@@ -118,16 +114,8 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	var credentials []*graph.Credential
-	// If the user provides the username and password, add it to the Credentials
-	if e.opts.Registry != "" && e.registryUser != "" && e.registryPw != "" {
-		cred, err := graph.NewCredential(e.opts.Registry, e.registryUser, e.registryPw)
-		if err != nil {
-			return err
-		}
-		credentials = append(credentials, cred)
-	}
 
-	// Add any additional creds provided by the user in the --credentials flag
+	// Add all creds provided by the user in the --credentials flag
 	for _, credString := range e.credentials {
 		// creds should be of the form of "regName;userName;password". If not, return an error
 		cred, err := graph.CreateCredentialFromString(credString)
@@ -144,10 +132,6 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := e.validateCmdArgs(); err != nil {
-		return err
-	}
-
 	timeout := time.Duration(task.TotalTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -155,10 +139,6 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	builder := builder.NewBuilder(procManager, debug, e.opts.SharedVolume)
 	defer builder.CleanTask(context.Background(), task)
 	return builder.RunTask(ctx, task)
-}
-
-func (e *execCmd) validateCmdArgs() error {
-	return validateRegistryCreds(e.registryUser, e.registryPw)
 }
 
 func (e *execCmd) setDefaultTaskFile() {
