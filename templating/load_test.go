@@ -15,7 +15,6 @@ const (
 
 	expectedConfig = `# Default values for the Thames job
 name: Thames
-country: England
 counties: [Gloucestershire, Wiltshire, Oxfordshire, Berkshire, Buckinghamshire, Surrey]
 length: 346
 elevation: 0
