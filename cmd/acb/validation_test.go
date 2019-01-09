@@ -37,3 +37,15 @@ func TestValidatePush_Valid(t *testing.T) {
 		t.Errorf("All creds are provided, but received an error: %v", err)
 	}
 }
+
+func TestValidatePush_Invalid(t *testing.T) {
+	if err := validatePush(true, nil); err == nil {
+		t.Error("Invalid creds provided but no error was returned")
+	}
+}
+
+func TestValidatePush_Invalid2(t *testing.T) {
+	if err := validatePush(true, []string{}); err == nil {
+		t.Error("Invalid creds provided but no error was returned")
+	}
+}

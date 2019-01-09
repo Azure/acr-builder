@@ -58,7 +58,7 @@ func newExecCmd(out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 
-	f.StringArrayVar(&e.credentials, "credentials", []string{}, "all credentials for private repos")
+	f.StringArrayVar(&e.credentials, "credentials", []string{}, "credentials passed on for source registry plus any custom registries")
 
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the task but doesn't execute it")
 	f.StringVar(&e.defaultWorkDir, "working-directory", "", "the default working directory to use if the underlying Task doesn't have one specified")
@@ -132,10 +132,6 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := e.validateCmdArgs(); err != nil {
-		return err
-	}
-
 	timeout := time.Duration(task.TotalTimeout) * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -143,10 +139,6 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	builder := builder.NewBuilder(procManager, debug, e.opts.SharedVolume)
 	defer builder.CleanTask(context.Background(), task)
 	return builder.RunTask(ctx, task)
-}
-
-func (e *execCmd) validateCmdArgs() error {
-	return nil
 }
 
 func (e *execCmd) setDefaultTaskFile() {

@@ -79,7 +79,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringArrayVar(&r.buildArgs, "build-arg", []string{}, "set build time arguments")
 	f.StringArrayVar(&r.secretBuildArgs, "secret-build-arg", []string{}, "set secret build arguments")
 	f.StringArrayVar(&r.labels, "label", []string{}, "set metadata for an image")
-	f.StringArrayVar(&r.credentials, "credentials", []string{}, "credentials passed on for Source registry plus any custom registries")
+	f.StringArrayVar(&r.credentials, "credentials", []string{}, "credentials passed on for source registry plus any custom registries")
 	f.StringVar(&r.isolation, "isolation", "", "the isolation to use")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
 	f.StringVar(&r.platform, "platform", "", "sets the platform if the server is capable of multiple platforms")
