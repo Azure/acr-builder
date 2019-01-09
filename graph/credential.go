@@ -4,7 +4,6 @@
 package graph
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -52,8 +51,4 @@ func CreateCredentialFromString(str string) (*Credential, error) {
 	}
 
 	return NewCredential(strs[0], strs[1], strs[2])
-}
-
-func (c Credential) String() string {
-	return fmt.Sprintf("%s %s", c.RegistryName, c.RegistryUsername)
 }
