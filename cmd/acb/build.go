@@ -36,8 +36,6 @@ type buildCmd struct {
 	context         string
 	dockerfile      string
 	target          string
-	registryUser    string
-	registryPw      string
 	credentials     []string
 	isolation       string
 	platform        string
@@ -81,13 +79,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringArrayVar(&r.buildArgs, "build-arg", []string{}, "set build time arguments")
 	f.StringArrayVar(&r.secretBuildArgs, "secret-build-arg", []string{}, "set secret build arguments")
 	f.StringArrayVar(&r.labels, "label", []string{}, "set metadata for an image")
-
-	// `username` and `password` are deprecated. Use --credentials="registryName;username;password" instead
-	f.StringVarP(&r.registryUser, "username", "u", "", "the username to use when logging into the registry")
-	f.StringVarP(&r.registryPw, "password", "p", "", "the password to use when logging into the registry")
-
 	f.StringArrayVar(&r.credentials, "credentials", []string{}, "credentials passed on for Source registry plus any custom registries")
-
 	f.StringVar(&r.isolation, "isolation", "", "the isolation to use")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
 	f.StringVar(&r.platform, "platform", "", "sets the platform if the server is capable of multiple platforms")
@@ -143,10 +135,6 @@ func (b *buildCmd) run(cmd *cobra.Command, args []string) error {
 
 func (b *buildCmd) validateCmdArgs() error {
 	if err := validateIsolation(b.isolation); err != nil {
-		return err
-	}
-
-	if err := validateRegistryCreds(b.registryUser, b.registryPw); err != nil {
 		return err
 	}
 

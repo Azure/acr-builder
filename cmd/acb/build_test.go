@@ -12,14 +12,13 @@ import (
 
 func TestCreateBuildTask(t *testing.T) {
 	buildCmd := &buildCmd{
-		dockerfile:   "HelloWorld/Dockerfile",
-		registryUser: "user",
-		registryPw:   "pw",
-		context:      "src",
-		tags:         []string{"foo:latest", "bar/qux"},
-		pull:         true,
-		noCache:      false,
-		dryRun:       true,
+		dockerfile:  "HelloWorld/Dockerfile",
+		credentials: []string{"foo.azurecr.io;user;pw"},
+		context:     "src",
+		tags:        []string{"foo:latest", "bar/qux"},
+		pull:        true,
+		noCache:     false,
+		dryRun:      true,
 		opts: &templating.BaseRenderOptions{
 			Registry: "foo.azurecr.io",
 		},

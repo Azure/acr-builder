@@ -35,8 +35,6 @@ type execCmd struct {
 	out    io.Writer
 	dryRun bool
 
-	registryUser   string
-	registryPw     string
 	credentials    []string
 	defaultWorkDir string
 	network        string
@@ -60,8 +58,6 @@ func newExecCmd(out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 
-	f.StringVarP(&e.registryUser, "username", "u", "", "the username to use when logging into the registry")
-	f.StringVarP(&e.registryPw, "password", "p", "", "the password to use when logging into the registry")
 	f.StringArrayVar(&e.credentials, "credentials", []string{}, "all credentials for private repos")
 
 	f.BoolVar(&e.dryRun, "dry-run", false, "evaluates the task but doesn't execute it")
@@ -118,16 +114,8 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 	}
 
 	var credentials []*graph.Credential
-	// If the user provides the username and password, add it to the Credentials
-	if e.opts.Registry != "" && e.registryUser != "" && e.registryPw != "" {
-		cred, err := graph.NewCredential(e.opts.Registry, e.registryUser, e.registryPw)
-		if err != nil {
-			return err
-		}
-		credentials = append(credentials, cred)
-	}
 
-	// Add any additional creds provided by the user in the --credentials flag
+	// Add all creds provided by the user in the --credentials flag
 	for _, credString := range e.credentials {
 		// creds should be of the form of "regName;userName;password". If not, return an error
 		cred, err := graph.CreateCredentialFromString(credString)
@@ -158,7 +146,7 @@ func (e *execCmd) run(cmd *cobra.Command, args []string) error {
 }
 
 func (e *execCmd) validateCmdArgs() error {
-	return validateRegistryCreds(e.registryUser, e.registryPw)
+	return nil
 }
 
 func (e *execCmd) setDefaultTaskFile() {
