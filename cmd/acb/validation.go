@@ -6,6 +6,8 @@ package main
 import (
 	"errors"
 	"fmt"
+
+	"github.com/Azure/acr-builder/graph"
 )
 
 var isolations = map[string]bool{
@@ -22,6 +24,7 @@ func validateIsolation(isolation string) error {
 	return nil
 }
 
+// TODO Need to remove this but right now, `username` and `password` are always empty.
 func validateRegistryCreds(username string, password string) error {
 	if (username == "" && password == "") || (username != "" && password != "") {
 		return nil
@@ -29,9 +32,14 @@ func validateRegistryCreds(username string, password string) error {
 	return errors.New("when specifying username and password, provide both or neither")
 }
 
-func validatePush(push bool, registry string, username string, password string) error {
-	if push && (username == "" || password == "" || registry == "") {
-		return errors.New("when specifying push, username, password, and registry are required")
+func validatePush(push bool, credentials []string) error {
+	if push {
+		if len(credentials) == 0 {
+			return errors.New("when specifying push, username, password, and registry are required")
+		}
+		if _, err := graph.CreateCredentialFromString(credentials[0]); err != nil {
+			return errors.New("when specifying push, username, password, and registry are required in proper format")
+		}
 	}
 	return nil
 }

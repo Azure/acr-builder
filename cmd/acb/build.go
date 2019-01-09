@@ -82,9 +82,12 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringArrayVar(&r.secretBuildArgs, "secret-build-arg", []string{}, "set secret build arguments")
 	f.StringArrayVar(&r.labels, "label", []string{}, "set metadata for an image")
 
+	// Runner never passed `username` and `password` now. Instead it adds it to `credentials` IFF passed.
+	// It should be safe to remove this from everywhere. But right now, it will just be always empty
 	f.StringVarP(&r.registryUser, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&r.registryPw, "password", "p", "", "the password to use when logging into the registry")
-	f.StringArrayVar(&r.credentials, "credentials", []string{}, "all credentials for private repos")
+
+	f.StringArrayVar(&r.credentials, "credentials", []string{}, "credentials passed on for Source registry plus any custom registries")
 
 	f.StringVar(&r.isolation, "isolation", "", "the isolation to use")
 	f.StringVar(&r.target, "target", "", "specify a stage to build")
@@ -148,7 +151,7 @@ func (b *buildCmd) validateCmdArgs() error {
 		return err
 	}
 
-	if err := validatePush(b.push, b.opts.Registry, b.registryUser, b.registryPw); err != nil {
+	if err := validatePush(b.push, b.credentials); err != nil {
 		return err
 	}
 
