@@ -82,8 +82,7 @@ func newBuildCmd(out io.Writer) *cobra.Command {
 	f.StringArrayVar(&r.secretBuildArgs, "secret-build-arg", []string{}, "set secret build arguments")
 	f.StringArrayVar(&r.labels, "label", []string{}, "set metadata for an image")
 
-	// Runner never passed `username` and `password` now. Instead it adds it to `credentials` IFF passed.
-	// It should be safe to remove this from everywhere. But right now, it will just be always empty
+	// `username` and `password` are deprecated. Use --credentials="registryName;username;password" instead
 	f.StringVarP(&r.registryUser, "username", "u", "", "the username to use when logging into the registry")
 	f.StringVarP(&r.registryPw, "password", "p", "", "the password to use when logging into the registry")
 
