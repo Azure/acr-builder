@@ -15,7 +15,6 @@ const (
 
 	expectedConfig = `# Default values for the Thames job
 name: Thames
-country: England
 counties: [Gloucestershire, Wiltshire, Oxfordshire, Berkshire, Buckinghamshire, Surrey]
 length: 346
 elevation: 0
@@ -54,7 +53,7 @@ func TestLoadConfig_Invalid(t *testing.T) {
 }
 
 func TestDecodeConfig(t *testing.T) {
-	enc := "IyBEZWZhdWx0IHZhbHVlcyBmb3IgdGhlIFRoYW1lcyBqb2IKbmFtZTogVGhhbWVzCmNvdW50cnk6IEVuZ2xhbmQKY291bnRpZXM6IFtHbG91Y2VzdGVyc2hpcmUsIFdpbHRzaGlyZSwgT3hmb3Jkc2hpcmUsIEJlcmtzaGlyZSwgQnVja2luZ2hhbXNoaXJlLCBTdXJyZXldCmxlbmd0aDogMzQ2CmVsZXZhdGlvbjogMAphcGlOYW1lOiB2MQ=="
+	enc := "IyBEZWZhdWx0IHZhbHVlcyBmb3IgdGhlIFRoYW1lcyBqb2IKbmFtZTogVGhhbWVzCmNvdW50aWVzOiBbR2xvdWNlc3RlcnNoaXJlLCBXaWx0c2hpcmUsIE94Zm9yZHNoaXJlLCBCZXJrc2hpcmUsIEJ1Y2tpbmdoYW1zaGlyZSwgU3VycmV5XQpsZW5ndGg6IDM0NgplbGV2YXRpb246IDAKYXBpTmFtZTogdjE="
 	c, err := DecodeConfig(enc)
 	if err != nil {
 		t.Fatalf("failed to decode config, err: %v", err)
