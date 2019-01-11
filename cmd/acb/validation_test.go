@@ -39,13 +39,15 @@ func TestValidatePush_Valid(t *testing.T) {
 }
 
 func TestValidatePush_Invalid(t *testing.T) {
-	if err := validatePush(true, nil); err == nil {
-		t.Error("Invalid creds provided but no error was returned")
-	}
-}
-
-func TestValidatePush_Invalid2(t *testing.T) {
-	if err := validatePush(true, []string{}); err == nil {
-		t.Error("Invalid creds provided but no error was returned")
+	for _, test := range []struct {
+		push  bool
+		creds []string
+	}{
+		{true, nil},
+		{true, []string{}},
+	} {
+		if err := validatePush(test.push, test.creds); err == nil {
+			t.Error("Invalid creds provided but no error was returned")
+		}
 	}
 }
