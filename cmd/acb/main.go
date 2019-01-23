@@ -4,50 +4,40 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
+	buildCmd "github.com/Azure/acr-builder/cmd/acb/commands/build"
+	downloadCmd "github.com/Azure/acr-builder/cmd/acb/commands/download"
+	execCmd "github.com/Azure/acr-builder/cmd/acb/commands/exec"
+	renderCmd "github.com/Azure/acr-builder/cmd/acb/commands/render"
+	scanCmd "github.com/Azure/acr-builder/cmd/acb/commands/scan"
+	versionCmd "github.com/Azure/acr-builder/cmd/acb/commands/version"
+	"github.com/Azure/acr-builder/version"
+	"github.com/urfave/cli"
 )
-
-var (
-	debug bool
-)
-
-const globalUsageMessage = `Welcome to Azure Container Builder.
-
-To start working with Azure Container Builder (acb), run acb --help
-`
 
 func main() {
-	cmd := newRootCmd(os.Args[1:])
-	if err := cmd.Execute(); err != nil {
+	app := New()
+	if err := app.Run(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func newRootCmd(args []string) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:          "acb",
-		Short:        "The builder for Azure Container Registry (ACR)",
-		Long:         globalUsageMessage,
-		SilenceUsage: true,
+// New returns a *cli.App instance.
+func New() *cli.App {
+	app := cli.NewApp()
+	app.Name = "acb"
+	app.Usage = "run and build containers on Azure Container Registry"
+	app.Version = version.Version
+	app.Commands = []cli.Command{
+		buildCmd.Command,
+		downloadCmd.Command,
+		execCmd.Command,
+		renderCmd.Command,
+		scanCmd.Command,
+		versionCmd.Command,
 	}
-
-	cmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable verbose output for debugging")
-	flags := cmd.PersistentFlags()
-
-	out := cmd.OutOrStdout()
-
-	cmd.AddCommand(
-		newVersionCmd(out),
-		newExecCmd(out),
-		newBuildCmd(out),
-		newRenderCmd(out),
-		newDownloadCmd(out),
-		newScanCmd(out),
-	)
-
-	_ = flags.Parse(args)
-
-	return cmd
+	return app
 }

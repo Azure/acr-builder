@@ -1,2 +1,2 @@
 steps:
-  - build: . -t acb:linux-{{.Run.ID}}
+  - build: . -t {{.Run.Registry}}/acb:linux-{{.Run.ID}}
