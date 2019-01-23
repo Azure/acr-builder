@@ -142,7 +142,7 @@ var Command = cli.Command{
 	Action: func(context *cli.Context) error {
 		var (
 			// Build options
-			buildContext    = context.Args().Get(0)
+			buildContext    = context.Args().First()
 			dockerfile      = context.String("file")
 			target          = context.String("target")
 			isolation       = context.String("isolation")

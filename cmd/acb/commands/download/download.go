@@ -37,7 +37,7 @@ var Command = cli.Command{
 	},
 	Action: func(context *cli.Context) error {
 		var (
-			downloadCtx = context.Args().Get(0)
+			downloadCtx = context.Args().First()
 			dryRun      = context.Bool("dry-run")
 			destination = context.String("destination")
 			timeout     = time.Duration(context.Int64("timeout")) * time.Second
