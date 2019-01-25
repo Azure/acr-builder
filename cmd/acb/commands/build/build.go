@@ -69,7 +69,7 @@ var Command = cli.Command{
 			Usage: "set metadata for an image",
 		},
 		cli.StringSliceFlag{
-			Name:  "credentials",
+			Name:  "credential",
 			Usage: "registry credentials in the format of 'server;username;password'",
 		},
 		cli.BoolFlag{
@@ -151,7 +151,7 @@ var Command = cli.Command{
 			buildArgs       = context.StringSlice("build-arg")
 			secretBuildArgs = context.StringSlice("secret-build-arg")
 			labels          = context.StringSlice("label")
-			creds           = context.StringSlice("credentials")
+			creds           = context.StringSlice("credential")
 			pull            = context.Bool("pull")
 			noCache         = context.Bool("no-cache")
 			push            = context.Bool("push")

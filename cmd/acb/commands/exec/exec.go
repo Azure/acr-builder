@@ -50,7 +50,7 @@ var Command = cli.Command{
 			Usage: "the default environment variables which are applied to each step (use --env multiple times or use commas: env1=val1,env2=val2)",
 		},
 		cli.StringSliceFlag{
-			Name:  "credentials",
+			Name:  "credential",
 			Usage: "registry credentials in the format of 'server;username;password'",
 		},
 		cli.BoolFlag{
@@ -116,7 +116,7 @@ var Command = cli.Command{
 			defaultWorkingDirectory = context.String("working-directory")
 			defaultNetwork          = context.String("network")
 			defaultEnvs             = context.StringSlice("env")
-			creds                   = context.StringSlice("credentials")
+			creds                   = context.StringSlice("credential")
 			dryRun                  = context.Bool("dry-run")
 			debug                   = context.Bool("debug")
 
