@@ -10,6 +10,7 @@ import (
 	buildCmd "github.com/Azure/acr-builder/cmd/acb/commands/build"
 	downloadCmd "github.com/Azure/acr-builder/cmd/acb/commands/download"
 	execCmd "github.com/Azure/acr-builder/cmd/acb/commands/exec"
+	getsecretCmd "github.com/Azure/acr-builder/cmd/acb/commands/getsecret"
 	renderCmd "github.com/Azure/acr-builder/cmd/acb/commands/render"
 	scanCmd "github.com/Azure/acr-builder/cmd/acb/commands/scan"
 	versionCmd "github.com/Azure/acr-builder/cmd/acb/commands/version"
@@ -38,6 +39,7 @@ func New() *cli.App {
 		renderCmd.Command,
 		scanCmd.Command,
 		versionCmd.Command,
+		getsecretCmd.Command,
 	}
 	return app
 }
