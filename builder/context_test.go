@@ -6,6 +6,7 @@ package builder
 import (
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/Azure/acr-builder/graph"
@@ -123,5 +124,57 @@ func TestGetNonBuildDockerRunArgs(t *testing.T) {
 
 	if !reflect.DeepEqual(actualCmds, expectedCmds) {
 		t.Errorf("invalid docker run args, expected %v but got %v", expectedCmds, actualCmds)
+	}
+}
+
+func TestGetScanArgs(t *testing.T) {
+	tests := []struct {
+		containerName         string
+		volName               string
+		containerWorkspaceDir string
+		stepWorkDir           string
+		dockerfile            string
+		outputDir             string
+		tags                  []string
+		buildArgs             []string
+		context               string
+		expected              string
+	}{
+		{
+			"containerName",
+			"volumeName",
+			"workspaceDir",
+			"workingDirectory",
+			"Dockerfile",
+			"OutputDirectory",
+			[]string{"tag1", "tag2"},
+			[]string{"arg1=a", "arg2=b"},
+			"someContext",
+			"docker run --rm " +
+				"--name containerName " +
+				"--volume volumeName" + ":workspaceDir " +
+				"--workdir " + normalizeWorkDir("workingDirectory") + " " +
+				"--volume " + homeVol + ":" + homeWorkDir + " " +
+				"--env " + homeEnv + " " +
+				"acb scan -f Dockerfile --destination OutputDirectory " +
+				"-t tag1 -t tag2 --build-arg arg1=a --build-arg arg2=b someContext",
+		},
+	}
+
+	for _, test := range tests {
+		actual := strings.Join(getScanArgs(
+			test.containerName,
+			test.volName,
+			test.containerWorkspaceDir,
+			test.stepWorkDir,
+			test.dockerfile,
+			test.outputDir,
+			test.tags,
+			test.buildArgs,
+			test.context), " ")
+		if test.expected != actual {
+			t.Fatalf("Expected %s but got %s", test.expected, actual)
+		}
+
 	}
 }
