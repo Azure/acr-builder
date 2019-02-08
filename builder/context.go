@@ -103,6 +103,43 @@ func (b *Builder) scrapeDependencies(
 	tags []string,
 	buildArgs []string) ([]*image.Dependencies, error) {
 	containerName := fmt.Sprintf("acb_dep_scanner_%s", uuid.New())
+
+	args := getScanArgs(
+		containerName,
+		volName,
+		containerWorkspaceDir,
+		stepWorkDir,
+		dockerfile,
+		outputDir,
+		tags,
+		buildArgs,
+		context)
+
+	if b.debug {
+		log.Printf("Scan args: %v\n", args)
+	}
+
+	var buf bytes.Buffer
+	err := b.procManager.Run(ctx, args, nil, &buf, &buf, "")
+	output := strings.TrimSpace(buf.String())
+	if err != nil {
+		log.Printf("Output from dependency scanning: %s\n", output)
+		return nil, err
+	}
+
+	return getImageDependencies(output)
+}
+
+func getScanArgs(
+	containerName string,
+	volName string,
+	containerWorkspaceDir string,
+	stepWorkDir string,
+	dockerfile string,
+	outputDir string,
+	tags []string,
+	buildArgs []string,
+	context string) []string {
 	args := []string{
 		"docker",
 		"run",
@@ -119,7 +156,6 @@ func (b *Builder) scrapeDependencies(
 		"scan",
 		"-f", dockerfile,
 		"--destination", outputDir,
-		context,
 	}
 
 	for _, tag := range tags {
@@ -130,19 +166,10 @@ func (b *Builder) scrapeDependencies(
 		args = append(args, "--build-arg", buildArg)
 	}
 
-	if b.debug {
-		log.Printf("Scraping args: %v\n", args)
-	}
+	// Positional context must appear last
+	args = append(args, context)
 
-	var buf bytes.Buffer
-	err := b.procManager.Run(ctx, args, nil, &buf, &buf, "")
-	output := strings.TrimSpace(buf.String())
-	if err != nil {
-		log.Printf("Output from dependency scanning: %s\n", output)
-		return nil, err
-	}
-
-	return getImageDependencies(output)
+	return args
 }
 
 func getImageDependencies(s string) ([]*image.Dependencies, error) {
