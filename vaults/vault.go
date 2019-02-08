@@ -3,7 +3,9 @@
 
 package vaults
 
+import "context"
+
 // VaultSecret is the interface that provides a secret value stored in a vault.
 type VaultSecret interface {
-	GetValue() (string, error)
+	GetValue(ctx context.Context) (string, error)
 }

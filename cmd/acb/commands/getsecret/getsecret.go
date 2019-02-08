@@ -4,6 +4,7 @@
 package getsecret
 
 import (
+	gocontext "context"
 	"errors"
 	"log"
 
@@ -12,53 +13,57 @@ import (
 	"github.com/urfave/cli"
 )
 
-// Command renders templates and verifies their output.
+// Command fetches secret from supported vaults displays the secret vaule as output.
 var Command = cli.Command{
 	Name:  "getsecret",
-	Usage: "gets the secret value as given by the parameters. If it is an azure keyvault secret, it is assumed that the host has the MSI token service running at http://169.254.169.254/.",
-	Flags: []cli.Flag{
-		// options
-		cli.StringFlag{
+	Usage: "gets the secret value from a specified vault.",
+	Subcommands: []cli.Command{
+		{
 			Name:  "akv",
-			Usage: "the azure keyvault secret URL",
+			Usage: "gets the secret value from azure keyvault. If it is an azure keyvault secret, it is assumed that the host has the MSI token service running at http://169.254.169.254/.",
+			Flags: []cli.Flag{
+				// options
+				cli.StringFlag{
+					Name:  "url",
+					Usage: "the azure keyvault secret URL",
+				},
+				cli.StringFlag{
+					Name:  "client-id",
+					Usage: "the MSI user assigned identity client ID",
+				},
+				cli.StringFlag{
+					Name:  "vault-resource-url",
+					Usage: "the resource URL for the azure key vault to get AAD token",
+				},
+			},
+			Action: func(context *cli.Context) error {
+				var (
+					url                 = context.String("url")
+					clientID            = context.String("client-id")
+					vaultAADResourceURL = context.String("vault-resource-url")
+				)
+
+				if url == "" {
+					return errors.New("secret url is required")
+				}
+
+				if vaultAADResourceURL == "" {
+					vaultAADResourceURL = azure.PublicCloud.KeyVaultEndpoint
+				}
+
+				secretConfig, err := vaults.NewAKVSecretConfig(url, clientID, vaultAADResourceURL)
+				if err != nil {
+					return err
+				}
+
+				secretValue, err := secretConfig.GetValue(gocontext.Background())
+				if err != nil {
+					return err
+				}
+				log.Println("The secret value:")
+				log.Println(secretValue)
+				return nil
+			},
 		},
-		cli.StringFlag{
-			Name:  "clientID",
-			Usage: "the MSI user assigned identity client ID",
-		},
-
-		// Rendering options
-		cli.StringFlag{
-			Name:  "vaultAADResourceURL",
-			Usage: "the resource URL for the azure key vault to get AAD token",
-		},
-	},
-	Action: func(context *cli.Context) error {
-		var (
-			akv                 = context.String("akv")
-			clientID            = context.String("clientID")
-			vaultAADResourceURL = context.String("vaultAADResourceURL")
-		)
-
-		if akv == "" {
-			return errors.New("akv is required")
-		}
-
-		if vaultAADResourceURL == "" {
-			vaultAADResourceURL = azure.PublicCloud.KeyVaultEndpoint
-		}
-
-		secretConfig, err := vaults.NewAKVSecretConfig(akv, clientID, vaultAADResourceURL)
-		if err != nil {
-			return err
-		}
-
-		secretValue, err := secretConfig.GetValue()
-		if err != nil {
-			return err
-		}
-		log.Println("The secret value:")
-		log.Println(secretValue)
-		return nil
 	},
 }
