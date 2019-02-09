@@ -1,6 +1,6 @@
 # GetSecrets from Azure Keyvault using MSI
 
-acr-builder has added support to get secrets from azure keyvault using managed service dientity (https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview). It has a new command called **getsecret** that can fetch secret from different vault providers. Currently it supports secrets from Azure key vault. The below article describes how to use acb to retrieve a secret from Azure keyvault using Managed Identities. 
+acr-builder has added support to get secrets from azure keyvault using managed service identity (https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview). It has a new command called **getsecret** that can fetch secret from different vault providers. Currently it supports secrets from Azure key vault. The below article describes how to use acb to retrieve a secret from Azure keyvault using Managed Identities. 
 
 We will use the command group "akv" of getsecret to retrieve secret from Azure keyvault.
 
