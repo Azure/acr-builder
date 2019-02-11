@@ -7,6 +7,29 @@ import (
 	"testing"
 )
 
+// TestRenderWithEmptySecrets tests whether rendering ignores if no secret vaules are available.
+func TestRenderWithEmptySecrets(t *testing.T) {
+	base := map[string]interface{}{}
+	j := NewTemplate(
+		"job1",
+		[]byte("{{ .Secrets.mysecret }} - {{ .Values.mykey }}"),
+	)
+	vals := Values{"mykey": "myvalue"}
+	base["Values"] = vals
+	base["Secrets"] = Values{}
+	expectedMsg := " - myvalue"
+
+	engine := NewEngine()
+	rendered, err := engine.Render(j, base)
+	if err != nil {
+		t.Errorf("Failed to render. Err: %v", err)
+	}
+
+	if rendered != expectedMsg {
+		t.Errorf("Expected %s, but got %s", expectedMsg, rendered)
+	}
+}
+
 // TestRenderAllTemplates tests rendering all templates for a job.
 func TestRenderAllTemplates(t *testing.T) {
 	jobName := "job1"

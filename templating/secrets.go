@@ -1,0 +1,126 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
+package templating
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/vaults"
+	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/pkg/errors"
+)
+
+// ResolveSecretFunc is a function that resolves the secret to its value and sends through the ResolvedChan of the secret. Any errors during resolve are send through errorChan
+type ResolveSecretFunc func(ctx context.Context, azureVaultResourceURL string, secret *graph.Secret, errorChan chan error)
+
+// SecretResolver defines how a secret is resolved.
+type SecretResolver struct {
+	Resolve          ResolveSecretFunc
+	azureEnvironment azure.Environment
+}
+
+// NewSecretResolver creates a resolver with the given resolve function.
+func NewSecretResolver(resolveFunc ResolveSecretFunc, azureEnvironmentName string) (*SecretResolver, error) {
+	if azureEnvironmentName == "" {
+		azureEnvironmentName = azure.PublicCloud.Name
+	}
+
+	azureEnvironment, err := azure.EnvironmentFromName(azureEnvironmentName)
+	if err != nil {
+		return nil, errors.Wrap(err, "invalid azure environment name")
+	}
+
+	return &SecretResolver{Resolve: resolveFunc, azureEnvironment: azureEnvironment}, nil
+}
+
+// DefaultSecretResolver creates a default secret resolver for the given azure environment
+func DefaultSecretResolver(azureEnvironmentName string) (*SecretResolver, error) {
+	return NewSecretResolver(resolveSecret, azureEnvironmentName)
+}
+
+// ResolveSecrets returns a list of resolved secrets and returns error if there is any failure in resolving a secret.
+func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secrets []*graph.Secret) (Values, error) {
+
+	resolvedSecrets := Values{}
+
+	if len(secrets) == 0 {
+		return resolvedSecrets, nil
+	}
+
+	// We will resolve in batches of 5 to avoid throttling errors on the vault providers
+	batchSize := 5
+	errorChan := make(chan error)
+	for index := 0; index < len(secrets); index += batchSize {
+		endIndex := index + batchSize
+
+		if endIndex > len(secrets) {
+			endIndex = len(secrets)
+		}
+
+		var resolvedChans []chan graph.SecretValue
+
+		for _, secret := range secrets[index:endIndex] {
+			// Validate secret before resolving
+			err := secret.Validate()
+			if err != nil {
+				if secret.ID == "" {
+					return resolvedSecrets, err
+				}
+				return resolvedSecrets, errors.Wrap(err, fmt.Sprintf("failed to validate secret with ID: %s", secret.ID))
+			}
+
+			if secret == nil {
+				continue
+			}
+
+			if secret.ResolvedChan == nil {
+				secret.ResolvedChan = make(chan graph.SecretValue)
+			}
+			resolvedChans = append(resolvedChans, secret.ResolvedChan)
+			go secretResolver.Resolve(ctx, secretResolver.azureEnvironment.KeyVaultEndpoint, secret, errorChan)
+		}
+
+		// Block until either:
+		// - The global context expires
+		// - Resolving a secret has error
+		// - All secrets are resolved successfully
+		for _, ch := range resolvedChans {
+			select {
+			case <-ctx.Done():
+				return resolvedSecrets, ctx.Err()
+			case secretValue := <-ch:
+				resolvedSecrets[secretValue.ID] = secretValue.Value
+			case err := <-errorChan:
+				return resolvedSecrets, err
+			}
+		}
+	}
+
+	return resolvedSecrets, nil
+}
+
+func resolveSecret(ctx context.Context, azureVaultResourceURL string, secret *graph.Secret, errorChan chan error) {
+	if secret == nil {
+		errorChan <- errors.New("secret cannot be nil")
+	}
+
+	if secret.IsAkvSecret() {
+		secretConfig, err := vaults.NewAKVSecretConfig(secret.Akv, secret.MsiClientID, azureVaultResourceURL)
+		if err != nil {
+			errorChan <- errors.Wrap(err, "failed to create azure keyvault secret config")
+		}
+
+		secretValue, err := secretConfig.GetValue(ctx)
+		if err != nil {
+			errorChan <- errors.Wrap(err, "failed to fetch azure key vault secret")
+		}
+
+		secret.ResolvedChan <- graph.SecretValue{ID: secret.ID, Value: secretValue}
+		return
+	}
+
+	errorChan <- fmt.Errorf("cannot resolve secret with ID: %s", secret.ID)
+}

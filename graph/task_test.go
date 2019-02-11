@@ -170,3 +170,67 @@ func TestMergingEnvs(t *testing.T) {
 		}
 	}
 }
+
+func TestNewTaskFromString(t *testing.T) {
+	tests := []struct {
+		template string
+		secrets  []*Secret
+	}{
+		{`
+secrets:
+  - id: mysecret
+    akv: https://myvault.vault.azure.net/secrets/mysecret
+  - id: mysecret1
+    akv: https://myvault.vault.azure.net/secrets/mysecret1
+    client-id: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
+			[]*Secret{
+				&Secret{
+					ID:  "mysecret",
+					Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+				},
+				&Secret{
+					ID:          "mysecret1",
+					Akv:         "https://myvault.vault.azure.net/secrets/mysecret1",
+					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
+				},
+			},
+		},
+		{`
+secrets:
+  - id: 
+  - id: mysecret1
+    client-id: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
+			[]*Secret{
+				&Secret{},
+				&Secret{
+					ID:          "mysecret1",
+					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
+				},
+			},
+		},
+		{`
+secrets:`,
+			[]*Secret{},
+		},
+		{`
+steps:
+  - id: mystep`,
+			[]*Secret{},
+		},
+	}
+
+	for _, test := range tests {
+		task, err := NewTaskFromString(test.template)
+		if err != nil {
+			t.Errorf("Test failed with error %v", err)
+		}
+		if len(task.Secrets) != len(test.secrets) {
+			t.Errorf("Expected number of secrets: %v, but got %v", len(test.secrets), len(task.Secrets))
+		}
+		for i := 0; i < len(task.Secrets); i++ {
+			if !task.Secrets[i].Equals(test.secrets[i]) {
+				t.Errorf("Expected secrets %v and %v be equal", test.secrets[i], task.Secrets[i])
+			}
+		}
+	}
+}

@@ -4,6 +4,7 @@
 package render
 
 import (
+	gocontext "context"
 	"errors"
 	"log"
 	"runtime"
@@ -73,6 +74,10 @@ var Command = cli.Command{
 			Name:  "set",
 			Usage: "set values on the command line (use --set multiple times or use commas: key1=val1,key2=val2)",
 		},
+		cli.StringFlag{
+			Name:  "az-cloud-name",
+			Usage: "the name of azure cloud environment",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		var (
@@ -81,17 +86,18 @@ var Command = cli.Command{
 			encodedTaskFile = context.String("encoded-file")
 
 			// Rendering options
-			values        = context.String("values")
-			encodedValues = context.String("encoded-values")
-			homevol       = context.String("homevol")
-			id            = context.String("id")
-			commit        = context.String("commit")
-			repository    = context.String("repository")
-			branch        = context.String("branch")
-			triggeredBy   = context.String("triggered-by")
-			tag           = context.String("git-tag")
-			registry      = context.String("registry")
-			setVals       = context.StringSlice("set")
+			values               = context.String("values")
+			encodedValues        = context.String("encoded-values")
+			homevol              = context.String("homevol")
+			id                   = context.String("id")
+			commit               = context.String("commit")
+			repository           = context.String("repository")
+			branch               = context.String("branch")
+			triggeredBy          = context.String("triggered-by")
+			tag                  = context.String("git-tag")
+			registry             = context.String("registry")
+			setVals              = context.StringSlice("set")
+			azureEnvironmentName = context.String("az-cloud-name")
 
 			renderOpts = &templating.BaseRenderOptions{
 				TaskFile:                taskFile,
@@ -129,7 +135,12 @@ var Command = cli.Command{
 			}
 		}
 
-		rendered, err := templating.LoadAndRenderSteps(template, renderOpts)
+		secretResolver, err := templating.DefaultSecretResolver(azureEnvironmentName)
+		if err != nil {
+			return err
+		}
+
+		rendered, err := templating.LoadAndRenderSteps(gocontext.Background(), template, renderOpts, secretResolver)
 		if err != nil {
 			return err
 		}

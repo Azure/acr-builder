@@ -44,9 +44,9 @@ type Task struct {
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
 func UnmarshalTaskFromString(data string, defaultWorkDir string, network string, envs []string, creds []*Credential) (*Task, error) {
-	t := &Task{}
-	if err := yaml.Unmarshal([]byte(data), t); err != nil {
-		return t, errors.Wrap(err, "failed to deserialize task")
+	t, err := NewTaskFromString(data)
+	if err != nil {
+		return t, err
 	}
 	if defaultWorkDir != "" && t.WorkingDirectory == "" {
 		t.WorkingDirectory = defaultWorkDir
@@ -62,7 +62,7 @@ func UnmarshalTaskFromString(data string, defaultWorkDir string, network string,
 		t.Networks = append(t.Networks, externalNetwork)
 	}
 
-	err := t.initialize()
+	err = t.initialize()
 	return t, err
 }
 
@@ -78,6 +78,16 @@ func UnmarshalTaskFromFile(file string, creds []*Credential) (*Task, error) {
 	}
 	err = t.initialize()
 	return t, err
+}
+
+// NewTaskFromString unmarshals a Task from string without any initialization.
+func NewTaskFromString(data string) (*Task, error) {
+	t := &Task{}
+	if err := yaml.Unmarshal([]byte(data), t); err != nil {
+		return t, errors.Wrap(err, "failed to deserialize task")
+	}
+
+	return t, nil
 }
 
 // NewTask returns a default Task object.

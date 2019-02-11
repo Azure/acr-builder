@@ -4,12 +4,14 @@
 package templating
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/Azure/acr-builder/graph"
 	"github.com/pkg/errors"
 )
 
@@ -110,7 +112,7 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 
 // LoadAndRenderSteps loads a template file and renders it according to an optional values file, --set values,
 // and base render options.
-func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, error) {
+func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRenderOptions, secretResolver *SecretResolver) (string, error) {
 	var err error
 
 	config := &Config{}
@@ -139,6 +141,11 @@ func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, er
 		return "", fmt.Errorf("failed to override values: %v", err)
 	}
 
+	err = resolveAndMergeSecrets(ctx, template, secretResolver, &mergedVals)
+	if err != nil {
+		return "", fmt.Errorf("failed to merge secrets: %v", err)
+	}
+
 	engine := NewEngine()
 	rendered, err := engine.Render(template, mergedVals)
 	if err != nil {
@@ -150,6 +157,54 @@ func LoadAndRenderSteps(template *Template, opts *BaseRenderOptions) (string, er
 	}
 
 	return rendered, nil
+}
+
+// ResolveAndMergeSecrets parses the secrets in the template, resolves them using vault providers and adds them to the values map.
+func resolveAndMergeSecrets(ctx context.Context, template *Template, secretResolver *SecretResolver, valueMap *Values) error {
+
+	// Cheap optimization to skip the secrets merging if it doesn't contain "secrets" string in it. Note that the task can
+	// have the string secrets but may not essentially the secrets section.
+	if !strings.Contains(string(template.Data), "secrets") {
+		return nil
+	}
+
+	// At first render the template with existing values to render templatized vaules for secrets.
+	values := *valueMap
+	values["Secrets"] = Values{}
+	engine := NewEngine()
+	rendered, err := engine.Render(template, values)
+	if err != nil {
+		return errors.Wrap(err, "failed to render the template")
+	}
+
+	if rendered == "" {
+		return errors.New("rendered template was empty")
+	}
+
+	// Unmarshall the template to Task and get all secrets defined in the template.
+	task, err := graph.NewTaskFromString(rendered)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse template to create task")
+	}
+
+	// If no secrets found return.
+	if len(task.Secrets) == 0 {
+		return nil
+	}
+
+	if secretResolver == nil {
+		return errors.New("secret resolver is required")
+	}
+
+	resolvedSecrets, err := secretResolver.ResolveSecrets(ctx, task.Secrets)
+	if err != nil {
+		return errors.Wrap(err, "failed to resolve secrets in the task")
+	}
+
+	// update the secrets collection with resolved secrets.
+	values["Secrets"] = resolvedSecrets
+
+	return nil
 }
 
 // parseValues receives a slice of values in key=val format

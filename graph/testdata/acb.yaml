@@ -6,16 +6,11 @@ stepTimeout: 600
 totalTimeout: 900
 version: v1.0.0
 
-secrets:
-  - akv: "someAKV"
-    secretEnv: "someAkvSecretEnv"
-
 steps:
   - id: puller
     cmd: azure/images/docker pull ubuntu
     entryPoint: someEntryPoint
     env: [eric=foo, foo=bar]
-    secretEnvs: [someAkvSecretEnv]
     exitedWithout: [0, 255]
     workingDirectory: pullDir
     retries: 5
@@ -55,7 +50,6 @@ steps:
     cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu
     env: ["eric=foo"]
     when: [build-qux]
-    secretEnvs: [someAkvSecretEnv]
 
   - id: build-qaz
     build: "-f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu"

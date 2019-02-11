@@ -217,6 +217,7 @@ var Command = cli.Command{
 		}
 
 		task, err := createBuildTask(
+			ctx,
 			isolation,
 			pull,
 			labels,
@@ -248,6 +249,7 @@ var Command = cli.Command{
 }
 
 func createBuildTask(
+	ctx gocontext.Context,
 	isolation string,
 	pull bool,
 	labels []string,
@@ -303,8 +305,8 @@ func createBuildTask(
 	// Create the template
 	template := templating.NewTemplate("build", []byte(runCmd))
 
-	// Render the template and create a Task
-	rendered, err := templating.LoadAndRenderSteps(template, renderOpts)
+	// Render the template and create a Task, we don't add any secrets in the generated task. Hence we don't need secret resolver.
+	rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts, nil)
 	if err != nil {
 		return nil, err
 	}
