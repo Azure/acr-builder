@@ -184,11 +184,11 @@ secrets:
     akv: https://myvault.vault.azure.net/secrets/mysecret1
     client-id: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
 			[]*Secret{
-				&Secret{
+				{
 					ID:  "mysecret",
 					Akv: "https://myvault.vault.azure.net/secrets/mysecret",
 				},
-				&Secret{
+				{
 					ID:          "mysecret1",
 					Akv:         "https://myvault.vault.azure.net/secrets/mysecret1",
 					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
@@ -201,8 +201,8 @@ secrets:
   - id: mysecret1
     client-id: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
 			[]*Secret{
-				&Secret{},
-				&Secret{
+				{},
+				{
 					ID:          "mysecret1",
 					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
 				},
