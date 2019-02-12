@@ -41,11 +41,11 @@ func TestResolveSecrets(t *testing.T) {
 	}{
 		{
 			[]*graph.Secret{
-				&graph.Secret{
+				{
 					ID:  "mysecret",
 					Akv: "https://myvault.vault.azure.net/secrets/mysecret",
 				},
-				&graph.Secret{
+				{
 					ID:          "mysecret1",
 					Akv:         "https://myvault.vault.azure.net/secrets/mysecret1",
 					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
@@ -64,43 +64,43 @@ func TestResolveSecrets(t *testing.T) {
 		{
 			// Add more than 5 secrets to test the batching logic
 			[]*graph.Secret{
-				&graph.Secret{
+				{
 					ID:  "1",
 					Akv: "k1",
 				},
-				&graph.Secret{
+				{
 					ID:  "2",
 					Akv: "k2",
 				},
-				&graph.Secret{
+				{
 					ID:  "3",
 					Akv: "k3",
 				},
-				&graph.Secret{
+				{
 					ID:  "4",
 					Akv: "k4",
 				},
-				&graph.Secret{
+				{
 					ID:  "5",
 					Akv: "k5",
 				},
-				&graph.Secret{
+				{
 					ID:  "6",
 					Akv: "k6",
 				},
-				&graph.Secret{
+				{
 					ID:  "7",
 					Akv: "k7",
 				},
-				&graph.Secret{
+				{
 					ID:  "8",
 					Akv: "k8",
 				},
-				&graph.Secret{
+				{
 					ID:  "9",
 					Akv: "k9",
 				},
-				&graph.Secret{
+				{
 					ID:  "10",
 					Akv: "k10",
 				},
