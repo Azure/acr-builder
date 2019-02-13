@@ -3,7 +3,6 @@ totalTimeout: 90
 
 secrets:
   - akv: someAKV
-    secretEnv: someAkvSecretEnv
 
 steps:
   - timeout: 5

@@ -41,7 +41,6 @@ type Step struct {
 	Isolation           string   `yaml:"isolation"`
 	Push                []string `yaml:"push"`
 	Envs                []string `yaml:"env"`
-	SecretEnvs          []string `yaml:"secretEnvs"`
 	Expose              []string `yaml:"expose"`
 	Ports               []string `yaml:"ports"`
 	When                []string `yaml:"when"`
@@ -127,7 +126,6 @@ func (s *Step) Equals(t *Step) bool {
 		!util.StringSequenceEquals(s.Ports, t.Ports) ||
 		!util.StringSequenceEquals(s.Expose, t.Expose) ||
 		!util.StringSequenceEquals(s.Envs, t.Envs) ||
-		!util.StringSequenceEquals(s.SecretEnvs, t.SecretEnvs) ||
 		s.Timeout != t.Timeout ||
 		!util.StringSequenceEquals(s.When, t.When) ||
 		!util.IntSequenceEquals(s.ExitedWith, t.ExitedWith) ||

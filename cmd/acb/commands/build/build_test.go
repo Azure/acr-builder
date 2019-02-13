@@ -4,6 +4,7 @@
 package build
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Azure/acr-builder/graph"
@@ -34,6 +35,7 @@ func TestCreateBuildTask(t *testing.T) {
 	)
 
 	task, err := createBuildTask(
+		context.Background(),
 		isolation,
 		pull,
 		labels,

@@ -44,9 +44,9 @@ type Task struct {
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
 func UnmarshalTaskFromString(data string, defaultWorkDir string, network string, envs []string, creds []*Credential) (*Task, error) {
-	t := &Task{}
-	if err := yaml.Unmarshal([]byte(data), t); err != nil {
-		return t, errors.Wrap(err, "failed to deserialize task")
+	t, err := NewTaskFromString(data)
+	if err != nil {
+		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
 	if defaultWorkDir != "" && t.WorkingDirectory == "" {
 		t.WorkingDirectory = defaultWorkDir
@@ -62,22 +62,60 @@ func UnmarshalTaskFromString(data string, defaultWorkDir string, network string,
 		t.Networks = append(t.Networks, externalNetwork)
 	}
 
-	err := t.initialize()
+	err = t.initialize()
 	return t, err
 }
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
 func UnmarshalTaskFromFile(file string, creds []*Credential) (*Task, error) {
-	t := &Task{Credentials: creds}
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		return t, err
+		return nil, err
 	}
-	if err := yaml.Unmarshal(data, &t); err != nil {
-		return t, errors.Wrap(err, "failed to deserialize task")
+	t, err := NewTaskFromBytes(data)
+	if err != nil {
+		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
+
+	t.Credentials = creds
 	err = t.initialize()
 	return t, err
+}
+
+// NewTaskFromString unmarshals a Task from string without any initialization.
+func NewTaskFromString(data string) (*Task, error) {
+	return NewTaskFromBytes([]byte(data))
+}
+
+// NewTaskFromBytes unmarshals a Task from given bytes without any initialization.
+func NewTaskFromBytes(data []byte) (*Task, error) {
+	t := &Task{}
+	if err := yaml.Unmarshal(data, t); err != nil {
+		return t, err
+	}
+	return t, t.Validate()
+}
+
+// Validate validates the task and returns an error if the Task has problems.
+func (t *Task) Validate() error {
+	// Validate secrets if exists
+	idMap := make(map[string]struct{}, len(t.Secrets))
+	for _, secret := range t.Secrets {
+		err := secret.Validate()
+		if err != nil {
+			if secret.ID == "" {
+				return err
+			}
+			return errors.Wrap(err, fmt.Sprintf("failed to validate secret with ID: %s", secret.ID))
+		}
+
+		if _, exists := idMap[secret.ID]; exists {
+			return fmt.Errorf("duplicate secret found with ID: %s", secret.ID)
+		}
+
+		idMap[secret.ID] = struct{}{}
+	}
+	return nil
 }
 
 // NewTask returns a default Task object.

@@ -170,3 +170,93 @@ func TestMergingEnvs(t *testing.T) {
 		}
 	}
 }
+
+func TestNewTaskFromString(t *testing.T) {
+	tests := []struct {
+		template    string
+		secrets     []*Secret
+		shouldError bool
+	}{
+		{`
+secrets:
+  - id: mysecret
+    akv: https://myvault.vault.azure.net/secrets/mysecret
+  - id: mysecret1
+    akv: https://myvault.vault.azure.net/secrets/mysecret1
+    clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
+			[]*Secret{
+				{
+					ID:  "mysecret",
+					Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+				},
+				{
+					ID:          "mysecret1",
+					Akv:         "https://myvault.vault.azure.net/secrets/mysecret1",
+					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
+				},
+			},
+			false,
+		},
+		{`
+secrets:
+  - id: MYSecret1
+  - id: mysecret1
+    clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
+			[]*Secret{},
+			true,
+		},
+		{`
+secrets:`,
+			[]*Secret{},
+			false,
+		},
+		{``,
+			[]*Secret{},
+			false,
+		},
+		{`
+secrets:
+  - id: mysecret1
+    akv: myakv
+  - id: mysecret1
+    akv: myakv2
+    clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
+			[]*Secret{},
+			true,
+		},
+		{`
+steps:
+  - id: mystep
+    cmd: bash echo hello world`,
+			[]*Secret{},
+			false,
+		},
+		{`
+steps:
+  - cmd: bash echo hello world`,
+			[]*Secret{},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		task, err := NewTaskFromString(test.template)
+		if test.shouldError && err == nil {
+			t.Fatalf("Expected task: %v to error but it didn't", test.template)
+		}
+		if !test.shouldError && err != nil {
+			t.Fatalf("Task: %v shouldn't have errored, but it did; err: %v", test.template, err)
+		}
+
+		if err == nil {
+			if len(task.Secrets) != len(test.secrets) {
+				t.Errorf("Expected number of secrets: %v, but got %v", len(test.secrets), len(task.Secrets))
+			}
+			for i := 0; i < len(task.Secrets); i++ {
+				if !task.Secrets[i].Equals(test.secrets[i]) {
+					t.Errorf("Expected secrets %v and %v be equal", test.secrets[i], task.Secrets[i])
+				}
+			}
+		}
+	}
+}
