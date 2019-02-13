@@ -6,6 +6,7 @@ package templating
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/vaults"
@@ -13,17 +14,32 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	maxTimeout time.Duration = 1<<63 - 1
+	// DefaultSecretResolveTimeout is the default timeout for resolving a secret which is 2 minute
+	DefaultSecretResolveTimeout time.Duration = time.Minute * 2
+)
+
+type secretResolveChannel struct {
+	resolvedChan chan graph.SecretValue
+	timeoutChan  func() <-chan struct{}
+}
+
 // ResolveSecretFunc is a function that resolves the secret to its value and sends through the ResolvedChan of the secret. Any errors during resolve are send through errorChan
 type ResolveSecretFunc func(ctx context.Context, azureVaultResourceURL string, secret *graph.Secret, errorChan chan error)
 
 // SecretResolver defines how a secret is resolved.
 type SecretResolver struct {
 	Resolve          ResolveSecretFunc
+	resolveTimeout   time.Duration
 	azureEnvironment azure.Environment
 }
 
 // NewSecretResolver creates a resolver with the given resolve function.
-func NewSecretResolver(resolveFunc ResolveSecretFunc, azureEnvironmentName string) (*SecretResolver, error) {
+func NewSecretResolver(resolveFunc ResolveSecretFunc, azureEnvironmentName string, resolveTimeout time.Duration) (*SecretResolver, error) {
+	if resolveFunc == nil {
+		resolveFunc = resolveSecret
+	}
 	if azureEnvironmentName == "" {
 		azureEnvironmentName = azure.PublicCloud.Name
 	}
@@ -33,12 +49,7 @@ func NewSecretResolver(resolveFunc ResolveSecretFunc, azureEnvironmentName strin
 		return nil, errors.Wrap(err, "invalid azure environment name")
 	}
 
-	return &SecretResolver{Resolve: resolveFunc, azureEnvironment: azureEnvironment}, nil
-}
-
-// DefaultSecretResolver creates a default secret resolver for the given azure environment
-func DefaultSecretResolver(azureEnvironmentName string) (*SecretResolver, error) {
-	return NewSecretResolver(resolveSecret, azureEnvironmentName)
+	return &SecretResolver{Resolve: resolveFunc, azureEnvironment: azureEnvironment, resolveTimeout: resolveTimeout}, nil
 }
 
 // ResolveSecrets returns a list of resolved secrets and returns error if there is any failure in resolving a secret.
@@ -60,18 +71,9 @@ func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secret
 			endIndex = len(secrets)
 		}
 
-		var resolvedChans []chan graph.SecretValue
+		var secretChannels []secretResolveChannel
 
 		for _, secret := range secrets[index:endIndex] {
-			// Validate secret before resolving
-			err := secret.Validate()
-			if err != nil {
-				if secret.ID == "" {
-					return resolvedSecrets, err
-				}
-				return resolvedSecrets, errors.Wrap(err, fmt.Sprintf("failed to validate secret with ID: %s", secret.ID))
-			}
-
 			if secret == nil {
 				continue
 			}
@@ -79,19 +81,24 @@ func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secret
 			if secret.ResolvedChan == nil {
 				secret.ResolvedChan = make(chan graph.SecretValue)
 			}
-			resolvedChans = append(resolvedChans, secret.ResolvedChan)
-			go secretResolver.Resolve(ctx, secretResolver.azureEnvironment.KeyVaultEndpoint, secret, errorChan)
+			ctxWithTimeout, cancel := context.WithTimeout(ctx, secretResolver.resolveTimeout)
+			defer cancel()
+			secretChannels = append(secretChannels, secretResolveChannel{secret.ResolvedChan, ctxWithTimeout.Done})
+			go secretResolver.Resolve(ctxWithTimeout, secretResolver.azureEnvironment.KeyVaultEndpoint, secret, errorChan)
 		}
 
 		// Block until either:
+		// - timeout in fetching any of the secrets.
 		// - The global context expires
 		// - Resolving a secret has error
 		// - All secrets are resolved successfully
-		for _, ch := range resolvedChans {
+		for _, ch := range secretChannels {
 			select {
+			case <-ch.timeoutChan():
+				return resolvedSecrets, errors.New("timeout in fetching secrets")
 			case <-ctx.Done():
 				return resolvedSecrets, ctx.Err()
-			case secretValue := <-ch:
+			case secretValue := <-ch.resolvedChan:
 				resolvedSecrets[secretValue.ID] = secretValue.Value
 			case err := <-errorChan:
 				return resolvedSecrets, err
@@ -105,17 +112,20 @@ func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secret
 func resolveSecret(ctx context.Context, azureVaultResourceURL string, secret *graph.Secret, errorChan chan error) {
 	if secret == nil {
 		errorChan <- errors.New("secret cannot be nil")
+		return
 	}
 
 	if secret.IsAkvSecret() {
 		secretConfig, err := vaults.NewAKVSecretConfig(secret.Akv, secret.MsiClientID, azureVaultResourceURL)
 		if err != nil {
 			errorChan <- errors.Wrap(err, "failed to create azure keyvault secret config")
+			return
 		}
 
 		secretValue, err := secretConfig.GetValue(ctx)
 		if err != nil {
 			errorChan <- errors.Wrap(err, "failed to fetch azure key vault secret")
+			return
 		}
 
 		secret.ResolvedChan <- graph.SecretValue{ID: secret.ID, Value: secretValue}

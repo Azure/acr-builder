@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 package graph
 
 import (
@@ -22,11 +25,15 @@ type SecretValue struct {
 type Secret struct {
 	ID          string `yaml:"id"`
 	Akv         string `yaml:"akv,omitempty"`
-	MsiClientID string `yaml:"client-id,omitempty"`
+	MsiClientID string `yaml:"clientID,omitempty"`
 
 	// ResolvedChan is used to signal the callers
-	// that the secret has been resolved successfully to a vaule.
+	// that the secret has been resolved successfully to a value.
 	ResolvedChan chan SecretValue
+
+	// TimeoutChan is used to signal the callers
+	// that resolving secret timed out.
+	TimeoutChan chan struct{}
 }
 
 // Validate validates the secrets and returns an error if the secret properties are invalid.

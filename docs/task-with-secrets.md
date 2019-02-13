@@ -161,7 +161,7 @@ secrets:
     akv: https://myacbvault.vault.azure.net/secrets/SampleSecret/2c68e8cd93b941389ac2ad735ffc0353
   - id: mysecret1
     akv: {{.Values.akv1}}
-    client-id: {{ .Values.id }}
+    clientID: {{ .Values.id }}
 steps:
   - cmd: bash echo mysecret value is {{.Secrets.mysecret}}
   - cmd: bash echo mysecret1 value is {{.Secrets.mysecret1}}

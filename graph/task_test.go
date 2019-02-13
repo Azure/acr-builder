@@ -173,8 +173,9 @@ func TestMergingEnvs(t *testing.T) {
 
 func TestNewTaskFromString(t *testing.T) {
 	tests := []struct {
-		template string
-		secrets  []*Secret
+		template    string
+		secrets     []*Secret
+		shouldError bool
 	}{
 		{`
 secrets:
@@ -182,7 +183,7 @@ secrets:
     akv: https://myvault.vault.azure.net/secrets/mysecret
   - id: mysecret1
     akv: https://myvault.vault.azure.net/secrets/mysecret1
-    client-id: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
+    clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
 			[]*Secret{
 				{
 					ID:  "mysecret",
@@ -194,42 +195,70 @@ secrets:
 					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
 				},
 			},
+			false,
 		},
 		{`
 secrets:
-  - id: 
+  - id: MYSecret1
   - id: mysecret1
-    client-id: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
-			[]*Secret{
-				{},
-				{
-					ID:          "mysecret1",
-					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
-				},
-			},
+    clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
+			[]*Secret{},
+			true,
 		},
 		{`
 secrets:`,
 			[]*Secret{},
+			false,
+		},
+		{``,
+			[]*Secret{},
+			false,
+		},
+		{`
+secrets:
+  - id: mysecret1
+    akv: myakv
+  - id: mysecret1
+    akv: myakv2
+    clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
+			[]*Secret{},
+			true,
 		},
 		{`
 steps:
-  - id: mystep`,
+  - id: mystep
+    cmd: bash echo hello world`,
 			[]*Secret{},
+			false,
+		},
+		{`
+steps:
+  - id: mystep
+    cmd: bash echo hello world
+  - id: mystep
+    cmd: bash echo hello world`,
+			[]*Secret{},
+			true,
 		},
 	}
 
 	for _, test := range tests {
 		task, err := NewTaskFromString(test.template)
-		if err != nil {
-			t.Errorf("Test failed with error %v", err)
+		if test.shouldError && err == nil {
+			t.Fatalf("Expected task: %v to error but it didn't", test.template)
 		}
-		if len(task.Secrets) != len(test.secrets) {
-			t.Errorf("Expected number of secrets: %v, but got %v", len(test.secrets), len(task.Secrets))
+		if !test.shouldError && err != nil {
+			t.Fatalf("Task: %v shouldn't have errored, but it did; err: %v", test.template, err)
 		}
-		for i := 0; i < len(task.Secrets); i++ {
-			if !task.Secrets[i].Equals(test.secrets[i]) {
-				t.Errorf("Expected secrets %v and %v be equal", test.secrets[i], task.Secrets[i])
+
+		if err == nil {
+			if len(task.Secrets) != len(test.secrets) {
+				t.Errorf("Expected number of secrets: %v, but got %v", len(test.secrets), len(task.Secrets))
+			}
+			for i := 0; i < len(task.Secrets); i++ {
+				if !task.Secrets[i].Equals(test.secrets[i]) {
+					t.Errorf("Expected secrets %v and %v be equal", test.secrets[i], task.Secrets[i])
+				}
 			}
 		}
 	}

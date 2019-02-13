@@ -46,7 +46,7 @@ type Task struct {
 func UnmarshalTaskFromString(data string, defaultWorkDir string, network string, envs []string, creds []*Credential) (*Task, error) {
 	t, err := NewTaskFromString(data)
 	if err != nil {
-		return t, err
+		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
 	if defaultWorkDir != "" && t.WorkingDirectory == "" {
 		t.WorkingDirectory = defaultWorkDir
@@ -68,26 +68,71 @@ func UnmarshalTaskFromString(data string, defaultWorkDir string, network string,
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
 func UnmarshalTaskFromFile(file string, creds []*Credential) (*Task, error) {
-	t := &Task{Credentials: creds}
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		return t, err
+		return nil, err
 	}
-	if err := yaml.Unmarshal(data, &t); err != nil {
-		return t, errors.Wrap(err, "failed to deserialize task")
+	t, err := NewTaskFromBytes(data)
+	if err != nil {
+		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
+
+	t.Credentials = creds
 	err = t.initialize()
 	return t, err
 }
 
 // NewTaskFromString unmarshals a Task from string without any initialization.
 func NewTaskFromString(data string) (*Task, error) {
-	t := &Task{}
-	if err := yaml.Unmarshal([]byte(data), t); err != nil {
-		return t, errors.Wrap(err, "failed to deserialize task")
-	}
+	return NewTaskFromBytes([]byte(data))
+}
 
-	return t, nil
+// NewTaskFromBytes unmarshals a Task from given bytes without any initialization.
+func NewTaskFromBytes(data []byte) (*Task, error) {
+	t := &Task{}
+	if err := yaml.Unmarshal(data, t); err != nil {
+		return t, err
+	}
+	return t, t.Validate()
+}
+
+// Validate validates the task and returns an error if the Task has problems.
+func (task *Task) Validate() error {
+	// Validate secrets if exists
+	idMap := make(map[string]struct{}, len(task.Secrets))
+	for _, secret := range task.Secrets {
+		err := secret.Validate()
+		if err != nil {
+			if secret.ID == "" {
+				return err
+			}
+			return errors.Wrap(err, fmt.Sprintf("failed to validate secret with ID: %s", secret.ID))
+		}
+
+		if _, exists := idMap[secret.ID]; exists {
+			return fmt.Errorf("duplicate secret found with ID: %s", secret.ID)
+		}
+
+		idMap[secret.ID] = struct{}{}
+	}
+	// Validate steps if exists
+	idMap = make(map[string]struct{}, len(task.Steps))
+	for _, step := range task.Steps {
+		err := step.Validate()
+		if err != nil {
+			if step.ID == "" {
+				return err
+			}
+			return errors.Wrap(err, fmt.Sprintf("failed to validate step with ID: %s", step.ID))
+		}
+
+		if _, exists := idMap[step.ID]; exists {
+			return fmt.Errorf("duplicate step found with ID: %s", step.ID)
+		}
+
+		idMap[step.ID] = struct{}{}
+	}
+	return nil
 }
 
 // NewTask returns a default Task object.

@@ -116,6 +116,8 @@ var Command = cli.Command{
 				SharedVolume:            homevol,
 				OS:                      runtime.GOOS,
 				Architecture:            runtime.GOARCH,
+				AzureEnvironmentName:    azureEnvironmentName,
+				SecretResolveTimeout:    templating.DefaultSecretResolveTimeout,
 			}
 		)
 
@@ -135,12 +137,7 @@ var Command = cli.Command{
 			}
 		}
 
-		secretResolver, err := templating.DefaultSecretResolver(azureEnvironmentName)
-		if err != nil {
-			return err
-		}
-
-		rendered, err := templating.LoadAndRenderSteps(gocontext.Background(), template, renderOpts, secretResolver)
+		rendered, err := templating.LoadAndRenderSteps(gocontext.Background(), template, renderOpts)
 		if err != nil {
 			return err
 		}

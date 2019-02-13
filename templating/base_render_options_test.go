@@ -6,6 +6,7 @@ package templating
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 func TestParseValues_Valid(t *testing.T) {
@@ -96,7 +97,7 @@ func TestLoadAndRenderSteps(t *testing.T) {
 		t.Fatalf("Unexpected err: %v", err)
 	}
 
-	actual, err := LoadAndRenderSteps(context.Background(), template, opts, nil)
+	actual, err := LoadAndRenderSteps(context.Background(), template, opts)
 	if err != nil {
 		t.Fatalf("Unexpected err: %v", err)
 	}
@@ -128,11 +129,10 @@ func TestShellQuote(t *testing.T) {
 	}
 }
 
-// TestResolveAndMergeSecrets tests rendering templates with secrets, resolve and adding Secrets.
-func TestResolveAndMergeSecrets(t *testing.T) {
-	secretResolver, err := NewSecretResolver(MockResolveSecret, "")
-	if err != nil {
-		t.Errorf("Failed to create secret resolver. Err: %v", err)
+// TestRenderAndResolveSecrets tests rendering templates with secrets, resolve and adding Secrets.
+func TestRenderAndResolveSecrets(t *testing.T) {
+	renderOpts := &BaseRenderOptions{
+		SecretResolveTimeout: time.Duration(time.Minute * 5),
 	}
 
 	ctx := context.Background()
@@ -148,7 +148,7 @@ secrets:
     akv: https://myvault.vault.azure.net/secrets/mysecret
   - id: mysecret1
     akv: https://myvault.vault.azure.net/secrets/mysecret1
-    client-id: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
+    clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
 			Values{"mykey": "myvalue"},
 			Values{"mysecret": "https://myvault.vault.azure.net/secrets/mysecret-", "mysecret1": "https://myvault.vault.azure.net/secrets/mysecret1-c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
 		},
@@ -159,7 +159,7 @@ secrets:
     akv: {{.Values.myakv}}
   - id: {{.Values.myid2}}
     akv: {{.Values.myakv2}}
-    client-id: {{.Values.myclientID}}`,
+    clientID: {{.Values.myclientID}}`,
 			Values{"myid2": "mysecret1", "myakv": "https://myvault.vault.azure.net/secrets/mysecret", "myakv2": "https://myvault.vault.azure.net/secrets/mysecret1", "myclientID": "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
 			Values{"mysecret": "https://myvault.vault.azure.net/secrets/mysecret-", "mysecret1": "https://myvault.vault.azure.net/secrets/mysecret1-c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
 		},
@@ -169,18 +169,21 @@ secrets:
     akv: {{.Values.myakv}}
   - id: {{.Run.ID}}_{{.Values.myid2}}
     akv: {{.Values.myakv2}}
-    client-id: {{.Values.myclientID}}`,
+    clientID: {{.Values.myclientID}}`,
 			Values{"ID": "runId", "myid2": "mysecret1", "myakv": "https://myvault.vault.azure.net/secrets/mysecret", "myakv2": "https://myvault.vault.azure.net/secrets/mysecret1", "myclientID": "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
 			Values{"mysecret": "https://myvault.vault.azure.net/secrets/mysecret-", "runId_mysecret1": "https://myvault.vault.azure.net/secrets/mysecret1-c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
 		},
 		{`
-secrets:`,
+secrets:
+  - id: mysecret
+    akv: myakv`,
 			Values{"mykey": "myvalue"},
-			Values{},
+			Values{"mysecret": "myakv-"},
 		},
 		{`
 steps:
-  - id: secrets`,
+  - id: secrets
+    cmd: bash echo hello world`,
 			Values{"mykey": "myvalue"},
 			Values{},
 		},
@@ -194,20 +197,17 @@ steps:
 			"job1",
 			[]byte(test.template),
 		)
-		err := resolveAndMergeSecrets(ctx, template, secretResolver, &base)
+		engine := NewEngine()
+		secrets, err := renderAndResolveSecrets(ctx, template, engine, MockResolveSecret, renderOpts, base)
 		if err != nil {
 			t.Errorf("Test failed with error %v", err)
 		}
 
 		if test.secretValues == nil {
-			if base["Secrets"] != nil {
-				t.Errorf("Secrets do not match. Expected  %v but got %v", test.secretValues, base["Secrets"])
+			if secrets != nil {
+				t.Errorf("Secrets do not match. Expected  %v but got %v", test.secretValues, secrets)
 			}
 		} else {
-			secrets, ok := base["Secrets"].(Values)
-			if !ok {
-				t.Errorf("Secrets are not map types")
-			}
 			if len(secrets) != len(test.secretValues) {
 				t.Errorf("Expected number of secrets: %v, but got %v", len(test.secretValues), len(secrets))
 			}

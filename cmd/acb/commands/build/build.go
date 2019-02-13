@@ -305,8 +305,7 @@ func createBuildTask(
 	// Create the template
 	template := templating.NewTemplate("build", []byte(runCmd))
 
-	// Render the template and create a Task, we don't add any secrets in the generated task. Hence we don't need secret resolver.
-	rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts, nil)
+	rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
 	if err != nil {
 		return nil, err
 	}

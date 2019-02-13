@@ -66,6 +66,12 @@ type BaseRenderOptions struct {
 
 	// Architecture is the GOARCH.
 	Architecture string
+
+	// AzureEnvironmentName is the name of the azure environment.
+	AzureEnvironmentName string
+
+	// SecretResolveTimeout is the timeout for resolving a secret during rendering.
+	SecretResolveTimeout time.Duration
 }
 
 // OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
@@ -112,7 +118,7 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 
 // LoadAndRenderSteps loads a template file and renders it according to an optional values file, --set values,
 // and base render options.
-func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRenderOptions, secretResolver *SecretResolver) (string, error) {
+func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRenderOptions) (string, error) {
 	var err error
 
 	config := &Config{}
@@ -141,12 +147,15 @@ func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRende
 		return "", fmt.Errorf("failed to override values: %v", err)
 	}
 
-	err = resolveAndMergeSecrets(ctx, template, secretResolver, &mergedVals)
-	if err != nil {
-		return "", fmt.Errorf("failed to merge secrets: %v", err)
-	}
-
 	engine := NewEngine()
+	// we will pass nil for the secret resolve override so as to use the default resolve function.
+	secrets, err := renderAndResolveSecrets(ctx, template, engine, nil, opts, mergedVals)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve secrets in the task with error: %v", err)
+	}
+	// update the secrets collection with resolved secrets.
+	mergedVals["Secrets"] = secrets
+
 	rendered, err := engine.Render(template, mergedVals)
 	if err != nil {
 		return "", fmt.Errorf("error while rendering templates: %v", err)
@@ -159,52 +168,44 @@ func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRende
 	return rendered, nil
 }
 
-// ResolveAndMergeSecrets parses the secrets in the template, resolves them using vault providers and adds them to the values map.
-func resolveAndMergeSecrets(ctx context.Context, template *Template, secretResolver *SecretResolver, valueMap *Values) error {
+// renderAndResolveSecrets parses the secrets in the template, resolves them using vault providers and returns the resolved secret values.
+func renderAndResolveSecrets(ctx context.Context, template *Template, templateEngine *Engine, resolveSecretFunc ResolveSecretFunc, opts *BaseRenderOptions, sourceValues Values) (Values, error) {
 
+	emptySecrets := Values{}
 	// Cheap optimization to skip the secrets merging if it doesn't contain "secrets" string in it. Note that the task can
 	// have the string secrets but may not essentially the secrets section.
 	if !strings.Contains(string(template.Data), "secrets") {
-		return nil
+		return emptySecrets, nil
 	}
 
-	// At first render the template with existing values to render templatized vaules for secrets.
-	values := *valueMap
-	values["Secrets"] = Values{}
-	engine := NewEngine()
-	rendered, err := engine.Render(template, values)
+	// At first render the template with existing values to render templatized values for secrets.
+	sourceValues["Secrets"] = emptySecrets
+	rendered, err := templateEngine.Render(template, sourceValues)
 	if err != nil {
-		return errors.Wrap(err, "failed to render the template")
+		return emptySecrets, errors.Wrap(err, "failed to render the template")
 	}
 
 	if rendered == "" {
-		return errors.New("rendered template was empty")
+		return emptySecrets, errors.New("rendered template was empty")
 	}
 
 	// Unmarshall the template to Task and get all secrets defined in the template.
 	task, err := graph.NewTaskFromString(rendered)
 	if err != nil {
-		return errors.Wrap(err, "failed to parse template to create task")
+		return emptySecrets, errors.Wrap(err, "failed to parse template to create task")
 	}
 
 	// If no secrets found return.
 	if len(task.Secrets) == 0 {
-		return nil
+		return emptySecrets, nil
 	}
 
-	if secretResolver == nil {
-		return errors.New("secret resolver is required")
-	}
-
-	resolvedSecrets, err := secretResolver.ResolveSecrets(ctx, task.Secrets)
+	secretResolver, err := NewSecretResolver(resolveSecretFunc, opts.AzureEnvironmentName, opts.SecretResolveTimeout)
 	if err != nil {
-		return errors.Wrap(err, "failed to resolve secrets in the task")
+		return emptySecrets, errors.Wrap(err, "failed to create secret resolver")
 	}
 
-	// update the secrets collection with resolved secrets.
-	values["Secrets"] = resolvedSecrets
-
-	return nil
+	return secretResolver.ResolveSecrets(ctx, task.Secrets)
 }
 
 // parseValues receives a slice of values in key=val format

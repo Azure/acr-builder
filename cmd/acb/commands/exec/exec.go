@@ -177,6 +177,8 @@ var Command = cli.Command{
 			SharedVolume:            homevol,
 			OS:                      runtime.GOOS,
 			Architecture:            runtime.GOARCH,
+			AzureEnvironmentName:    azureEnvironmentName,
+			SecretResolveTimeout:    templating.DefaultSecretResolveTimeout,
 		}
 
 		var template *templating.Template
@@ -191,13 +193,8 @@ var Command = cli.Command{
 			}
 		}
 
-		secretResolver, err := templating.DefaultSecretResolver(azureEnvironmentName)
-		if err != nil {
-			return err
-		}
-
-		// TODO: Do we need to add any timeout with the ctx for resolving the secrets?
-		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts, secretResolver)
+		
+		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
 		if err != nil {
 			return err
 		}
