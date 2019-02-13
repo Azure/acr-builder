@@ -132,7 +132,7 @@ func TestShellQuote(t *testing.T) {
 // TestRenderAndResolveSecrets tests rendering templates with secrets, resolve and adding Secrets.
 func TestRenderAndResolveSecrets(t *testing.T) {
 	renderOpts := &BaseRenderOptions{
-		SecretResolveTimeout: time.Duration(time.Minute * 5),
+		SecretResolveTimeout: time.Minute * 5,
 	}
 
 	ctx := context.Background()

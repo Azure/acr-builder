@@ -233,12 +233,9 @@ steps:
 		},
 		{`
 steps:
-  - id: mystep
-    cmd: bash echo hello world
-  - id: mystep
-    cmd: bash echo hello world`,
+  - cmd: bash echo hello world`,
 			[]*Secret{},
-			true,
+			false,
 		},
 	}
 

@@ -30,7 +30,7 @@ func MockResolveSecret(ctx context.Context, azureVaultResourceURL string, secret
 
 // TestResolveSecrets tests resolving the secrets
 func TestResolveSecrets(t *testing.T) {
-	secretResolver, err := NewSecretResolver(MockResolveSecret, "", time.Duration(time.Minute*5))
+	secretResolver, err := NewSecretResolver(MockResolveSecret, "", time.Minute*5)
 	if err != nil {
 		t.Errorf("Failed to create secret resolver. Err: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestResolveSecrets(t *testing.T) {
 
 // TestResolveSecretsWithError tests resolving the secrets that should result in errors
 func TestResolveSecretsWithError(t *testing.T) {
-	secretResolver, err := NewSecretResolver(nil, "", time.Duration(time.Minute*5))
+	secretResolver, err := NewSecretResolver(nil, "", time.Minute*5)
 	if err != nil {
 		t.Errorf("Failed to create secret resolver. Err: %v", err)
 	}

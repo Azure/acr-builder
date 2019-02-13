@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	maxTimeout time.Duration = 1<<63 - 1
 	// DefaultSecretResolveTimeout is the default timeout for resolving a secret which is 2 minute
 	DefaultSecretResolveTimeout time.Duration = time.Minute * 2
 )

@@ -62,6 +62,9 @@ func NewDagFromTask(t *Task) (*Dag, error) {
 
 	var prevStep *Step
 	for _, step := range t.Steps {
+		if err := step.Validate(); err != nil {
+			return dag, err
+		}
 		if _, err := dag.AddVertex(step); err != nil {
 			return dag, err
 		}

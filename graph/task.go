@@ -97,10 +97,10 @@ func NewTaskFromBytes(data []byte) (*Task, error) {
 }
 
 // Validate validates the task and returns an error if the Task has problems.
-func (task *Task) Validate() error {
+func (t *Task) Validate() error {
 	// Validate secrets if exists
-	idMap := make(map[string]struct{}, len(task.Secrets))
-	for _, secret := range task.Secrets {
+	idMap := make(map[string]struct{}, len(t.Secrets))
+	for _, secret := range t.Secrets {
 		err := secret.Validate()
 		if err != nil {
 			if secret.ID == "" {
@@ -114,23 +114,6 @@ func (task *Task) Validate() error {
 		}
 
 		idMap[secret.ID] = struct{}{}
-	}
-	// Validate steps if exists
-	idMap = make(map[string]struct{}, len(task.Steps))
-	for _, step := range task.Steps {
-		err := step.Validate()
-		if err != nil {
-			if step.ID == "" {
-				return err
-			}
-			return errors.Wrap(err, fmt.Sprintf("failed to validate step with ID: %s", step.ID))
-		}
-
-		if _, exists := idMap[step.ID]; exists {
-			return fmt.Errorf("duplicate step found with ID: %s", step.ID)
-		}
-
-		idMap[step.ID] = struct{}{}
 	}
 	return nil
 }

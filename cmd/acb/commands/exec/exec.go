@@ -193,7 +193,6 @@ var Command = cli.Command{
 			}
 		}
 
-		
 		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
 		if err != nil {
 			return err
