@@ -2,7 +2,7 @@
 # docker build -f baseimages/docker-cli/Windows.Dockerfile -t docker .
 
 ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:ltsc2019
-FROM $WINDOWS_IMAGE as environment
+FROM $WINDOWS_IMAGE as base
 
 # set the default shell as powershell.
 # $ProgressPreference: https://github.com/PowerShell/PowerShell/issues/2138#issuecomment-251261324
@@ -56,6 +56,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_LFS_DOWNLOAD_URL); \
 	\
 	Write-Host 'Complete.';
 
+FROM base as builder
 # ideally, this would be C:\go to match Linux a bit closer, but C:\go is the recommended install path for Go itself on Windows
 ENV GOPATH C:\\gopath
 
@@ -94,7 +95,7 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 	Write-Host 'Complete.';
 
 # Build the docker executable
-FROM environment as dockercli
+FROM builder as dockercli
 ARG DOCKER_CLI_LKG_COMMIT=c98c4080a323fb0e4fdf7429d8af4e2e946d09b5
 WORKDIR \\gopath\\src\\github.com\\docker\\cli
 RUN git clone https://github.com/docker/cli.git \gopath\src\github.com\docker\cli; \
@@ -102,7 +103,7 @@ RUN git clone https://github.com/docker/cli.git \gopath\src\github.com\docker\cl
     scripts\\make.ps1 -Binary -ForceBuildAll
 
 # setup the runtime environment
-FROM environment as runtime
+FROM base as runtime
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
 RUN setx /M PATH $('c:\docker;{0}' -f $env:PATH);
 ENTRYPOINT [ "docker.exe" ]
