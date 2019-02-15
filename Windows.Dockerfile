@@ -99,7 +99,7 @@ RUN git clone https://github.com/docker/cli.git \gopath\src\github.com\docker\cl
     scripts\\make.ps1 -Binary -ForceBuildAll
 
 # Build the acr-builder
-FROM builder as builder
+FROM builder as acb
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
@@ -112,7 +112,7 @@ RUN Write-Host ('Running build'); \
 FROM base as runtime
 ARG ACB_BASEIMAGE=mcr.microsoft.com/windows/servercore:ltsc2019
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
-COPY --from=builder /gopath/src/github.com/Azure/acr-builder/acb.exe c:/acr-builder/acb.exe
+COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe c:/acr-builder/acb.exe
 ENV ACB_CONFIGIMAGENAME=$ACB_BASEIMAGE
 
 RUN setx /M PATH $('c:\acr-builder;c:\docker;{0}' -f $env:PATH);
