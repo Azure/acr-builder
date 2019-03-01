@@ -56,16 +56,16 @@ func NewAKVSecretConfig(vaultURL, msiClientID, vaultAADResourceURL string) (*AKV
 
 	normalizedVaultURL := strings.TrimSuffix(strings.ToLower(vaultURL), "/")
 
-	url, err := url.Parse(normalizedVaultURL)
+	parsedURL, err := url.Parse(normalizedVaultURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse the azure keyvault secret URL")
 	}
 
-	if url.Scheme != "https" {
+	if parsedURL.Scheme != "https" {
 		return nil, errors.New("invalid azure keyvault secret URL scheme. Expected Https")
 	}
 
-	urlSegments := strings.Split(url.Path, "/")
+	urlSegments := strings.Split(parsedURL.Path, "/")
 
 	if len(urlSegments) != 3 && len(urlSegments) != 4 {
 		return nil, fmt.Errorf("invalid azure keyvault secret URL. Bad number of URL segments: %d", len(urlSegments))
@@ -82,7 +82,7 @@ func NewAKVSecretConfig(vaultURL, msiClientID, vaultAADResourceURL string) (*AKV
 	}
 
 	akvConfig := &AKVSecretConfig{
-		VaultURL:       fmt.Sprintf("%s://%s", url.Scheme, url.Host),
+		VaultURL:       fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host),
 		SecretName:     urlSegments[2],
 		SecretVersion:  secretVersion,
 		MSIClientID:    msiClientID,
@@ -110,13 +110,13 @@ func newKeyVaultClient(vaultURL, clientID, vaultAADResourceURL string) (*keyVaul
 		ClientID: clientID,
 	}
 
-	auth, err := msiKeyConfig.Authorizer()
+	authorizer, err := msiKeyConfig.Authorizer()
 	if err != nil {
 		return nil, err
 	}
 
 	keyClient := keyvault.New()
-	keyClient.Authorizer = auth
+	keyClient.Authorizer = authorizer
 
 	k := &keyVault{
 		vaultURL: vaultURL,

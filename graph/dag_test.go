@@ -180,16 +180,16 @@ func verifyChildren(expected map[string]*Step, actual []*Node) error {
 	lActual := len(actual)
 
 	if lExpected != lActual {
-		return fmt.Errorf("Expected %v children, actual: %v", lExpected, lActual)
+		return fmt.Errorf("expected %v children, actual: %v", lExpected, lActual)
 	}
 
 	for _, node := range actual {
 		if lookup, ok := expected[node.Name]; ok {
 			if !lookup.Equals(node.Value) {
-				return fmt.Errorf("Node provided: %v does not match the expected: %v", lookup, node.Value)
+				return fmt.Errorf("node provided: %v does not match the expected: %v", lookup, node.Value)
 			}
 		} else {
-			return fmt.Errorf("Node %v was not expected", node.Name)
+			return fmt.Errorf("node %v was not expected", node.Name)
 		}
 	}
 

@@ -24,6 +24,10 @@ var (
 	dependenciesRE = regexp.MustCompile(`(\[{"image.*?\])$`)
 )
 
+const (
+	windowsOS = "windows"
+)
+
 // getDockerRunArgs populates the args for running a Docker container.
 func (b *Builder) getDockerRunArgs(
 	volName string,
@@ -37,7 +41,7 @@ func (b *Builder) getDockerRunArgs(
 	var sb strings.Builder
 	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
 	// so we don't have to write our own argv parser for exec.Command.
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		args = []string{"powershell.exe", "-Command"}
 		if step.Isolation == "" && !step.IsBuildStep() {
 			// Use hyperv isolation for non-build steps.
@@ -99,7 +103,7 @@ func (b *Builder) scrapeDependencies(
 	stepWorkDir string,
 	outputDir string,
 	dockerfile string,
-	context string,
+	sourceContext string,
 	tags []string,
 	buildArgs []string) ([]*image.Dependencies, error) {
 	containerName := fmt.Sprintf("acb_dep_scanner_%s", uuid.New())
@@ -113,7 +117,7 @@ func (b *Builder) scrapeDependencies(
 		outputDir,
 		tags,
 		buildArgs,
-		context)
+		sourceContext)
 
 	if b.debug {
 		log.Printf("Scan args: %v\n", args)
@@ -139,7 +143,7 @@ func getScanArgs(
 	outputDir string,
 	tags []string,
 	buildArgs []string,
-	context string) []string {
+	sourceContext string) []string {
 	args := []string{
 		"docker",
 		"run",
@@ -167,7 +171,7 @@ func getScanArgs(
 	}
 
 	// Positional context must appear last
-	args = append(args, context)
+	args = append(args, sourceContext)
 
 	return args
 }

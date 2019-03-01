@@ -157,9 +157,9 @@ func (t *Task) initialize() error {
 
 	// Add the default network if none are specified.
 	// Only add the default network if we're using tasks.
-	if !t.IsBuildTask && len(t.Networks) <= 0 {
+	if !t.IsBuildTask && len(t.Networks) == 0 {
 		defaultNetwork := NewNetwork(newDefaultNetworkName, false, "bridge", false, true)
-		if runtime.GOOS == "windows" {
+		if runtime.GOOS == windowsOS {
 			defaultNetwork.Driver = "nat"
 		}
 		t.Networks = append(t.Networks, defaultNetwork)
@@ -237,14 +237,14 @@ func (t *Task) UsingRegistryCreds() bool {
 // getNormalizedDockerImageNames normalizes the list of docker images
 // and removes any duplicates.
 func getNormalizedDockerImageNames(dockerImages []string, registry string) []string {
-	if len(dockerImages) <= 0 {
+	if len(dockerImages) == 0 {
 		return dockerImages
 	}
 
 	dict := map[string]bool{}
 	normalizedDockerImages := []string{}
-	for _, d := range dockerImages {
-		d := scan.NormalizeImageTag(d)
+	for _, dockerImage := range dockerImages {
+		d := scan.NormalizeImageTag(dockerImage)
 		d = util.PrefixRegistryToImageName(registry, d)
 		if dict[d] {
 			continue

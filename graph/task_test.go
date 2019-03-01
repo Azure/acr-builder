@@ -52,12 +52,12 @@ func TestNewTask(t *testing.T) {
 		username             string
 		password             string
 		okCredentials        bool
-		totalTimeout         int
 		isBuildTask          bool
+		totalTimeout         int
 		expectedTotalTimeout int
 	}{
-		{nil, nil, "registry", "username", "password", true, 100, true, 600},
-		{[]*Step{}, []*Secret{}, "", "", "", false, 720, false, 720},
+		{nil, nil, "registry", "username", "password", true, true, 100, 600},
+		{[]*Step{}, []*Secret{}, "", "", "", false, false, 720, 720},
 	}
 
 	for _, test := range tests {

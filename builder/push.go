@@ -19,7 +19,7 @@ const (
 )
 
 func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
-	if len(images) <= 0 {
+	if len(images) == 0 {
 		return nil
 	}
 

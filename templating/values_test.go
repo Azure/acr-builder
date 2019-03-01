@@ -215,13 +215,16 @@ func TestMergeMaps(t *testing.T) {
 	sink["bar"] = ""
 	sink["nested"] = nestedMap
 
+	expectedFooValue := 5
+	expectedBarValue := "qux"
+
 	source := make(map[string]interface{})
-	source["foo"] = 5
-	sink["bar"] = "qux"
+	source["foo"] = expectedFooValue
+	sink["bar"] = expectedBarValue
 
 	expected := make(map[string]interface{})
-	expected["foo"] = 5
-	expected["bar"] = "qux"
+	expected["foo"] = expectedFooValue
+	expected["bar"] = expectedBarValue
 	expected["nested"] = nestedMap
 
 	actual := mergeMaps(sink, source)

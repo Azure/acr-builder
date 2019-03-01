@@ -51,8 +51,9 @@ func (s *Scanner) ScanForDependencies(context string, workingDir string, dockerf
 	// Even though there's nothing to push to, we always invoke NewImageDependencies
 	// TODO: refactor this in the future to take in the full list as opposed to individual
 	// images.
-	if len(pushTo) <= 0 {
-		currDep, err := s.NewImageDependencies("", runtime, buildtime)
+	var currDep *image.Dependencies
+	if len(pushTo) == 0 {
+		currDep, err = s.NewImageDependencies("", runtime, buildtime)
 		if err != nil {
 			return nil, err
 		}
@@ -60,7 +61,7 @@ func (s *Scanner) ScanForDependencies(context string, workingDir string, dockerf
 	}
 
 	for _, imageName := range pushTo {
-		currDep, err := s.NewImageDependencies(imageName, runtime, buildtime)
+		currDep, err = s.NewImageDependencies(imageName, runtime, buildtime)
 		if err != nil {
 			return nil, err
 		}
@@ -131,10 +132,10 @@ func NormalizeImageTag(img string) string {
 }
 
 // NewImageReference parses a path of a image and creates a ImageReference object
-func NewImageReference(path string) (*image.Reference, error) {
-	ref, err := reference.Parse(path)
+func NewImageReference(imagePath string) (*image.Reference, error) {
+	ref, err := reference.Parse(imagePath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to parse image reference, ensure tags have a valid format: %s", path)
+		return nil, errors.Wrapf(err, "Failed to parse image reference, ensure tags have a valid format: %s", imagePath)
 	}
 	result := &image.Reference{
 		Reference: ref.String(),
@@ -165,7 +166,7 @@ func NewImageReference(path string) (*image.Reference, error) {
 }
 
 // resolveDockerfileDependencies resolves dependencies given an io.Reader for a Dockerfile.
-func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []string, error) {
+func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (origin string, buildtimeDependencies []string, err error) {
 	scanner := bufio.NewScanner(r)
 	context, err := parseBuildArgs(buildArgs)
 	if err != nil {
@@ -173,8 +174,6 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []s
 	}
 	originLookup := map[string]string{} // given an alias, look up its origin
 	allOrigins := map[string]bool{}     // set of all origins
-	var origin string
-
 	firstLine := true
 	for scanner.Scan() {
 		var line string
@@ -201,18 +200,18 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []s
 				if len(tokens) < 2 {
 					return "", nil, fmt.Errorf("unable to understand line %s", line)
 				}
-				var image = os.Expand(tokens[1], func(key string) string {
+				var imageToken = os.Expand(tokens[1], func(key string) string {
 					return context[key]
 				})
 				var found bool
-				origin, found = originLookup[image]
+				origin, found = originLookup[imageToken]
 				if !found {
-					allOrigins[image] = true
-					origin = image
+					allOrigins[imageToken] = true
+					origin = imageToken
 				}
 
 				if len(tokens) > 2 {
-					if len(tokens) < 4 || strings.ToLower(tokens[2]) != "as" {
+					if len(tokens) < 4 || !strings.EqualFold(tokens[2], "as") {
 						return "", nil, fmt.Errorf("unable to understand line %s", line)
 					}
 					// alias cannot contain variables it seems. So we don't call context.Expand on it
@@ -245,11 +244,10 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (string, []s
 	}
 
 	if len(allOrigins) == 0 {
-		return "", nil, fmt.Errorf("unexpected dockerfile format")
+		return "", nil, errors.New("unexpected dockerfile format")
 	}
 
 	// note that origin variable now points to the runtime origin
-	buildtimeDependencies := make([]string, 0, len(allOrigins)-1)
 	for terminal := range allOrigins {
 		if terminal != origin {
 			buildtimeDependencies = append(buildtimeDependencies, terminal)
@@ -271,15 +269,13 @@ func parseBuildArgs(args []string) (map[string]string, error) {
 	return result, nil
 }
 
-func parseAssignment(in string) (string, string, error) {
+func parseAssignment(in string) (name string, value string, err error) {
 	values := strings.SplitN(in, "=", 2)
 	if len(values) != 2 {
 		return "", "", fmt.Errorf("%s cannot be split into 2 tokens with '='", in)
 	}
 
-	val := removeSurroundingQuotes(values[1])
-
-	return values[0], val, nil
+	return values[0], removeSurroundingQuotes(values[1]), nil
 }
 
 // removeSurroundingQuotes trims double quotes, then single quotes.
