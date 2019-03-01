@@ -59,17 +59,18 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 		}
 	}()
 
-	if out, err := gitWithinDir(root, "init"); err != nil {
+	var out []byte
+	if out, err = gitWithinDir(root, "init"); err != nil {
 		return "", errors.Wrapf(err, "failed to init repo at %s: %s", root, out)
 	}
 
 	// Add origin remote for compatibility with previous implementation that
 	// used "git clone" and also to make sure local refs are created for branches
-	if out, err := gitWithinDir(root, "remote", "add", "origin", repo.remote); err != nil {
+	if out, err = gitWithinDir(root, "remote", "add", "origin", repo.remote); err != nil {
 		return "", errors.Wrapf(err, "failed add origin repo at %s: %s", repo.remote, out)
 	}
 
-	if _, err := gitWithinDir(root, fetch...); err != nil {
+	if _, err = gitWithinDir(root, fetch...); err != nil {
 		// Fall back to full fetch if shallow fetch fails.
 		// It's mainly for the scenario if the reference is a git commit,
 		// eg, https://github.com/abc.git#bcaf8913695e5ad57868c8c82af58f9e699e7f59
@@ -202,10 +203,10 @@ func fetchArgs(remoteURL string, ref string) []string {
 func getRefAndSubdir(fragment string) (ref string, subdir string) {
 	refAndDir := strings.SplitN(fragment, ":", 2)
 	ref = "master"
-	if len(refAndDir[0]) != 0 {
+	if refAndDir[0] != "" {
 		ref = refAndDir[0]
 	}
-	if len(refAndDir) > 1 && len(refAndDir[1]) != 0 {
+	if len(refAndDir) > 1 && refAndDir[1] != "" {
 		subdir = refAndDir[1]
 	}
 	return

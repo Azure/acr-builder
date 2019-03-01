@@ -114,12 +114,12 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	}
 
 	if len(deps) > 0 {
-		bytes, err := json.Marshal(deps)
+		depBytes, err := json.Marshal(deps)
 		if err != nil {
 			return errors.Wrap(err, "failed to unmarshal image dependencies")
 		}
 		log.Println("The following dependencies were found:")
-		log.Println("\n" + string(bytes))
+		log.Println("\n" + string(depBytes))
 	}
 
 	return nil
@@ -347,10 +347,10 @@ func getRepoDigest(jsonContent string, reference *image.Reference) string {
 	return ""
 }
 
-func validateDockerContext(context string) {
-	context = strings.ToLower(context)
-	if strings.Contains(context, "github") && !strings.Contains(context, ".git") {
-		log.Printf("WARNING: %s might not be valid context. Valid Git repositories should end with .git.\n", context)
+func validateDockerContext(sourceContext string) {
+	sourceContext = strings.ToLower(sourceContext)
+	if strings.Contains(sourceContext, "github") && !strings.Contains(sourceContext, ".git") {
+		log.Printf("WARNING: %s might not be valid context. Valid Git repositories should end with .git.\n", sourceContext)
 	}
 }
 

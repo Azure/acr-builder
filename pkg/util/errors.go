@@ -13,7 +13,7 @@ type Errors []error
 
 // String returns a string representation for the Errors type.
 func (e Errors) String() string {
-	if len(e) <= 0 {
+	if len(e) == 0 {
 		return ""
 	}
 

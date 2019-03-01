@@ -83,7 +83,7 @@ func TestGetBuildDockerRunArgs(t *testing.T) {
 
 	var expectedCmds []string
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",
@@ -108,7 +108,7 @@ func TestGetNonBuildDockerRunArgs(t *testing.T) {
 
 	var expectedCmds []string
 
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == windowsOS {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",

@@ -14,8 +14,8 @@ import (
 func TestNetwork(t *testing.T) {
 	tests := []struct {
 		name               string
-		ipv6               bool
 		driver             string
+		ipv6               bool
 		skipCreation       bool
 		isDefault          bool
 		expectedCreateArgs []string
@@ -23,8 +23,8 @@ func TestNetwork(t *testing.T) {
 	}{
 		{
 			"foo",
-			true,
 			"",
+			true,
 			false,
 			false,
 			[]string{"docker", "network", "create", "foo", "--ipv6"},
@@ -32,8 +32,8 @@ func TestNetwork(t *testing.T) {
 		},
 		{
 			"bar",
-			false,
 			"nat",
+			false,
 			false,
 			false,
 			[]string{"docker", "network", "create", "bar", "--driver", "nat"},
@@ -41,8 +41,8 @@ func TestNetwork(t *testing.T) {
 		},
 		{
 			"foo",
-			false,
 			"",
+			false,
 			true,
 			true,
 			[]string{"docker", "network", "create", "foo"},

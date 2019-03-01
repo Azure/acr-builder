@@ -134,7 +134,8 @@ func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRende
 
 	setConfig := &Config{}
 	if len(opts.TemplateValues) > 0 {
-		rawVals, err := parseValues(opts.TemplateValues)
+		var rawVals string
+		rawVals, err = parseValues(opts.TemplateValues)
 		if err != nil {
 			return "", err
 		}
@@ -243,7 +244,7 @@ func parseRegistryName(fullyQualifiedRegistryName string) string {
 // shellQuote detects whether or not the string needs to be escaped and escapes double quotes and wraps them
 // with single quotes if necessary.
 func shellQuote(str string) string {
-	if len(str) == 0 {
+	if str == "" {
 		return "''"
 	}
 	if shellEscapePattern.MatchString(str) {
