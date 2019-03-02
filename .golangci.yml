@@ -1,37 +1,29 @@
 run:
-  concurrency: 4
+  concurrency: 2
   deadline: 1m
   skip-dirs:
     - vendor
     - docs
+    - baseimages
 linters-settings:
   govet:
     check-shadowing: true
   golint:
     min-confidence: 0
-  maligned:
-    suggest-new: true
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  misspell:
-    locale: US
-  gocritic:
-    enabled-tags:
-      - performance
-      - style
-      - experimental
-    disabled-checks:
-      - wrapperFunc
-      - paramTypeCombine
-      - ifElseChain
 linters:
-  enable-all: true
-  disable:
-    - prealloc
-    - lll
-    - gochecknoglobals
-    - gocyclo
+  disable-all: true
+  enable:
+    - gofmt
+    - goimports
+    - golint
+    - gosec
+    - govet
+    - ineffassign
+    - maligned
+    - staticcheck
+    - structcheck
+    - unconvert
+    - varcheck
 issues:
   exclude-rules:
     - text: "Potential HTTP request made with variable url"
