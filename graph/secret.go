@@ -12,7 +12,7 @@ var (
 	errMissingSecretID       = errors.New("secret is missing an ID")
 	errMissingSecretProps    = errors.New("secret is missing required akv property")
 	errSecretIDContainsSpace = errors.New("secret ID cannot contain spaces")
-	errInvalidUUID           = errors.New("The msi client ID is not a valid guid")
+	errInvalidUUID           = errors.New("msi client ID is not a valid guid")
 )
 
 // SecretValue represents the resolved value of the Secret.

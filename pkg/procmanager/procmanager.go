@@ -162,12 +162,12 @@ func (pm *ProcManager) Stop() util.Errors {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	var errors util.Errors
+	var errs util.Errors
 	for pid, process := range pm.processes {
 		if err := process.Kill(); err != nil {
-			errors = append(errors, err)
+			errs = append(errs, err)
 		}
 		delete(pm.processes, pid)
 	}
-	return errors
+	return errs
 }

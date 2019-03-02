@@ -29,8 +29,8 @@ const (
 )
 
 // ObtainSourceCode obtains the source code from the specified context.
-func (s *Scanner) ObtainSourceCode(ctx context.Context, context string) (workingDir string, sha string, err error) {
-	isGitURL, workingDir, err := s.getContext(ctx, context)
+func (s *Scanner) ObtainSourceCode(ctx context.Context, scContext string) (workingDir string, sha string, err error) {
+	isGitURL, workingDir, err := s.getContext(scContext)
 	if err != nil {
 		return workingDir, sha, err
 	}
@@ -42,33 +42,33 @@ func (s *Scanner) ObtainSourceCode(ctx context.Context, context string) (working
 	return workingDir, sha, err
 }
 
-func (s *Scanner) getContext(ctx context.Context, context string) (bool, string, error) {
-	isSourceControlURL := util.IsSourceControlURL(context)
-	isURL := util.IsURL(context)
+func (s *Scanner) getContext(scContext string) (isGitURL bool, workingDir string, err error) {
+	isSourceControlURL := util.IsSourceControlURL(scContext)
+	isURL := util.IsURL(scContext)
 
 	// If the context is remote, make the destination folder to clone or untar into.
 	if isSourceControlURL || isURL {
 		if _, err := os.Stat(s.destinationFolder); os.IsNotExist(err) {
 			// Creates the destination folder if necessary, granting full permissions to the owner.
 			if innerErr := os.Mkdir(s.destinationFolder, 0700); innerErr != nil {
-				return false, context, innerErr
+				return false, scContext, innerErr
 			}
 		}
 	}
 
 	if isSourceControlURL {
-		workingDir, err := s.getContextFromGitURL(context)
+		workingDir, err := s.getContextFromGitURL(scContext)
 		return true, workingDir, err
 	} else if isURL {
-		err := s.getContextFromURL(context)
+		err := s.getContextFromURL(scContext)
 		return false, s.destinationFolder, err
 	}
 
-	return false, context, nil
+	return false, scContext, nil
 }
 
 func (s *Scanner) getContextFromGitURL(gitURL string) (contextDir string, err error) {
-	if _, err := exec.LookPath("git"); err != nil {
+	if _, err = exec.LookPath("git"); err != nil {
 		return contextDir, errors.Wrapf(err, "unable to find git")
 	}
 	contextDir, err = Clone(gitURL, s.destinationFolder)

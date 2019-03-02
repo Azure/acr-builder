@@ -164,7 +164,7 @@ func (n *Node) Children() []*Node {
 	return childNodes
 }
 
-func (d *Dag) validateFromAndTo(from string, to string) (*Node, *Node, error) {
+func (d *Dag) validateFromAndTo(from string, to string) (fromNode *Node, toNode *Node, err error) {
 	if from == "" {
 		return nil, nil, errors.New("from cannot be empty")
 	}
@@ -176,7 +176,6 @@ func (d *Dag) validateFromAndTo(from string, to string) (*Node, *Node, error) {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	var fromNode *Node
 	if from == rootNodeID {
 		fromNode = d.Root
 	} else {

@@ -69,7 +69,7 @@ clean: ## Clean up all binaries
 .PHONY: lint
 lint: ## Run all linters
 	@echo "+ $@"
-	gometalinter --config .gometalinter.json ./...
+	golangci-lint run
 
 .PHONY: coverage
 coverage: ## Runs coverage tests and generates a report

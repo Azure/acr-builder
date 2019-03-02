@@ -22,7 +22,7 @@ type Scanner struct {
 }
 
 // NewScanner creates a new Scanner.
-func NewScanner(pm *procmanager.ProcManager, context string, dockerfile string, destination string, buildArgs []string, tags []string) (*Scanner, error) {
+func NewScanner(pm *procmanager.ProcManager, sourceContext string, dockerfile string, destination string, buildArgs []string, tags []string) (*Scanner, error) {
 	// NOTE (bindu): vendor/github.com/docker/docker/pkg/idtools/idtools_unix.go#mkdirAs (L51-60) looks for "/" to determine the root folder.
 	// But if it is a relative path, the code will enter dead-loop. Ensure passing in the absolute path to workaround the bug.
 	var err error
@@ -34,7 +34,7 @@ func NewScanner(pm *procmanager.ProcManager, context string, dockerfile string, 
 
 	return &Scanner{
 		procManager:       pm,
-		context:           context,
+		context:           sourceContext,
 		dockerfile:        dockerfile,
 		destinationFolder: destination,
 		buildArgs:         buildArgs,
