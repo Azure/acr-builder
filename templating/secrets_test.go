@@ -14,7 +14,7 @@ import (
 )
 
 // MockResolveSecret will mock the azure keyvault resolve and return the concatenated Akv and client ID as the value. This is used for testing purposes only.
-func MockResolveSecret(ctx context.Context, azureVaultResourceURL string, secret *graph.Secret, errorChan chan error) {
+func MockResolveSecret(ctx context.Context, secret *graph.Secret, errorChan chan error) {
 	if secret == nil {
 		errorChan <- errors.New("secret cannot be nil")
 		return
@@ -30,7 +30,7 @@ func MockResolveSecret(ctx context.Context, azureVaultResourceURL string, secret
 
 // TestResolveSecrets tests resolving the secrets
 func TestResolveSecrets(t *testing.T) {
-	secretResolver, err := NewSecretResolver(MockResolveSecret, "", time.Minute*5)
+	secretResolver, err := NewSecretResolver(MockResolveSecret, time.Minute*5)
 	if err != nil {
 		t.Errorf("Failed to create secret resolver. Err: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestResolveSecrets(t *testing.T) {
 
 // TestResolveSecretsWithError tests resolving the secrets that should result in errors
 func TestResolveSecretsWithError(t *testing.T) {
-	secretResolver, err := NewSecretResolver(nil, "", time.Minute*5)
+	secretResolver, err := NewSecretResolver(nil, time.Minute*5)
 	if err != nil {
 		t.Errorf("Failed to create secret resolver. Err: %v", err)
 	}
@@ -175,7 +175,7 @@ func TestResolveSecretsWithError(t *testing.T) {
 
 // TestResolveSecretsWithTimeout tests resolving the secrets with timeout should exit with error
 func TestResolveSecretsWithTimeout(t *testing.T) {
-	secretResolver, err := NewSecretResolver(MockResolveSecret, "", time.Duration(0))
+	secretResolver, err := NewSecretResolver(MockResolveSecret, time.Duration(0))
 	if err != nil {
 		t.Errorf("Failed to create secret resolver. Err: %v", err)
 	}

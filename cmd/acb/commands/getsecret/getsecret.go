@@ -9,7 +9,6 @@ import (
 	"log"
 
 	"github.com/Azure/acr-builder/vaults"
-	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/urfave/cli"
 )
 
@@ -31,27 +30,18 @@ var Command = cli.Command{
 					Name:  "client-id",
 					Usage: "the MSI user assigned identity client ID",
 				},
-				cli.StringFlag{
-					Name:  "vault-resource-url",
-					Usage: "the resource URL for the azure key vault to get AAD token",
-				},
 			},
 			Action: func(context *cli.Context) error {
 				var (
-					url                 = context.String("url")
-					clientID            = context.String("client-id")
-					vaultAADResourceURL = context.String("vault-resource-url")
+					url      = context.String("url")
+					clientID = context.String("client-id")
 				)
 
 				if url == "" {
 					return errors.New("secret url is required")
 				}
 
-				if vaultAADResourceURL == "" {
-					vaultAADResourceURL = azure.PublicCloud.KeyVaultEndpoint
-				}
-
-				secretConfig, err := vaults.NewAKVSecretConfig(url, clientID, vaultAADResourceURL)
+				secretConfig, err := vaults.NewAKVSecretConfig(url, clientID)
 				if err != nil {
 					return err
 				}

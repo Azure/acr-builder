@@ -201,7 +201,7 @@ func renderAndResolveSecrets(ctx context.Context, template *Template, templateEn
 		return emptySecrets, nil
 	}
 
-	secretResolver, err := NewSecretResolver(resolveSecretFunc, opts.AzureEnvironmentName, opts.SecretResolveTimeout)
+	secretResolver, err := NewSecretResolver(resolveSecretFunc, opts.SecretResolveTimeout)
 	if err != nil {
 		return emptySecrets, errors.Wrap(err, "failed to create secret resolver")
 	}
