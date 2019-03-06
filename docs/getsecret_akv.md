@@ -11,7 +11,6 @@ USAGE:
 OPTIONS:
    --url value                 the azure keyvault secret URL
    --client-id value           the MSI user assigned identity client ID
-   --vault-resource-url value  the resource URL for the azure key vault to get AAD token
 ```
 
 Build and Push the acr-builder docker image to a docker hub or azure container registry. Here for simplicity , let's us push to docker hub:
