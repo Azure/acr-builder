@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
-	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/pkg/errors"
 )
@@ -31,8 +30,9 @@ func (secretConfig *AKVSecretConfig) GetValue(ctx context.Context) (string, erro
 	}
 
 	if secretConfig.VaultURL == "" ||
-		secretConfig.SecretName == "" {
-		return "", errors.New("missing required properties vaultURL and SecretName")
+		secretConfig.SecretName == "" ||
+		secretConfig.AADResourceURL == "" {
+		return "", errors.New("missing required properties VaultURL, SecretName, and AADResourceURL")
 	}
 
 	keyClient, err := newKeyVaultClient(secretConfig.VaultURL, secretConfig.MSIClientID, secretConfig.AADResourceURL)
@@ -49,7 +49,7 @@ func (secretConfig *AKVSecretConfig) GetValue(ctx context.Context) (string, erro
 }
 
 // NewAKVSecretConfig creates the Azure Key Vault config.
-func NewAKVSecretConfig(vaultURL, msiClientID, vaultAADResourceURL string) (*AKVSecretConfig, error) {
+func NewAKVSecretConfig(vaultURL, msiClientID string) (*AKVSecretConfig, error) {
 	if vaultURL == "" {
 		return nil, errors.New("missing azure keyvault URL")
 	}
@@ -81,8 +81,18 @@ func NewAKVSecretConfig(vaultURL, msiClientID, vaultAADResourceURL string) (*AKV
 		secretVersion = urlSegments[3]
 	}
 
+	vaultHostWithScheme := fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
+	splitStr := strings.SplitAfterN(vaultHostWithScheme, ".", 2)
+	// Ex. https://myacbvault.vault.azure.net -> ["https://myacbvault." "vault.azure.net"]
+	if len(splitStr) != 2 {
+		return nil, fmt.Errorf("Extracted vault resource %s from resource ID %s is invalid", vaultHostWithScheme, vaultURL)
+	}
+
+	// Ex. https://vault.azure.net
+	vaultAADResourceURL := fmt.Sprintf("%s://%s", parsedURL.Scheme, splitStr[1])
+
 	akvConfig := &AKVSecretConfig{
-		VaultURL:       fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host),
+		VaultURL:       vaultHostWithScheme,
 		SecretName:     urlSegments[2],
 		SecretVersion:  secretVersion,
 		MSIClientID:    msiClientID,
@@ -100,13 +110,8 @@ type keyVault struct {
 
 // NewKeyVaultClient creates a new keyvault client
 func newKeyVaultClient(vaultURL, clientID, vaultAADResourceURL string) (*keyVault, error) {
-
-	if vaultAADResourceURL == "" {
-		vaultAADResourceURL = azure.PublicCloud.KeyVaultEndpoint
-	}
-
 	msiKeyConfig := &auth.MSIConfig{
-		Resource: strings.TrimSuffix(vaultAADResourceURL, "/"),
+		Resource: vaultAADResourceURL,
 		ClientID: clientID,
 	}
 

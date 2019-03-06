@@ -6,8 +6,6 @@ package vaults
 import (
 	"strings"
 	"testing"
-
-	"github.com/Azure/go-autorest/autorest/azure"
 )
 
 func TestNewAKVSecretConfig(t *testing.T) {
@@ -90,7 +88,7 @@ func TestNewAKVSecretConfig(t *testing.T) {
 		if test.expectedSecretConfig != nil {
 			clientID = test.expectedSecretConfig.MSIClientID
 		}
-		config, err := NewAKVSecretConfig(test.vaultURL, clientID, azure.PublicCloud.KeyVaultEndpoint)
+		config, err := NewAKVSecretConfig(test.vaultURL, clientID)
 		if test.shouldError && err == nil {
 			t.Fatalf("Expected vaultURL: %s to error but it didn't", test.vaultURL)
 		}

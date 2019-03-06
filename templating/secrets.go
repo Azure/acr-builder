@@ -10,7 +10,6 @@ import (
 
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/vaults"
-	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/pkg/errors"
 )
 
@@ -25,30 +24,21 @@ type secretResolveChannel struct {
 }
 
 // ResolveSecretFunc is a function that resolves the secret to its value and sends through the ResolvedChan of the secret. Any errors during resolve are send through errorChan
-type ResolveSecretFunc func(ctx context.Context, azureVaultResourceURL string, secret *graph.Secret, errorChan chan error)
+type ResolveSecretFunc func(ctx context.Context, secret *graph.Secret, errorChan chan error)
 
 // SecretResolver defines how a secret is resolved.
 type SecretResolver struct {
-	Resolve          ResolveSecretFunc
-	resolveTimeout   time.Duration
-	azureEnvironment azure.Environment
+	Resolve        ResolveSecretFunc
+	resolveTimeout time.Duration
 }
 
 // NewSecretResolver creates a resolver with the given resolve function.
-func NewSecretResolver(resolveFunc ResolveSecretFunc, azureEnvironmentName string, resolveTimeout time.Duration) (*SecretResolver, error) {
+func NewSecretResolver(resolveFunc ResolveSecretFunc, resolveTimeout time.Duration) (*SecretResolver, error) {
 	if resolveFunc == nil {
 		resolveFunc = resolveSecret
 	}
-	if azureEnvironmentName == "" {
-		azureEnvironmentName = azure.PublicCloud.Name
-	}
 
-	azureEnvironment, err := azure.EnvironmentFromName(azureEnvironmentName)
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid azure environment name")
-	}
-
-	return &SecretResolver{Resolve: resolveFunc, azureEnvironment: azureEnvironment, resolveTimeout: resolveTimeout}, nil
+	return &SecretResolver{Resolve: resolveFunc, resolveTimeout: resolveTimeout}, nil
 }
 
 // ResolveSecrets returns a list of resolved secrets and returns error if there is any failure in resolving a secret.
@@ -83,7 +73,7 @@ func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secret
 			ctxWithTimeout, cancel := context.WithTimeout(ctx, secretResolver.resolveTimeout)
 			defer cancel()
 			secretChannels = append(secretChannels, secretResolveChannel{secret.ResolvedChan, ctxWithTimeout.Done})
-			go secretResolver.Resolve(ctxWithTimeout, secretResolver.azureEnvironment.KeyVaultEndpoint, secret, errorChan)
+			go secretResolver.Resolve(ctxWithTimeout, secret, errorChan)
 		}
 
 		// Block until either:
@@ -108,14 +98,14 @@ func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secret
 	return resolvedSecrets, nil
 }
 
-func resolveSecret(ctx context.Context, azureVaultResourceURL string, secret *graph.Secret, errorChan chan error) {
+func resolveSecret(ctx context.Context, secret *graph.Secret, errorChan chan error) {
 	if secret == nil {
 		errorChan <- errors.New("secret cannot be nil")
 		return
 	}
 
 	if secret.IsAkvSecret() {
-		secretConfig, err := vaults.NewAKVSecretConfig(secret.Akv, secret.MsiClientID, azureVaultResourceURL)
+		secretConfig, err := vaults.NewAKVSecretConfig(secret.Akv, secret.MsiClientID)
 		if err != nil {
 			errorChan <- errors.Wrap(err, "failed to create azure keyvault secret config")
 			return
