@@ -7,11 +7,19 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/pkg/errors"
+)
+
+const (
+	// environment variable to override the default msi endpoint
+	envAcrMsiEndpoint = "ACR_MSI_ENDPOINT"
 )
 
 // AKVSecretConfig provides the options to get secret from Azure keyvault using MSI.
@@ -102,20 +110,20 @@ func NewAKVSecretConfig(vaultURL, msiClientID string) (*AKVSecretConfig, error) 
 	return akvConfig, nil
 }
 
-// KeyVault holds the information for a keyvault instance
+// keyVault holds the information for a keyvault instance
 type keyVault struct {
 	client   *keyvault.BaseClient
 	vaultURL string
 }
 
-// NewKeyVaultClient creates a new keyvault client
+// newKeyVaultClient creates a new keyvault client
 func newKeyVaultClient(vaultURL, clientID, vaultAADResourceURL string) (*keyVault, error) {
 	msiKeyConfig := &auth.MSIConfig{
 		Resource: vaultAADResourceURL,
 		ClientID: clientID,
 	}
 
-	authorizer, err := msiKeyConfig.Authorizer()
+	authorizer, err := newAuthorizer(msiKeyConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +139,7 @@ func newKeyVaultClient(vaultURL, clientID, vaultAADResourceURL string) (*keyVaul
 	return k, nil
 }
 
-// GetSecret retrieves a secret from keyvault
+// getSecret retrieves a secret from keyvault
 func (k *keyVault) getSecret(ctx context.Context, secretName, secretVersion string) (string, error) {
 	secretBundle, err := k.client.GetSecret(ctx, k.vaultURL, secretName, secretVersion)
 	if err != nil {
@@ -139,4 +147,32 @@ func (k *keyVault) getSecret(ctx context.Context, secretName, secretVersion stri
 	}
 
 	return *secretBundle.Value, nil
+}
+
+// newAuthorizer creates the authorizer for kev vault client.
+// it is based on github.com/Azure/acr-builder/vendor/github.com/Azure/go-autorest/autorest/azure/auth/auth.go and allows overriding the msi endpont using environment variable
+func newAuthorizer(mc *auth.MSIConfig) (autorest.Authorizer, error) {
+	// default to the well known endpoint for getting MSI authentications tokens
+	msiEndpoint := "http://169.254.169.254/metadata/identity/oauth2/token"
+
+	// override the default from environment variable
+	if acrMSIEndpoint := os.Getenv(envAcrMsiEndpoint); acrMSIEndpoint != "" {
+		msiEndpoint = acrMSIEndpoint
+	}
+
+	var spToken *adal.ServicePrincipalToken
+	var err error
+	if mc.ClientID == "" {
+		spToken, err = adal.NewServicePrincipalTokenFromMSI(msiEndpoint, mc.Resource)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get oauth token from MSI: %v", err)
+		}
+	} else {
+		spToken, err = adal.NewServicePrincipalTokenFromMSIWithUserAssignedID(msiEndpoint, mc.Resource, mc.ClientID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get oauth token from MSI for user assigned identity: %v", err)
+		}
+	}
+
+	return autorest.NewBearerAuthorizer(spToken), nil
 }
