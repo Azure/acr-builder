@@ -85,7 +85,7 @@ func NewAKVSecretConfig(vaultURL, msiClientID string) (*AKVSecretConfig, error) 
 	splitStr := strings.SplitAfterN(vaultHostWithScheme, ".", 2)
 	// Ex. https://myacbvault.vault.azure.net -> ["https://myacbvault." "vault.azure.net"]
 	if len(splitStr) != 2 {
-		return nil, fmt.Errorf("Extracted vault resource %s from resource ID %s is invalid", vaultHostWithScheme, vaultURL)
+		return nil, fmt.Errorf("extracted vault resource %s from resource ID %s is invalid", vaultHostWithScheme, vaultURL)
 	}
 
 	// Ex. https://vault.azure.net

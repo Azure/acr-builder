@@ -48,36 +48,60 @@ func TestNewAKVSecretConfig(t *testing.T) {
 			"https://test.vault.azure.net/secrets/mysecret/mysecretversion",
 			false,
 			&AKVSecretConfig{
-				VaultURL:      "https://test.vault.azure.net",
-				SecretName:    "mysecret",
-				SecretVersion: "mysecretversion",
+				VaultURL:       "https://test.vault.azure.net",
+				SecretName:     "mysecret",
+				SecretVersion:  "mysecretversion",
+				AADResourceURL: "https://vault.azure.net",
 			},
 		},
 		{
 			"https://test.vault.azure.net/secrets/mysecret/mysecretversion/",
 			false,
 			&AKVSecretConfig{
-				VaultURL:      "https://test.vault.azure.net",
-				SecretName:    "mysecret",
-				SecretVersion: "mysecretversion",
-				MSIClientID:   "myclientID",
+				VaultURL:       "https://test.vault.azure.net",
+				SecretName:     "mysecret",
+				SecretVersion:  "mysecretversion",
+				MSIClientID:    "myclientID",
+				AADResourceURL: "https://vault.azure.net",
 			},
 		},
 		{
 			"https://test.vault.azure.net/secrets/mysecret",
 			false,
 			&AKVSecretConfig{
-				VaultURL:   "https://test.vault.azure.net",
-				SecretName: "mysecret",
+				VaultURL:       "https://test.vault.azure.net",
+				SecretName:     "mysecret",
+				AADResourceURL: "https://vault.azure.net",
 			},
 		},
 		{
 			"https://test.vault.azure.net/secrets/mysecret/",
 			false,
 			&AKVSecretConfig{
-				VaultURL:    "https://test.vault.azure.net",
-				SecretName:  "mysecret",
-				MSIClientID: "myclientId",
+				VaultURL:       "https://test.vault.azure.net",
+				SecretName:     "mysecret",
+				MSIClientID:    "myclientId",
+				AADResourceURL: "https://vault.azure.net",
+			},
+		},
+		{
+			"https://test.vault-int.azure-int.net/secrets/mysecret/",
+			false,
+			&AKVSecretConfig{
+				VaultURL:       "https://test.vault-int.azure-int.net",
+				SecretName:     "mysecret",
+				MSIClientID:    "myclientId",
+				AADResourceURL: "https://vault-int.azure-int.net",
+			},
+		},
+		{
+			"https://test.vault.azure.cn/secrets/mysecret/",
+			false,
+			&AKVSecretConfig{
+				VaultURL:       "https://test.vault.azure.cn",
+				SecretName:     "mysecret",
+				MSIClientID:    "myclientId",
+				AADResourceURL: "https://vault.azure.cn",
 			},
 		},
 	}
@@ -100,7 +124,8 @@ func TestNewAKVSecretConfig(t *testing.T) {
 			if !strings.EqualFold(config.VaultURL, test.expectedSecretConfig.VaultURL) ||
 				!strings.EqualFold(config.SecretName, test.expectedSecretConfig.SecretName) ||
 				!strings.EqualFold(config.SecretVersion, test.expectedSecretConfig.SecretVersion) ||
-				!strings.EqualFold(config.MSIClientID, test.expectedSecretConfig.MSIClientID) {
+				!strings.EqualFold(config.MSIClientID, test.expectedSecretConfig.MSIClientID) ||
+				!strings.EqualFold(config.AADResourceURL, test.expectedSecretConfig.AADResourceURL) {
 				t.Fatalf("The config generated from vaultURL: %s doesn't match with expected, Generated: %v, Expected: %v", test.vaultURL, config, test.expectedSecretConfig)
 			}
 		}
