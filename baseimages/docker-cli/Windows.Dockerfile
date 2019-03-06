@@ -70,18 +70,11 @@ RUN $newPath = ('{0}\bin;C:\go\bin;{1}' -f $env:GOPATH, $env:PATH); \
 # 1. The go lang for 1803 tag is not available.
 # 2. The image pulls 2.11.1 version of MinGit which has an issue with git submodules command. https://github.com/git-for-windows/git/issues/1007#issuecomment-384281260
 
-ENV GOLANG_VERSION 1.10.3
+ENV GOLANG_VERSION 1.12
 
 RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSION); \
 	Write-Host ('Downloading {0} ...' -f $url); \
 	Invoke-WebRequest -Uri $url -OutFile 'go.zip'; \
-	\
-	$sha256 = 'a3f19d4fc0f4b45836b349503e347e64e31ab830dedac2fc9c390836d4418edb'; \
-	Write-Host ('Verifying sha256 ({0}) ...' -f $sha256); \
-	if ((Get-FileHash go.zip -Algorithm sha256).Hash -ne $sha256) { \
-		Write-Host 'FAILED!'; \
-		exit 1; \
-	}; \
 	\
 	Write-Host 'Expanding ...'; \
 	Expand-Archive go.zip -DestinationPath C:\; \
