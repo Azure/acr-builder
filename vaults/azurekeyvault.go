@@ -149,7 +149,7 @@ func (k *keyVault) getSecret(ctx context.Context, secretName, secretVersion stri
 	return *secretBundle.Value, nil
 }
 
-// newAuthorizer creates the authorizer for kev vault client.
+// newAuthorizer creates the authorizer for keyvault client.
 // it is based on github.com/Azure/acr-builder/vendor/github.com/Azure/go-autorest/autorest/azure/auth/auth.go and allows overriding the msi endpont using environment variable
 func newAuthorizer(mc *auth.MSIConfig) (autorest.Authorizer, error) {
 	// default to the well known endpoint for getting MSI authentications tokens
