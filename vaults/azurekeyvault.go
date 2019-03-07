@@ -19,7 +19,7 @@ import (
 
 const (
 	// environment variable to override the default msi endpoint
-	envAcrMsiEndpoint = "ACR_MSI_ENDPOINT"
+	envMsiEndpoint = "MSI_ENDPOINT"
 )
 
 // AKVSecretConfig provides the options to get secret from Azure keyvault using MSI.
@@ -156,8 +156,8 @@ func newAuthorizer(mc *auth.MSIConfig) (autorest.Authorizer, error) {
 	msiEndpoint := "http://169.254.169.254/metadata/identity/oauth2/token"
 
 	// override the default from environment variable
-	if acrMSIEndpoint := os.Getenv(envAcrMsiEndpoint); acrMSIEndpoint != "" {
-		msiEndpoint = acrMSIEndpoint
+	if endpoint := os.Getenv(envMsiEndpoint); endpoint != "" {
+		msiEndpoint = endpoint
 	}
 
 	var spToken *adal.ServicePrincipalToken
