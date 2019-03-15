@@ -63,11 +63,11 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		for _, cred := range task.Credentials {
 			loginCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
-			log.Printf("Logging in to registry: %s\n", cred.RegistryName)
-			if err := b.dockerLoginWithRetries(loginCtx, cred.RegistryName, cred.RegistryUsername, cred.RegistryPassword, 0); err != nil {
+			log.Printf("Logging in to registry: %s\n", cred.Name)
+			if err := b.dockerLoginWithRetries(loginCtx, cred.Name, cred.Username, cred.Password, 0); err != nil {
 				return err
 			}
-			log.Printf("Successfully logged into %s\n", cred.RegistryName)
+			log.Printf("Successfully logged into %s\n", cred.Name)
 		}
 	}
 

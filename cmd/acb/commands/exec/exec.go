@@ -203,11 +203,11 @@ var Command = cli.Command{
 			log.Println(rendered)
 		}
 
-		var credentials []*graph.Credential
+		var credentials []*graph.RegistryCredential
 		// Add all creds provided by the user in the --credential flag
 		for _, credString := range creds {
-			var cred *graph.Credential
-			cred, err = graph.CreateCredentialFromString(credString)
+			var cred *graph.RegistryCredential
+			cred, err = graph.CreateRegistryCredentialFromString(credString)
 			if err != nil {
 				return err
 			}

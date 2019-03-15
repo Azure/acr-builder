@@ -44,13 +44,13 @@ type Task struct {
 	WorkingDirectory string     `yaml:"workingDirectory,omitempty"`
 	Version          string     `yaml:"version,omitempty"`
 	RegistryName     string
-	Credentials      []*Credential
+	Credentials      []*RegistryCredential
 	Dag              *Dag
 	IsBuildTask      bool // Used to skip the default network creation for build.
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(data string, defaultWorkDir string, network string, envs []string, creds []*Credential) (*Task, error) {
+func UnmarshalTaskFromString(data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential) (*Task, error) {
 	t, err := NewTaskFromString(data)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
@@ -78,7 +78,7 @@ func UnmarshalTaskFromString(data string, defaultWorkDir string, network string,
 }
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
-func UnmarshalTaskFromFile(file string, creds []*Credential) (*Task, error) {
+func UnmarshalTaskFromFile(file string, creds []*RegistryCredential) (*Task, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -134,7 +134,12 @@ func NewTask(
 	steps []*Step,
 	secrets []*Secret,
 	registry string,
+<<<<<<< HEAD
 	credentials []*Credential,
+=======
+	credentials []*RegistryCredential,
+	totalTimeout int,
+>>>>>>> setup registry credential to support vault/msi (part-1)
 	isBuildTask bool) (*Task, error) {
 	t := &Task{
 		Steps:        steps,

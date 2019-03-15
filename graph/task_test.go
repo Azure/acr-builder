@@ -9,19 +9,20 @@ func TestUsingRegistryCreds(t *testing.T) {
 		registry string
 		user     string
 		pw       string
+		cred     string
 		expected bool
 	}{
-		{"foo.azurecr.io", "user", "pw", true},
-		{"foo.azurecr.io", "user", "", false},
-		{"foo.azurecr.io", "", "pw", false},
-		{"", "user", "pw", false},
-		{"", "user", "", false},
-		{"", "", "pw", false},
-		{"", "", "", false},
+		{"foo.azurecr.io", "user", "pw", `{"type": "opaque", "registry": "foo.azurecr.io", "username": "user", "password": "pw", "identity": ""}`, true},
+		{"foo.azurecr.io", "user", "", `{"type": "opaque", "registry": "foo.azurecr.io", "username": "user", "password": "", "identity": ""}`, false},
+		{"foo.azurecr.io", "", "pw", `{"type": "opaque", "registry": "foo.azurecr.io", "username": "", "password": "pw", "identity": ""}`, false},
+		{"", "user", "pw", `{"type": "opaque", "registry": "", "username": "user", "password": "pw", "identity": ""}`, false},
+		{"", "user", "", `{"type": "opaque", "registry": "", "username": "user", "password": "pw", "identity": ""}`, false},
+		{"", "", "pw", `{"type": "opaque", "registry": "", "username": "", "password": "pw", "identity": ""}`, false},
+		{"", "", "", `{"type": "opaque", "registry": "", "username": "", "password": "", "identity": ""}`, false},
 	}
 
 	for _, test := range tests {
-		cred, err := NewCredential(test.registry, test.user, test.pw)
+		cred, err := CreateRegistryCredentialFromString(test.cred)
 		if !test.expected {
 			if err == nil {
 				t.Fatalf("Expected to error out, but did not: %v", test)
@@ -35,7 +36,7 @@ func TestUsingRegistryCreds(t *testing.T) {
 
 		task := &Task{
 			RegistryName: test.registry,
-			Credentials:  []*Credential{cred},
+			Credentials:  []*RegistryCredential{cred},
 		}
 		actual := task.UsingRegistryCreds()
 		if test.expected != actual {
@@ -46,6 +47,7 @@ func TestUsingRegistryCreds(t *testing.T) {
 
 func TestNewTask(t *testing.T) {
 	tests := []struct {
+<<<<<<< HEAD
 		steps           []*Step
 		secrets         []*Secret
 		registry        string
@@ -54,13 +56,26 @@ func TestNewTask(t *testing.T) {
 		okCredentials   bool
 		isBuildTask     bool
 		expectedVersion string
+=======
+		steps                []*Step
+		secrets              []*Secret
+		registry             string
+		username             string
+		password             string
+		credentialString     string
+		okCredentials        bool
+		isBuildTask          bool
+		totalTimeout         int
+		expectedTotalTimeout int
+		expectedVersion      string
+>>>>>>> setup registry credential to support vault/msi (part-1)
 	}{
 		{nil, nil, "registry", "username", "password", true, true, currentTaskVersion},
 		{[]*Step{}, []*Secret{}, "", "", "", false, false, currentTaskVersion},
 	}
 
 	for _, test := range tests {
-		cred, err := NewCredential(test.registry, test.username, test.password)
+		cred, err := CreateRegistryCredentialFromString(test.credentialString)
 
 		if !test.okCredentials {
 			if err == nil {
@@ -68,7 +83,11 @@ func TestNewTask(t *testing.T) {
 			}
 		}
 
+<<<<<<< HEAD
 		task, err := NewTask(test.steps, test.secrets, test.registry, []*Credential{cred}, test.isBuildTask)
+=======
+		task, err := NewTask(test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.totalTimeout, test.isBuildTask)
+>>>>>>> setup registry credential to support vault/msi (part-1)
 		if err != nil {
 			t.Fatalf("Unexpected err while creating task: %v", err)
 		}
@@ -88,11 +107,11 @@ func TestNewTask(t *testing.T) {
 		if task.RegistryName != test.registry {
 			t.Fatalf("Expected %v as the registry but got %v", test.registry, task.RegistryName)
 		}
-		if test.username != "" && task.Credentials[0].RegistryUsername != test.username {
-			t.Fatalf("Expected %v as the registry username but got %v", test.username, task.Credentials[0].RegistryUsername)
+		if test.username != "" && task.Credentials[0].Username != test.username {
+			t.Fatalf("Expected %v as the registry username but got %v", test.username, task.Credentials[0].Username)
 		}
-		if test.password != "" && task.Credentials[0].RegistryPassword != test.password {
-			t.Fatalf("Expected %v as the registry password but got %v", test.password, task.Credentials[0].RegistryPassword)
+		if test.password != "" && task.Credentials[0].Password != test.password {
+			t.Fatalf("Expected %v as the registry password but got %v", test.password, task.Credentials[0].Password)
 		}
 		if task.IsBuildTask != test.isBuildTask {
 			t.Fatalf("Expected %v as build task but got %v", test.isBuildTask, task.IsBuildTask)

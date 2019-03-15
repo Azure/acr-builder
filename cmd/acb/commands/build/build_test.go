@@ -31,7 +31,7 @@ func TestCreateBuildTask(t *testing.T) {
 		}
 		debug = false
 		push  = true
-		creds = []string{"foo.azurecr.io;user;pw"}
+		creds = []string{`{"type": "oPAque", "registry": "foo.azurecr.io", "username": "user", "password": "pw", "identity": ""}`}
 	)
 
 	task, err := createBuildTask(
@@ -60,10 +60,10 @@ func TestCreateBuildTask(t *testing.T) {
 	}
 
 	taskCreds := task.Credentials[0]
-	expectedCreds, _ := graph.CreateCredentialFromString(creds[0])
-	if taskCreds.RegistryName != expectedCreds.RegistryName ||
-		taskCreds.RegistryUsername != expectedCreds.RegistryUsername ||
-		taskCreds.RegistryPassword != expectedCreds.RegistryPassword {
+	expectedCreds, _ := graph.CreateRegistryCredentialFromString(creds[0])
+	if taskCreds.Name != expectedCreds.Name ||
+		taskCreds.Username != expectedCreds.Username ||
+		taskCreds.Password != expectedCreds.Password {
 		t.Fatalf("expected %v Creds, got %v", expectedCreds, taskCreds)
 	}
 

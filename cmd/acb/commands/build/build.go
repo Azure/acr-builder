@@ -334,9 +334,9 @@ func createBuildTask(
 		steps = append(steps, pushStep)
 	}
 
-	var credentials []*graph.Credential
+	var credentials []*graph.RegistryCredential
 	for _, credString := range creds {
-		cred, err := graph.CreateCredentialFromString(credString)
+		cred, err := graph.CreateRegistryCredentialFromString(credString)
 		if err != nil {
 			return nil, err
 		}
