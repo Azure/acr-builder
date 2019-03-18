@@ -236,7 +236,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 			step.Build = replacePositionalContext(step.Build, ".")
 		}
 		step.UpdateBuildStepWithDefaults()
-		args = b.getDockerRunArgs(volName, workingDirectory, step, nil, "", "docker build "+step.Build)
+		args = b.getDockerRunArgs(volName, workingDirectory, step, step.Envs, "", "docker build "+step.Build)
 	} else if step.IsPushStep() {
 		timeout := time.Duration(step.Timeout) * time.Second
 		pushCtx, cancel := context.WithTimeout(ctx, timeout)
