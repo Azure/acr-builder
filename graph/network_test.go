@@ -18,6 +18,7 @@ func TestNetwork(t *testing.T) {
 		ipv6               bool
 		skipCreation       bool
 		isDefault          bool
+		shouldError        bool
 		expectedCreateArgs []string
 		expectedDeleteArgs []string
 	}{
@@ -27,12 +28,14 @@ func TestNetwork(t *testing.T) {
 			true,
 			false,
 			false,
+			false,
 			[]string{"docker", "network", "create", "foo", "--ipv6"},
 			[]string{"docker", "network", "rm", "foo"},
 		},
 		{
 			"bar",
 			"nat",
+			false,
 			false,
 			false,
 			false,
@@ -45,14 +48,35 @@ func TestNetwork(t *testing.T) {
 			false,
 			true,
 			true,
+			false,
 			[]string{"docker", "network", "create", "foo"},
 			[]string{"docker", "network", "rm", "foo"},
+		},
+		{
+			"",
+			"",
+			false,
+			true,
+			true,
+			true, // Test should fail since there's no name.
+			[]string{"docker", "network", "create", ""},
+			[]string{"docker", "network", "rm", ""},
 		},
 	}
 	procManager := procmanager.NewProcManager(true)
 
 	for _, test := range tests {
-		network := NewNetwork(test.name, test.ipv6, test.driver, test.skipCreation, test.isDefault)
+		network, err := NewNetwork(test.name, test.ipv6, test.driver, test.skipCreation, test.isDefault)
+		if err != nil && test.shouldError {
+			continue
+		}
+		if err == nil && test.shouldError {
+			t.Fatalf("Expected test to error but it didn't")
+		}
+		if err != nil && !test.shouldError {
+			t.Fatalf("Test errored when it shouldn't have: %v", err)
+		}
+
 		if network.Name != test.name {
 			t.Fatalf("Expected network name: %s but got %s", test.name, network.Name)
 		}

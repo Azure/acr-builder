@@ -8,11 +8,16 @@ import (
 	"context"
 
 	"github.com/Azure/acr-builder/pkg/procmanager"
+	"github.com/pkg/errors"
 )
 
 const (
 	// DefaultNetworkName is the default network name.
 	DefaultNetworkName = "acb_default_network"
+)
+
+var (
+	errInvalidName = errors.New("name must be specified")
 )
 
 // Network defines a Docker network.
@@ -25,14 +30,17 @@ type Network struct {
 }
 
 // NewNetwork creates a new network.
-func NewNetwork(name string, ipv6 bool, driver string, skipCreation bool, isDefault bool) *Network {
+func NewNetwork(name string, ipv6 bool, driver string, skipCreation bool, isDefault bool) (*Network, error) {
+	if name == "" {
+		return nil, errInvalidName
+	}
 	return &Network{
 		Name:         name,
 		Ipv6:         ipv6,
 		Driver:       driver,
 		SkipCreation: skipCreation,
 		IsDefault:    isDefault,
-	}
+	}, nil
 }
 
 // Create creates a new Docker network.
