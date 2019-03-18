@@ -69,7 +69,7 @@ func (s *Scanner) getContext(scContext string) (isGitURL bool, workingDir string
 
 func (s *Scanner) getContextFromGitURL(gitURL string) (contextDir string, err error) {
 	if _, err = exec.LookPath("git"); err != nil {
-		return contextDir, errors.Wrapf(err, "unable to find git")
+		return contextDir, errors.Wrap(err, "unable to find git")
 	}
 	contextDir, err = Clone(gitURL, s.destinationFolder)
 	if err != nil {
@@ -102,7 +102,7 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 
 	magic, err = buf.Peek(archiveHeaderSize)
 	if err != nil && err != io.EOF {
-		return fmt.Errorf("failed to peek context header from STDIN: %v", err)
+		return errors.Wrap(err, "failed to peek context header")
 	}
 
 	if dockerbuild.IsArchive(magic) {
