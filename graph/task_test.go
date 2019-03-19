@@ -55,9 +55,10 @@ func TestNewTask(t *testing.T) {
 		isBuildTask          bool
 		totalTimeout         int
 		expectedTotalTimeout int
+		expectedVersion      string
 	}{
-		{nil, nil, "registry", "username", "password", true, true, 100, 600},
-		{[]*Step{}, []*Secret{}, "", "", "", false, false, 720, 720},
+		{nil, nil, "registry", "username", "password", true, true, 100, 600, currentTaskVersion},
+		{[]*Step{}, []*Secret{}, "", "", "", false, false, 720, 720, currentTaskVersion},
 	}
 
 	for _, test := range tests {
@@ -72,6 +73,9 @@ func TestNewTask(t *testing.T) {
 		task, err := NewTask(test.steps, test.secrets, test.registry, []*Credential{cred}, test.totalTimeout, test.isBuildTask)
 		if err != nil {
 			t.Fatalf("Unexpected err while creating task: %v", err)
+		}
+		if task.Version != test.expectedVersion {
+			t.Fatalf("expected version: %s but got %s", test.expectedVersion, task.Version)
 		}
 		actualNumSteps := len(task.Steps)
 		expectedNumSteps := len(test.steps)
@@ -257,6 +261,27 @@ steps:
 					t.Errorf("Expected secrets %v and %v be equal", test.secrets[i], task.Secrets[i])
 				}
 			}
+		}
+	}
+}
+
+func TestValidateTaskVersion(t *testing.T) {
+	tests := []struct {
+		version     string
+		shouldError bool
+	}{
+		{"", true},
+		{"v1.0.0-alpha", true},
+		{"1.0-preview-1", false},
+		{currentTaskVersion, false},
+	}
+
+	for _, test := range tests {
+		err := validateTaskVersion(test.version)
+		if test.shouldError && err == nil {
+			t.Error("expected test to error")
+		} else if !test.shouldError && err != nil {
+			t.Errorf("expected test to pass, err: %v", err)
 		}
 	}
 }

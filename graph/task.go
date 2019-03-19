@@ -24,6 +24,16 @@ const (
 
 	// The default step retry delay is 5 seconds.
 	defaultStepRetryDelayInSeconds = 5
+
+	// currentTaskVersion is the most recent Task version.
+	currentTaskVersion = "v1.0.0"
+)
+
+var (
+	validTaskVersions = map[string]bool{
+		"1.0-preview-1":    true,
+		currentTaskVersion: true,
+	}
 )
 
 // Task represents a task execution.
@@ -149,6 +159,14 @@ func (t *Task) initialize() error {
 	newDefaultNetworkName := DefaultNetworkName
 	addDefaultNetworkToSteps := false
 
+	if t.Version == "" {
+		t.Version = currentTaskVersion
+	}
+
+	if err := validateTaskVersion(t.Version); err != nil {
+		return err
+	}
+
 	// Reverse iterate the list to get the default network
 	for i := len(t.Networks) - 1; i >= 0; i-- {
 		network := t.Networks[i]
@@ -202,7 +220,7 @@ func (t *Task) initialize() error {
 
 		newEnvs, err := mergeEnvs(s.Envs, t.Envs)
 		if err != nil {
-			return fmt.Errorf("bad format of environment variables, err: %v", err)
+			return errors.Wrap(err, "invalid environment variable format")
 		}
 		s.Envs = newEnvs
 
@@ -305,4 +323,13 @@ func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 	}
 
 	return stepEnvs, nil
+}
+
+// validateTaskVersion returns an error if the version specified within a Task is invalid.
+func validateTaskVersion(version string) error {
+	vLower := strings.ToLower(version)
+	if _, ok := validTaskVersions[vLower]; !ok {
+		return fmt.Errorf("invalid version specified: %s", version)
+	}
+	return nil
 }
