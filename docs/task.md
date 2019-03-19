@@ -1,17 +1,21 @@
 # Task Schema
 
+## Current Version
+
+`v1.0.0`
+
 ## Task Properties
 
-| Property | Type | Required | Nullable |
-|----------|------|----------|----------|
-| [steps](#steps) | `step[]` | Required  | No |
-| [stepTimeout](#steptimeout) | `int` | Optional  | Yes |
-| [totalTimeout](#totaltimeout) | `int` | Optional | Yes |
-| [secrets](#secrets) | `secret[]` | Optional | Yes |
-| [networks](#networks) | `network[]` | Optional | Yes |
-| [envs](#envs) | `string[]` | Optional | Yes |
-| [workingDirectory](#workingdirectory) | `string` | Optional | Yes |
-| [version](#version) | `string` | Optional | Yes |
+| Property | Type | Required | Default Value |
+|----------|------|----------|---------------|
+| [steps](#steps) | `step[]` | Required | N/A |
+| [stepTimeout](#steptimeout) | `int` | Optional | 600 |
+| [totalTimeout](#totaltimeout) | `int` | Optional | 3600 |
+| [secrets](#secrets) | `secret[]` | Optional | N/A |
+| [networks](#networks) | `network[]` | Optional | N/A |
+| [envs](#envs) | `string[]` | Optional | N/A |
+| [workingDirectory](#workingdirectory) | `string` | Optional | `$HOME` |
+| [version](#version) | `string` | Optional | Yes | v1.0.0 |
 
 ## steps
 
@@ -73,32 +77,32 @@ The version of the [task](#task). If unspecified, defaults to the latest version
 
 An object with the following properties:
 
-| Property | Type | Required | Nullable |
-|----------|------|----------|----------|
-| [id](#id) | `string` | Optional | Yes |
-| [cmd](#cmd) | `string` | Optional | Yes |
-| [build](#build) | `string` | Optional | Yes |
-| [workingDirectory](workingdirectory) | `string` | Optional | Yes |
-| [entryPoint](#entrypoint) | `string` | Optional | Yes |
-| [user](#user) | `string` | Optional | Yes |
-| [network](#network) | `string` | Optional | Yes |
-| [isolation](#isolation) | `string` | Optional | Yes |
-| [push](#push) | `string[]` | Optional | Yes |
-| [env](#env) | `string[]` | Optional | Yes |
-| [expose](#expose) | `string[]` | Optional | Yes |
-| [ports](#ports) | `string[]` | Optional | Yes |
-| [when](#when) | `string[]` | Optional | Yes |
-| [timeout](#timeout) | `int` | Optional | Yes |
-| [startDelay](#startdelay) | `int` | Optional | Yes |
-| [retryDelay](#retrydelay) | `int` | Optional | Yes |
-| [retries](#retries) | `int` | Optional | Yes |
-| [repeat](#repeat) | `int` | Optional | Yes |
-| [keep](#keep) | `bool` | Optional | Yes |
-| [detach](#detach) | `bool` | Optional | Yes |
-| [privileged](#privileged) | `bool` | Optional | Yes |
-| [ignoreErrors](#ignoreerrors) | `bool` | Optional | Yes |
-| [disableWorkingDirectoryOverride](#disableworkingdirectoryoverride) | `bool` | Optional | Yes |
-| [pull](#pull) | `bool` | Optional | Yes |
+| Property | Type | Required | Default Value |
+|----------|------|----------|---------------|
+| [id](#id) | `string` | Optional | `acb_step_%d`, where `%d` is the 0-based index of the step top-down in the yaml |
+| [cmd](#cmd) | `string` | Optional | N/A |
+| [build](#build) | `string` | Optional | N/A |
+| [workingDirectory](workingdirectory) | `string` | Optional | `$HOME` |
+| [entryPoint](#entrypoint) | `string` | Optional | N/A |
+| [user](#user) | `string` | Optional | N/A |
+| [network](#network) | `string` | Optional | N/A |
+| [isolation](#isolation) | `string` | Optional | `default` |
+| [push](#push) | `string[]` | Optional | N/A |
+| [env](#env) | `string[]` | Optional | N/A |
+| [expose](#expose) | `string[]` | Optional | N/A |
+| [ports](#ports) | `string[]` | Optional | N/A |
+| [when](#when) | `string[]` | Optional | N/A |
+| [timeout](#timeout) | `int` | Optional | 600 |
+| [startDelay](#startdelay) | `int` | Optional | 0 |
+| [retryDelay](#retrydelay) | `int` | Optional | 0 |
+| [retries](#retries) | `int` | Optional | 0 |
+| [repeat](#repeat) | `int` | Optional | 0 |
+| [keep](#keep) | `bool` | Optional | false |
+| [detach](#detach) | `bool` | Optional | false |
+| [privileged](#privileged) | `bool` | Optional | false |
+| [ignoreErrors](#ignoreerrors) | `bool` | Optional | false |
+| [disableWorkingDirectoryOverride](#disableworkingdirectoryoverride) | `bool` | Optional | false |
+| [pull](#pull) | `bool` | Optional | false |
 
 * A [step](#step) must define either a [cmd](#cmd), [build](#build), or a [push](#push) property. It may not define more than one of the aforementioned properties.
 
@@ -260,7 +264,7 @@ Defines the number of seconds to wait before executing the container.
 
 #### retries
 
-The number of retries to attempt if a container fails its execution.
+The number of retries to attempt if a container fails its execution. A retry is only attempted if a container's exit code is non-zero.
 
 * Optional
 * Type: `int`
@@ -322,11 +326,11 @@ Forces a pull of the container before executing it to prevent any caching behavi
 
 An object with the following properties:
 
-| Property | Type | Required | Nullable |
-|----------|------|----------|----------|
-| `id` | `string` | Optional | Yes |
-| [akv](#akv) | `string` | Optional | Yes |
-| [clientID](#clientid) | `string` | Optional | Yes |
+| Property | Type | Required | Default Value |
+|----------|------|----------|---------------|
+| `id` | `string` | Required | N/A |
+| [akv](#akv) | `string` | Optional | N/A |
+| [clientID](#clientid) | `string` | Optional | N/A |
 
 #### akv
 
@@ -346,13 +350,13 @@ The MSI user assigned identity client ID.
 
 An object with the following properties:
 
-| Property | Type | Required | Nullable |
-|----------|------|----------|----------|
-| [name](#name) | `string` | Required | Yes |
-| [driver](#driver) | `string` | Optional | Yes |
-| [ipv6](#ipv6) | `bool` | Optional | Yes |
-| [skipCreation](#skipcreation) | `bool` | Optional | Yes |
-| [isDefault](#isdefault) | `bool` | Optional | Yes |
+| Property | Type | Required | Default Value |
+|----------|------|----------|---------------|
+| [name](#name) | `string` | Required | N/A |
+| [driver](#driver) | `string` | Optional | N/A |
+| [ipv6](#ipv6) | `bool` | Optional | false |
+| [skipCreation](#skipcreation) | `bool` | Optional | false |
+| [isDefault](#isdefault) | `bool` | Optional | false |
 
 #### name
 
