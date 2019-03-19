@@ -9,6 +9,7 @@ import (
 
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/pkg/procmanager"
+	"github.com/pkg/errors"
 )
 
 // Scanner scans Dockerfiles.
@@ -46,7 +47,7 @@ func NewScanner(pm *procmanager.ProcManager, sourceContext string, dockerfile st
 func (s *Scanner) Scan(ctx context.Context) (deps []*image.Dependencies, err error) {
 	workingDir, sha, err := s.ObtainSourceCode(ctx, s.context)
 	if err != nil {
-		return deps, err
+		return deps, errors.Wrap(err, "failed to download source code")
 	}
 
 	deps, err = s.ScanForDependencies(s.context, workingDir, s.dockerfile, s.buildArgs, s.tags)
