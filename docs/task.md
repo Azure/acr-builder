@@ -4,7 +4,7 @@
 
 `v1.0.0`
 
-## Task Properties
+## Task
 
 | Property | Type | Required | Default Value |
 |----------|------|----------|---------------|
@@ -13,7 +13,7 @@
 | [totalTimeout](#totaltimeout) | `int` | Optional | 3600 |
 | [secrets](#secrets) | `secret[]` | Optional | N/A |
 | [networks](#networks) | `network[]` | Optional | N/A |
-| [envs](#envs) | `string[]` | Optional | N/A |
+| [env](#env) | `string[]` | Optional | N/A |
 | [workingDirectory](#workingdirectory) | `string` | Optional | `$HOME` |
 | [version](#version) | `string` | Optional | Yes | v1.0.0 |
 
@@ -52,9 +52,10 @@ An array of [network](#network) objects.
 * Optional
 * Type: `network[]`
 
-## envs
+## env
 
-Default environment variables which are applied to every [step](#step) in the format of `VARIABLE=value`.
+If specified on a [task](#task), these environment variables are applied to every [step](#step) in the format of `VARIABLE=value`.
+If specified on a [step](#step), it will override any environment variables inherited from the [task](#task). In other words, `env` is always scoped to a [step](#step).
 
 * Optional
 * Type: `string[]`

@@ -43,7 +43,7 @@ type Task struct {
 	TotalTimeout     int        `yaml:"totalTimeout,omitempty"`
 	Secrets          []*Secret  `yaml:"secrets,omitempty"`
 	Networks         []*Network `yaml:"networks,omitempty"`
-	Envs             []string   `yaml:"envs,omitempty"`
+	Envs             []string   `yaml:"env,omitempty"`
 	WorkingDirectory string     `yaml:"workingDirectory,omitempty"`
 	Version          string     `yaml:"version,omitempty"`
 	RegistryName     string

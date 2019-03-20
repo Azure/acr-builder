@@ -58,5 +58,5 @@ steps:
     network: "host"
     repeat: 2
 
-envs:
+env:
   - "foo=taskEnv"
