@@ -24,6 +24,16 @@ const (
 
 	// The default step retry delay is 5 seconds.
 	defaultStepRetryDelayInSeconds = 5
+
+	// currentTaskVersion is the most recent Task version.
+	currentTaskVersion = "v1.0.0"
+)
+
+var (
+	validTaskVersions = map[string]bool{
+		"1.0-preview-1":    true,
+		currentTaskVersion: true,
+	}
 )
 
 // Task represents a task execution.
@@ -58,7 +68,11 @@ func UnmarshalTaskFromString(data string, defaultWorkDir string, network string,
 	// External network parsed in from CLI will be set as default network, it will be used for any step if no network provide for them
 	// The external network is append at the end of the list of networks, later we will do reverse iteration to get this network
 	if network != "" {
-		externalNetwork := NewNetwork(network, false, "external", true, true)
+		var externalNetwork *Network
+		externalNetwork, err = NewNetwork(network, false, "external", true, true)
+		if err != nil {
+			return t, err
+		}
 		t.Networks = append(t.Networks, externalNetwork)
 	}
 
@@ -145,6 +159,14 @@ func (t *Task) initialize() error {
 	newDefaultNetworkName := DefaultNetworkName
 	addDefaultNetworkToSteps := false
 
+	if t.Version == "" {
+		t.Version = currentTaskVersion
+	}
+
+	if err := validateTaskVersion(t.Version); err != nil {
+		return err
+	}
+
 	// Reverse iterate the list to get the default network
 	for i := len(t.Networks) - 1; i >= 0; i-- {
 		network := t.Networks[i]
@@ -158,7 +180,10 @@ func (t *Task) initialize() error {
 	// Add the default network if none are specified.
 	// Only add the default network if we're using tasks.
 	if !t.IsBuildTask && len(t.Networks) == 0 {
-		defaultNetwork := NewNetwork(newDefaultNetworkName, false, "bridge", false, true)
+		defaultNetwork, err := NewNetwork(newDefaultNetworkName, false, "bridge", false, true)
+		if err != nil {
+			return err
+		}
 		if runtime.GOOS == windowsOS {
 			defaultNetwork.Driver = "nat"
 		}
@@ -195,7 +220,7 @@ func (t *Task) initialize() error {
 
 		newEnvs, err := mergeEnvs(s.Envs, t.Envs)
 		if err != nil {
-			return fmt.Errorf("bad format of environment variables, err: %v", err)
+			return errors.Wrap(err, "invalid environment variable format")
 		}
 		s.Envs = newEnvs
 
@@ -298,4 +323,13 @@ func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 	}
 
 	return stepEnvs, nil
+}
+
+// validateTaskVersion returns an error if the version specified within a Task is invalid.
+func validateTaskVersion(version string) error {
+	vLower := strings.ToLower(version)
+	if _, ok := validTaskVersions[vLower]; !ok {
+		return fmt.Errorf("invalid version specified: %s", version)
+	}
+	return nil
 }
