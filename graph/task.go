@@ -43,13 +43,13 @@ type Task struct {
 	TotalTimeout     int        `yaml:"totalTimeout,omitempty"`
 	Secrets          []*Secret  `yaml:"secrets,omitempty"`
 	Networks         []*Network `yaml:"networks,omitempty"`
+	Envs             []string   `yaml:"env,omitempty"`
 	WorkingDirectory string     `yaml:"workingDirectory,omitempty"`
 	Version          string     `yaml:"version,omitempty"`
 	RegistryName     string
 	Credentials      []*Credential
 	Dag              *Dag
-	IsBuildTask      bool     // Used to skip the default network creation for build.
-	Envs             []string `yaml:"env,omitempty"`
+	IsBuildTask      bool // Used to skip the default network creation for build.
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.

@@ -6,7 +6,7 @@ ACR Builder is the backbone behind [Azure Container Registry Tasks](https://docs
 
 It can be used to automate container image patching and execute arbitrary containers for complex workflows.
 
-You can find examples of how to create multi-step tasks [here](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-multi-step) and a reference to the YAML properties [here](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-reference-yaml).
+You can find examples of how to create multi-step tasks [here](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-multi-step) and a reference to all of the available YAML properties [here](./docs/task.md).
 
 ## Requirements
 

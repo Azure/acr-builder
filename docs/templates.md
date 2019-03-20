@@ -21,15 +21,13 @@ You could also override any of these values using `--set born=1900` for example.
 
 The following variables can be accessed using `{{ .Run.VariableName }}`, where `VariableName` equals one of the following:
 
-- ID
-- Commit
-- Repository
-- Branch
-- TriggeredBy
-- Registry
-- GitTag
-- Date
-- SharedVolume
+- `ID`
+- `SharedVolume`
+- `Registry` (the fully qualified registry name)
+- `RegistryName` (just the name of the registry)
+- `Date` (`yyyyMMdd-HHmmssz` format)
+- `OS`
+- `Architecture`
 
 ## Tasks
 
