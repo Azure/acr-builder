@@ -14,6 +14,7 @@ import (
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/pkg/volume"
+	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/google/uuid"
 	"github.com/urfave/cli"
@@ -178,7 +179,7 @@ var Command = cli.Command{
 			OS:                      runtime.GOOS,
 			Architecture:            runtime.GOARCH,
 			AzureEnvironmentName:    azureEnvironmentName,
-			SecretResolveTimeout:    templating.DefaultSecretResolveTimeout,
+			SecretResolveTimeout:    secretmgmt.DefaultSecretResolveTimeout,
 		}
 
 		var template *templating.Template
@@ -214,7 +215,7 @@ var Command = cli.Command{
 			credentials = append(credentials, cred)
 		}
 
-		task, err := graph.UnmarshalTaskFromString(rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials)
+		task, err := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials)
 		if err != nil {
 			return err
 		}

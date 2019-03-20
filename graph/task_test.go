@@ -1,7 +1,10 @@
 package graph
 
 import (
+	gocontext "context"
 	"testing"
+
+	"github.com/Azure/acr-builder/secretmgmt"
 )
 
 func TestUsingRegistryCreds(t *testing.T) {
@@ -12,13 +15,13 @@ func TestUsingRegistryCreds(t *testing.T) {
 		cred     string
 		expected bool
 	}{
-		{"foo.azurecr.io", "user", "pw", `{"type": "opaque", "registry": "foo.azurecr.io", "username": "user", "password": "pw", "identity": ""}`, true},
-		{"foo.azurecr.io", "user", "", `{"type": "opaque", "registry": "foo.azurecr.io", "username": "user", "password": "", "identity": ""}`, false},
-		{"foo.azurecr.io", "", "pw", `{"type": "opaque", "registry": "foo.azurecr.io", "username": "", "password": "pw", "identity": ""}`, false},
-		{"", "user", "pw", `{"type": "opaque", "registry": "", "username": "user", "password": "pw", "identity": ""}`, false},
-		{"", "user", "", `{"type": "opaque", "registry": "", "username": "user", "password": "pw", "identity": ""}`, false},
-		{"", "", "pw", `{"type": "opaque", "registry": "", "username": "", "password": "pw", "identity": ""}`, false},
-		{"", "", "", `{"type": "opaque", "registry": "", "username": "", "password": "", "identity": ""}`, false},
+		{"foo.azurecr.io", "user", "pw", `{"usernameProviderType": "opaque","passwordProviderType":"opaque","registry":"foo.azurecr.io","username":"user","password":"pw"}`, true},
+		{"foo.azurecr.io", "user", "", `{"usernameProviderType": "opaque","passwordProviderType":"opaque","registry":"foo.azurecr.io","username":"user","password":""}`, false},
+		{"foo.azurecr.io", "", "pw", `{"usernameProviderType": "opaque","passwordProviderType":"opaque","registry":"foo.azurecr.io","username":"","password":"pw"}`, false},
+		{"", "user", "pw", `{"usernameProviderType": "opaque","passwordProviderType":"opaque","registry":"","username":"user","password":"pw"}`, false},
+		{"", "user", "", `{"usernameProviderType": "opaque","passwordProviderType":"opaque","registry":"","username":"user","password":"pw"}`, false},
+		{"", "", "pw", `{"usernameProviderType": "opaque","passwordProviderType":"opaque","registry":"","username":"","password":"pw"}`, false},
+		{"", "", "", `{"usernameProviderType": "opaque","passwordProviderType":"opaque","registry":"","username":"","password":""}`, false},
 	}
 
 	for _, test := range tests {
@@ -34,9 +37,13 @@ func TestUsingRegistryCreds(t *testing.T) {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 
+		resolvedSecrets, err := ResolveCustomRegistryCredentials(gocontext.Background(), []*RegistryCredential{cred})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
 		task := &Task{
-			RegistryName: test.registry,
-			Credentials:  []*RegistryCredential{cred},
+			RegistryName:             test.registry,
+			RegistryLoginCredentials: resolvedSecrets,
 		}
 		actual := task.UsingRegistryCreds()
 		if test.expected != actual {
@@ -58,7 +65,7 @@ func TestNewTask(t *testing.T) {
 		expectedVersion string
 =======
 		steps                []*Step
-		secrets              []*Secret
+		secrets              []*secretmgmt.Secret
 		registry             string
 		username             string
 		password             string
@@ -70,8 +77,13 @@ func TestNewTask(t *testing.T) {
 		expectedVersion      string
 >>>>>>> setup registry credential to support vault/msi (part-1)
 	}{
+<<<<<<< HEAD
 		{nil, nil, "registry", "username", "password", true, true, currentTaskVersion},
 		{[]*Step{}, []*Secret{}, "", "", "", false, false, currentTaskVersion},
+=======
+		{nil, nil, "registry", "username", "password", `{"usernameProviderType": "opaque","passwordProviderType":"opaque", "registry": "registry", "username": "username", "password": "password"}`, true, true, 100, 600, currentTaskVersion},
+		{[]*Step{}, []*secretmgmt.Secret{}, "", "", "", "{}", false, false, 720, 720, currentTaskVersion},
+>>>>>>> add support for resolving secrets using identity
 	}
 
 	for _, test := range tests {
@@ -84,10 +96,14 @@ func TestNewTask(t *testing.T) {
 		}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 		task, err := NewTask(test.steps, test.secrets, test.registry, []*Credential{cred}, test.isBuildTask)
 =======
 		task, err := NewTask(test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.totalTimeout, test.isBuildTask)
 >>>>>>> setup registry credential to support vault/msi (part-1)
+=======
+		task, err := NewTask(gocontext.Background(), test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.totalTimeout, test.isBuildTask)
+>>>>>>> add support for resolving secrets using identity
 		if err != nil {
 			t.Fatalf("Unexpected err while creating task: %v", err)
 		}
@@ -134,7 +150,7 @@ func TestInitializeTimeouts(t *testing.T) {
 			Steps:       test.steps,
 			StepTimeout: test.stepTimeout,
 		}
-		err := task.initialize()
+		err := task.initialize(gocontext.Background())
 		if err != nil {
 			t.Fatalf("Unexpected err during initialization: %v", err)
 		}
@@ -186,7 +202,7 @@ func TestMergingEnvs(t *testing.T) {
 func TestNewTaskFromString(t *testing.T) {
 	tests := []struct {
 		template    string
-		secrets     []*Secret
+		secrets     []*secretmgmt.Secret
 		shouldError bool
 	}{
 		{`
@@ -196,7 +212,7 @@ secrets:
   - id: mysecret1
     akv: https://myvault.vault.azure.net/secrets/mysecret1
     clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
-			[]*Secret{
+			[]*secretmgmt.Secret{
 				{
 					ID:  "mysecret",
 					Akv: "https://myvault.vault.azure.net/secrets/mysecret",
@@ -214,16 +230,16 @@ secrets:
   - id: MYSecret1
   - id: mysecret1
     clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
-			[]*Secret{},
+			[]*secretmgmt.Secret{},
 			true,
 		},
 		{`
 secrets:`,
-			[]*Secret{},
+			[]*secretmgmt.Secret{},
 			false,
 		},
 		{``,
-			[]*Secret{},
+			[]*secretmgmt.Secret{},
 			false,
 		},
 		{`
@@ -233,20 +249,20 @@ secrets:
   - id: mysecret1
     akv: myakv2
     clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
-			[]*Secret{},
+			[]*secretmgmt.Secret{},
 			true,
 		},
 		{`
 steps:
   - id: mystep
     cmd: bash echo hello world`,
-			[]*Secret{},
+			[]*secretmgmt.Secret{},
 			false,
 		},
 		{`
 steps:
   - cmd: bash echo hello world`,
-			[]*Secret{},
+			[]*secretmgmt.Secret{},
 			false,
 		},
 	}

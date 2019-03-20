@@ -5,102 +5,123 @@ package graph
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
 )
 
 var (
-	errInvalidRegName  = errors.New("registry name can't be empty")
-	errInvalidUsername = errors.New("username can't be empty")
-	errInvalidPassword = errors.New("password can't be empty")
-	errInvalidType     = errors.New("type is either empty or invalid")
-	errInvalidIdentity = errors.New("identity can't be empty")
+	errInvalidRegName       = errors.New("registry name can't be empty")
+	errInvalidUsername      = errors.New("username can't be empty")
+	errInvalidPassword      = errors.New("password can't be empty")
+	errInvalidIdentity      = errors.New("identity can't be empty")
+	errInvalidArmResourceID = errors.New("armResourceId can't be empty")
+	errCouldNotClassify     = errors.New("unable to classify credential into opaque, vault or msi")
 )
 
 const (
 	// Opaque means username/password are in plain-text
 	Opaque = "opaque"
-	// Vault means username/password are Azure KeyVault IDs
-	Vault = "vault"
-	// MSI means the login is done via Managed Identity
-	MSI = "msi"
+	// VaultSecret means username/password are Azure KeyVault IDs
+	VaultSecret = "vaultsecret"
 )
 
 // RegistryCredential defines a combination of registry, username and password.
 type RegistryCredential struct {
-	Type     string `json:"type"`
-	Name     string `json:"registry"`
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-	Identity string `json:"identity,omitempty"`
+	Registry      string `json:"registry"`
+	Username      string `json:"username,omitempty"`
+	UsernameType  string `json:"userNameProviderType,omitempty"`
+	Password      string `json:"password,omitempty"`
+	PasswordType  string `json:"passwordProviderType,omitempty"`
+	Identity      string `json:"identity,omitempty"`
+	ArmResourceID string `json:"armResourceId,omitempty"`
 }
 
 // CreateRegistryCredentialFromString creates a RegistryCredential object from a serialized string.
 func CreateRegistryCredentialFromString(str string) (*RegistryCredential, error) {
 	var cred RegistryCredential
 	if err := json.Unmarshal([]byte(str), &cred); err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("Unable to unmarshal Credentials from string '%s'", str))
+		return nil, errors.Wrap(err, "unable to unmarshal Credentials from string")
 	}
 
-	credType := cred.Type
-	regName := cred.Name
-	regUser := cred.Username
-	regPw := cred.Password
-	identity := cred.Identity
+	usernameType := strings.ToLower(cred.UsernameType)
+	passwordType := strings.ToLower(cred.PasswordType)
 
-	if credType == "" {
-		return nil, errInvalidType
-	}
-	if regName == "" {
+	if cred.Registry == "" {
 		return nil, errInvalidRegName
 	}
 
 	var retVal *RegistryCredential
-	switch strings.ToLower(credType) {
-	case Opaque:
-		if regUser == "" {
+
+	isOpaque := usernameType == Opaque && passwordType == Opaque
+	hasVaultSecret := usernameType == VaultSecret || passwordType == VaultSecret
+	isMSI := usernameType == "" && passwordType == ""
+
+	if isOpaque {
+		if cred.Username == "" {
 			return nil, errInvalidUsername
 		}
-		if regPw == "" {
+		if cred.Password == "" {
 			return nil, errInvalidPassword
 		}
 		retVal = &RegistryCredential{
-			Type:     Opaque,
-			Name:     regName,
-			Username: regUser,
-			Password: regPw,
+			Registry:     cred.Registry,
+			Username:     cred.Username,
+			UsernameType: usernameType,
+			Password:     cred.Password,
+			PasswordType: passwordType,
 		}
-	case Vault:
-		if regUser == "" {
+	} else if hasVaultSecret {
+		if cred.Username == "" {
 			return nil, errInvalidUsername
 		}
-		if regPw == "" {
+		if cred.Password == "" {
 			return nil, errInvalidPassword
 		}
-		if identity == "" {
+		if cred.Identity == "" {
 			return nil, errInvalidIdentity
 		}
 		retVal = &RegistryCredential{
-			Type:     Vault,
-			Name:     regName,
-			Username: regUser,
-			Password: regPw,
-			Identity: identity,
+			Registry:     cred.Registry,
+			Username:     cred.Username,
+			UsernameType: usernameType,
+			Password:     cred.Password,
+			PasswordType: passwordType,
+			Identity:     cred.Identity,
 		}
-	case MSI:
-		if identity == "" {
+	} else if isMSI {
+		if cred.Identity == "" {
 			return nil, errInvalidIdentity
 		}
-		retVal = &RegistryCredential{
-			Type:     MSI,
-			Name:     regName,
-			Identity: identity,
+		if cred.ArmResourceID == "" {
+			return nil, errInvalidArmResourceID
 		}
-	default:
-		return nil, errInvalidType
+		retVal = &RegistryCredential{
+			Registry:      cred.Registry,
+			Identity:      cred.Identity,
+			ArmResourceID: cred.ArmResourceID,
+		}
+	} else {
+		return nil, errCouldNotClassify
 	}
 
 	return retVal, nil
+}
+
+// Equals determines whether two RegistrCredentials are equal.
+func (s *RegistryCredential) Equals(t *RegistryCredential) bool {
+	if s == nil && t == nil {
+		return true
+	}
+	if s == nil || t == nil {
+		return false
+	}
+
+	return s.Registry == t.Registry &&
+		s.Username == t.Username &&
+		s.UsernameType == t.UsernameType &&
+		s.Password == t.Password &&
+		s.PasswordType == t.PasswordType &&
+		s.Identity == t.Identity &&
+		s.ArmResourceID == t.ArmResourceID
 }

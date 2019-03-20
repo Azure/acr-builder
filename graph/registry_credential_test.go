@@ -11,23 +11,31 @@ func TestCreateCredentialFromString(t *testing.T) {
 		ok         bool
 		credObject *RegistryCredential
 	}{
-		{`{"type":"opaque", "registry": "foo", "username": "bar", "password": "qux"}`, true, &RegistryCredential{
-			Type:     Opaque,
-			Name:     "foo",
-			Username: "bar",
-			Password: "qux",
-			Identity: "",
+		{`{"usernameProviderType": "opaque","passwordProviderType":"opaque", "registry": "foo", "username": "bar", "password": "qux"}`, true, &RegistryCredential{
+			Registry:     "foo",
+			Username:     "bar",
+			UsernameType: Opaque,
+			Password:     "qux",
+			PasswordType: Opaque,
+			Identity:     "",
 		}},
-		{`{"type":"opaque", "registry": "foo", "username": "", "password": "qux;th;i@ng"}`, false, nil},
-		{`{"type":"vault", "registry": "r", "username": "some/vault/id", "password": "some/vault/id"}`, false, nil},
-		{`{"type":"vault", "registry": "r", "username": "some/vault/id", "password": "some/vault/id", "identity": "identity/resource/id"}`, true, &RegistryCredential{
-			Type:     Vault,
-			Name:     "r",
-			Username: "some/vault/id",
-			Password: "some/vault/id",
-			Identity: "identity/resource/id",
+		{`{"usernameProviderType":"opaque","passwordProviderType":"opaque","registry":"foo","username":"","password":"qux;th;i@ng"}`, false, nil},
+		{`{"usernameProviderType":"opaque","passwordProviderType":"vaultsecret","registry":"r","username":"my_username","password":"some/vault/id"}`, false, nil},
+		{`{"usernameProviderType":"opaque","passwordProviderType":"vaultsecret","registry":"r","username":"my_username","password":"some/vault/id", "identity":"clientID"}`, true, &RegistryCredential{
+			Registry:     "r",
+			Username:     "my_username",
+			UsernameType: Opaque,
+			Password:     "some/vault/id",
+			PasswordType: VaultSecret,
+			Identity:     "clientID",
 		}},
-		{`{"type":"msi", "registry": "", "username": "blah", "password": "something"}`, false, nil},
+		{`{"registry":"r","identity":"clientID"}`, false, nil},
+		{`{"registry":"r","identity":"clientID", "armResourceId": "https://management.azure.com"}`, true, &RegistryCredential{
+			Registry:      "r",
+			Identity:      "clientID",
+			ArmResourceID: "https://management.azure.com",
+		}},
+		{`{"registry": "", "username": "blah", "password": "something"}`, false, nil},
 	}
 
 	for _, test := range tests {
@@ -40,11 +48,7 @@ func TestCreateCredentialFromString(t *testing.T) {
 			continue
 		} else {
 			expected := test.credObject
-			if actual.Type != expected.Type ||
-				actual.Name != expected.Name ||
-				actual.Username != expected.Username ||
-				actual.Password != expected.Password ||
-				actual.Identity != expected.Identity {
+			if !actual.Equals(expected) {
 				t.Fatalf("Expected %v but got %v", expected, actual)
 			}
 		}

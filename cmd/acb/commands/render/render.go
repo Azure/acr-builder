@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/urfave/cli"
 )
@@ -117,7 +118,7 @@ var Command = cli.Command{
 				OS:                      runtime.GOOS,
 				Architecture:            runtime.GOARCH,
 				AzureEnvironmentName:    azureEnvironmentName,
-				SecretResolveTimeout:    templating.DefaultSecretResolveTimeout,
+				SecretResolveTimeout:    secretmgmt.DefaultSecretResolveTimeout,
 			}
 		)
 

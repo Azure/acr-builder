@@ -16,6 +16,7 @@ import (
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/pkg/volume"
+	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/util"
 	"github.com/google/uuid"
@@ -343,5 +344,9 @@ func createBuildTask(
 		credentials = append(credentials, cred)
 	}
 
+<<<<<<< HEAD
 	return graph.NewTask(steps, []*graph.Secret{}, registry, credentials, true)
+=======
+	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, taskTotalTimeoutInSec, true)
+>>>>>>> add support for resolving secrets using identity
 }

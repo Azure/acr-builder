@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package templating
+package secretmgmt
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/tokenutil"
 	"github.com/Azure/acr-builder/vaults"
 	"github.com/pkg/errors"
 )
@@ -19,12 +19,12 @@ const (
 )
 
 type secretResolveChannel struct {
-	resolvedChan chan graph.SecretValue
+	resolvedChan chan bool
 	timeoutChan  func() <-chan struct{}
 }
 
 // ResolveSecretFunc is a function that resolves the secret to its value and sends through the ResolvedChan of the secret. Any errors during resolve are send through errorChan
-type ResolveSecretFunc func(ctx context.Context, secret *graph.Secret, errorChan chan error)
+type ResolveSecretFunc func(ctx context.Context, secret *Secret, errorChan chan error)
 
 // SecretResolver defines how a secret is resolved.
 type SecretResolver struct {
@@ -41,15 +41,11 @@ func NewSecretResolver(resolveFunc ResolveSecretFunc, resolveTimeout time.Durati
 	return &SecretResolver{Resolve: resolveFunc, resolveTimeout: resolveTimeout}, nil
 }
 
-// ResolveSecrets returns a list of resolved secrets and returns error if there is any failure in resolving a secret.
-func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secrets []*graph.Secret) (Values, error) {
-
-	resolvedSecrets := Values{}
-
+// ResolveSecrets resolves all the Secrets, or returns an error if there is any failure in resolving a secret.
+func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secrets []*Secret) error {
 	if len(secrets) == 0 {
-		return resolvedSecrets, nil
+		return nil
 	}
-
 	// We will resolve in batches of 5 to avoid throttling errors on the vault providers
 	batchSize := 5
 	errorChan := make(chan error)
@@ -68,7 +64,7 @@ func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secret
 			}
 
 			if secret.ResolvedChan == nil {
-				secret.ResolvedChan = make(chan graph.SecretValue)
+				secret.ResolvedChan = make(chan bool)
 			}
 			ctxWithTimeout, cancel := context.WithTimeout(ctx, secretResolver.resolveTimeout)
 			defer cancel()
@@ -84,21 +80,20 @@ func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secret
 		for _, ch := range secretChannels {
 			select {
 			case <-ch.timeoutChan():
-				return resolvedSecrets, errors.New("timeout in fetching secrets")
+				return errors.New("timeout in fetching secrets")
 			case <-ctx.Done():
-				return resolvedSecrets, ctx.Err()
-			case secretValue := <-ch.resolvedChan:
-				resolvedSecrets[secretValue.ID] = secretValue.Value
+				return ctx.Err()
+			case <-ch.resolvedChan:
 			case err := <-errorChan:
-				return resolvedSecrets, err
+				return err
 			}
 		}
 	}
 
-	return resolvedSecrets, nil
+	return nil
 }
 
-func resolveSecret(ctx context.Context, secret *graph.Secret, errorChan chan error) {
+func resolveSecret(ctx context.Context, secret *Secret, errorChan chan error) {
 	if secret == nil {
 		errorChan <- errors.New("secret cannot be nil")
 		return
@@ -117,7 +112,17 @@ func resolveSecret(ctx context.Context, secret *graph.Secret, errorChan chan err
 			return
 		}
 
-		secret.ResolvedChan <- graph.SecretValue{ID: secret.ID, Value: secretValue}
+		secret.ResolvedValue = secretValue
+		secret.ResolvedChan <- true
+		return
+	} else if secret.IsMsiSecret() {
+		secretValue, err := tokenutil.GetRegistryRefreshToken(secret.ID, secret.ArmResourceID, secret.MsiClientID)
+		if err != nil {
+			errorChan <- errors.Wrap(err, "failed to fetch Identity secret")
+			return
+		}
+		secret.ResolvedValue = secretValue
+		secret.ResolvedChan <- true
 		return
 	}
 

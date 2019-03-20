@@ -4,6 +4,7 @@
 package graph
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/Azure/acr-builder/scan"
+	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
@@ -34,8 +36,18 @@ var (
 	}
 )
 
+// ResolvedRegistryCred is a credential with resolved username/password for the registry
+type ResolvedRegistryCred struct {
+	Username *secretmgmt.Secret
+	Password *secretmgmt.Secret
+}
+
+//RegistryLoginCredentials is a map of registryName -> ResolvedRegistryCred
+type RegistryLoginCredentials map[string]*ResolvedRegistryCred
+
 // Task represents a task execution.
 type Task struct {
+<<<<<<< HEAD
 	Steps            []*Step    `yaml:"steps"`
 	StepTimeout      int        `yaml:"stepTimeout,omitempty"`
 	Secrets          []*Secret  `yaml:"secrets,omitempty"`
@@ -47,10 +59,25 @@ type Task struct {
 	Credentials      []*RegistryCredential
 	Dag              *Dag
 	IsBuildTask      bool // Used to skip the default network creation for build.
+=======
+	Steps                    []*Step              `yaml:"steps"`
+	StepTimeout              int                  `yaml:"stepTimeout,omitempty"`
+	TotalTimeout             int                  `yaml:"totalTimeout,omitempty"`
+	Secrets                  []*secretmgmt.Secret `yaml:"secrets,omitempty"`
+	Networks                 []*Network           `yaml:"networks,omitempty"`
+	Envs                     []string             `yaml:"env,omitempty"`
+	WorkingDirectory         string               `yaml:"workingDirectory,omitempty"`
+	Version                  string               `yaml:"version,omitempty"`
+	RegistryName             string
+	Credentials              []*RegistryCredential
+	RegistryLoginCredentials RegistryLoginCredentials
+	Dag                      *Dag
+	IsBuildTask              bool // Used to skip the default network creation for build.
+>>>>>>> add support for resolving secrets using identity
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential) (*Task, error) {
+func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential) (*Task, error) {
 	t, err := NewTaskFromString(data)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
@@ -73,12 +100,12 @@ func UnmarshalTaskFromString(data string, defaultWorkDir string, network string,
 		t.Networks = append(t.Networks, externalNetwork)
 	}
 
-	err = t.initialize()
+	err = t.initialize(ctx)
 	return t, err
 }
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
-func UnmarshalTaskFromFile(file string, creds []*RegistryCredential) (*Task, error) {
+func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCredential) (*Task, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -89,7 +116,7 @@ func UnmarshalTaskFromFile(file string, creds []*RegistryCredential) (*Task, err
 	}
 
 	t.Credentials = creds
-	err = t.initialize()
+	err = t.initialize(ctx)
 	return t, err
 }
 
@@ -131,8 +158,9 @@ func (t *Task) Validate() error {
 
 // NewTask returns a default Task object.
 func NewTask(
+	ctx context.Context,
 	steps []*Step,
-	secrets []*Secret,
+	secrets []*secretmgmt.Secret,
 	registry string,
 <<<<<<< HEAD
 	credentials []*Credential,
@@ -150,12 +178,12 @@ func NewTask(
 		IsBuildTask:  isBuildTask,
 	}
 
-	err := t.initialize()
+	err := t.initialize(ctx)
 	return t, err
 }
 
 // initialize normalizes a Task's values.
-func (t *Task) initialize() error {
+func (t *Task) initialize(ctx context.Context) error {
 	newDefaultNetworkName := DefaultNetworkName
 	addDefaultNetworkToSteps := false
 
@@ -234,15 +262,19 @@ func (t *Task) initialize() error {
 			s.Push = getNormalizedDockerImageNames(s.Push, t.RegistryName)
 		}
 	}
-
 	var err error
+
+	t.RegistryLoginCredentials, err = ResolveCustomRegistryCredentials(ctx, t.Credentials)
+	if err != nil {
+		return err
+	}
 	t.Dag, err = NewDagFromTask(t)
 	return err
 }
 
 // UsingRegistryCreds determines whether or not the Task is using registry creds.
 func (t *Task) UsingRegistryCreds() bool {
-	return len(t.Credentials) > 0
+	return len(t.RegistryLoginCredentials) > 0
 }
 
 // getNormalizedDockerImageNames normalizes the list of docker images
@@ -325,4 +357,67 @@ func getValidVersion(version string) string {
 	}
 
 	return version
+}
+
+// ResolveCustomRegistryCredentials resolves all the registry login credentials
+func ResolveCustomRegistryCredentials(ctx context.Context, credentials []*RegistryCredential) (RegistryLoginCredentials, error) {
+	resolvedCreds := make(RegistryLoginCredentials)
+	var unresolvedCreds []*secretmgmt.Secret
+
+	for _, cred := range credentials {
+		if cred == nil {
+			continue
+		}
+		resolvedCreds[cred.Registry] = &ResolvedRegistryCred{
+			Username: &secretmgmt.Secret{
+				ID: cred.Registry,
+			},
+			Password: &secretmgmt.Secret{
+				ID: cred.Registry,
+			},
+		}
+		isMSI := false
+
+		usernameSecretObject := resolvedCreds[cred.Registry].Username
+		passwordSecretObject := resolvedCreds[cred.Registry].Password
+
+		switch cred.UsernameType {
+		case Opaque:
+			usernameSecretObject.ResolvedValue = cred.Username
+		case VaultSecret:
+			usernameSecretObject.Akv = cred.Username
+			usernameSecretObject.MsiClientID = cred.Identity
+			unresolvedCreds = append(unresolvedCreds, usernameSecretObject)
+		case "":
+			isMSI = true
+		}
+
+		switch cred.PasswordType {
+		case Opaque:
+			passwordSecretObject.ResolvedValue = cred.Password
+		case VaultSecret:
+			passwordSecretObject.Akv = cred.Password
+			passwordSecretObject.MsiClientID = cred.Identity
+			unresolvedCreds = append(unresolvedCreds, passwordSecretObject)
+		}
+
+		if isMSI {
+			usernameSecretObject.ResolvedValue = "00000000-0000-0000-0000-000000000000"
+			passwordSecretObject.MsiClientID = cred.Identity
+			passwordSecretObject.ArmResourceID = cred.ArmResourceID
+			unresolvedCreds = append(unresolvedCreds, passwordSecretObject)
+		}
+	}
+
+	secretResolver, err := secretmgmt.NewSecretResolver(nil, secretmgmt.DefaultSecretResolveTimeout)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create secret resolver")
+	}
+
+	err = secretResolver.ResolveSecrets(ctx, unresolvedCreds)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to resolve secrets")
+	}
+
+	return resolvedCreds, nil
 }

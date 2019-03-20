@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/pkg/errors"
 )
 
@@ -170,43 +171,50 @@ func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRende
 }
 
 // renderAndResolveSecrets parses the secrets in the template, resolves them using vault providers and returns the resolved secret values.
-func renderAndResolveSecrets(ctx context.Context, template *Template, templateEngine *Engine, resolveSecretFunc ResolveSecretFunc, opts *BaseRenderOptions, sourceValues Values) (Values, error) {
+func renderAndResolveSecrets(ctx context.Context, template *Template, templateEngine *Engine, resolveSecretFunc secretmgmt.ResolveSecretFunc, opts *BaseRenderOptions, sourceValues Values) (Values, error) {
 
-	emptySecrets := Values{}
+	result := Values{}
 	// Cheap optimization to skip the secrets merging if it doesn't contain "secrets" string in it. Note that the task can
 	// have the string secrets but may not essentially the secrets section.
 	if !strings.Contains(string(template.Data), "secrets") {
-		return emptySecrets, nil
+		return result, nil
 	}
 
 	// At first render the template with existing values to render templatized values for secrets.
-	sourceValues["Secrets"] = emptySecrets
+	sourceValues["Secrets"] = result
 	rendered, err := templateEngine.Render(template, sourceValues)
 	if err != nil {
-		return emptySecrets, errors.Wrap(err, "failed to render the template")
+		return result, errors.Wrap(err, "failed to render the template")
 	}
 
 	if rendered == "" {
-		return emptySecrets, errors.New("rendered template was empty")
+		return result, errors.New("rendered template was empty")
 	}
 
 	// Unmarshall the template to Task and get all secrets defined in the template.
 	task, err := graph.NewTaskFromString(rendered)
 	if err != nil {
-		return emptySecrets, errors.Wrap(err, "failed to parse template to create task")
+		return result, errors.Wrap(err, "failed to parse template to create task")
 	}
 
 	// If no secrets found return.
 	if len(task.Secrets) == 0 {
-		return emptySecrets, nil
+		return result, nil
 	}
 
-	secretResolver, err := NewSecretResolver(resolveSecretFunc, opts.SecretResolveTimeout)
+	secretResolver, err := secretmgmt.NewSecretResolver(resolveSecretFunc, opts.SecretResolveTimeout)
 	if err != nil {
-		return emptySecrets, errors.Wrap(err, "failed to create secret resolver")
+		return result, errors.Wrap(err, "failed to create secret resolver")
 	}
 
-	return secretResolver.ResolveSecrets(ctx, task.Secrets)
+	err = secretResolver.ResolveSecrets(ctx, task.Secrets)
+	if err != nil {
+		return result, err
+	}
+	for _, s := range task.Secrets {
+		result[s.ID] = s.ResolvedValue
+	}
+	return result, nil
 }
 
 // parseValues receives a slice of values in key=val format

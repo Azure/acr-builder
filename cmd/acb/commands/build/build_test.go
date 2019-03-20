@@ -31,7 +31,7 @@ func TestCreateBuildTask(t *testing.T) {
 		}
 		debug = false
 		push  = true
-		creds = []string{`{"type": "oPAque", "registry": "foo.azurecr.io", "username": "user", "password": "pw", "identity": ""}`}
+		creds = []string{`{"registry":"foo.azurecr.io","username":"user","userNameProviderType":"opaque","password":"pw","passwordProviderType":"opaque"}`}
 	)
 
 	task, err := createBuildTask(
@@ -60,10 +60,11 @@ func TestCreateBuildTask(t *testing.T) {
 	}
 
 	taskCreds := task.Credentials[0]
-	expectedCreds, _ := graph.CreateRegistryCredentialFromString(creds[0])
-	if taskCreds.Name != expectedCreds.Name ||
-		taskCreds.Username != expectedCreds.Username ||
-		taskCreds.Password != expectedCreds.Password {
+	expectedCreds, err := graph.CreateRegistryCredentialFromString(creds[0])
+	if err != nil {
+		t.Fatalf("failed to create registry credentials from string, err: %v", err)
+	}
+	if !taskCreds.Equals(expectedCreds) {
 		t.Fatalf("expected %v Creds, got %v", expectedCreds, taskCreds)
 	}
 

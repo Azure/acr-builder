@@ -7,19 +7,12 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 
+	"github.com/Azure/acr-builder/tokenutil"
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/Azure/go-autorest/autorest/adal"
-	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/pkg/errors"
-)
-
-const (
-	// environment variable to override the default msi endpoint
-	envMsiEndpoint = "MSI_ENDPOINT"
 )
 
 // AKVSecretConfig provides the options to get secret from Azure keyvault using MSI.
@@ -118,16 +111,11 @@ type keyVault struct {
 
 // newKeyVaultClient creates a new keyvault client
 func newKeyVaultClient(vaultURL, clientID, vaultAADResourceURL string) (*keyVault, error) {
-	msiKeyConfig := &auth.MSIConfig{
-		Resource: vaultAADResourceURL,
-		ClientID: clientID,
-	}
-
-	authorizer, err := newAuthorizer(msiKeyConfig)
+	spToken, err := tokenutil.GetServicePrincipalToken(vaultAADResourceURL, clientID)
 	if err != nil {
 		return nil, err
 	}
-
+	authorizer := autorest.NewBearerAuthorizer(spToken)
 	keyClient := keyvault.New()
 	keyClient.Authorizer = authorizer
 
@@ -147,32 +135,4 @@ func (k *keyVault) getSecret(ctx context.Context, secretName, secretVersion stri
 	}
 
 	return *secretBundle.Value, nil
-}
-
-// newAuthorizer creates the authorizer for keyvault client.
-// it is based on github.com/Azure/acr-builder/vendor/github.com/Azure/go-autorest/autorest/azure/auth/auth.go and allows overriding the msi endpont using environment variable
-func newAuthorizer(mc *auth.MSIConfig) (autorest.Authorizer, error) {
-	// default to the well known endpoint for getting MSI authentications tokens
-	msiEndpoint := "http://169.254.169.254/metadata/identity/oauth2/token"
-
-	// override the default from environment variable
-	if endpoint := os.Getenv(envMsiEndpoint); endpoint != "" {
-		msiEndpoint = endpoint
-	}
-
-	var spToken *adal.ServicePrincipalToken
-	var err error
-	if mc.ClientID == "" {
-		spToken, err = adal.NewServicePrincipalTokenFromMSI(msiEndpoint, mc.Resource)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get oauth token from MSI: %v", err)
-		}
-	} else {
-		spToken, err = adal.NewServicePrincipalTokenFromMSIWithUserAssignedID(msiEndpoint, mc.Resource, mc.ClientID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get oauth token from MSI for user assigned identity: %v", err)
-		}
-	}
-
-	return autorest.NewBearerAuthorizer(spToken), nil
 }
