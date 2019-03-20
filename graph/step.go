@@ -41,7 +41,7 @@ type Step struct {
 	Network             string   `yaml:"network"`
 	Isolation           string   `yaml:"isolation"`
 	Push                []string `yaml:"push"`
-	Envs                []string `yaml:"envs"`
+	Envs                []string `yaml:"env"`
 	Expose              []string `yaml:"expose"`
 	Ports               []string `yaml:"ports"`
 	When                []string `yaml:"when"`

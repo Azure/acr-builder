@@ -10,7 +10,7 @@ steps:
   - id: puller
     cmd: azure/images/docker pull ubuntu
     entryPoint: someEntryPoint
-    envs: [eric=foo, foo=bar]
+    env: [eric=foo, foo=bar]
     exitedWithout: [0, 255]
     workingDirectory: pullDir
     retries: 5
@@ -48,7 +48,7 @@ steps:
 
   - id: build-foo
     cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu
-    envs: ["eric=foo"]
+    env: ["eric=foo"]
     when: [build-qux]
 
   - id: build-qaz
@@ -58,5 +58,5 @@ steps:
     network: "host"
     repeat: 2
 
-envs:
+env:
   - "foo=taskEnv"

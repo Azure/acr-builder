@@ -39,7 +39,7 @@ type Task struct {
 	Credentials      []*Credential
 	Dag              *Dag
 	IsBuildTask      bool     // Used to skip the default network creation for build.
-	Envs             []string `yaml:"envs,omitempty"`
+	Envs             []string `yaml:"env,omitempty"`
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
