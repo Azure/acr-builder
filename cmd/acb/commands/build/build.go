@@ -344,9 +344,5 @@ func createBuildTask(
 		credentials = append(credentials, cred)
 	}
 
-<<<<<<< HEAD
-	return graph.NewTask(steps, []*graph.Secret{}, registry, credentials, true)
-=======
-	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, taskTotalTimeoutInSec, true)
->>>>>>> add support for resolving secrets using identity
+	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, true)
 }

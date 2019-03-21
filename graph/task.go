@@ -47,22 +47,8 @@ type RegistryLoginCredentials map[string]*ResolvedRegistryCred
 
 // Task represents a task execution.
 type Task struct {
-<<<<<<< HEAD
-	Steps            []*Step    `yaml:"steps"`
-	StepTimeout      int        `yaml:"stepTimeout,omitempty"`
-	Secrets          []*Secret  `yaml:"secrets,omitempty"`
-	Networks         []*Network `yaml:"networks,omitempty"`
-	Envs             []string   `yaml:"env,omitempty"`
-	WorkingDirectory string     `yaml:"workingDirectory,omitempty"`
-	Version          string     `yaml:"version,omitempty"`
-	RegistryName     string
-	Credentials      []*RegistryCredential
-	Dag              *Dag
-	IsBuildTask      bool // Used to skip the default network creation for build.
-=======
 	Steps                    []*Step              `yaml:"steps"`
 	StepTimeout              int                  `yaml:"stepTimeout,omitempty"`
-	TotalTimeout             int                  `yaml:"totalTimeout,omitempty"`
 	Secrets                  []*secretmgmt.Secret `yaml:"secrets,omitempty"`
 	Networks                 []*Network           `yaml:"networks,omitempty"`
 	Envs                     []string             `yaml:"env,omitempty"`
@@ -73,7 +59,6 @@ type Task struct {
 	RegistryLoginCredentials RegistryLoginCredentials
 	Dag                      *Dag
 	IsBuildTask              bool // Used to skip the default network creation for build.
->>>>>>> add support for resolving secrets using identity
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
@@ -162,12 +147,7 @@ func NewTask(
 	steps []*Step,
 	secrets []*secretmgmt.Secret,
 	registry string,
-<<<<<<< HEAD
-	credentials []*Credential,
-=======
 	credentials []*RegistryCredential,
-	totalTimeout int,
->>>>>>> setup registry credential to support vault/msi (part-1)
 	isBuildTask bool) (*Task, error) {
 	t := &Task{
 		Steps:        steps,

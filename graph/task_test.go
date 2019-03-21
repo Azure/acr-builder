@@ -54,36 +54,18 @@ func TestUsingRegistryCreds(t *testing.T) {
 
 func TestNewTask(t *testing.T) {
 	tests := []struct {
-<<<<<<< HEAD
-		steps           []*Step
-		secrets         []*Secret
-		registry        string
-		username        string
-		password        string
-		okCredentials   bool
-		isBuildTask     bool
-		expectedVersion string
-=======
-		steps                []*Step
-		secrets              []*secretmgmt.Secret
-		registry             string
-		username             string
-		password             string
-		credentialString     string
-		okCredentials        bool
-		isBuildTask          bool
-		totalTimeout         int
-		expectedTotalTimeout int
-		expectedVersion      string
->>>>>>> setup registry credential to support vault/msi (part-1)
+		steps            []*Step
+		secrets          []*secretmgmt.Secret
+		registry         string
+		username         string
+		password         string
+		credentialString string
+		okCredentials    bool
+		isBuildTask      bool
+		expectedVersion  string
 	}{
-<<<<<<< HEAD
-		{nil, nil, "registry", "username", "password", true, true, currentTaskVersion},
-		{[]*Step{}, []*Secret{}, "", "", "", false, false, currentTaskVersion},
-=======
-		{nil, nil, "registry", "username", "password", `{"usernameProviderType": "opaque","passwordProviderType":"opaque", "registry": "registry", "username": "username", "password": "password"}`, true, true, 100, 600, currentTaskVersion},
-		{[]*Step{}, []*secretmgmt.Secret{}, "", "", "", "{}", false, false, 720, 720, currentTaskVersion},
->>>>>>> add support for resolving secrets using identity
+		{nil, nil, "registry", "username", "password", `{"usernameProviderType": "opaque","passwordProviderType":"opaque", "registry": "registry", "username": "username", "password": "password"}`, true, true, currentTaskVersion},
+		{[]*Step{}, []*secretmgmt.Secret{}, "", "", "", "{}", false, false, currentTaskVersion},
 	}
 
 	for _, test := range tests {
@@ -95,15 +77,7 @@ func TestNewTask(t *testing.T) {
 			}
 		}
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-		task, err := NewTask(test.steps, test.secrets, test.registry, []*Credential{cred}, test.isBuildTask)
-=======
-		task, err := NewTask(test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.totalTimeout, test.isBuildTask)
->>>>>>> setup registry credential to support vault/msi (part-1)
-=======
-		task, err := NewTask(gocontext.Background(), test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.totalTimeout, test.isBuildTask)
->>>>>>> add support for resolving secrets using identity
+		task, err := NewTask(gocontext.Background(), test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.isBuildTask)
 		if err != nil {
 			t.Fatalf("Unexpected err while creating task: %v", err)
 		}
