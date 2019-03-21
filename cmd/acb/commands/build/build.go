@@ -23,9 +23,8 @@ import (
 )
 
 const (
-	taskTotalTimeoutInSec = 60 * 60 * 9 // 9 hours
-	buildTimeoutInSec     = 60 * 60 * 8 // 8 hours
-	pushTimeoutInSec      = 60 * 30     // 30 minutes
+	buildTimeoutInSec = 60 * 60 * 8 // 8 hours
+	pushTimeoutInSec  = 60 * 30     // 30 minutes
 )
 
 // Command executes a container build.
@@ -238,13 +237,9 @@ var Command = cli.Command{
 			return err
 		}
 
-		timeout := time.Duration(task.TotalTimeout) * time.Second
-		ctx, cancel := gocontext.WithTimeout(gocontext.Background(), timeout)
-		defer cancel()
-
 		builder := builder.NewBuilder(pm, debug, homevol)
 		defer builder.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
-		return builder.RunTask(ctx, task)
+		return builder.RunTask(gocontext.Background(), task)
 	},
 }
 
@@ -348,5 +343,5 @@ func createBuildTask(
 		credentials = append(credentials, cred)
 	}
 
-	return graph.NewTask(steps, []*graph.Secret{}, registry, credentials, taskTotalTimeoutInSec, true)
+	return graph.NewTask(steps, []*graph.Secret{}, registry, credentials, true)
 }

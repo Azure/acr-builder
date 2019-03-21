@@ -1,5 +1,4 @@
 stepTimeout: 30
-totalTimeout: 90
 
 secrets:
   - akv: someAKV

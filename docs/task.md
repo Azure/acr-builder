@@ -10,7 +10,6 @@
 |----------|------|----------|---------------|
 | [steps](#steps) | `step[]` | Required | N/A |
 | [stepTimeout](#steptimeout) | `int` | Optional | 600 |
-| [totalTimeout](#totaltimeout) | `int` | Optional | 3600 |
 | [secrets](#secrets) | `secret[]` | Optional | N/A |
 | [networks](#networks) | `network[]` | Optional | N/A |
 | [env](#env) | `string[]` | Optional | N/A |
@@ -27,13 +26,6 @@ An array of [step](#step) objects.
 ## stepTimeout
 
 A [step's](#step) maximum execution time in seconds. This property defaults all [steps'](#steps) [timeout](#timeout) properties. A [step](#step) can override this property via [timeout](#timeout).
-
-* Optional
-* Type: `int`
-
-## totalTimeout
-
-The total execution execution time of the [task](#task) in seconds.
 
 * Optional
 * Type: `int`

@@ -19,9 +19,6 @@ const (
 	// The default step timeout is 10 minutes.
 	defaultStepTimeoutInSeconds = 60 * 10
 
-	// The default total timeout is 1 hour.
-	defaultTotalTimeoutInSeconds = 60 * 60 * 1
-
 	// The default step retry delay is 5 seconds.
 	defaultStepRetryDelayInSeconds = 5
 
@@ -40,7 +37,6 @@ var (
 type Task struct {
 	Steps            []*Step    `yaml:"steps"`
 	StepTimeout      int        `yaml:"stepTimeout,omitempty"`
-	TotalTimeout     int        `yaml:"totalTimeout,omitempty"`
 	Secrets          []*Secret  `yaml:"secrets,omitempty"`
 	Networks         []*Network `yaml:"networks,omitempty"`
 	Envs             []string   `yaml:"env,omitempty"`
@@ -138,12 +134,10 @@ func NewTask(
 	secrets []*Secret,
 	registry string,
 	credentials []*Credential,
-	totalTimeout int,
 	isBuildTask bool) (*Task, error) {
 	t := &Task{
 		Steps:        steps,
 		StepTimeout:  defaultStepTimeoutInSeconds,
-		TotalTimeout: totalTimeout,
 		Secrets:      secrets,
 		RegistryName: registry,
 		Credentials:  credentials,
@@ -193,14 +187,6 @@ func (t *Task) initialize() error {
 
 	if t.StepTimeout <= 0 {
 		t.StepTimeout = defaultStepTimeoutInSeconds
-	}
-	if t.TotalTimeout <= 0 {
-		t.TotalTimeout = defaultTotalTimeoutInSeconds
-	}
-
-	// Force total timeout to be greater than the individual step timeout.
-	if t.TotalTimeout < t.StepTimeout {
-		t.TotalTimeout = t.StepTimeout
 	}
 
 	for i, s := range t.Steps {
