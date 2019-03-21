@@ -3,7 +3,6 @@
 #      -> build-qux -> build-foo -> build-qaz
 #      -> build-bar
 stepTimeout: 600
-totalTimeout: 900
 version: v1.0.0
 
 steps:

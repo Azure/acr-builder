@@ -46,19 +46,17 @@ func TestUsingRegistryCreds(t *testing.T) {
 
 func TestNewTask(t *testing.T) {
 	tests := []struct {
-		steps                []*Step
-		secrets              []*Secret
-		registry             string
-		username             string
-		password             string
-		okCredentials        bool
-		isBuildTask          bool
-		totalTimeout         int
-		expectedTotalTimeout int
-		expectedVersion      string
+		steps           []*Step
+		secrets         []*Secret
+		registry        string
+		username        string
+		password        string
+		okCredentials   bool
+		isBuildTask     bool
+		expectedVersion string
 	}{
-		{nil, nil, "registry", "username", "password", true, true, 100, 600, currentTaskVersion},
-		{[]*Step{}, []*Secret{}, "", "", "", false, false, 720, 720, currentTaskVersion},
+		{nil, nil, "registry", "username", "password", true, true, currentTaskVersion},
+		{[]*Step{}, []*Secret{}, "", "", "", false, false, currentTaskVersion},
 	}
 
 	for _, test := range tests {
@@ -70,7 +68,7 @@ func TestNewTask(t *testing.T) {
 			}
 		}
 
-		task, err := NewTask(test.steps, test.secrets, test.registry, []*Credential{cred}, test.totalTimeout, test.isBuildTask)
+		task, err := NewTask(test.steps, test.secrets, test.registry, []*Credential{cred}, test.isBuildTask)
 		if err != nil {
 			t.Fatalf("Unexpected err while creating task: %v", err)
 		}
@@ -96,9 +94,6 @@ func TestNewTask(t *testing.T) {
 		if test.password != "" && task.Credentials[0].RegistryPassword != test.password {
 			t.Fatalf("Expected %v as the registry password but got %v", test.password, task.Credentials[0].RegistryPassword)
 		}
-		if task.TotalTimeout != test.expectedTotalTimeout {
-			t.Fatalf("Expected %v as the timeout but got %v", test.expectedTotalTimeout, task.TotalTimeout)
-		}
 		if task.IsBuildTask != test.isBuildTask {
 			t.Fatalf("Expected %v as build task but got %v", test.isBuildTask, task.IsBuildTask)
 		}
@@ -107,21 +102,18 @@ func TestNewTask(t *testing.T) {
 
 func TestInitializeTimeouts(t *testing.T) {
 	tests := []struct {
-		steps                []*Step
-		totalTimeout         int
-		stepTimeout          int
-		expectedTotalTimeout int
-		expectedStepTimeout  int
+		steps               []*Step
+		stepTimeout         int
+		expectedStepTimeout int
 	}{
-		{nil, 0, 0, defaultTotalTimeoutInSeconds, defaultStepTimeoutInSeconds},
-		{nil, 15000, 20000, 20000, 20000},
+		{nil, 0, defaultStepTimeoutInSeconds},
+		{nil, 20000, 20000},
 	}
 
 	for _, test := range tests {
 		task := &Task{
-			Steps:        test.steps,
-			TotalTimeout: test.totalTimeout,
-			StepTimeout:  test.stepTimeout,
+			Steps:       test.steps,
+			StepTimeout: test.stepTimeout,
 		}
 		err := task.initialize()
 		if err != nil {
@@ -130,9 +122,6 @@ func TestInitializeTimeouts(t *testing.T) {
 
 		if task.StepTimeout != test.expectedStepTimeout {
 			t.Fatalf("Expected %v as the step timeout but got %v", test.expectedStepTimeout, task.StepTimeout)
-		}
-		if task.TotalTimeout != test.expectedTotalTimeout {
-			t.Fatalf("Expected %v as the total timeout but got %v", test.expectedTotalTimeout, task.TotalTimeout)
 		}
 	}
 }
