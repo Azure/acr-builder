@@ -6,6 +6,7 @@ package graph
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"runtime"
 	"strings"
 
@@ -153,13 +154,7 @@ func (t *Task) initialize() error {
 	newDefaultNetworkName := DefaultNetworkName
 	addDefaultNetworkToSteps := false
 
-	if t.Version == "" {
-		t.Version = currentTaskVersion
-	}
-
-	if err := validateTaskVersion(t.Version); err != nil {
-		return err
-	}
+	t.Version = getValidVersion(t.Version)
 
 	// Reverse iterate the list to get the default network
 	for i := len(t.Networks) - 1; i >= 0; i-- {
@@ -311,11 +306,18 @@ func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
 	return stepEnvs, nil
 }
 
-// validateTaskVersion returns an error if the version specified within a Task is invalid.
-func validateTaskVersion(version string) error {
+// getValidVersion prints a warning message if the version specified within a Task is invalid and
+// changes the version to the current version if it is invalid.
+func getValidVersion(version string) string {
+	if version == "" {
+		version = currentTaskVersion
+	}
+
 	vLower := strings.ToLower(version)
 	if _, ok := validTaskVersions[vLower]; !ok {
-		return fmt.Errorf("invalid version specified: %s", version)
+		log.Printf("WARNING: invalid version specified: %s - defaulting to %s instead...\n", version, currentTaskVersion)
+		version = currentTaskVersion
 	}
-	return nil
+
+	return version
 }

@@ -254,23 +254,22 @@ steps:
 	}
 }
 
-func TestValidateTaskVersion(t *testing.T) {
+func TestGetValidVersion(t *testing.T) {
 	tests := []struct {
-		version     string
-		shouldError bool
+		version            string
+		expectedNewVersion string
 	}{
-		{"", true},
-		{"v1.0.0-alpha", true},
-		{"1.0-preview-1", false},
-		{currentTaskVersion, false},
+		// Valid
+		{"1.0-preview-1", "1.0-preview-1"},
+
+		// Invalid
+		{"", currentTaskVersion},
+		{"v1.0.0-alpha", currentTaskVersion},
 	}
 
 	for _, test := range tests {
-		err := validateTaskVersion(test.version)
-		if test.shouldError && err == nil {
-			t.Error("expected test to error")
-		} else if !test.shouldError && err != nil {
-			t.Errorf("expected test to pass, err: %v", err)
+		if actual := getValidVersion(test.version); actual != test.expectedNewVersion {
+			t.Errorf("expected %s but got %s", test.expectedNewVersion, actual)
 		}
 	}
 }
