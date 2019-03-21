@@ -98,6 +98,34 @@ func TestIsAkvSecret(t *testing.T) {
 	}
 }
 
+func TestIsMsiSecret(t *testing.T) {
+	tests := []struct {
+		secret   *Secret
+		expected bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&Secret{
+				ArmResourceID: "foo",
+			},
+			true,
+		},
+		{
+			&Secret{},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		if actual := test.secret.IsMsiSecret(); actual != test.expected {
+			t.Errorf("expected %v for secret to be MSI type, but got %v", test.expected, actual)
+		}
+	}
+}
+
 func TestSecretEquals(t *testing.T) {
 	tests := []struct {
 		s        *Secret

@@ -16,8 +16,8 @@ func TestCreateBuildTask(t *testing.T) {
 	var (
 		isolation       = "someIsolation"
 		pull            = true
-		labels          = []string{}
-		noCache         = false
+		labels          = []string{"foo=bar"}
+		noCache         = true
 		dockerfile      = "HelloWorld/Dockerfile"
 		tags            = []string{"{{.Run.Registry}}/foo:latest", "bar/qux"}
 		buildArgs       = []string{"someArg"}
@@ -81,7 +81,7 @@ func TestCreateBuildTask(t *testing.T) {
 	if !util.StringSequenceEquals(buildStep.Tags, expectedTags) {
 		t.Fatalf("expected %v to be the task's tags but got %v", expectedTags, buildStep.Tags)
 	}
-	expectedCmd := "--isolation=someIsolation --pull -f HelloWorld/Dockerfile " +
+	expectedCmd := "--isolation=someIsolation --pull --label foo=bar --no-cache -f HelloWorld/Dockerfile " +
 		"-t foo.azurecr.io/foo:latest -t foo.azurecr.io/bar/qux " +
 		"--build-arg someArg --build-arg someSecretArg --target someTarget --platform somePlatform src"
 	if expectedCmd != buildStep.Build {

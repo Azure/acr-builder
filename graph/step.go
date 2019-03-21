@@ -116,39 +116,35 @@ func (s *Step) Equals(t *Step) bool {
 	if s == nil || t == nil {
 		return false
 	}
-	if s.ID != t.ID ||
-		s.Keep != t.Keep ||
-		s.Detach != t.Detach ||
-		s.Cmd != t.Cmd ||
-		s.Build != t.Build ||
-		!util.StringSequenceEquals(s.Push, t.Push) ||
-		s.WorkingDirectory != t.WorkingDirectory ||
-		s.EntryPoint != t.EntryPoint ||
-		!util.StringSequenceEquals(s.Ports, t.Ports) ||
-		!util.StringSequenceEquals(s.Expose, t.Expose) ||
-		!util.StringSequenceEquals(s.Envs, t.Envs) ||
-		s.Timeout != t.Timeout ||
-		!util.StringSequenceEquals(s.When, t.When) ||
-		!util.IntSequenceEquals(s.ExitedWith, t.ExitedWith) ||
-		!util.IntSequenceEquals(s.ExitedWithout, t.ExitedWithout) ||
-		s.StartDelay != t.StartDelay ||
-		s.StartTime != t.StartTime ||
-		s.EndTime != t.EndTime ||
-		s.StepStatus != t.StepStatus ||
-		s.Privileged != t.Privileged ||
-		s.User != t.User ||
-		s.Network != t.Network ||
-		s.Isolation != t.Isolation ||
-		s.IgnoreErrors != t.IgnoreErrors ||
-		s.Retries != t.Retries ||
-		s.RetryDelayInSeconds != t.RetryDelayInSeconds ||
-		s.DisableWorkingDirectoryOverride != t.DisableWorkingDirectoryOverride ||
-		s.Pull != t.Pull ||
-		s.Repeat != t.Repeat {
-		return false
-	}
-
-	return true
+	return s.ID == t.ID &&
+		s.Keep == t.Keep &&
+		s.Detach == t.Detach &&
+		s.Cmd == t.Cmd &&
+		s.Build == t.Build &&
+		util.StringSequenceEquals(s.Push, t.Push) &&
+		s.WorkingDirectory == t.WorkingDirectory &&
+		s.EntryPoint == t.EntryPoint &&
+		util.StringSequenceEquals(s.Ports, t.Ports) &&
+		util.StringSequenceEquals(s.Expose, t.Expose) &&
+		util.StringSequenceEquals(s.Envs, t.Envs) &&
+		s.Timeout == t.Timeout &&
+		util.StringSequenceEquals(s.When, t.When) &&
+		util.IntSequenceEquals(s.ExitedWith, t.ExitedWith) &&
+		util.IntSequenceEquals(s.ExitedWithout, t.ExitedWithout) &&
+		s.StartDelay == t.StartDelay &&
+		s.StartTime == t.StartTime &&
+		s.EndTime == t.EndTime &&
+		s.StepStatus == t.StepStatus &&
+		s.Privileged == t.Privileged &&
+		s.User == t.User &&
+		s.Network == t.Network &&
+		s.Isolation == t.Isolation &&
+		s.IgnoreErrors == t.IgnoreErrors &&
+		s.Retries == t.Retries &&
+		s.RetryDelayInSeconds == t.RetryDelayInSeconds &&
+		s.DisableWorkingDirectoryOverride == t.DisableWorkingDirectoryOverride &&
+		s.Pull == t.Pull &&
+		s.Repeat == t.Repeat
 }
 
 // ShouldExecuteImmediately returns true if the Step should be executed immediately.
