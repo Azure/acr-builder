@@ -4,12 +4,13 @@
 package graph
 
 import (
+	gocontext "context"
 	"fmt"
 	"testing"
 )
 
 func TestDagCreation_ValidFile(t *testing.T) {
-	task, err := UnmarshalTaskFromFile("testdata/acb.yaml", nil)
+	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/acb.yaml", nil)
 	if err != nil {
 		t.Fatalf("Failed to create task from file. Err: %v", err)
 	}

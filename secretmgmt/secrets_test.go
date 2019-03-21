@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package templating
+package secretmgmt
 
 import (
 	"context"
@@ -9,19 +9,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Azure/acr-builder/graph"
 	"github.com/pkg/errors"
 )
 
 // MockResolveSecret will mock the azure keyvault resolve and return the concatenated Akv and client ID as the value. This is used for testing purposes only.
-func MockResolveSecret(ctx context.Context, secret *graph.Secret, errorChan chan error) {
+func MockResolveSecret(ctx context.Context, secret *Secret, errorChan chan error) {
 	if secret == nil {
 		errorChan <- errors.New("secret cannot be nil")
 		return
 	}
 
 	if secret.IsAkvSecret() {
-		secret.ResolvedChan <- graph.SecretValue{ID: secret.ID, Value: fmt.Sprintf("%s-%s", secret.Akv, secret.MsiClientID)}
+		secret.ResolvedValue = fmt.Sprintf("vault-%s-%s", secret.Akv, secret.MsiClientID)
+		secret.ResolvedChan <- true
+		return
+	} else if secret.IsMsiSecret() {
+		secret.ResolvedValue = fmt.Sprintf("msi-%s-%s", secret.ArmResourceID, secret.MsiClientID)
+		secret.ResolvedChan <- true
 		return
 	}
 
@@ -38,11 +42,11 @@ func TestResolveSecrets(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		secrets         []*graph.Secret
-		resolvedSecrets Values
+		secrets         []*Secret
+		resolvedSecrets map[string]string
 	}{
 		{
-			[]*graph.Secret{
+			[]*Secret{
 				{
 					ID:  "mysecret",
 					Akv: "https://myvault.vault.azure.net/secrets/mysecret",
@@ -53,19 +57,19 @@ func TestResolveSecrets(t *testing.T) {
 					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
 				},
 			},
-			Values{"mysecret": "https://myvault.vault.azure.net/secrets/mysecret-", "mysecret1": "https://myvault.vault.azure.net/secrets/mysecret1-c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
+			map[string]string{"mysecret": "vault-https://myvault.vault.azure.net/secrets/mysecret-", "mysecret1": "vault-https://myvault.vault.azure.net/secrets/mysecret1-c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
 		},
 		{
 			nil,
-			Values{},
+			map[string]string{},
 		},
 		{
-			[]*graph.Secret{},
-			Values{},
+			[]*Secret{},
+			map[string]string{},
 		},
 		{
 			// Add more than 5 secrets to test the batching logic
-			[]*graph.Secret{
+			[]*Secret{
 				{
 					ID:  "1",
 					Akv: "k1",
@@ -83,56 +87,49 @@ func TestResolveSecrets(t *testing.T) {
 					Akv: "k4",
 				},
 				{
-					ID:  "5",
-					Akv: "k5",
+					ID:            "5",
+					ArmResourceID: "k5",
 				},
 				{
 					ID:  "6",
 					Akv: "k6",
 				},
 				{
-					ID:  "7",
-					Akv: "k7",
+					ID:            "7",
+					ArmResourceID: "k7",
 				},
 				{
 					ID:  "8",
 					Akv: "k8",
 				},
 				{
-					ID:  "9",
-					Akv: "k9",
+					ID:            "9",
+					ArmResourceID: "k9",
 				},
 				{
 					ID:  "10",
 					Akv: "k10",
 				},
 			},
-			Values{"1": "k1-", "2": "k2-", "3": "k3-", "4": "k4-", "5": "k5-", "6": "k6-", "7": "k7-", "8": "k8-", "9": "k9-", "10": "k10-"},
+			map[string]string{"1": "vault-k1-", "2": "vault-k2-", "3": "vault-k3-", "4": "vault-k4-", "5": "msi-k5-", "6": "vault-k6-", "7": "msi-k7-", "8": "vault-k8-", "9": "msi-k9-", "10": "vault-k10-"},
 		},
 	}
 
 	for _, test := range tests {
-		resolvedSecrets, err := secretResolver.ResolveSecrets(ctx, test.secrets)
+		err := secretResolver.ResolveSecrets(ctx, test.secrets)
 		if err != nil {
 			t.Errorf("Test failed with error %v", err)
 		}
 
-		if test.resolvedSecrets == nil {
-			if resolvedSecrets != nil {
-				t.Errorf("Secrets do not match. Expected  %v but got %v", test.resolvedSecrets, resolvedSecrets)
-			}
-		} else {
-
-			if len(resolvedSecrets) != len(test.resolvedSecrets) {
-				t.Errorf("Expected number of secrets: %v, but got %v", len(test.resolvedSecrets), len(resolvedSecrets))
-			}
-			for key, value := range test.resolvedSecrets {
-				if resolvedSecrets[key] != value {
-					t.Errorf("Secrets donot match. Expected  %v but got %v", test.resolvedSecrets, resolvedSecrets)
+		for _, secret := range test.secrets {
+			if val, ok := test.resolvedSecrets[secret.ID]; ok {
+				actual := secret.ResolvedValue
+				expected := val
+				if actual != expected {
+					t.Errorf("Secrets do not match. Expected  %v but got %v", expected, actual)
 				}
 			}
 		}
-
 	}
 }
 
@@ -146,17 +143,17 @@ func TestResolveSecretsWithError(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		secrets []*graph.Secret
+		secrets []*Secret
 	}{
 		{
-			[]*graph.Secret{
+			[]*Secret{
 				{
 					ID: "mysecret",
 				},
 			},
 		},
 		{
-			[]*graph.Secret{
+			[]*Secret{
 				{
 					ID:  "mysecret",
 					Akv: "some invalid akv URL",
@@ -166,7 +163,7 @@ func TestResolveSecretsWithError(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, err := secretResolver.ResolveSecrets(ctx, test.secrets)
+		err := secretResolver.ResolveSecrets(ctx, test.secrets)
 		if err == nil {
 			t.Fatalf("Expected secrets: %v to error but it didn't", test.secrets)
 		}
@@ -181,7 +178,7 @@ func TestResolveSecretsWithTimeout(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	secrets := []*graph.Secret{
+	secrets := []*Secret{
 		{
 			ID:  "mysecret1",
 			Akv: "https://myvault.vault.azure.net/secrets/mysecret",
@@ -212,7 +209,7 @@ func TestResolveSecretsWithTimeout(t *testing.T) {
 		},
 	}
 
-	_, resolveError := secretResolver.ResolveSecrets(ctx, secrets)
+	resolveError := secretResolver.ResolveSecrets(ctx, secrets)
 	if resolveError == nil {
 		t.Fatalf("Expected test to error but it didn't")
 	}

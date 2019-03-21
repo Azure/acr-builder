@@ -5,9 +5,29 @@ package templating
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
+
+	"github.com/Azure/acr-builder/secretmgmt"
+	"github.com/pkg/errors"
 )
+
+// MockResolveSecret will mock the azure keyvault resolve and return the concatenated Akv and client ID as the value. This is used for testing purposes only.
+func MockResolveSecret(ctx context.Context, secret *secretmgmt.Secret, errorChan chan error) {
+	if secret == nil {
+		errorChan <- errors.New("secret cannot be nil")
+		return
+	}
+
+	if secret.IsAkvSecret() {
+		secret.ResolvedValue = fmt.Sprintf("%s-%s", secret.Akv, secret.MsiClientID)
+		secret.ResolvedChan <- true
+		return
+	}
+
+	errorChan <- fmt.Errorf("cannot resolve secret with ID: %s", secret.ID)
+}
 
 func TestParseValues_Valid(t *testing.T) {
 	tests := []struct {

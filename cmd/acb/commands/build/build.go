@@ -16,6 +16,7 @@ import (
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/pkg/volume"
+	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/util"
 	"github.com/google/uuid"
@@ -334,14 +335,14 @@ func createBuildTask(
 		steps = append(steps, pushStep)
 	}
 
-	var credentials []*graph.Credential
+	var credentials []*graph.RegistryCredential
 	for _, credString := range creds {
-		cred, err := graph.CreateCredentialFromString(credString)
+		cred, err := graph.CreateRegistryCredentialFromString(credString)
 		if err != nil {
 			return nil, err
 		}
 		credentials = append(credentials, cred)
 	}
 
-	return graph.NewTask(steps, []*graph.Secret{}, registry, credentials, true)
+	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, true)
 }

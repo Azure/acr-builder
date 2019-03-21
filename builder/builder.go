@@ -60,14 +60,14 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	log.Printf("Successfully set up Docker configuration")
 	if task.UsingRegistryCreds() {
 		timeout := time.Duration(loginTimeoutInSec) * time.Second
-		for _, cred := range task.Credentials {
+		for registry, cred := range task.RegistryLoginCredentials {
 			loginCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
-			log.Printf("Logging in to registry: %s\n", cred.RegistryName)
-			if err := b.dockerLoginWithRetries(loginCtx, cred.RegistryName, cred.RegistryUsername, cred.RegistryPassword, 0); err != nil {
+			log.Printf("Logging in to registry: %s\n", registry)
+			if err := b.dockerLoginWithRetries(loginCtx, registry, cred.Username.ResolvedValue, cred.Password.ResolvedValue, 0); err != nil {
 				return err
 			}
-			log.Printf("Successfully logged into %s\n", cred.RegistryName)
+			log.Printf("Successfully logged into %s\n", registry)
 		}
 	}
 
