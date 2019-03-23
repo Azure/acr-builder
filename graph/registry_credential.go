@@ -15,7 +15,7 @@ var (
 	errInvalidUsername      = errors.New("username can't be empty")
 	errInvalidPassword      = errors.New("password can't be empty")
 	errInvalidIdentity      = errors.New("identity can't be empty")
-	errInvalidArmResourceID = errors.New("armResourceId can't be empty")
+	errInvalidArmResourceID = errors.New("armResource can't be empty")
 	errCouldNotClassify     = errors.New("unable to classify credential into opaque, vault or msi")
 )
 
@@ -28,13 +28,13 @@ const (
 
 // RegistryCredential defines a combination of registry, username and password.
 type RegistryCredential struct {
-	Registry      string `json:"registry"`
-	Username      string `json:"username,omitempty"`
-	UsernameType  string `json:"userNameProviderType,omitempty"`
-	Password      string `json:"password,omitempty"`
-	PasswordType  string `json:"passwordProviderType,omitempty"`
-	Identity      string `json:"identity,omitempty"`
-	ArmResourceID string `json:"armResourceId,omitempty"`
+	Registry     string `json:"registry"`
+	Username     string `json:"username,omitempty"`
+	UsernameType string `json:"userNameProviderType,omitempty"`
+	Password     string `json:"password,omitempty"`
+	PasswordType string `json:"passwordProviderType,omitempty"`
+	Identity     string `json:"identity,omitempty"`
+	ArmResource  string `json:"armResource,omitempty"`
 }
 
 // CreateRegistryCredentialFromString creates a RegistryCredential object from a serialized string.
@@ -93,13 +93,13 @@ func CreateRegistryCredentialFromString(str string) (*RegistryCredential, error)
 		if cred.Identity == "" {
 			return nil, errInvalidIdentity
 		}
-		if cred.ArmResourceID == "" {
+		if cred.ArmResource == "" {
 			return nil, errInvalidArmResourceID
 		}
 		retVal = &RegistryCredential{
-			Registry:      cred.Registry,
-			Identity:      cred.Identity,
-			ArmResourceID: cred.ArmResourceID,
+			Registry:    cred.Registry,
+			Identity:    cred.Identity,
+			ArmResource: cred.ArmResource,
 		}
 	} else {
 		return nil, errCouldNotClassify
@@ -123,5 +123,5 @@ func (s *RegistryCredential) Equals(t *RegistryCredential) bool {
 		s.Password == t.Password &&
 		s.PasswordType == t.PasswordType &&
 		s.Identity == t.Identity &&
-		s.ArmResourceID == t.ArmResourceID
+		s.ArmResource == t.ArmResource
 }
