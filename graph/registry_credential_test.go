@@ -30,10 +30,10 @@ func TestCreateCredentialFromString(t *testing.T) {
 			Identity:     "clientID",
 		}},
 		{`{"registry":"r","identity":"clientID"}`, false, nil},
-		{`{"registry":"r","identity":"clientID", "armResourceId": "https://management.azure.com"}`, true, &RegistryCredential{
+		{`{"registry":"r","identity":"clientID", "aadResourceId": "https://management.azure.com"}`, true, &RegistryCredential{
 			Registry:      "r",
 			Identity:      "clientID",
-			ArmResourceID: "https://management.azure.com",
+			AadResourceID: "https://management.azure.com",
 		}},
 		{`{"registry": "", "username": "blah", "password": "something"}`, false, nil},
 	}

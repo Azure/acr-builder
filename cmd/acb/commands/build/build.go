@@ -70,7 +70,7 @@ var Command = cli.Command{
 		},
 		cli.StringSliceFlag{
 			Name:  "credential",
-			Usage: "registry credentials in the format of 'server;username;password'",
+			Usage: "login credentials for custom registry",
 		},
 		cli.BoolFlag{
 			Name:  "pull",

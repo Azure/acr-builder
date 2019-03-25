@@ -109,7 +109,7 @@ func TestIsMsiSecret(t *testing.T) {
 		},
 		{
 			&Secret{
-				ArmResourceID: "foo",
+				AadResourceID: "foo",
 			},
 			true,
 		},

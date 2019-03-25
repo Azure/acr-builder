@@ -75,10 +75,6 @@ var Command = cli.Command{
 			Name:  "set",
 			Usage: "set values on the command line (use --set multiple times or use commas: key1=val1,key2=val2)",
 		},
-		cli.StringFlag{
-			Name:  "az-cloud-name",
-			Usage: "the name of azure cloud environment",
-		},
 	},
 	Action: func(context *cli.Context) error {
 		var (
@@ -87,18 +83,17 @@ var Command = cli.Command{
 			encodedTaskFile = context.String("encoded-file")
 
 			// Rendering options
-			values               = context.String("values")
-			encodedValues        = context.String("encoded-values")
-			homevol              = context.String("homevol")
-			id                   = context.String("id")
-			commit               = context.String("commit")
-			repository           = context.String("repository")
-			branch               = context.String("branch")
-			triggeredBy          = context.String("triggered-by")
-			tag                  = context.String("git-tag")
-			registry             = context.String("registry")
-			setVals              = context.StringSlice("set")
-			azureEnvironmentName = context.String("az-cloud-name")
+			values        = context.String("values")
+			encodedValues = context.String("encoded-values")
+			homevol       = context.String("homevol")
+			id            = context.String("id")
+			commit        = context.String("commit")
+			repository    = context.String("repository")
+			branch        = context.String("branch")
+			triggeredBy   = context.String("triggered-by")
+			tag           = context.String("git-tag")
+			registry      = context.String("registry")
+			setVals       = context.StringSlice("set")
 
 			renderOpts = &templating.BaseRenderOptions{
 				TaskFile:                taskFile,
@@ -117,7 +112,6 @@ var Command = cli.Command{
 				SharedVolume:            homevol,
 				OS:                      runtime.GOOS,
 				Architecture:            runtime.GOARCH,
-				AzureEnvironmentName:    azureEnvironmentName,
 				SecretResolveTimeout:    secretmgmt.DefaultSecretResolveTimeout,
 			}
 		)

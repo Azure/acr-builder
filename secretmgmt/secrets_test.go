@@ -24,7 +24,7 @@ func MockResolveSecret(ctx context.Context, secret *Secret, errorChan chan error
 		secret.ResolvedChan <- true
 		return
 	} else if secret.IsMsiSecret() {
-		secret.ResolvedValue = fmt.Sprintf("msi-%s-%s", secret.ArmResourceID, secret.MsiClientID)
+		secret.ResolvedValue = fmt.Sprintf("msi-%s-%s", secret.AadResourceID, secret.MsiClientID)
 		secret.ResolvedChan <- true
 		return
 	}
@@ -88,7 +88,7 @@ func TestResolveSecrets(t *testing.T) {
 				},
 				{
 					ID:            "5",
-					ArmResourceID: "k5",
+					AadResourceID: "k5",
 				},
 				{
 					ID:  "6",
@@ -96,7 +96,7 @@ func TestResolveSecrets(t *testing.T) {
 				},
 				{
 					ID:            "7",
-					ArmResourceID: "k7",
+					AadResourceID: "k7",
 				},
 				{
 					ID:  "8",
@@ -104,7 +104,7 @@ func TestResolveSecrets(t *testing.T) {
 				},
 				{
 					ID:            "9",
-					ArmResourceID: "k9",
+					AadResourceID: "k9",
 				},
 				{
 					ID:  "10",

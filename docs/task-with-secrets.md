@@ -31,7 +31,6 @@ OPTIONS:
    --git-tag value             the git tag that triggered the run
    --registry value, -r value  the fully qualified name of the registry
    --set value                 set values on the command line (use --set multiple times or use commas: key1=val1,key2=val2)
-   --az-cloud-name value       the name of azure environment
 ```
 
 Build and Push the acr-builder docker image to a docker hub or azure container registry. Here for simplicity , let's us push to docker hub:
@@ -111,8 +110,7 @@ az vm create -n testacbvm -g myResourceGroup --image UbuntuLTS --assign-identity
 ### SSH to VM and set up with docker and acb image
 
 ```
-sudo -s
-apt-get install docker-ce
+sudo apt-get install docker-ce -y
 docker pull <your-dockerhub-username>/acb-exec
 docker tag <your-dockerhub-username>/acb-exec acb 
 ```

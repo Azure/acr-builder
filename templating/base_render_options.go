@@ -68,9 +68,6 @@ type BaseRenderOptions struct {
 	// Architecture is the GOARCH.
 	Architecture string
 
-	// AzureEnvironmentName is the name of the azure environment.
-	AzureEnvironmentName string
-
 	// SecretResolveTimeout is the timeout for resolving a secret during rendering.
 	SecretResolveTimeout time.Duration
 }
