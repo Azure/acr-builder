@@ -24,7 +24,7 @@ var (
 // Command fetches secret from supported vaults displays the secret vaule as output.
 var Command = cli.Command{
 	Name:  "getsecret",
-	Usage: "gets the secret value from a specified vault.",
+	Usage: "gets the secret value from a specified vault",
 	Subcommands: []cli.Command{
 		{
 			Name:  "akv",
