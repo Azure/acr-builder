@@ -15,7 +15,7 @@ var (
 	errInvalidUsername      = errors.New("username can't be empty")
 	errInvalidPassword      = errors.New("password can't be empty")
 	errInvalidIdentity      = errors.New("identity can't be empty")
-	errInvalidArmResourceID = errors.New("armResource can't be empty")
+	errInvalidAadResourceID = errors.New("aadResourceId can't be empty")
 	errCouldNotClassify     = errors.New("unable to classify credential into opaque, vault or msi")
 )
 
@@ -28,13 +28,13 @@ const (
 
 // RegistryCredential defines a combination of registry, username and password.
 type RegistryCredential struct {
-	Registry     string `json:"registry"`
-	Username     string `json:"username,omitempty"`
-	UsernameType string `json:"userNameProviderType,omitempty"`
-	Password     string `json:"password,omitempty"`
-	PasswordType string `json:"passwordProviderType,omitempty"`
-	Identity     string `json:"identity,omitempty"`
-	ArmResource  string `json:"armResource,omitempty"`
+	Registry      string `json:"registry"`
+	Username      string `json:"username,omitempty"`
+	UsernameType  string `json:"userNameProviderType,omitempty"`
+	Password      string `json:"password,omitempty"`
+	PasswordType  string `json:"passwordProviderType,omitempty"`
+	Identity      string `json:"identity,omitempty"`
+	AadResourceID string `json:"aadResourceId,omitempty"`
 }
 
 // CreateRegistryCredentialFromString creates a RegistryCredential object from a serialized string.
@@ -93,13 +93,13 @@ func CreateRegistryCredentialFromString(str string) (*RegistryCredential, error)
 		if cred.Identity == "" {
 			return nil, errInvalidIdentity
 		}
-		if cred.ArmResource == "" {
-			return nil, errInvalidArmResourceID
+		if cred.AadResourceID == "" {
+			return nil, errInvalidAadResourceID
 		}
 		retVal = &RegistryCredential{
-			Registry:    cred.Registry,
-			Identity:    cred.Identity,
-			ArmResource: cred.ArmResource,
+			Registry:      cred.Registry,
+			Identity:      cred.Identity,
+			AadResourceID: cred.AadResourceID,
 		}
 	} else {
 		return nil, errCouldNotClassify
@@ -123,5 +123,5 @@ func (s *RegistryCredential) Equals(t *RegistryCredential) bool {
 		s.Password == t.Password &&
 		s.PasswordType == t.PasswordType &&
 		s.Identity == t.Identity &&
-		s.ArmResource == t.ArmResource
+		s.AadResourceID == t.AadResourceID
 }

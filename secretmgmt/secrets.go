@@ -116,7 +116,7 @@ func resolveSecret(ctx context.Context, secret *Secret, errorChan chan error) {
 		secret.ResolvedChan <- true
 		return
 	} else if secret.IsMsiSecret() {
-		secretValue, err := tokenutil.GetRegistryRefreshToken(secret.ID, secret.ArmResource, secret.MsiClientID)
+		secretValue, err := tokenutil.GetRegistryRefreshToken(secret.ID, secret.AadResourceID, secret.MsiClientID)
 		if err != nil {
 			errorChan <- errors.Wrap(err, "failed to fetch Identity secret")
 			return

@@ -149,7 +149,7 @@ The idea is:
 root@testacbvm:~# docker run -v $(pwd):/workspace --workdir /workspace -v /var/run/docker.sock:/var/run/docker.sock acb exec  \
 --homevol $(pwd) -f mytask.yaml \
 --credential '{"registry":"myregistry1.azurecr.io","userNameProviderType":"vaultsecret","username":"https://myacbvault.vault.azure.net/secrets/username","passwordProviderType":"vaultsecret","password":"https://myacbvault.vault.azure.net/secrets/password","identity":"c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"}' \
---credential '{"registry":"myregistry2.azurecr.io","identity":"c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86","armResource":"https://management.azure.com/"}'
+--credential '{"registry":"myregistry2.azurecr.io","identity":"c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86","aadResourceId":"https://management.azure.com/"}'
 
 
 2019/03/23 00:58:07 Using /home/azureuser as the home volume

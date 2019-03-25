@@ -384,7 +384,7 @@ func ResolveCustomRegistryCredentials(ctx context.Context, credentials []*Regist
 		if isMSI {
 			usernameSecretObject.ResolvedValue = "00000000-0000-0000-0000-000000000000"
 			passwordSecretObject.MsiClientID = cred.Identity
-			passwordSecretObject.ArmResource = cred.ArmResource
+			passwordSecretObject.AadResourceID = cred.AadResourceID
 			unresolvedCreds = append(unresolvedCreds, passwordSecretObject)
 		}
 	}

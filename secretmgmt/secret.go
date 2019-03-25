@@ -10,7 +10,7 @@ import (
 
 var (
 	errMissingSecretIDs      = errors.New("secret is missing an ID as well as auto-generated ID")
-	errMissingSecretProps    = errors.New("secret should contain either akv property for vault secret, or msi clientID/armResource for msi authentication")
+	errMissingSecretProps    = errors.New("secret should contain either akv property for vault secret, or msi clientID/aadResourceId for msi authentication")
 	errSecretIDContainsSpace = errors.New("secret ID cannot contain spaces")
 	errInvalidUUID           = errors.New("msi client ID is not a valid guid")
 )
@@ -24,8 +24,8 @@ type Secret struct {
 	// After the Secret is resolved, the value can be found here.
 	ResolvedValue string
 
-	// ArmResource is used to fetch ARM token from a TokenServer for an identity
-	ArmResource string
+	// AadResourceID is used to fetch ARM token from a TokenServer for an identity
+	AadResourceID string
 
 	// ResolvedChan is used to signal the callers
 	// that the secret has been resolved successfully to a value.
@@ -71,7 +71,7 @@ func (s *Secret) IsMsiSecret() bool {
 	if s == nil {
 		return false
 	}
-	return s.ArmResource != ""
+	return s.AadResourceID != ""
 }
 
 // Equals determines whether or not two secrets are equal.
@@ -86,5 +86,5 @@ func (s *Secret) Equals(t *Secret) bool {
 	return s.ID == t.ID &&
 		s.Akv == t.Akv &&
 		s.MsiClientID == t.MsiClientID &&
-		s.ArmResource == t.ArmResource
+		s.AadResourceID == t.AadResourceID
 }
