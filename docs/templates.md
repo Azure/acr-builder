@@ -1,10 +1,12 @@
 # Templates
 
-Individual builds and tasks both support templating. Internally we use [Go templates](https://golang.org/pkg/text/template/) and [Sprig](https://github.com/Masterminds/sprig/).
+Both builds (`acb build`, `az acr build`) and tasks (`acb exec`, `az acr run -f acb.yaml`) support templating when running the builder locally. However, if the builder is invoked through Azure, only tasks support value-based templating. Builds can only render [run variables](#run-variables).
 
-## Using custom values
+Internally we use [Go templates](https://golang.org/pkg/text/template/) and [Sprig](https://github.com/Masterminds/sprig/) to perform the rendering. Please review their documentation for a list of all the available template functions.
 
-A sample values file looks like this:
+## Custom values
+
+A `values.yaml` file consists of key/value pairs, such as:
 
 ```yaml
 born: 1867
@@ -14,41 +16,20 @@ research: radioactivity
 from: Poland
 ```
 
-When this file is loaded with `--values`, you can reference any of the values using this syntax: `{{ .Values.born }}`, `{{ .Values.research }}`, etc.
-You could also override any of these values using `--set born=1900` for example.
+When this file is provided via `--values`, you can reference any of the values using `{{ .Values.born }}`, `{{ .Values.research }}`, etc.
 
-## Build variables
+You can override any of these values using `--set key=value`. For example, using `--set born=1900` would cause `{{.Values.born}}` to render as `1900`.
+
+## Run variables
 
 The following variables can be accessed using `{{ .Run.VariableName }}`, where `VariableName` equals one of the following:
 
-- `ID`
-- `SharedVolume`
-- `Registry` (the fully qualified registry name)
-- `RegistryName` (just the name of the registry)
-- `Date` (`yyyyMMdd-HHmmssz` format)
-- `OS`
-- `Architecture`
-
-## Tasks
-
-You can execute a task with `exec`. It requires a `-f` file and optionally a `--values` file. You can also use `--set` to override values specified in `--values`, or to provide new values not covered by `--values`.
-
-```sh
-$ acb exec -f templating/testdata/helloworld/git-build.yaml --values templating/testdata/helloworld/values.yaml --id demo
-
-...
-
-Successfully tagged acr-builder:demo
-```
-
-## Build
-
-Templating in `build` works the same as `exec`, except that you don't have to provide a `Task` file.
-
-```sh
-$ acb build https://github.com/Azure/acr-builder.git -f Dockerfile -t "acr-builder:{{.Run.ID}}" --id demo
-
-...
-
-Successfully tagged acr-builder:demo
-```
+| Variable Name | Description |
+|---------------|-------------|
+| `ID` | The unique identifier of the run |
+| `SharedVolume` | The unique identifier of the shared volume, which is accessible by all steps |
+| `Registry` | The fully qualified registry name |
+| `RegistryName` | The name of the container registry |
+| `Date` | The start time of the run in `yyyyMMdd-HHmmssz` format |
+| `OS` | The operating system being used |
+| `Architecture` | The architecture being used |

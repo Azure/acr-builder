@@ -6,12 +6,19 @@ ACR Builder is the backbone behind [Azure Container Registry Tasks](https://docs
 
 It can be used to automate container image patching and execute arbitrary containers for complex workflows.
 
-You can find examples of how to create multi-step tasks [here](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-multi-step) and a reference to all of the available YAML properties [here](./docs/task.md).
+You can find examples of how to create multi-step tasks [here](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-multi-step).
+
+## Task Schema
+
+For a list of all available YAML properties, please review the [Task schema](./docs/task.md).
+
+## Templating
+
+To understand templating and how to provide custom values to your runs, review [templates](./docs/templates.md).
 
 ## Requirements
 
 - Docker
-- There are also dependency images that are used throughout the task. Refer to the `baseimages` folder for corresponding Dockerfiles to generate these images, and review the list below for Linux/Windows.
 
 ## Building
 
@@ -29,38 +36,33 @@ Windows:
 $ docker build -f Windows.Dockerfile -t acb .
 ```
 
-## Linux Images
-
-- `acb`
-- `docker`
-- `ubuntu`
-
-## Windows Images
-
-- `acb`
-- `docker`
-- `microsoft/windowsservercore:1803`
-
 ## Usage
 
 ```sh
 $ acb --help
 
-Usage:
-  acb [command]
+NAME:
+   acb - run and build containers on Azure Container Registry
 
-Available Commands:
-  build       Run a build
-  download    Download the specified context to a destination folder
-  exec        Execute a task
-  help        Help about any command
-  render      Render a template
-  scan        Scan a Dockerfile
-  version     Print version information
+USAGE:
+   acb [global options] command [command options] [arguments...]
 
-Flags:
-  -d, --debug   enable verbose output for debugging
-  -h, --help    help for acb
+VERSION:
+   38f06e5
+
+COMMANDS:
+     build      build container images
+     download   download the specified context to a destination folder
+     exec       execute a task file
+     render     render the specified template
+     scan       scan a Dockerfile for dependencies
+     version    print the client and runtime versions
+     getsecret  gets the secret value from a specified vault
+     help, h    Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --help, -h     show help
+   --version, -v  print the version
 ```
 
 ## Building an image
