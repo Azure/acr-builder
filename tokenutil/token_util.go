@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/pkg/errors"
@@ -36,7 +37,7 @@ func GetRegistryRefreshToken(registry, resourceID, clientID string) (string, err
 		return "", errors.Wrap(err, "unable to get ARM token")
 	}
 
-	client := &http.Client{}
+	client := autorest.NewClientWithUserAgent("azure/acr/tasks")
 	exchangeURL := fmt.Sprintf("https://%s/oauth2/exchange", registry)
 
 	v := url.Values{}
@@ -44,10 +45,17 @@ func GetRegistryRefreshToken(registry, resourceID, clientID string) (string, err
 	v.Set("service", registry)
 	v.Set("access_token", armToken.AccessToken)
 
-	response, err := client.Post(exchangeURL, "application/x-www-form-urlencoded", strings.NewReader(v.Encode()))
+	req, err := http.NewRequest("POST", exchangeURL, strings.NewReader(v.Encode()))
+	if err != nil {
+		return "", errors.Wrap(err, "unable to create an HTTP post request to exchangeAPI")
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	response, err := client.Do(req)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to make post request to exchangeAPI")
 	}
+
 	defer response.Body.Close()
 
 	var token RegistryRefreshToken
