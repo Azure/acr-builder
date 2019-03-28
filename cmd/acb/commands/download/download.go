@@ -5,6 +5,7 @@ package download
 
 import (
 	gocontext "context"
+	"encoding/json"
 	"errors"
 	"log"
 	"time"
@@ -13,6 +14,11 @@ import (
 	"github.com/Azure/acr-builder/scan"
 	"github.com/urfave/cli"
 )
+
+type gitInfo struct {
+	CommitID string `json:"commitID"`
+	Branch   string `json:"branch"`
+}
 
 // Command downloads the specified context to a destination folder.
 var Command = cli.Command{
@@ -55,12 +61,21 @@ var Command = cli.Command{
 		if err != nil {
 			return err
 		}
-		workingDir, _, err := scanner.ObtainSourceCode(ctx, downloadCtx)
+		workingDir, sha, branch, err := scanner.ObtainSourceCode(ctx, downloadCtx)
+		if err != nil {
+			return err
+		}
+
+		commitAndBranch, err := json.Marshal(&gitInfo{
+			CommitID: sha,
+			Branch:   branch,
+		})
 		if err != nil {
 			return err
 		}
 
 		log.Printf("Download complete, working directory: %s\n", workingDir)
+		log.Printf("CommitID and Branch information: %s\n", commitAndBranch)
 		return nil
 	},
 }

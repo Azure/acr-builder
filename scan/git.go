@@ -36,6 +36,18 @@ func (s *Scanner) GetGitCommitID(ctx context.Context, cmdDir string) (string, er
 	return strings.TrimSpace(buf.String()), nil
 }
 
+// GetGitBranchName queries git for the current branch name.
+// If a branch is checked out i.e. git checkout branch_name, then the following command will give `branch_name` as output
+// If a commit is checked out and head is at a detached state, then `HEAD` will be output.
+func (s *Scanner) GetGitBranchName(ctx context.Context, cmdDir string) (string, error) {
+	cmd := []string{"git", "rev-parse", "--abbrev-ref", "HEAD"}
+	var buf bytes.Buffer
+	if err := s.procManager.Run(ctx, cmd, nil, &buf, os.Stderr, cmdDir); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(buf.String()), nil
+}
+
 // Clone clones a repository into a newly created directory, returning the resulting directory name.
 func Clone(remoteURL string, root string) (string, error) {
 	repo, err := parseRemoteURL(remoteURL)
