@@ -13,6 +13,7 @@ script:
   - make lint
   - make build
   - make binaries
+  - make test
 
 notifications:
   email: false
