@@ -29,17 +29,21 @@ const (
 )
 
 // ObtainSourceCode obtains the source code from the specified context.
-func (s *Scanner) ObtainSourceCode(ctx context.Context, scContext string) (workingDir string, sha string, err error) {
+func (s *Scanner) ObtainSourceCode(ctx context.Context, scContext string) (workingDir string, sha string, branch string, err error) {
 	isGitURL, workingDir, err := s.getContext(scContext)
 	if err != nil {
-		return workingDir, sha, err
+		return workingDir, sha, branch, err
 	}
 
 	if isGitURL {
 		sha, err = s.GetGitCommitID(ctx, workingDir)
+		if err != nil {
+			return workingDir, sha, branch, err
+		}
+		branch, err = s.GetGitBranchName(ctx, workingDir)
 	}
 
-	return workingDir, sha, err
+	return workingDir, sha, branch, err
 }
 
 func (s *Scanner) getContext(scContext string) (isGitURL bool, workingDir string, err error) {

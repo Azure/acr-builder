@@ -45,7 +45,7 @@ func NewScanner(pm *procmanager.ProcManager, sourceContext string, dockerfile st
 
 // Scan scans a Dockerfile for dependencies.
 func (s *Scanner) Scan(ctx context.Context) (deps []*image.Dependencies, err error) {
-	workingDir, sha, err := s.ObtainSourceCode(ctx, s.context)
+	workingDir, sha, _, err := s.ObtainSourceCode(ctx, s.context)
 	if err != nil {
 		return deps, errors.Wrap(err, "failed to download source code")
 	}
