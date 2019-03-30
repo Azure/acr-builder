@@ -29,9 +29,10 @@ func TestCreateBuildTask(t *testing.T) {
 		renderOpts      = &templating.BaseRenderOptions{
 			Registry: registry,
 		}
-		debug = false
-		push  = true
-		creds = []string{`{"registry":"foo.azurecr.io","username":"user","userNameProviderType":"opaque","password":"pw","passwordProviderType":"opaque"}`}
+		debug      = false
+		push       = true
+		creds      = []string{`{"registry":"foo.azurecr.io","username":"user","userNameProviderType":"opaque","password":"pw","passwordProviderType":"opaque"}`}
+		workingDir = ""
 	)
 
 	task, err := createBuildTask(
@@ -51,7 +52,8 @@ func TestCreateBuildTask(t *testing.T) {
 		debug,
 		registry,
 		push,
-		creds)
+		creds,
+		workingDir)
 	if err != nil {
 		t.Fatalf("failed to create build task, err: %v", err)
 	}

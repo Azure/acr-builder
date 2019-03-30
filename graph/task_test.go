@@ -77,7 +77,7 @@ func TestNewTask(t *testing.T) {
 			}
 		}
 
-		task, err := NewTask(gocontext.Background(), test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.isBuildTask)
+		task, err := NewTask(gocontext.Background(), test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.isBuildTask, "")
 		if err != nil {
 			t.Fatalf("Unexpected err while creating task: %v", err)
 		}

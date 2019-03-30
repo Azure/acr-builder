@@ -148,7 +148,8 @@ func NewTask(
 	secrets []*secretmgmt.Secret,
 	registry string,
 	credentials []*RegistryCredential,
-	isBuildTask bool) (*Task, error) {
+	isBuildTask bool,
+	defaultWorkDir string) (*Task, error) {
 	t := &Task{
 		Steps:        steps,
 		StepTimeout:  defaultStepTimeoutInSeconds,
@@ -157,7 +158,9 @@ func NewTask(
 		Credentials:  credentials,
 		IsBuildTask:  isBuildTask,
 	}
-
+	if defaultWorkDir != "" && t.WorkingDirectory == "" {
+		t.WorkingDirectory = defaultWorkDir
+	}
 	err := t.initialize(ctx)
 	return t, err
 }
