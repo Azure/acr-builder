@@ -30,23 +30,19 @@ const (
 
 // ObtainSourceCode obtains the source code from the specified context.
 func (s *Scanner) ObtainSourceCode(ctx context.Context, scContext string) (workingDir string, sha string, branch string, err error) {
-	isGitURL, workingDir, err := s.getContext(scContext)
+	workingDir, err = s.getContext(ctx, scContext)
 	if err != nil {
 		return workingDir, sha, branch, err
 	}
 
-	if isGitURL {
-		sha, err = s.GetGitCommitID(ctx, workingDir)
-		if err != nil {
-			return workingDir, sha, branch, err
-		}
-		branch, err = s.GetGitBranchName(ctx, workingDir)
-	}
-
-	return workingDir, sha, branch, err
+	// it might not be a GitRepo but we still query for CommitID/Branch
+	// in case if it errors out, `sha` and `branch` will be "", and we eat the errors
+	sha, _ = s.GetGitCommitID(ctx, workingDir)
+	branch, _ = s.GetGitBranchName(ctx, workingDir)
+	return workingDir, sha, branch, nil
 }
 
-func (s *Scanner) getContext(scContext string) (isGitURL bool, workingDir string, err error) {
+func (s *Scanner) getContext(ctx context.Context, scContext string) (workingDir string, err error) {
 	isSourceControlURL := util.IsSourceControlURL(scContext)
 	isURL := util.IsURL(scContext)
 
@@ -55,20 +51,20 @@ func (s *Scanner) getContext(scContext string) (isGitURL bool, workingDir string
 		if _, err := os.Stat(s.destinationFolder); os.IsNotExist(err) {
 			// Creates the destination folder if necessary, granting full permissions to the owner.
 			if innerErr := os.Mkdir(s.destinationFolder, 0700); innerErr != nil {
-				return false, scContext, innerErr
+				return scContext, innerErr
 			}
 		}
 	}
 
 	if isSourceControlURL {
 		workingDir, err := s.getContextFromGitURL(scContext)
-		return true, workingDir, err
+		return workingDir, err
 	} else if isURL {
 		err := s.getContextFromURL(scContext)
-		return false, s.destinationFolder, err
+		return s.destinationFolder, err
 	}
 
-	return false, scContext, nil
+	return scContext, nil
 }
 
 func (s *Scanner) getContextFromGitURL(gitURL string) (contextDir string, err error) {

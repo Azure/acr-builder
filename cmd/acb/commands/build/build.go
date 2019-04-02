@@ -41,6 +41,10 @@ var Command = cli.Command{
 			Value: "Dockerfile",
 		},
 		cli.StringFlag{
+			Name:  "working-directory",
+			Usage: "the default working directory to use",
+		},
+		cli.StringFlag{
 			Name:  "target",
 			Usage: "specifies the target stage to build in a multi-stage build",
 		},
@@ -142,21 +146,22 @@ var Command = cli.Command{
 	Action: func(context *cli.Context) error {
 		var (
 			// Build options
-			buildContext    = context.Args().First()
-			dockerfile      = context.String("file")
-			target          = context.String("target")
-			isolation       = context.String("isolation")
-			platform        = context.String("platform")
-			tags            = context.StringSlice("tag")
-			buildArgs       = context.StringSlice("build-arg")
-			secretBuildArgs = context.StringSlice("secret-build-arg")
-			labels          = context.StringSlice("label")
-			creds           = context.StringSlice("credential")
-			pull            = context.Bool("pull")
-			noCache         = context.Bool("no-cache")
-			push            = context.Bool("push")
-			dryRun          = context.Bool("dry-run")
-			debug           = context.Bool("debug")
+			buildContext            = context.Args().First()
+			dockerfile              = context.String("file")
+			defaultWorkingDirectory = context.String("working-directory")
+			target                  = context.String("target")
+			isolation               = context.String("isolation")
+			platform                = context.String("platform")
+			tags                    = context.StringSlice("tag")
+			buildArgs               = context.StringSlice("build-arg")
+			secretBuildArgs         = context.StringSlice("secret-build-arg")
+			labels                  = context.StringSlice("label")
+			creds                   = context.StringSlice("credential")
+			pull                    = context.Bool("pull")
+			noCache                 = context.Bool("no-cache")
+			push                    = context.Bool("push")
+			dryRun                  = context.Bool("dry-run")
+			debug                   = context.Bool("debug")
 
 			// Rendering options
 			values        = context.String("values")
@@ -233,7 +238,8 @@ var Command = cli.Command{
 			debug,
 			registry,
 			push,
-			creds)
+			creds,
+			defaultWorkingDirectory)
 		if err != nil {
 			return err
 		}
@@ -262,6 +268,7 @@ func createBuildTask(
 	registry string,
 	push bool,
 	creds []string,
+	workingDirectory string,
 ) (*graph.Task, error) {
 	// Create the run command to be used in the template
 	args := []string{}
@@ -344,5 +351,5 @@ func createBuildTask(
 		credentials = append(credentials, cred)
 	}
 
-	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, true)
+	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, true, workingDirectory)
 }
