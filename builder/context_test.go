@@ -162,19 +162,20 @@ func TestGetScanArgs(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual := strings.Join(getScanArgs(
-			test.containerName,
-			test.volName,
-			test.containerWorkspaceDir,
-			test.stepWorkDir,
-			test.dockerfile,
-			test.outputDir,
-			test.tags,
-			test.buildArgs,
-			test.context), " ")
+		actual := strings.Join(
+			getScanArgs(
+				test.containerName,
+				test.volName,
+				test.containerWorkspaceDir,
+				test.stepWorkDir,
+				test.dockerfile,
+				test.outputDir,
+				test.tags,
+				test.buildArgs,
+				test.context),
+			" ")
 		if test.expected != actual {
-			t.Fatalf("Expected %s but got %s", test.expected, actual)
+			t.Fatalf("Expected\n%s\nbut got\n%s", test.expected, actual)
 		}
-
 	}
 }

@@ -21,6 +21,7 @@ import (
 
 const (
 	dockerfileComment = "#"
+	defaultDockerfile = "Dockerfile"
 )
 
 var (
@@ -29,14 +30,7 @@ var (
 
 // ScanForDependencies scans for base image dependencies.
 func (s *Scanner) ScanForDependencies(context string, workingDir string, dockerfile string, buildArgs []string, pushTo []string) (deps []*image.Dependencies, err error) {
-	dockerfilePath := dockerfile
-	// If the context is local, the Dockerfile path is simply the Dockerfile.
-	// In the case of remote contexts, it's scoped to the clone or downloaded location and the working directory.
-	// For example, for a git URL ending with .git#:foo/bar which was downloaded to a directory "build",
-	// the path is scoped to build/foo/bar/Dockerfile.
-	if !util.IsLocalContext(s.context) {
-		dockerfilePath = path.Clean(path.Join(workingDir, dockerfile))
-	}
+	dockerfilePath := createDockerfilePath(context, workingDir, dockerfile)
 	file, err := os.Open(dockerfilePath)
 	if err != nil {
 		return deps, fmt.Errorf("error opening dockerfile: %s, error: %v", dockerfilePath, err)
@@ -282,4 +276,30 @@ func parseAssignment(in string) (name string, value string, err error) {
 func removeSurroundingQuotes(s string) string {
 	s = strings.Trim(s, `"`)
 	return strings.Trim(s, `'`)
+}
+
+// createDockerfilePath determines where we should look for the dockerfile depending on the
+// context and working directory.
+func createDockerfilePath(context string, workingDir string, dockerfile string) string {
+	dockerfilePath := dockerfile
+	isLocalContext := util.IsLocalContext(context)
+
+	// For local context:
+	// - If the Dockerfile wasn't specified, we default its value and check for it relative to the working directory.
+	// - If the Dockerfile was specified, we simply look at the provided Dockerfile's path.
+	//
+	// For remote context:
+	// - The Dockerfile is scoped to the cloned or downloaded location and the working directory.
+	//   I.e., for https://github.com/Azure/acr-builder.git#:foo/bar, which was downloaded to a directory "build",
+	//   the path must be scoped to build/foo/bar/Dockerfile
+	if isLocalContext && dockerfile == "" {
+		dockerfilePath = path.Clean(path.Join(workingDir, defaultDockerfile))
+	} else if !isLocalContext {
+		if dockerfile == "" {
+			dockerfile = defaultDockerfile
+		}
+		dockerfilePath = path.Clean(path.Join(workingDir, dockerfile))
+	}
+
+	return dockerfilePath
 }

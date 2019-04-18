@@ -21,7 +21,7 @@ const (
 func parseDockerBuildCmd(cmd string) (dockerfile string, context string) {
 	fields := strings.Fields(cmd)
 	prev := ""
-	dockerfile = "Dockerfile"
+	dockerfile = ""
 	context = "."
 
 	for i := 0; i < len(fields); i++ {

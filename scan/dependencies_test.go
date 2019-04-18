@@ -129,3 +129,29 @@ func TestRemoveSurroundingQuotes(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateDockerfilePath(t *testing.T) {
+	tests := []struct {
+		context    string
+		workDir    string
+		dockerfile string
+		expected   string
+	}{
+		// Remote context
+		{"https://github.com/Azure/acr-builder.git", "", "", defaultDockerfile},
+		{"https://github.com/Azure/acr-builder.git", "build", "", "build/" + defaultDockerfile},
+		{"https://github.com/Azure/acr-builder.git#:foo/bar", "", "foo/bar/Dockerfile", "foo/bar/Dockerfile"},
+		{"https://github.com/Azure/acr-builder.git#:foo/bar", "build", "foo/bar/Dockerfile", "build/foo/bar/Dockerfile"},
+
+		// Local context
+		{".", ".", "", defaultDockerfile},
+		{"src/foo", "src/foo", "", "src/foo/" + defaultDockerfile},
+		{"src/foo", "src/foo", "bar/qux/Dockerfile", "bar/qux/Dockerfile"},
+	}
+
+	for _, test := range tests {
+		if actual := createDockerfilePath(test.context, test.workDir, test.dockerfile); actual != test.expected {
+			t.Errorf("expected %s but got %s", test.expected, actual)
+		}
+	}
+}
