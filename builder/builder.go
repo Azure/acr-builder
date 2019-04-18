@@ -57,7 +57,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	if err := b.setupConfig(configCtx); err != nil {
 		return err
 	}
-	log.Printf("Successfully set up Docker configuration")
+	log.Println("Successfully set up Docker configuration")
 	if task.UsingRegistryCreds() {
 		timeout := time.Duration(loginTimeoutInSec) * time.Second
 		for registry, cred := range task.RegistryLoginCredentials {
