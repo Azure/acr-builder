@@ -33,3 +33,7 @@ The following variables can be accessed using `{{ .Run.VariableName }}`, where `
 | `Date` | The start time of the run in `yyyyMMdd-HHmmssz` format |
 | `OS` | The operating system being used |
 | `Architecture` | The architecture being used |
+| `Commit` | The commit that triggered the run or the latest commit from the actively checked out branch |
+| `Branch` | The branch that triggered the run or the branch which is checked out after cloning |
+
+Note that certain properties such as `Commit` and `Branch` will not be available at all times. For example, if you manually queue a run which uploads a context that doesn't contain a `.git` folder.
