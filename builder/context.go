@@ -172,7 +172,6 @@ func getScanArgs(
 
 	// Positional context must appear last
 	args = append(args, sourceContext)
-
 	return args
 }
 

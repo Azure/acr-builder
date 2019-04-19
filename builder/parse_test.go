@@ -18,10 +18,10 @@ func TestParseDockerBuildCmd(t *testing.T) {
 		{1, "-f Dockerfile -t {{.Run.ID}}:latest https://github.com/Azure/acr-builder.git", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
 		{2, "https://github.com/Azure/acr-builder.git -f Dockerfile -t foo:bar", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
 		{3, "https://github.com/Azure/acr-builder.git#master:blah -f Dockerfile -t foo:bar", "Dockerfile", "https://github.com/Azure/acr-builder.git#master:blah"},
-		{4, ".", "Dockerfile", "."},
+		{4, ".", "", "."},
 		{5, "--file src/Dockerfile . -t foo:bar", "src/Dockerfile", "."},
 		{6, "-f src/Dockerfile .", "src/Dockerfile", "."},
-		{7, "-t foo https://github.com/Azure/acr-builder.git#:HelloWorld", "Dockerfile", "https://github.com/Azure/acr-builder.git#:HelloWorld"},
+		{7, "-t foo https://github.com/Azure/acr-builder.git#:HelloWorld", "", "https://github.com/Azure/acr-builder.git#:HelloWorld"},
 	}
 
 	for _, test := range tests {
