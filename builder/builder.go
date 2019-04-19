@@ -210,7 +210,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		// Print out a warning message if a remote context doesn't appear to be valid, i.e. doesn't end with .git.
 		validateDockerContext(dockerContext)
 
-		log.Println("Obtaining source code and scanning for dependencies...")
+		log.Println("Scanning for dependencies...")
 		timeout := time.Duration(scrapeTimeoutInSec) * time.Second
 		scrapeCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
@@ -218,7 +218,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to scan dependencies")
 		}
-		log.Println("Successfully obtained source code and scanned for dependencies")
+		log.Println("Successfully scanned dependencies")
 		step.ImageDependencies = deps
 
 		workingDirectory := step.WorkingDirectory
