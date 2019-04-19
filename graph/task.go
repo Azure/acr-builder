@@ -368,7 +368,7 @@ func ResolveCustomRegistryCredentials(ctx context.Context, credentials []*Regist
 		case Opaque:
 			usernameSecretObject.ResolvedValue = cred.Username
 		case VaultSecret:
-			usernameSecretObject.Akv = cred.Username
+			usernameSecretObject.KeyVault = cred.Username
 			usernameSecretObject.MsiClientID = cred.Identity
 			unresolvedCreds = append(unresolvedCreds, usernameSecretObject)
 		case "":
@@ -379,7 +379,7 @@ func ResolveCustomRegistryCredentials(ctx context.Context, credentials []*Regist
 		case Opaque:
 			passwordSecretObject.ResolvedValue = cred.Password
 		case VaultSecret:
-			passwordSecretObject.Akv = cred.Password
+			passwordSecretObject.KeyVault = cred.Password
 			passwordSecretObject.MsiClientID = cred.Identity
 			unresolvedCreds = append(unresolvedCreds, passwordSecretObject)
 		}

@@ -99,16 +99,16 @@ func resolveSecret(ctx context.Context, secret *Secret, errorChan chan error) {
 		return
 	}
 
-	if secret.IsAkvSecret() {
-		secretConfig, err := vaults.NewAKVSecretConfig(secret.Akv, secret.MsiClientID)
+	if secret.IsKeyVaultSecret() {
+		secretConfig, err := vaults.NewAKVSecretConfig(secret.KeyVault, secret.MsiClientID)
 		if err != nil {
-			errorChan <- errors.Wrap(err, "failed to create azure keyvault secret config")
+			errorChan <- errors.Wrap(err, "failed to create key vault secret config")
 			return
 		}
 
 		secretValue, err := secretConfig.GetValue(ctx)
 		if err != nil {
-			errorChan <- errors.Wrap(err, "failed to fetch azure key vault secret")
+			errorChan <- errors.Wrap(err, "failed to fetch key vault secret")
 			return
 		}
 
@@ -118,7 +118,7 @@ func resolveSecret(ctx context.Context, secret *Secret, errorChan chan error) {
 	} else if secret.IsMsiSecret() {
 		secretValue, err := tokenutil.GetRegistryRefreshToken(secret.ID, secret.AadResourceID, secret.MsiClientID)
 		if err != nil {
-			errorChan <- errors.Wrap(err, "failed to fetch Identity secret")
+			errorChan <- errors.Wrap(err, "failed to fetch identity secret")
 			return
 		}
 		secret.ResolvedValue = secretValue

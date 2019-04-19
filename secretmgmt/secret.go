@@ -10,7 +10,7 @@ import (
 
 var (
 	errMissingSecretIDs      = errors.New("secret is missing an ID as well as auto-generated ID")
-	errMissingSecretProps    = errors.New("secret should contain either akv property for vault secret, or msi clientID/aadResourceId for msi authentication")
+	errMissingSecretProps    = errors.New("secret should contain either keyvault property for vault secret, or msi clientID/aadResourceId for msi authentication")
 	errSecretIDContainsSpace = errors.New("secret ID cannot contain spaces")
 	errInvalidUUID           = errors.New("msi client ID is not a valid guid")
 )
@@ -18,7 +18,7 @@ var (
 // Secret defines a wrapper to resolve vault secrets to values.
 type Secret struct {
 	ID          string `yaml:"id"`
-	Akv         string `yaml:"akv,omitempty"`
+	KeyVault    string `yaml:"keyvault,omitempty"`
 	MsiClientID string `yaml:"clientID,omitempty"`
 
 	// After the Secret is resolved, the value can be found here.
@@ -48,7 +48,7 @@ func (s *Secret) Validate() error {
 	if util.ContainsSpace(s.ID) {
 		return errSecretIDContainsSpace
 	}
-	if !s.IsAkvSecret() && !s.IsMsiSecret() {
+	if !s.IsKeyVaultSecret() && !s.IsMsiSecret() {
 		return errMissingSecretProps
 	}
 	if s.MsiClientID != "" && !util.IsValidUUID(s.MsiClientID) {
@@ -58,15 +58,15 @@ func (s *Secret) Validate() error {
 	return nil
 }
 
-// IsAkvSecret returns true if a Secret is of Azure Keyvault type, false otherwise.
-func (s *Secret) IsAkvSecret() bool {
+// IsKeyVaultSecret returns true if a Secret is a key vault, false otherwise.
+func (s *Secret) IsKeyVaultSecret() bool {
 	if s == nil {
 		return false
 	}
-	return s.Akv != ""
+	return s.KeyVault != ""
 }
 
-// IsMsiSecret returns true if a Secret is of MSI type, false otherwise.
+// IsMsiSecret returns true if a Secret is an MSI, false otherwise.
 func (s *Secret) IsMsiSecret() bool {
 	if s == nil {
 		return false
@@ -84,7 +84,7 @@ func (s *Secret) Equals(t *Secret) bool {
 	}
 
 	return s.ID == t.ID &&
-		s.Akv == t.Akv &&
+		s.KeyVault == t.KeyVault &&
 		s.MsiClientID == t.MsiClientID &&
 		s.AadResourceID == t.AadResourceID
 }

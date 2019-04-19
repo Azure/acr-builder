@@ -2,11 +2,11 @@
 
 acr-builder has added support to get secrets from azure keyvault using managed service identity (https://docs.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview). It has a new command called **getsecret** that can fetch secret from different vault providers. Currently it supports secrets from Azure key vault. The below article describes how to use acb to retrieve a secret from Azure keyvault using Managed Identities. 
 
-We will use the command group "akv" of getsecret to retrieve secret from Azure keyvault.
+We will use the command group `keyvault` of getsecret to retrieve secrets from Azure keyvault.
 
 ```
 USAGE:
-   acb getsecret akv [command options] [arguments...]
+   acb getsecret keyvault [command options] [arguments...]
 
 OPTIONS:
    --url value                 the azure keyvault secret URL
@@ -90,7 +90,7 @@ az container create \
     --name acb-getsecret \
     --assign-identity $ID \
     --image <YourDockerHubUsername>/acb-getsecret \
-    --command-line "acb get-secret akv --url https://myacbvault.vault.azure.net/secrets/SampleSecret/2c68e8cd93b941389ac2ad735ffc0353
+    --command-line "acb get-secret keyvault --url https://myacbvault.vault.azure.net/secrets/SampleSecret/2c68e8cd93b941389ac2ad735ffc0353
 ```
 The above command will create the container instance and set up everything needed for Managed Identities.
 

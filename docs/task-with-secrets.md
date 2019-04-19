@@ -120,10 +120,10 @@ docker tag <your-dockerhub-username>/acb-exec acb
 ```
 vim task-secrets.yaml
 
-version: 1.0-preview-1
+version: v1.0.0
 secrets:
   - id: mysecret
-    akv: https://myacbvault.vault.azure.net/secrets/SampleSecret/2c68e8cd93b941389ac2ad735ffc0353
+    keyvault: https://myacbvault.vault.azure.net/secrets/SampleSecret/2c68e8cd93b941389ac2ad735ffc0353
 steps:
   - cmd: bash echo mysecret value is {{.Secrets.mysecret}}
 
@@ -153,12 +153,12 @@ mysecret value is ACB Secret
 ```
 vim task-secrets.yaml
 
-version: 1.0-preview-1
+version: v1.0.0
 secrets:
   - id: mysecret
-    akv: https://myacbvault.vault.azure.net/secrets/SampleSecret/2c68e8cd93b941389ac2ad735ffc0353
+    keyvault: https://myacbvault.vault.azure.net/secrets/SampleSecret/2c68e8cd93b941389ac2ad735ffc0353
   - id: mysecret1
-    akv: {{.Values.akv1}}
+    keyvault: {{.Values.vault}}
     clientID: {{ .Values.id }}
 steps:
   - cmd: bash echo mysecret value is {{.Secrets.mysecret}}
@@ -166,7 +166,7 @@ steps:
 
 vim values.yaml
 
-akv1: https://myacbvault.vault.azure.net/secrets/SampleSecret/2c68e8cd93b941389ac2ad735ffc0353
+vault: https://myacbvault.vault.azure.net/secrets/SampleSecret/2c68e8cd93b941389ac2ad735ffc0353
 id: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86
 
 ```

@@ -27,12 +27,12 @@ var Command = cli.Command{
 	Usage: "gets the secret value from a specified vault",
 	Subcommands: []cli.Command{
 		{
-			Name:  "akv",
-			Usage: "gets the secret value from azure keyvault. If it is an azure keyvault secret, it is assumed that the host has the MSI token service running at http://169.254.169.254/.",
+			Name:  "keyvault",
+			Usage: "gets the secret value from a key vault. If it is an Azure Key Vault (AKV) secret, it is assumed that the host has the MSI token service running at http://169.254.169.254/.",
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "url",
-					Usage: "the azure keyvault secret URL",
+					Usage: "the secret URL",
 				},
 				cli.StringFlag{
 					Name:  "client-id",

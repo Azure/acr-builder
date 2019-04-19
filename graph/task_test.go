@@ -182,18 +182,18 @@ func TestNewTaskFromString(t *testing.T) {
 		{`
 secrets:
   - id: mysecret
-    akv: https://myvault.vault.azure.net/secrets/mysecret
+    keyvault: https://myvault.vault.azure.net/secrets/mysecret
   - id: mysecret1
-    akv: https://myvault.vault.azure.net/secrets/mysecret1
+    keyvault: https://myvault.vault.azure.net/secrets/mysecret1
     clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
 			[]*secretmgmt.Secret{
 				{
-					ID:  "mysecret",
-					Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+					ID:       "mysecret",
+					KeyVault: "https://myvault.vault.azure.net/secrets/mysecret",
 				},
 				{
 					ID:          "mysecret1",
-					Akv:         "https://myvault.vault.azure.net/secrets/mysecret1",
+					KeyVault:    "https://myvault.vault.azure.net/secrets/mysecret1",
 					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
 				},
 			},
@@ -219,9 +219,9 @@ secrets:`,
 		{`
 secrets:
   - id: mysecret1
-    akv: myakv
+    keyvault: secretvault1
   - id: mysecret1
-    akv: myakv2
+    keyvault: secretvault2
     clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
 			[]*secretmgmt.Secret{},
 			true,
