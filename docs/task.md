@@ -322,12 +322,12 @@ An object with the following properties:
 | Property | Type | Required | Default Value |
 |----------|------|----------|---------------|
 | `id` | `string` | Required | N/A |
-| [akv](#akv) | `string` | Optional | N/A |
+| [keyvault](#keyvault) | `string` | Optional | N/A |
 | [clientID](#clientid) | `string` | Optional | N/A |
 
-#### akv
+#### keyvault
 
-The Azure Key Vault (AKV) Secret URL.
+The key vault URL.
 
 * Optional
 * Type: `string`

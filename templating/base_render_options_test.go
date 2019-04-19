@@ -13,15 +13,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-// MockResolveSecret will mock the azure keyvault resolve and return the concatenated Akv and client ID as the value. This is used for testing purposes only.
+// MockResolveSecret will mock the azure keyvault resolve and return the concatenated keyvault and client ID as the value. This is used for testing purposes only.
 func MockResolveSecret(ctx context.Context, secret *secretmgmt.Secret, errorChan chan error) {
 	if secret == nil {
 		errorChan <- errors.New("secret cannot be nil")
 		return
 	}
 
-	if secret.IsAkvSecret() {
-		secret.ResolvedValue = fmt.Sprintf("%s-%s", secret.Akv, secret.MsiClientID)
+	if secret.IsKeyVaultSecret() {
+		secret.ResolvedValue = fmt.Sprintf("%s-%s", secret.KeyVault, secret.MsiClientID)
 		secret.ResolvedChan <- true
 		return
 	}
@@ -165,9 +165,9 @@ func TestRenderAndResolveSecrets(t *testing.T) {
 		{`
 secrets:
   - id: mysecret
-    akv: https://myvault.vault.azure.net/secrets/mysecret
+    keyvault: https://myvault.vault.azure.net/secrets/mysecret
   - id: mysecret1
-    akv: https://myvault.vault.azure.net/secrets/mysecret1
+    keyvault: https://myvault.vault.azure.net/secrets/mysecret1
     clientID: c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86`,
 			Values{"mykey": "myvalue"},
 			Values{"mysecret": "https://myvault.vault.azure.net/secrets/mysecret-", "mysecret1": "https://myvault.vault.azure.net/secrets/mysecret1-c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
@@ -176,9 +176,9 @@ secrets:
 		{`
 secrets:
   - id: mysecret
-    akv: {{.Values.myakv}}
+    keyvault: {{.Values.myakv}}
   - id: {{.Values.myid2}}
-    akv: {{.Values.myakv2}}
+    keyvault: {{.Values.myakv2}}
     clientID: {{.Values.myclientID}}`,
 			Values{"myid2": "mysecret1", "myakv": "https://myvault.vault.azure.net/secrets/mysecret", "myakv2": "https://myvault.vault.azure.net/secrets/mysecret1", "myclientID": "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
 			Values{"mysecret": "https://myvault.vault.azure.net/secrets/mysecret-", "mysecret1": "https://myvault.vault.azure.net/secrets/mysecret1-c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
@@ -186,9 +186,9 @@ secrets:
 		{`
 secrets:
   - id: mysecret
-    akv: {{.Values.myakv}}
+    keyvault: {{.Values.myakv}}
   - id: {{.Run.ID}}_{{.Values.myid2}}
-    akv: {{.Values.myakv2}}
+    keyvault: {{.Values.myakv2}}
     clientID: {{.Values.myclientID}}`,
 			Values{"ID": "runId", "myid2": "mysecret1", "myakv": "https://myvault.vault.azure.net/secrets/mysecret", "myakv2": "https://myvault.vault.azure.net/secrets/mysecret1", "myclientID": "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
 			Values{"mysecret": "https://myvault.vault.azure.net/secrets/mysecret-", "runId_mysecret1": "https://myvault.vault.azure.net/secrets/mysecret1-c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86"},
@@ -196,7 +196,7 @@ secrets:
 		{`
 secrets:
   - id: mysecret
-    akv: myakv`,
+    keyvault: myakv`,
 			Values{"mykey": "myvalue"},
 			Values{"mysecret": "myakv-"},
 		},

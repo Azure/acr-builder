@@ -35,8 +35,8 @@ func TestValidateSecret(t *testing.T) {
 		},
 		{
 			&Secret{
-				ID:  "a",
-				Akv: "b",
+				ID:       "a",
+				KeyVault: "b",
 			},
 			false,
 		},
@@ -44,7 +44,7 @@ func TestValidateSecret(t *testing.T) {
 			// Invalid UUID for MSI Client ID
 			&Secret{
 				ID:          "a",
-				Akv:         "b",
+				KeyVault:    "b",
 				MsiClientID: "test",
 			},
 			true,
@@ -52,7 +52,7 @@ func TestValidateSecret(t *testing.T) {
 		{
 			&Secret{
 				ID:          "a",
-				Akv:         "b",
+				KeyVault:    "b",
 				MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
 			},
 			false,
@@ -70,7 +70,7 @@ func TestValidateSecret(t *testing.T) {
 	}
 }
 
-func TestIsAkvSecret(t *testing.T) {
+func TestIsKeyVaultSecret(t *testing.T) {
 	tests := []struct {
 		secret   *Secret
 		expected bool
@@ -81,7 +81,7 @@ func TestIsAkvSecret(t *testing.T) {
 		},
 		{
 			&Secret{
-				Akv: "a",
+				KeyVault: "a",
 			},
 			true,
 		},
@@ -92,8 +92,8 @@ func TestIsAkvSecret(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if actual := test.secret.IsAkvSecret(); actual != test.expected {
-			t.Errorf("Expected %v for secret to be AKV type, but got %v", test.expected, actual)
+		if actual := test.secret.IsKeyVaultSecret(); actual != test.expected {
+			t.Errorf("Expected %v but got %v", test.expected, actual)
 		}
 	}
 }
@@ -159,12 +159,12 @@ func TestSecretEquals(t *testing.T) {
 		{
 			&Secret{
 				ID:          "a",
-				Akv:         "b",
+				KeyVault:    "b",
 				MsiClientID: "c",
 			},
 			&Secret{
 				ID:          "a",
-				Akv:         "b",
+				KeyVault:    "b",
 				MsiClientID: "c",
 			},
 			true,

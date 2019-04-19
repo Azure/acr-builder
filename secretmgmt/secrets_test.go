@@ -12,15 +12,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-// MockResolveSecret will mock the azure keyvault resolve and return the concatenated Akv and client ID as the value. This is used for testing purposes only.
+// MockResolveSecret will mock the azure keyvault resolve and return the concatenated key vault and client ID as the value. This is used for testing purposes only.
 func MockResolveSecret(ctx context.Context, secret *Secret, errorChan chan error) {
 	if secret == nil {
 		errorChan <- errors.New("secret cannot be nil")
 		return
 	}
 
-	if secret.IsAkvSecret() {
-		secret.ResolvedValue = fmt.Sprintf("vault-%s-%s", secret.Akv, secret.MsiClientID)
+	if secret.IsKeyVaultSecret() {
+		secret.ResolvedValue = fmt.Sprintf("vault-%s-%s", secret.KeyVault, secret.MsiClientID)
 		secret.ResolvedChan <- true
 		return
 	} else if secret.IsMsiSecret() {
@@ -48,12 +48,12 @@ func TestResolveSecrets(t *testing.T) {
 		{
 			[]*Secret{
 				{
-					ID:  "mysecret",
-					Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+					ID:       "mysecret",
+					KeyVault: "https://myvault.vault.azure.net/secrets/mysecret",
 				},
 				{
 					ID:          "mysecret1",
-					Akv:         "https://myvault.vault.azure.net/secrets/mysecret1",
+					KeyVault:    "https://myvault.vault.azure.net/secrets/mysecret1",
 					MsiClientID: "c72b2df0-b9d8-4ac6-9363-7c1eb06c1c86",
 				},
 			},
@@ -71,44 +71,44 @@ func TestResolveSecrets(t *testing.T) {
 			// Add more than 5 secrets to test the batching logic
 			[]*Secret{
 				{
-					ID:  "1",
-					Akv: "k1",
+					ID:       "1",
+					KeyVault: "k1",
 				},
 				{
-					ID:  "2",
-					Akv: "k2",
+					ID:       "2",
+					KeyVault: "k2",
 				},
 				{
-					ID:  "3",
-					Akv: "k3",
+					ID:       "3",
+					KeyVault: "k3",
 				},
 				{
-					ID:  "4",
-					Akv: "k4",
+					ID:       "4",
+					KeyVault: "k4",
 				},
 				{
 					ID:            "5",
 					AadResourceID: "k5",
 				},
 				{
-					ID:  "6",
-					Akv: "k6",
+					ID:       "6",
+					KeyVault: "k6",
 				},
 				{
 					ID:            "7",
 					AadResourceID: "k7",
 				},
 				{
-					ID:  "8",
-					Akv: "k8",
+					ID:       "8",
+					KeyVault: "k8",
 				},
 				{
 					ID:            "9",
 					AadResourceID: "k9",
 				},
 				{
-					ID:  "10",
-					Akv: "k10",
+					ID:       "10",
+					KeyVault: "k10",
 				},
 			},
 			map[string]string{"1": "vault-k1-", "2": "vault-k2-", "3": "vault-k3-", "4": "vault-k4-", "5": "msi-k5-", "6": "vault-k6-", "7": "msi-k7-", "8": "vault-k8-", "9": "msi-k9-", "10": "vault-k10-"},
@@ -155,8 +155,8 @@ func TestResolveSecretsWithError(t *testing.T) {
 		{
 			[]*Secret{
 				{
-					ID:  "mysecret",
-					Akv: "some invalid akv URL",
+					ID:       "mysecret",
+					KeyVault: "some invalid URL",
 				},
 			},
 		},
@@ -180,32 +180,32 @@ func TestResolveSecretsWithTimeout(t *testing.T) {
 	ctx := context.Background()
 	secrets := []*Secret{
 		{
-			ID:  "mysecret1",
-			Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+			ID:       "mysecret1",
+			KeyVault: "https://myvault.vault.azure.net/secrets/mysecret",
 		},
 		{
-			ID:  "mysecret2",
-			Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+			ID:       "mysecret2",
+			KeyVault: "https://myvault.vault.azure.net/secrets/mysecret",
 		},
 		{
-			ID:  "mysecret3",
-			Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+			ID:       "mysecret3",
+			KeyVault: "https://myvault.vault.azure.net/secrets/mysecret",
 		},
 		{
-			ID:  "mysecret4",
-			Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+			ID:       "mysecret4",
+			KeyVault: "https://myvault.vault.azure.net/secrets/mysecret",
 		},
 		{
-			ID:  "mysecret5",
-			Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+			ID:       "mysecret5",
+			KeyVault: "https://myvault.vault.azure.net/secrets/mysecret",
 		},
 		{
-			ID:  "mysecret6",
-			Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+			ID:       "mysecret6",
+			KeyVault: "https://myvault.vault.azure.net/secrets/mysecret",
 		},
 		{
-			ID:  "mysecret7",
-			Akv: "https://myvault.vault.azure.net/secrets/mysecret",
+			ID:       "mysecret7",
+			KeyVault: "https://myvault.vault.azure.net/secrets/mysecret",
 		},
 	}
 
