@@ -130,7 +130,7 @@ FROM hello-world
 ```
 vim mytask.yaml
 
-version: 1.0-preview-1
+version: v1.0.0
 steps:
   - build: -t registry1.azurecr.io/hello-world . -f hello-world.dockerfile
   - push: ["registry1.azurecr.io/hello-world"]
