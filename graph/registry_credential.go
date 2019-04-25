@@ -108,7 +108,7 @@ func CreateRegistryCredentialFromString(str string) (*RegistryCredential, error)
 	return retVal, nil
 }
 
-// Equals determines whether two RegistrCredentials are equal.
+// Equals determines whether two RegistryCredentials are equal.
 func (s *RegistryCredential) Equals(t *RegistryCredential) bool {
 	if s == nil && t == nil {
 		return true
