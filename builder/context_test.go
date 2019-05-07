@@ -79,7 +79,7 @@ func TestGetImageDependencies(t *testing.T) {
 
 func TestGetBuildDockerRunArgs(t *testing.T) {
 	builder := &Builder{}
-	actualCmds := builder.getDockerRunArgs("volName", "stepWorkDir", &graph.Step{ID: "id", Build: "-f Dockerfile ."}, []string{"value1"}, "", "docker build -f Dockerfile .")
+	actualCmds := builder.getDockerRunArgs("volName", "stepWorkDir", &graph.Step{ID: "id", Build: "-f Dockerfile ."}, []string{"foo=bar"}, "", "docker build -f Dockerfile .")
 
 	var expectedCmds []string
 
@@ -87,13 +87,13 @@ func TestGetBuildDockerRunArgs(t *testing.T) {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",
-			"docker run --rm --env value1 --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --workdir c:\\workspace/stepWorkDir docker build -f Dockerfile .",
+			"docker run --rm --env foo=bar --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --workdir c:\\workspace/stepWorkDir docker build -f Dockerfile .",
 		}
 	} else {
 		expectedCmds = []string{
 			"/bin/sh",
 			"-c",
-			"docker run --rm --env value1 --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --workdir /workspace/stepWorkDir docker build -f Dockerfile .",
+			"docker run --rm --env foo=bar --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --workdir /workspace/stepWorkDir docker build -f Dockerfile .",
 		}
 	}
 
@@ -104,7 +104,7 @@ func TestGetBuildDockerRunArgs(t *testing.T) {
 
 func TestGetNonBuildDockerRunArgs(t *testing.T) {
 	builder := &Builder{}
-	actualCmds := builder.getDockerRunArgs("volName", "stepWorkDir", &graph.Step{ID: "id"}, []string{"value1"}, "", "hello-world")
+	actualCmds := builder.getDockerRunArgs("volName", "stepWorkDir", &graph.Step{ID: "id"}, []string{"foo=bar"}, "", "hello-world")
 
 	var expectedCmds []string
 
@@ -112,13 +112,13 @@ func TestGetNonBuildDockerRunArgs(t *testing.T) {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",
-			"docker run --rm --isolation hyperv --env value1 --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --workdir c:\\workspace/stepWorkDir hello-world",
+			"docker run --rm --isolation hyperv --env foo=bar --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --workdir c:\\workspace/stepWorkDir hello-world",
 		}
 	} else {
 		expectedCmds = []string{
 			"/bin/sh",
 			"-c",
-			"docker run --rm --env value1 --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --workdir /workspace/stepWorkDir hello-world",
+			"docker run --rm --env foo=bar --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --workdir /workspace/stepWorkDir hello-world",
 		}
 	}
 

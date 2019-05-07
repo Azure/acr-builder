@@ -2,6 +2,7 @@ package graph
 
 import (
 	gocontext "context"
+	"reflect"
 	"testing"
 
 	"github.com/Azure/acr-builder/secretmgmt"
@@ -135,40 +136,61 @@ func TestInitializeTimeouts(t *testing.T) {
 	}
 }
 
-func TestMergingEnvs(t *testing.T) {
-	stepEnvsTests := [][]string{
-		{},
-		{"key1=newVal1", "key2=newVal2"},
-		{"key1=newVal1", "key2=newVal2", "key3=newVal3="},
-		{},
-		{"key1=newVal1", "key2=newVal2"},
-		{"key1=newVal1", "key2=newVal2", "key3=newVal3="},
-	}
-	taskEnvsTests := [][]string{
-		{"key1=val1", "key2=val2", "key3=val3"},
-		{"key1=val1", "key2=val2", "key3=val3"},
-		{"key1=val1,key2=val2,key3=val3"},
-		{"key1=val1,key2=val2,key3=val3"},
-		{"key1=val1,key2=val2", "key3=val3,key4=val4"},
-		{"key1=val1,key2=val2", "key3=val3,key4=val4"},
+func TestMergeEnvs(t *testing.T) {
+	tests := []struct {
+		taskEnvs     []string
+		stepEnvs     []string
+		expectedEnvs []string
+	}{
+		{
+			[]string{"key1=val1", "key2=val2", "key3=val3"},
+			[]string{},
+			[]string{"key1=val1", "key2=val2", "key3=val3"},
+		},
+		{
+			[]string{"key1=val1", "key2=val2", "key3=val3"},
+			[]string{"key1=newVal1", "key2=newVal2"},
+			[]string{"key1=newVal1", "key2=newVal2", "key3=val3"},
+		},
+		{
+			[]string{"key1=val1,key2=val2,key3=val3"},
+			[]string{"key1=newVal1", "key2=newVal2", "key3=newVal3="},
+			[]string{"key1=newVal1", "key2=newVal2", "key3=newVal3="},
+		},
+		{
+			[]string{"key1=val1,key2=val2,key3=val3"},
+			[]string{},
+			[]string{"key1=val1", "key2=val2", "key3=val3"},
+		},
+		{
+			[]string{"key1=val1,key2=val2", "key3=val3,key4=val4"},
+			[]string{"key1=newVal1", "key2=newVal2"},
+			[]string{"key1=newVal1", "key2=newVal2", "key3=val3", "key4=val4"},
+		},
+		{
+			[]string{"key1=val1,key2=val2", "key3=val3,key4=val4"},
+			[]string{"key1=newVal1", "key2=newVal2", "key3=newVal3="},
+			[]string{"key1=newVal1", "key2=newVal2", "key3=newVal3=", "key4=val4"},
+		},
+		{
+			[]string{},
+			[]string{},
+			[]string{},
+		},
+		{
+			[]string{},
+			[]string{"key=val1"},
+			[]string{"key=val1"},
+		},
 	}
 
-	// stepEnvs should overwrite envs that exist in taskEnvs
-	expects := [][]string{
-		{"key1=val1", "key2=val2", "key3=val3"},
-		{"key1=newVal1", "key2=newVal2", "key3=val3"},
-		{"key1=newVal1", "key2=newVal2", "key3=newVal3="},
-		{"key1=val1", "key2=val2", "key3=val3"},
-		{"key1=newVal1", "key2=newVal2", "key3=val3", "key4=val4"},
-		{"key1=newVal1", "key2=newVal2", "key3=newVal3=", "key4=val4"},
-	}
-
-	for i := range taskEnvsTests {
-		mergeEnvs, _ := mergeEnvs(stepEnvsTests[i], taskEnvsTests[i])
-		for j := range mergeEnvs {
-			if expects[i][j] != mergeEnvs[j] {
-				t.Errorf("running test %v, expected merge of step and task envs to be %v but got %v", i, expects[i], mergeEnvs)
-			}
+	for _, test := range tests {
+		mergeEnvs, err := mergeEnvs(test.stepEnvs, test.taskEnvs)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !reflect.DeepEqual(mergeEnvs, test.expectedEnvs) {
+			t.Errorf("expected %v but got %v", test.expectedEnvs, mergeEnvs)
 		}
 	}
 }
