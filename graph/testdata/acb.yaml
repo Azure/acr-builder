@@ -5,6 +5,9 @@
 stepTimeout: 600
 version: v1.0.0
 
+env:
+  - "foo=taskEnv"
+
 steps:
   - id: puller
     cmd: azure/images/docker pull ubuntu
@@ -56,6 +59,3 @@ steps:
     user: root
     network: "host"
     repeat: 2
-
-env:
-  - "foo=taskEnv"

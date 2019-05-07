@@ -71,7 +71,14 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 		t.WorkingDirectory = defaultWorkDir
 	}
 
-	t.Envs = envs
+	// Merge in the defaults with the Task's specific environment variables.
+	// NB: Order is important here. Allow the Task's environment variables to override the defaults provided.
+	newEnvs, err := mergeEnvs(t.Envs, envs)
+	if err != nil {
+		return nil, err
+	}
+
+	t.Envs = newEnvs
 	t.Credentials = creds
 
 	// External network parsed in from CLI will be set as default network, it will be used for any step if no network provide for them
@@ -217,7 +224,7 @@ func (t *Task) initialize(ctx context.Context) error {
 
 		newEnvs, err := mergeEnvs(s.Envs, t.Envs)
 		if err != nil {
-			return errors.Wrap(err, "invalid environment variable format")
+			return errors.Wrap(err, "failed to merge task and step environment variables")
 		}
 		s.Envs = newEnvs
 
@@ -283,47 +290,40 @@ func getNormalizedDockerImageNames(dockerImages []string, registry string) []str
 	return normalizedDockerImages
 }
 
-// mergeEnvs merges the step's environment variables, overriding the task's default ones if provided.
-func mergeEnvs(stepEnvs []string, taskEnvs []string) ([]string, error) {
-	if len(taskEnvs) < 1 {
-		return stepEnvs, nil
+// mergeEnvs merges the src environment variables into dest.
+func mergeEnvs(dest []string, src []string) ([]string, error) {
+	if len(src) < 1 {
+		return dest, nil
 	}
 
-	// preprocess the comma case
-	var newTaskEnvs []string
-	for _, env := range taskEnvs {
+	var newEnvs []string
+	for _, env := range src {
 		newEnv := strings.Split(env, ",")
-		newTaskEnvs = append(newTaskEnvs, newEnv...)
+		newEnvs = append(newEnvs, newEnv...)
 	}
 
 	var stepmap = make(map[string]string)
-	// parse stepEnvs into a map
-	for _, env := range stepEnvs {
+	for _, env := range dest {
 		pair := strings.SplitN(env, "=", 2)
 		if len(pair) != 2 {
 			err := fmt.Errorf("cannot parse step environment variable %s correctly", env)
-			return stepEnvs, err
+			return dest, err
 		}
 		stepmap[pair[0]] = pair[1]
 	}
 
-	// merge the unique taskEnvs into stepEnvs
-	for _, env := range newTaskEnvs {
+	for _, env := range newEnvs {
 		pair := strings.SplitN(env, "=", 2)
-
 		if len(pair) != 2 {
 			err := fmt.Errorf("cannot parse task environment variable %s correctly", env)
-			return stepEnvs, err
+			return dest, err
 		}
-
-		// if the env has not been provided, add to step env
 		if _, ok := stepmap[pair[0]]; !ok {
-			stepEnvs = append(stepEnvs, pair[0]+"="+pair[1])
+			dest = append(dest, pair[0]+"="+pair[1])
 		}
-
 	}
 
-	return stepEnvs, nil
+	return dest, nil
 }
 
 // getValidVersion prints a warning message if the version specified within a Task is invalid and
