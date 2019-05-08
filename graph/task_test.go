@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"context"
 	gocontext "context"
 	"reflect"
 	"testing"
@@ -301,6 +302,81 @@ func TestGetValidVersion(t *testing.T) {
 	for _, test := range tests {
 		if actual := getValidVersion(test.version); actual != test.expectedNewVersion {
 			t.Errorf("expected %s but got %s", test.expectedNewVersion, actual)
+		}
+	}
+}
+
+func TestUnmarshalTaskFromString_Envs(t *testing.T) {
+	tests := []struct {
+		data           string
+		defaultWorkDir string
+		network        string
+		envs           []string
+		creds          []*RegistryCredential
+		expected       *Task
+	}{
+		// A default environment variable shouldn't override
+		// the Task's specific environment variable.
+		{
+			`
+env: ["a=b", "c=d"]
+`,
+			"",
+			"",
+			[]string{"a=g"},
+			[]*RegistryCredential{},
+			&Task{
+				Envs: []string{"a=b", "c=d"},
+			},
+		},
+		{
+			`
+env: ["a=b", "c=d"]
+`,
+			"",
+			"",
+			[]string{"a=b", "c=d"},
+			[]*RegistryCredential{},
+			&Task{
+				Envs: []string{"a=b", "c=d"},
+			},
+		},
+		{
+			"",
+			"",
+			"",
+			[]string{"a=b", "c=d"},
+			[]*RegistryCredential{},
+			&Task{
+				Envs: []string{"a=b", "c=d"},
+			},
+		},
+		{
+			"",
+			"",
+			"",
+			[]string{},
+			[]*RegistryCredential{},
+			&Task{
+				Envs: nil,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		actual, err := UnmarshalTaskFromString(
+			context.Background(),
+			test.data,
+			test.defaultWorkDir,
+			test.network,
+			test.envs,
+			test.creds,
+		)
+		if err != nil {
+			t.Fatalf("unexpected err: %v", err)
+		}
+		if !reflect.DeepEqual(test.expected.Envs, actual.Envs) {
+			t.Errorf("expected %v but got %v", test.expected.Envs, actual.Envs)
 		}
 	}
 }
