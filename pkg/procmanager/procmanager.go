@@ -6,6 +6,7 @@ package procmanager
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -33,7 +34,7 @@ func NewProcManager(dryRun bool) *ProcManager {
 }
 
 // RunRepeatWithRetries performs a Run multiple times with retries.
-// If an error occurs during the repetition, the last error will be returned.
+// If any error occurs during the repetition, all errors will be aggregated and returned.
 func (pm *ProcManager) RunRepeatWithRetries(
 	ctx context.Context,
 	args []string,
@@ -144,7 +145,14 @@ func (pm *ProcManager) Run(
 			}
 		}()
 
-		return ctx.Err()
+		err := ctx.Err()
+
+		// replace the original error message "context deadline exceeded" with "timed out"
+		if err == context.DeadlineExceeded {
+			return fmt.Errorf("timed out")
+		}
+
+		return err
 	}
 }
 
