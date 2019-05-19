@@ -6,7 +6,6 @@ package procmanager
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -145,14 +144,7 @@ func (pm *ProcManager) Run(
 			}
 		}()
 
-		err := ctx.Err()
-
-		// replace the original error message "context deadline exceeded" with "timed out"
-		if err == context.DeadlineExceeded {
-			return fmt.Errorf("timed out")
-		}
-
-		return err
+		return ctx.Err()
 	}
 }
 

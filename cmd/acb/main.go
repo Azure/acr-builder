@@ -4,8 +4,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	buildCmd "github.com/Azure/acr-builder/cmd/acb/commands/build"
 	downloadCmd "github.com/Azure/acr-builder/cmd/acb/commands/download"
@@ -21,7 +23,7 @@ import (
 func main() {
 	app := New()
 	if err := app.Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, formatErrorMessage(err))
 		os.Exit(1)
 	}
 }
@@ -42,4 +44,9 @@ func New() *cli.App {
 		getsecretCmd.Command,
 	}
 	return app
+}
+
+func formatErrorMessage(err error) string {
+	// replace the original error message "context deadline exceeded" with "timed out"
+	return strings.ReplaceAll(err.Error(), context.DeadlineExceeded.Error(), "timed out")
 }
