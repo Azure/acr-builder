@@ -33,7 +33,7 @@ func NewProcManager(dryRun bool) *ProcManager {
 }
 
 // RunRepeatWithRetries performs a Run multiple times with retries.
-// If an error occurs during the repetition, the last error will be returned.
+// If any error occurs during the repetition, all errors will be aggregated and returned.
 func (pm *ProcManager) RunRepeatWithRetries(
 	ctx context.Context,
 	args []string,
