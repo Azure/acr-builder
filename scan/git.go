@@ -30,7 +30,8 @@ type gitRepo struct {
 func (s *Scanner) GetGitCommitID(ctx context.Context, cmdDir string) (string, error) {
 	cmd := []string{"git", "rev-parse", "--verify", "HEAD"}
 	var buf bytes.Buffer
-	if err := s.procManager.Run(ctx, cmd, nil, &buf, os.Stderr, cmdDir); err != nil {
+	if err := s.procManager.Run(ctx, cmd, nil, &buf, nil, cmdDir); err != nil {
+		log.Printf("WARNING: cannot query commit: %s\n", err)
 		return "", err
 	}
 	return strings.TrimSpace(buf.String()), nil
@@ -42,7 +43,8 @@ func (s *Scanner) GetGitCommitID(ctx context.Context, cmdDir string) (string, er
 func (s *Scanner) GetGitBranchName(ctx context.Context, cmdDir string) (string, error) {
 	cmd := []string{"git", "rev-parse", "--abbrev-ref", "HEAD"}
 	var buf bytes.Buffer
-	if err := s.procManager.Run(ctx, cmd, nil, &buf, os.Stderr, cmdDir); err != nil {
+	if err := s.procManager.Run(ctx, cmd, nil, &buf, nil, cmdDir); err != nil {
+		log.Printf("WARNING: cannot query branch: %s\n", err)
 		return "", err
 	}
 	return strings.TrimSpace(buf.String()), nil
