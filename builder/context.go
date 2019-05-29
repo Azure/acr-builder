@@ -77,9 +77,6 @@ func (b *Builder) getDockerRunArgs(
 	if step.Isolation != "" {
 		sb.WriteString(" --isolation " + step.Isolation)
 	}
-	for _, env := range envs {
-		sb.WriteString(" --env " + env)
-	}
 	if entrypoint != "" {
 		sb.WriteString(" --entrypoint " + entrypoint)
 	}
@@ -88,6 +85,15 @@ func (b *Builder) getDockerRunArgs(
 	sb.WriteString(" --volume " + util.DockerSocketVolumeMapping)
 	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
 	sb.WriteString(" --env " + homeEnv)
+
+	// User environment variables come after any defaults.
+	// This allows overriding the HOME environment variable for a step.
+	// NB: this has the assumption that the underlying runtime handles the case of duplicated
+	// environment variables by only keeping the last specified.
+	for _, env := range envs {
+		sb.WriteString(" --env " + env)
+	}
+
 	if !step.DisableWorkingDirectoryOverride {
 		sb.WriteString(" --workdir " + normalizeWorkDir(stepWorkDir))
 	}
