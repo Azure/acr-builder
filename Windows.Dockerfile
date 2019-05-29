@@ -1,4 +1,4 @@
-ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:ltsc2019
+ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:1903
 FROM $WINDOWS_IMAGE as base
 
 # set the default shell as powershell.
@@ -103,7 +103,7 @@ RUN Write-Host ('Running build'); \
 
 # setup the runtime environment
 FROM base as runtime
-ARG ACB_BASEIMAGE=mcr.microsoft.com/windows/servercore:ltsc2019
+ARG ACB_BASEIMAGE=mcr.microsoft.com/windows/servercore:1903
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
 COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe c:/acr-builder/acb.exe
 ENV ACB_CONFIGIMAGENAME=$ACB_BASEIMAGE
