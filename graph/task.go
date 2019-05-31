@@ -335,7 +335,7 @@ func mergeEnvs(dest []string, src []string) ([]string, error) {
 func validateTaskVersion(version string) error {
 	vLower := strings.ToLower(version)
 	if _, ok := validTaskVersions[vLower]; !ok {
-		return fmt.Errorf("invalid version specified: %q", version)
+		return fmt.Errorf("invalid version specified: %q, the current version is %q", version, currentTaskVersion)
 	}
 	return nil
 }
