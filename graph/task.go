@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"runtime"
 	"strings"
 
@@ -177,7 +176,13 @@ func (t *Task) initialize(ctx context.Context) error {
 	newDefaultNetworkName := DefaultNetworkName
 	addDefaultNetworkToSteps := false
 
-	t.Version = getValidVersion(t.Version)
+	// Default the Task's to the latest version if it's unspecified.
+	if t.Version == "" {
+		t.Version = currentTaskVersion
+	}
+	if err := validateTaskVersion(t.Version); err != nil {
+		return err
+	}
 
 	// Reverse iterate the list to get the default network
 	for i := len(t.Networks) - 1; i >= 0; i-- {
@@ -326,20 +331,13 @@ func mergeEnvs(dest []string, src []string) ([]string, error) {
 	return dest, nil
 }
 
-// getValidVersion prints a warning message if the version specified within a Task is invalid and
-// changes the version to the current version if it is invalid.
-func getValidVersion(version string) string {
-	if version == "" {
-		version = currentTaskVersion
-	}
-
+// validateTaskVersion validates the specified version and returns an error if it isn't valid.
+func validateTaskVersion(version string) error {
 	vLower := strings.ToLower(version)
 	if _, ok := validTaskVersions[vLower]; !ok {
-		log.Printf("WARNING: invalid version specified: %s - defaulting to %s instead...\n", version, currentTaskVersion)
-		version = currentTaskVersion
+		return fmt.Errorf("invalid version specified: %q, the current version is %q", version, currentTaskVersion)
 	}
-
-	return version
+	return nil
 }
 
 // ResolveCustomRegistryCredentials resolves all the registry login credentials
