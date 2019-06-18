@@ -3,7 +3,7 @@ module github.com/Azure/acr-builder
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Masterminds/semver v1.4.2 // indirect
-	github.com/Masterminds/sprig v2.18.0+incompatible
+	github.com/Masterminds/sprig v2.20.0+incompatible
 	github.com/Microsoft/go-winio v0.4.7 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/aokoli/goutils v1.0.1 // indirect
