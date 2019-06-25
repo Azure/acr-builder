@@ -131,6 +131,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedGitTag := "some git tag"
 	expectedSharedVolume := "acb_home_vol_12345"
 	expectedOS := "linux"
+	expectedOSVersion := "1903"
 	expectedArchitecture := "amd64"
 
 	parsedTime, err := time.Parse("20060102-150405", "20100520-131422")
@@ -151,6 +152,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		Date:         parsedTime,
 		SharedVolume: expectedSharedVolume,
 		OS:           expectedOS,
+		OSVersion:    expectedOSVersion,
 		Architecture: expectedArchitecture,
 	}
 	vals, err := OverrideValuesWithBuildInfo(c1, c2, options)
@@ -172,6 +174,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		{"{{.Run.Date}}", expectedTime},
 		{"{{.Run.SharedVolume}}", expectedSharedVolume},
 		{"{{.Run.OS}}", expectedOS},
+		{"{{.Run.OSVersion}}", expectedOSVersion},
 		{"{{.Run.Architecture}}", expectedArchitecture},
 		{"{{.Values.born}}", eCurieBorn},
 		{"{{.Values.first}}", eCurieFirst},
@@ -191,6 +194,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 			"\",\"GitTag\":\"" + expectedGitTag +
 			"\",\"ID\":\"" + expectedID +
 			"\",\"OS\":\"" + expectedOS +
+			"\",\"OSVersion\":\"" + expectedOSVersion +
 			"\",\"Registry\":\"" + expectedRegistry +
 			"\",\"RegistryName\":\"" + expectedRegistryName +
 			"\",\"Repository\":\"" + expectedRepository +

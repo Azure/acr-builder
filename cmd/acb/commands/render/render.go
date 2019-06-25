@@ -71,6 +71,10 @@ var Command = cli.Command{
 			Name:  "registry,r",
 			Usage: "the fully qualified name of the registry",
 		},
+		cli.StringFlag{
+			Name:  "os-version",
+			Usage: "the version of the OS",
+		},
 		cli.StringSliceFlag{
 			Name:  "set",
 			Usage: "set values on the command line (use --set multiple times or use commas: key1=val1,key2=val2)",
@@ -93,6 +97,7 @@ var Command = cli.Command{
 			triggeredBy   = context.String("triggered-by")
 			tag           = context.String("git-tag")
 			registry      = context.String("registry")
+			osVersion     = context.String("os-version")
 			setVals       = context.StringSlice("set")
 
 			renderOpts = &templating.BaseRenderOptions{
@@ -111,6 +116,7 @@ var Command = cli.Command{
 				Date:                    time.Now().UTC(),
 				SharedVolume:            homevol,
 				OS:                      runtime.GOOS,
+				OSVersion:               osVersion,
 				Architecture:            runtime.GOARCH,
 				SecretResolveTimeout:    secretmgmt.DefaultSecretResolveTimeout,
 			}
