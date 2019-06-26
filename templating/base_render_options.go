@@ -65,6 +65,10 @@ type BaseRenderOptions struct {
 	// OS is the GOOS.
 	OS string
 
+	// OSVersion is a specific version of the OS.
+	// For example, on Windows it could be 1903.
+	OSVersion string
+
 	// Architecture is the GOARCH.
 	Architecture string
 
@@ -90,6 +94,7 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 			"Date":         opts.Date.Format("20060102-150405z"), // yyyyMMdd-HHmmssz
 			"SharedVolume": opts.SharedVolume,
 			"OS":           opts.OS,
+			"OSVersion":    opts.OSVersion,
 			"Architecture": opts.Architecture,
 		},
 	}
