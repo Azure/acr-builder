@@ -26,9 +26,6 @@ import (
 )
 
 var (
-	errImproperAlias             = errors.New("alias can only use alphanumeric characters")
-	errMissingAlias              = errors.New("no alias was specified")
-	errMissingMatch              = errors.New("match for Alias may not be empty")
 	errUnknownAlias              = errors.New("unknown Alias")
 	errImproperDirectiveOverload = errors.New("$ directive can only be overwritten by a single character")
 	errImproperKeyName           = errors.New("alias key names only support alphanumeric characters and _ , - , ! characters")
@@ -52,12 +49,12 @@ func (preTask *PreTask) resolveMapAndValidate() error {
 		}
 		preTask.directive = rune(preTask.AliasMap[string(directive)][0])
 	}
+	re := regexp.MustCompile("\\A[a-z, A-Z, 0-9, _,-,!]+\\z")
+
 	// Values may support all characters, no escaping and so forth necessary
 	for key := range preTask.AliasMap {
-		matched, err := regexp.MatchString("\\A[a-z, A-Z, 0-9, _,-,!]+\\z", key)
-		if err != nil {
-			return err
-		}
+		matched := re.MatchString(key)
+
 		if !matched {
 			return errImproperKeyName
 		}
@@ -111,8 +108,8 @@ func addAliasFromRemote(preTask *PreTask, url string) error {
 }
 
 /* Parses out local alias files and adds their content to the passed in
-   PreTask. Note alias definitions already in preTask will not be
-   overwritten. */
+PreTask. Note alias definitions already in preTask will not be
+overwritten. */
 func addAliasFromFile(preTask *PreTask, fileURI string) error {
 
 	data, fileReadingError := ioutil.ReadFile(fileURI)
@@ -123,8 +120,8 @@ func addAliasFromFile(preTask *PreTask, fileURI string) error {
 }
 
 /* Parses out alias  definitions from a given bytes array and appends
-   them to the PreTask. Note alias definitions already in preTask will
-   not be overwritten even if present in the array. */
+them to the PreTask. Note alias definitions already in preTask will
+not be overwritten even if present in the array. */
 func readAliasFromBytes(data []byte, preTask *PreTask) error {
 
 	aliasMap := &map[string]string{}
@@ -201,6 +198,10 @@ func PreprocessBytes(data []byte) ([]byte, error) {
 
 	if err := yaml.Unmarshal(data, preTask); err != nil {
 		return nil, err
+	}
+
+	if preTask.AliasMap == nil && preTask.AliasSrc == nil {
+		return data, nil
 	}
 
 	// Search and Replace
