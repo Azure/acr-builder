@@ -119,7 +119,13 @@ func NewTaskFromString(data string) (*Task, error) {
 // NewTaskFromBytes unmarshals a Task from given bytes without any initialization.
 func NewTaskFromBytes(data []byte) (*Task, error) {
 	t := &Task{}
-	if err := yaml.Unmarshal(data, t); err != nil {
+
+	post, preprocessErr := PreprocessBytes(data)
+	if preprocessErr != nil {
+		return t, preprocessErr
+	}
+
+	if err := yaml.Unmarshal(post, t); err != nil {
 		return t, err
 	}
 	return t, t.Validate()
