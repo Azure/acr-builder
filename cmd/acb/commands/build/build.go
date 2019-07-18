@@ -333,6 +333,7 @@ func createBuildTask(
 		ID:      "build",
 		Build:   rendered,
 		Timeout: buildTimeoutInSec,
+		Tags:    tags,
 	}
 
 	steps := []*graph.Step{buildStep}

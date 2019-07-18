@@ -251,7 +251,9 @@ func (t *Task) initialize(ctx context.Context) error {
 		s.StepStatus = Skipped
 
 		if s.IsBuildStep() {
-			s.Tags = util.ParseTags(s.Build)
+			if s.Tags == nil || len(s.Tags) == 0 {
+				s.Tags = util.ParseTags(s.Build)
+			}
 			s.BuildArgs = util.ParseBuildArgs(s.Build)
 		} else if s.IsPushStep() {
 			s.Push = getNormalizedDockerImageNames(s.Push, t.RegistryName)

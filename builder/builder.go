@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -18,6 +19,12 @@ import (
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
+)
+
+const (
+	linuxOS   = "linux"
+	dockerImg = "docker"
+	buildxImg = "buildx"
 )
 
 // Builder builds images.
@@ -236,7 +243,27 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 			step.Build = replacePositionalContext(step.Build, ".")
 		}
 		step.UpdateBuildStepWithDefaults()
-		args = b.getDockerRunArgs(volName, workingDirectory, step, step.Envs, "", "docker build "+step.Build)
+		useBuildCache := false
+
+		if step.UseBuildCacheForBuildStep() {
+			if runtime.GOOS == linuxOS {
+				log.Println("runtime os is linux and need to use buildcache")
+				if buildStepWithBuildCache, err := step.GetCmdWithCacheFlags(); err != nil {
+					log.Printf("error using buildcache %v\n", err)
+				} else {
+					useBuildCache = true
+					step.Build = buildStepWithBuildCache
+				}
+			} else {
+				log.Printf("buildcache is not supported on windows. Fallback to standard docker build")
+			}
+		}
+
+		if useBuildCache {
+			args = b.getDockerRunArgs(volName, workingDirectory, step, step.Envs, "", buildxImg+" build "+step.Build)
+		} else {
+			args = b.getDockerRunArgs(volName, workingDirectory, step, step.Envs, "", dockerImg+" build "+step.Build)
+		}
 	} else if step.IsPushStep() {
 		timeout := time.Duration(step.Timeout) * time.Second
 		pushCtx, cancel := context.WithTimeout(ctx, timeout)

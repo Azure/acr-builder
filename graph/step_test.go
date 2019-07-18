@@ -3,6 +3,7 @@
 package graph
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -327,6 +328,143 @@ func TestHasNoWhen(t *testing.T) {
 	for _, test := range tests {
 		if actual := test.s.HasNoWhen(); actual != test.expected {
 			t.Errorf("Expected %v but got %v", test.expected, actual)
+		}
+	}
+}
+
+func TestUseBuildCache(t *testing.T) {
+	tests := []struct {
+		s        *Step
+		expected bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&Step{
+				Cmd: "",
+			},
+			false,
+		},
+		{
+			&Step{
+				EnableCache: true,
+			},
+			false,
+		},
+		{
+			&Step{
+				Build:       "a",
+				EnableCache: true,
+			},
+			true,
+		},
+		{
+			&Step{
+				Build: "a",
+			},
+			false,
+		},
+		{
+			&Step{
+				Build:   "a",
+				CacheID: "foo",
+			},
+			true,
+		},
+		{
+			&Step{
+				Build:       "a",
+				EnableCache: true,
+				CacheID:     "foo",
+			},
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		if actual := test.s.UseBuildCacheForBuildStep(); actual != test.expected {
+			t.Errorf("Use Build Cache for %v. Expected %v but got %v", test.s, test.expected, actual)
+		}
+	}
+}
+
+func TestGetCmdForBuildCache(t *testing.T) {
+	tests := []struct {
+		s      *Step
+		result string
+		ok     bool
+	}{
+		{
+			nil,
+			"",
+			false,
+		},
+		{
+			&Step{
+				Tags: []string{},
+			},
+			"",
+			false,
+		},
+		{
+			&Step{
+				Tags:    []string{"a"},
+				CacheID: "foo",
+			},
+			"a:foo",
+			true,
+		},
+		{
+			&Step{
+				Tags:    []string{"test.com/repo:tag"},
+				CacheID: "foo",
+			},
+			"test.com/repo:foo",
+			true,
+		},
+		{
+			&Step{
+				Tags:    []string{"test:5000/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
+				CacheID: "foo",
+			},
+			"test:5000/repo:foo",
+			true,
+		},
+		{
+			&Step{
+				Tags:    []string{"foo/foo_bar.com:8080"},
+				CacheID: "foo",
+			},
+			"foo/foo_bar.com:foo",
+			true,
+		},
+		{
+			&Step{
+				Tags:    []string{"sub-dom1.foo.com/bar/baz/quux"},
+				CacheID: "foo",
+			},
+			"sub-dom1.foo.com/bar/baz/quux:foo",
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		actual, err := test.s.GetCmdWithCacheFlags()
+
+		if test.ok {
+			if err != nil {
+				t.Errorf("expected %v to be okay but got an error %v", test.s, err)
+			}
+		} else {
+			if err == nil {
+				t.Errorf("expected %v to be errored out but got none", test.s)
+			}
+		}
+
+		if !strings.Contains(actual, test.result) {
+			t.Errorf("step %v could not extract right registry from tags. Expected cache id tag: %v but got %v", test.s, test.result, actual)
 		}
 	}
 }

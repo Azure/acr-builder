@@ -4,7 +4,6 @@
 package graph
 
 import (
-	"errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -12,6 +11,8 @@ import (
 
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/util"
+	"github.com/docker/distribution/reference"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -40,6 +41,7 @@ type Step struct {
 	User                string   `yaml:"user"`
 	Network             string   `yaml:"network"`
 	Isolation           string   `yaml:"isolation"`
+	CacheID             string   `yaml:"cacheId"`
 	Push                []string `yaml:"push"`
 	Envs                []string `yaml:"env"`
 	Expose              []string `yaml:"expose"`
@@ -60,6 +62,7 @@ type Step struct {
 	IgnoreErrors                    bool `yaml:"ignoreErrors"`
 	DisableWorkingDirectoryOverride bool `yaml:"disableWorkingDirectoryOverride"`
 	Pull                            bool `yaml:"pull"`
+	EnableCache                     bool `yaml:"enableCache"`
 
 	StartTime  time.Time
 	EndTime    time.Time
@@ -139,11 +142,13 @@ func (s *Step) Equals(t *Step) bool {
 		s.User == t.User &&
 		s.Network == t.Network &&
 		s.Isolation == t.Isolation &&
+		s.CacheID == t.CacheID &&
 		s.IgnoreErrors == t.IgnoreErrors &&
 		s.Retries == t.Retries &&
 		s.RetryDelayInSeconds == t.RetryDelayInSeconds &&
 		s.DisableWorkingDirectoryOverride == t.DisableWorkingDirectoryOverride &&
 		s.Pull == t.Pull &&
+		s.EnableCache == t.EnableCache &&
 		s.Repeat == t.Repeat
 }
 
@@ -195,4 +200,50 @@ func (s *Step) UpdateBuildStepWithDefaults() {
 	if s.IsBuildStep() && runtime.GOOS == windowsOS && !strings.Contains(s.Build, "--isolation") {
 		s.Build = fmt.Sprintf("--isolation hyperv %s", s.Build)
 	}
+}
+
+// UseBuildCacheForBuildStep indicates if buildx needs to be used
+func (s *Step) UseBuildCacheForBuildStep() bool {
+	if s == nil {
+		return false
+	}
+
+	if s.EnableCache && s.CacheID == "" {
+		s.CacheID = "cache"
+	}
+
+	return s.IsBuildStep() && s.CacheID != ""
+}
+
+// GetCmdWithCacheFlags adds buildx cache parameters to the cmd
+func (s *Step) GetCmdWithCacheFlags() (string, error) {
+	result := ""
+
+	if s == nil {
+		return result, errors.New("step is null")
+	}
+
+	if s.Tags == nil || len(s.Tags) == 0 {
+		return result, errors.New("atleast one tag is required to use buildcache's cache registry")
+	}
+
+	buildImg := s.Tags[0]
+	repo, err := reference.Parse(buildImg)
+	if err != nil {
+		return result, errors.Wrap(err, "failed to parse the image name")
+	}
+
+	if named, ok := repo.(reference.Named); ok {
+		// also trim out any digests
+		named = reference.TrimNamed(named)
+		cacheImage, err := reference.WithTag(named, s.CacheID)
+		if err != nil {
+			return result, errors.Wrap(err, "failed to attach cache ID tag to the repo for buildcache")
+		}
+
+		// todo (sam) check if we need `--push` to be able to push the cache.
+		result = fmt.Sprintf("--cache-to=type=registry,ref=%s,mode=max --cache-from=type=registry,ref=%s %s", cacheImage.String(), cacheImage.String(), s.Build)
+	}
+
+	return result, nil
 }
