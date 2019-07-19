@@ -120,7 +120,7 @@ func NewTaskFromString(data string) (*Task, error) {
 func NewTaskFromBytes(data []byte) (*Task, error) {
 	t := &Task{}
 
-	post, preprocessErr := PreprocessBytes(data)
+	post, preprocessErr := preprocessBytes(data)
 	if preprocessErr != nil {
 		return t, preprocessErr
 	}
