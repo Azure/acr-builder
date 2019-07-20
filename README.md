@@ -1,6 +1,6 @@
 # ACR builder
 
-[![Build Status](https://travis-ci.org/Azure/acr-builder.svg?branch=master)](https://travis-ci.org/Azure/acr-builder)
+[![Build Status](https://dev.azure.com/azurecontainerregistry/acr-builder/_apis/build/status/acr-builder?branchName=master)](https://dev.azure.com/azurecontainerregistry/acr-builder/_build/latest?definitionId=2&branchName=master)
 
 ACR Builder is the backbone behind [Azure Container Registry Tasks](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-overview).
 
