@@ -19,16 +19,19 @@ const (
 	// ImmediateExecutionToken defines the when dependency to indicate a step should execute immediately.
 	ImmediateExecutionToken = "-"
 	windowsOS               = "windows"
+	enabled                 = "enabled"
+	defaultBuildCacheTag    = "cache"
 )
 
 var (
-	errMissingID       = errors.New("step is missing an ID")
-	errMissingProps    = errors.New("step is missing a cmd, build, or push property")
-	errIDContainsSpace = errors.New("step ID cannot contain spaces")
-	errInvalidDeps     = errors.New("step cannot contain other IDs in when if the immediate execution token is specified")
-	errInvalidStepType = errors.New("step must only contain a single build, cmd, or push property")
-	errInvalidRetries  = errors.New("step must specify retries >= 0")
-	errInvalidRepeat   = errors.New("step must specify repeat >= 0")
+	errMissingID         = errors.New("step is missing an ID")
+	errMissingProps      = errors.New("step is missing a cmd, build, or push property")
+	errIDContainsSpace   = errors.New("step ID cannot contain spaces")
+	errInvalidDeps       = errors.New("step cannot contain other IDs in when if the immediate execution token is specified")
+	errInvalidStepType   = errors.New("step must only contain a single build, cmd, or push property")
+	errInvalidRetries    = errors.New("step must specify retries >= 0")
+	errInvalidRepeat     = errors.New("step must specify repeat >= 0")
+	errInvalidCacheValue = errors.New("invalid value for cache property. Valid value is 'enabled'")
 )
 
 // Step is a step in the execution task.
@@ -41,6 +44,7 @@ type Step struct {
 	User                string   `yaml:"user"`
 	Network             string   `yaml:"network"`
 	Isolation           string   `yaml:"isolation"`
+	Cache               string   `yaml:"cache"`
 	CacheID             string   `yaml:"cacheId"`
 	Push                []string `yaml:"push"`
 	Envs                []string `yaml:"env"`
@@ -62,7 +66,6 @@ type Step struct {
 	IgnoreErrors                    bool `yaml:"ignoreErrors"`
 	DisableWorkingDirectoryOverride bool `yaml:"disableWorkingDirectoryOverride"`
 	Pull                            bool `yaml:"pull"`
-	EnableCache                     bool `yaml:"enableCache"`
 
 	StartTime  time.Time
 	EndTime    time.Time
@@ -108,6 +111,11 @@ func (s *Step) Validate() error {
 			return NewSelfReferencedStepError(fmt.Sprintf("Step ID: %v is self-referenced", s.ID))
 		}
 	}
+
+	if s.Cache != "" && strings.ToLower(s.Cache) != enabled {
+		return errInvalidCacheValue
+	}
+
 	return nil
 }
 
@@ -142,13 +150,13 @@ func (s *Step) Equals(t *Step) bool {
 		s.User == t.User &&
 		s.Network == t.Network &&
 		s.Isolation == t.Isolation &&
+		s.Cache == t.Cache &&
 		s.CacheID == t.CacheID &&
 		s.IgnoreErrors == t.IgnoreErrors &&
 		s.Retries == t.Retries &&
 		s.RetryDelayInSeconds == t.RetryDelayInSeconds &&
 		s.DisableWorkingDirectoryOverride == t.DisableWorkingDirectoryOverride &&
 		s.Pull == t.Pull &&
-		s.EnableCache == t.EnableCache &&
 		s.Repeat == t.Repeat
 }
 
@@ -202,14 +210,14 @@ func (s *Step) UpdateBuildStepWithDefaults() {
 	}
 }
 
-// UseBuildCacheForBuildStep indicates if buildx needs to be used
+// UseBuildCacheForBuildStep indicates if buildcache needs to be used.
 func (s *Step) UseBuildCacheForBuildStep() bool {
 	if s == nil {
 		return false
 	}
 
-	if s.EnableCache && s.CacheID == "" {
-		s.CacheID = "cache"
+	if strings.ToLower(s.Cache) == enabled && s.CacheID == "" {
+		s.CacheID = defaultBuildCacheTag
 	}
 
 	return s.IsBuildStep() && s.CacheID != ""
@@ -220,30 +228,44 @@ func (s *Step) GetCmdWithCacheFlags() (string, error) {
 	result := ""
 
 	if s == nil {
-		return result, errors.New("step is null")
+		return result, errors.New("step is nil")
 	}
 
-	if s.Tags == nil || len(s.Tags) == 0 {
-		return result, errors.New("atleast one tag is required to use buildcache's cache registry")
+	if len(s.Tags) == 0 {
+		return result, errors.New("atleast one tag is required to use build cache's cache registry")
 	}
 
+	// grab the repo name from the first Image Tag.
 	buildImg := s.Tags[0]
 	repo, err := reference.Parse(buildImg)
 	if err != nil {
 		return result, errors.Wrap(err, "failed to parse the image name")
 	}
+	named, ok := repo.(reference.Named)
+	if !ok {
+		return result, errors.New("failed to extract the name from registry url")
+	}
+	//  trim out any digests and tags
+	named = reference.TrimNamed(named)
+	domain, _ := reference.SplitHostname(named)
+	if domain == "" {
+		return result, errors.New("domain for the registry is required to push buildcache")
+	}
 
-	if named, ok := repo.(reference.Named); ok {
-		// also trim out any digests
-		named = reference.TrimNamed(named)
+	cacheImageStr := ""
+	if s.CacheID == defaultBuildCacheTag || strings.HasPrefix(s.CacheID, ":") {
+		if strings.HasPrefix(s.CacheID, ":") {
+			s.CacheID = strings.TrimPrefix(s.CacheID, ":")
+		}
 		cacheImage, err := reference.WithTag(named, s.CacheID)
 		if err != nil {
 			return result, errors.Wrap(err, "failed to attach cache ID tag to the repo for buildcache")
 		}
-
-		// todo (sam) check if we need `--push` to be able to push the cache.
-		result = fmt.Sprintf("--cache-to=type=registry,ref=%s,mode=max --cache-from=type=registry,ref=%s %s", cacheImage.String(), cacheImage.String(), s.Build)
+		cacheImageStr = cacheImage.String()
+	} else {
+		cacheImageStr = fmt.Sprintf("%s/%s", domain, s.CacheID)
 	}
 
+	result = fmt.Sprintf("--push --cache-to=type=registry,ref=%s,mode=max --cache-from=type=registry,ref=%s %s", cacheImageStr, cacheImageStr, s.Build)
 	return result, nil
 }

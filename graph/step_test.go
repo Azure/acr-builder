@@ -349,14 +349,14 @@ func TestUseBuildCache(t *testing.T) {
 		},
 		{
 			&Step{
-				EnableCache: true,
+				Cache: "Enabled",
 			},
 			false,
 		},
 		{
 			&Step{
-				Build:       "a",
-				EnableCache: true,
+				Build: "a",
+				Cache: "enabled",
 			},
 			true,
 		},
@@ -375,9 +375,9 @@ func TestUseBuildCache(t *testing.T) {
 		},
 		{
 			&Step{
-				Build:       "a",
-				EnableCache: true,
-				CacheID:     "foo",
+				Build:   "a",
+				Cache:   "enabled",
+				CacheID: "foo",
 			},
 			true,
 		},
@@ -413,7 +413,15 @@ func TestGetCmdForBuildCache(t *testing.T) {
 				Tags:    []string{"a"},
 				CacheID: "foo",
 			},
-			"a:foo",
+			"",
+			false,
+		},
+		{
+			&Step{
+				Tags:  []string{"test.com/repo:tag"},
+				Cache: "enabled",
+			},
+			"test.com/repo:cache",
 			true,
 		},
 		{
@@ -421,7 +429,23 @@ func TestGetCmdForBuildCache(t *testing.T) {
 				Tags:    []string{"test.com/repo:tag"},
 				CacheID: "foo",
 			},
+			"test.com/foo",
+			true,
+		},
+		{
+			&Step{
+				Tags:    []string{"test.com/repo:tag"},
+				CacheID: ":foo",
+			},
 			"test.com/repo:foo",
+			true,
+		},
+		{
+			&Step{
+				Tags:    []string{"test:5000/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
+				CacheID: ":foo",
+			},
+			"test:5000/repo:foo",
 			true,
 		},
 		{
@@ -429,28 +453,53 @@ func TestGetCmdForBuildCache(t *testing.T) {
 				Tags:    []string{"test:5000/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
 				CacheID: "foo",
 			},
-			"test:5000/repo:foo",
+			"test:5000/foo",
+			true,
+		},
+		{
+			&Step{
+				Tags:  []string{"test:5000/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
+				Cache: "enabled",
+			},
+			"test:5000/repo:cache",
 			true,
 		},
 		{
 			&Step{
 				Tags:    []string{"foo/foo_bar.com:8080"},
-				CacheID: "foo",
+				CacheID: ":tag",
 			},
-			"foo/foo_bar.com:foo",
+			"foo/foo_bar.com:tag",
+			true,
+		},
+		{
+			&Step{
+				Tags:    []string{"foo/foo_bar.com:8080"},
+				CacheID: "repo:tag",
+			},
+			"foo/repo:tag",
 			true,
 		},
 		{
 			&Step{
 				Tags:    []string{"sub-dom1.foo.com/bar/baz/quux"},
-				CacheID: "foo",
+				CacheID: ":foo",
 			},
 			"sub-dom1.foo.com/bar/baz/quux:foo",
+			true,
+		},
+		{
+			&Step{
+				Tags:  []string{"sub-dom1.foo.com/bar/baz/quux"},
+				Cache: "enabled",
+			},
+			"sub-dom1.foo.com/bar/baz/quux:cache",
 			true,
 		},
 	}
 
 	for _, test := range tests {
+		test.s.UseBuildCacheForBuildStep()
 		actual, err := test.s.GetCmdWithCacheFlags()
 
 		if test.ok {

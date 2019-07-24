@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"runtime"
 	"strings"
 	"time"
 
@@ -22,7 +21,6 @@ import (
 )
 
 const (
-	linuxOS   = "linux"
 	dockerImg = "docker"
 	buildxImg = "buildx"
 )
@@ -82,6 +80,36 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	errorChan := make(chan error)
 	for _, node := range task.Dag.Nodes {
 		completedChans = append(completedChans, node.Value.CompletedChan)
+	}
+
+	if task.InitBuildkitContainer {
+		// todo remove extra logs
+		log.Println("(debug) task will use buildcache, initializing buildkit container")
+		// --workdir = /workspace
+		args := b.getDockerRunArgs(b.workspaceDir, "", nil, []string{}, "", buildxImg+" create --use")
+		log.Printf("(debug) task args: %v\n", strings.Join(args, ", "))
+		if b.debug {
+			log.Printf("task args: %v\n", strings.Join(args, ", "))
+		}
+
+		buildkitCtx, cancel := context.WithTimeout(ctx, buildkitContainerRunTimeout)
+		defer cancel()
+
+		err := b.procManager.RunRepeatWithRetries(
+			buildkitCtx,
+			args,
+			nil,
+			os.Stdout,
+			os.Stderr,
+			"",
+			buildkitContainerInitRetries,
+			buildkitContainerInitRetryDelay,
+			buildkitContainerName,
+			buildkitContainerInitRepeat,
+			false)
+		if err != nil {
+			log.Println("(debug) buildx create --use failed")
+		}
 	}
 
 	for _, child := range task.Dag.Root.Children() {
@@ -243,23 +271,8 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 			step.Build = replacePositionalContext(step.Build, ".")
 		}
 		step.UpdateBuildStepWithDefaults()
-		useBuildCache := false
 
 		if step.UseBuildCacheForBuildStep() {
-			if runtime.GOOS == linuxOS {
-				log.Println("runtime os is linux and need to use buildcache")
-				if buildStepWithBuildCache, err := step.GetCmdWithCacheFlags(); err != nil {
-					log.Printf("error using buildcache %v\n", err)
-				} else {
-					useBuildCache = true
-					step.Build = buildStepWithBuildCache
-				}
-			} else {
-				log.Printf("buildcache is not supported on windows. Fallback to standard docker build")
-			}
-		}
-
-		if useBuildCache {
 			args = b.getDockerRunArgs(volName, workingDirectory, step, step.Envs, "", buildxImg+" build "+step.Build)
 		} else {
 			args = b.getDockerRunArgs(volName, workingDirectory, step, step.Envs, "", dockerImg+" build "+step.Build)

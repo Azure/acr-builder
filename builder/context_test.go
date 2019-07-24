@@ -87,13 +87,13 @@ func TestGetBuildDockerRunArgs(t *testing.T) {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",
-			"docker run --rm --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --env foo=bar --env HOME=qux --workdir c:\\workspace/stepWorkDir docker build -f Dockerfile .",
+			"docker run --rm --name id --workdir c:\\workspace/stepWorkDir --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --env foo=bar --env HOME=qux docker build -f Dockerfile .",
 		}
 	} else {
 		expectedCmds = []string{
 			"/bin/sh",
 			"-c",
-			"docker run --rm --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --env foo=bar --env HOME=qux --workdir /workspace/stepWorkDir docker build -f Dockerfile .",
+			"docker run --rm --name id --workdir /workspace/stepWorkDir --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --env foo=bar --env HOME=qux docker build -f Dockerfile .",
 		}
 	}
 
@@ -112,13 +112,13 @@ func TestGetNonBuildDockerRunArgs(t *testing.T) {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",
-			"docker run --rm --isolation hyperv --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --env foo=bar --workdir c:\\workspace/stepWorkDir hello-world",
+			"docker run --rm --isolation hyperv --name id --workdir c:\\workspace/stepWorkDir --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --env foo=bar hello-world",
 		}
 	} else {
 		expectedCmds = []string{
 			"/bin/sh",
 			"-c",
-			"docker run --rm --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --env foo=bar --workdir /workspace/stepWorkDir hello-world",
+			"docker run --rm --name id --workdir /workspace/stepWorkDir --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --env foo=bar hello-world",
 		}
 	}
 

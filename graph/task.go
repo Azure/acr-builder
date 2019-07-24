@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"runtime"
 	"strings"
 
@@ -26,6 +27,8 @@ const (
 
 	// currentTaskVersion is the most recent Task version.
 	currentTaskVersion = "v1.0.0"
+
+	linuxOS = "linux"
 )
 
 var (
@@ -58,6 +61,7 @@ type Task struct {
 	RegistryLoginCredentials RegistryLoginCredentials
 	Dag                      *Dag
 	IsBuildTask              bool // Used to skip the default network creation for build.
+	InitBuildkitContainer    bool // Used to initialize buildkit container if a build step is using buildcache.
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
@@ -251,7 +255,22 @@ func (t *Task) initialize(ctx context.Context) error {
 		s.StepStatus = Skipped
 
 		if s.IsBuildStep() {
-			if s.Tags == nil || len(s.Tags) == 0 {
+			if s.UseBuildCacheForBuildStep() {
+				if runtime.GOOS == linuxOS {
+					log.Println("runtime os is linux and need to use buildcache")
+					if buildStepWithBuildCache, err := s.GetCmdWithCacheFlags(); err != nil {
+						log.Printf("error creating buildcache command %v\n", err)
+					} else {
+						// update the Build cmd with buildx cache flags
+						s.Build = buildStepWithBuildCache
+						t.InitBuildkitContainer = true
+					}
+				} else {
+					log.Println("buildcache is not supported on windows. Will use standard docker build")
+				}
+			}
+
+			if len(s.Tags) == 0 {
 				s.Tags = util.ParseTags(s.Build)
 			}
 			s.BuildArgs = util.ParseBuildArgs(s.Build)

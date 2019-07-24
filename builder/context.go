@@ -43,7 +43,7 @@ func (b *Builder) getDockerRunArgs(
 	// so we don't have to write our own argv parser for exec.Command.
 	if runtime.GOOS == windowsOS {
 		args = []string{"powershell.exe", "-Command"}
-		if step.Isolation == "" && !step.IsBuildStep() {
+		if step != nil && step.Isolation == "" && !step.IsBuildStep() {
 			// Use hyperv isolation for non-build steps.
 			// Use default isolation for build step to improve performance. It assumes the docker-cli image is compatible with the host os.
 			step.Isolation = "hyperv"
@@ -53,34 +53,43 @@ func (b *Builder) getDockerRunArgs(
 	}
 
 	sb.WriteString("docker run")
-	if !step.Keep {
-		sb.WriteString(" --rm")
+	if step != nil {
+		if !step.Keep {
+			sb.WriteString(" --rm")
+		}
+		if step.Detach {
+			sb.WriteString(" --detach")
+		}
+		for _, port := range step.Ports {
+			sb.WriteString(" -p " + port)
+		}
+		for _, exp := range step.Expose {
+			sb.WriteString(" --expose " + exp)
+		}
+		if step.Privileged {
+			sb.WriteString(" --privileged")
+		}
+		if step.User != "" {
+			sb.WriteString(" --user " + step.User)
+		}
+		if step.Network != "" {
+			sb.WriteString(" --network " + step.Network)
+		}
+		if step.Isolation != "" {
+			sb.WriteString(" --isolation " + step.Isolation)
+		}
+		sb.WriteString(" --name " + step.ID)
+		if !step.DisableWorkingDirectoryOverride {
+			sb.WriteString(" --workdir " + normalizeWorkDir(stepWorkDir))
+		}
+	} else {
+		sb.WriteString(" --name " + buildkitContainerName)
+		sb.WriteString(" --workdir " + normalizeWorkDir(stepWorkDir))
 	}
-	if step.Detach {
-		sb.WriteString(" --detach")
-	}
-	for _, port := range step.Ports {
-		sb.WriteString(" -p " + port)
-	}
-	for _, exp := range step.Expose {
-		sb.WriteString(" --expose " + exp)
-	}
-	if step.Privileged {
-		sb.WriteString(" --privileged")
-	}
-	if step.User != "" {
-		sb.WriteString(" --user " + step.User)
-	}
-	if step.Network != "" {
-		sb.WriteString(" --network " + step.Network)
-	}
-	if step.Isolation != "" {
-		sb.WriteString(" --isolation " + step.Isolation)
-	}
+
 	if entrypoint != "" {
 		sb.WriteString(" --entrypoint " + entrypoint)
 	}
-	sb.WriteString(" --name " + step.ID)
 	sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
 	sb.WriteString(" --volume " + util.DockerSocketVolumeMapping)
 	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
@@ -94,9 +103,6 @@ func (b *Builder) getDockerRunArgs(
 		sb.WriteString(" --env " + env)
 	}
 
-	if !step.DisableWorkingDirectoryOverride {
-		sb.WriteString(" --workdir " + normalizeWorkDir(stepWorkDir))
-	}
 	sb.WriteString(" " + cmd)
 
 	args = append(args, sb.String())
