@@ -1,6 +1,8 @@
 # ACR builder
 
-[![Build Status](https://dev.azure.com/azurecontainerregistry/acr-builder/_apis/build/status/acr-builder?branchName=master)](https://dev.azure.com/azurecontainerregistry/acr-builder/_build/latest?definitionId=2&branchName=master)
+| Linux | Windows |
+|---|---|
+|[![Build Status](https://dev.azure.com/azurecontainerregistry/acr-builder/_apis/build/status/acr-builder?branchName=master)](https://dev.azure.com/azurecontainerregistry/acr-builder/_build/latest?definitionId=2&branchName=master)|[![Build Status](https://dev.azure.com/azurecontainerregistry/acr-builder/_apis/build/status/acr-builder%20(Windows)?branchName=master)](https://dev.azure.com/azurecontainerregistry/acr-builder/_build/latest?definitionId=15&branchName=master)|
 
 ACR Builder is the backbone behind [Azure Container Registry Tasks](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-overview).
 
