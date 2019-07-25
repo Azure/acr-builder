@@ -84,15 +84,31 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 
 	if task.InitBuildkitContainer {
 		// todo remove extra logs
-		log.Println("(debug) task will use buildcache, initializing buildkit container")
+		log.Println("(debug) task will use build cache, initializing buildkitd container")
 		// --workdir = /workspace
-		args := b.getDockerRunArgs(b.workspaceDir, "", nil, []string{}, "", buildxImg+" create --use")
+		args := b.getDockerRunArgs(
+			b.workspaceDir,
+			"",
+			false,
+			true,
+			true,
+			[]string{},
+			[]string{},
+			[]string{},
+			false,
+			"",
+			"",
+			"",
+			"",
+			buildkitdContainerName,
+			buildxImg+" create --use",
+		)
 		log.Printf("(debug) task args: %v\n", strings.Join(args, ", "))
 		if b.debug {
 			log.Printf("task args: %v\n", strings.Join(args, ", "))
 		}
 
-		buildkitCtx, cancel := context.WithTimeout(ctx, buildkitContainerRunTimeout)
+		buildkitCtx, cancel := context.WithTimeout(ctx, buildkitdContainerRunTimeout)
 		defer cancel()
 
 		err := b.procManager.RunRepeatWithRetries(
@@ -102,13 +118,13 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			os.Stdout,
 			os.Stderr,
 			"",
-			buildkitContainerInitRetries,
-			buildkitContainerInitRetryDelay,
-			buildkitContainerName,
-			buildkitContainerInitRepeat,
+			buildkitdContainerInitRetries,
+			buildkitdContainerInitRetryDelay,
+			buildkitdContainerName,
+			buildkitdContainerInitRepeat,
 			false)
 		if err != nil {
-			log.Println("(debug) buildx create --use failed")
+			log.Printf("(debug) buildx create --use failed %v", err)
 		}
 	}
 
@@ -273,9 +289,9 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		step.UpdateBuildStepWithDefaults()
 
 		if step.UseBuildCacheForBuildStep() {
-			args = b.getDockerRunArgs(volName, workingDirectory, step, step.Envs, "", buildxImg+" build "+step.Build)
+			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", buildxImg+" build "+step.Build)
 		} else {
-			args = b.getDockerRunArgs(volName, workingDirectory, step, step.Envs, "", dockerImg+" build "+step.Build)
+			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", dockerImg+" build "+step.Build)
 		}
 	} else if step.IsPushStep() {
 		timeout := time.Duration(step.Timeout) * time.Second
@@ -283,7 +299,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		defer cancel()
 		return b.pushWithRetries(pushCtx, step.Push)
 	} else {
-		args = b.getDockerRunArgs(b.workspaceDir, step.WorkingDirectory, step, step.Envs, step.EntryPoint, step.Cmd)
+		args = b.getDockerRunArgsForStep(b.workspaceDir, step.WorkingDirectory, step, step.EntryPoint, step.Cmd)
 	}
 
 	if b.debug {

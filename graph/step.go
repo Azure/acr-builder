@@ -20,7 +20,7 @@ const (
 	ImmediateExecutionToken = "-"
 	windowsOS               = "windows"
 	enabled                 = "enabled"
-	defaultBuildCacheTag    = "cache"
+	disabled                = "disabled"
 )
 
 var (
@@ -31,7 +31,7 @@ var (
 	errInvalidStepType   = errors.New("step must only contain a single build, cmd, or push property")
 	errInvalidRetries    = errors.New("step must specify retries >= 0")
 	errInvalidRepeat     = errors.New("step must specify repeat >= 0")
-	errInvalidCacheValue = errors.New("invalid value for cache property. Valid value is 'enabled'")
+	errInvalidCacheValue = errors.New("invalid value for cache property. Valid values are 'enabled', 'disabled'")
 )
 
 // Step is a step in the execution task.
@@ -45,7 +45,6 @@ type Step struct {
 	Network             string   `yaml:"network"`
 	Isolation           string   `yaml:"isolation"`
 	Cache               string   `yaml:"cache"`
-	CacheID             string   `yaml:"cacheId"`
 	Push                []string `yaml:"push"`
 	Envs                []string `yaml:"env"`
 	Expose              []string `yaml:"expose"`
@@ -75,9 +74,10 @@ type Step struct {
 	// that the step has been processed.
 	CompletedChan chan bool
 
-	ImageDependencies []*image.Dependencies
-	Tags              []string
-	BuildArgs         []string
+	ImageDependencies    []*image.Dependencies
+	Tags                 []string
+	BuildArgs            []string
+	DefaultBuildCacheTag string
 }
 
 // Validate validates the step and returns an error if the Step has problems.
@@ -112,7 +112,7 @@ func (s *Step) Validate() error {
 		}
 	}
 
-	if s.Cache != "" && strings.ToLower(s.Cache) != enabled {
+	if s.Cache != "" && !strings.EqualFold(s.Cache, enabled) && !strings.EqualFold(s.Cache, disabled) {
 		return errInvalidCacheValue
 	}
 
@@ -151,7 +151,6 @@ func (s *Step) Equals(t *Step) bool {
 		s.Network == t.Network &&
 		s.Isolation == t.Isolation &&
 		s.Cache == t.Cache &&
-		s.CacheID == t.CacheID &&
 		s.IgnoreErrors == t.IgnoreErrors &&
 		s.Retries == t.Retries &&
 		s.RetryDelayInSeconds == t.RetryDelayInSeconds &&
@@ -210,29 +209,26 @@ func (s *Step) UpdateBuildStepWithDefaults() {
 	}
 }
 
-// UseBuildCacheForBuildStep indicates if buildcache needs to be used.
+// UseBuildCacheForBuildStep indicates if buildx needs to be used.
 func (s *Step) UseBuildCacheForBuildStep() bool {
-	if s == nil {
-		return false
-	}
-
-	if strings.ToLower(s.Cache) == enabled && s.CacheID == "" {
-		s.CacheID = defaultBuildCacheTag
-	}
-
-	return s.IsBuildStep() && s.CacheID != ""
+	return s != nil && s.IsBuildStep() && strings.ToLower(s.Cache) == enabled
 }
 
-// GetCmdWithCacheFlags adds buildx cache parameters to the cmd
-func (s *Step) GetCmdWithCacheFlags() (string, error) {
+// GetBuildCacheImageTag returns a default cacheid used to tag buildx images.
+func GetBuildCacheImageTag(taskName, stepID string) string {
+	return fmt.Sprintf("cache_%s_%s", taskName, stepID)
+}
+
+// GetCmdWithCacheFlags adds buildx cache parameters to the cmd.
+func (s *Step) GetCmdWithCacheFlags(taskName string) (string, error) {
 	result := ""
 
-	if s == nil {
-		return result, errors.New("step is nil")
+	if len(s.Tags) == 0 {
+		return result, errors.New("at least one tag is required to use build cache's cache registry")
 	}
 
-	if len(s.Tags) == 0 {
-		return result, errors.New("atleast one tag is required to use build cache's cache registry")
+	if strings.ToLower(s.Cache) != enabled {
+		return result, errors.New("cache needs to be set to 'enabled' to use build cache")
 	}
 
 	// grab the repo name from the first Image Tag.
@@ -249,23 +245,14 @@ func (s *Step) GetCmdWithCacheFlags() (string, error) {
 	named = reference.TrimNamed(named)
 	domain, _ := reference.SplitHostname(named)
 	if domain == "" {
-		return result, errors.New("domain for the registry is required to push buildcache")
+		return result, errors.New("domain for the registry is required to push build cache")
 	}
 
-	cacheImageStr := ""
-	if s.CacheID == defaultBuildCacheTag || strings.HasPrefix(s.CacheID, ":") {
-		if strings.HasPrefix(s.CacheID, ":") {
-			s.CacheID = strings.TrimPrefix(s.CacheID, ":")
-		}
-		cacheImage, err := reference.WithTag(named, s.CacheID)
-		if err != nil {
-			return result, errors.Wrap(err, "failed to attach cache ID tag to the repo for buildcache")
-		}
-		cacheImageStr = cacheImage.String()
-	} else {
-		cacheImageStr = fmt.Sprintf("%s/%s", domain, s.CacheID)
+	s.DefaultBuildCacheTag = GetBuildCacheImageTag(taskName, s.ID)
+	cacheImage, err := reference.WithTag(named, s.DefaultBuildCacheTag)
+	if err != nil {
+		return result, errors.Wrap(err, "failed to attach cache ID tag to the repo for build cache")
 	}
-
-	result = fmt.Sprintf("--push --cache-to=type=registry,ref=%s,mode=max --cache-from=type=registry,ref=%s %s", cacheImageStr, cacheImageStr, s.Build)
+	result = fmt.Sprintf("--load --cache-to=type=registry,ref=%s,mode=max --cache-from=type=registry,ref=%s %s", cacheImage.String(), cacheImage.String(), s.Build)
 	return result, nil
 }

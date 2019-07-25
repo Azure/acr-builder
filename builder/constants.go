@@ -24,9 +24,9 @@ const (
 	scrapeTimeoutInSec  = 60 * 15 // 15 minutes
 
 	// build cache constants
-	buildkitContainerRunTimeout     = 60 * 2 // 2 minutes
-	buildkitContainerInitRetries    = 3
-	buildkitContainerInitRetryDelay = 5 // 5 seconds
-	buildkitContainerName           = "buildkitcontainer"
-	buildkitContainerInitRepeat     = 0 // no repetition for retries
+	buildkitdContainerRunTimeout     = 60 * 2 // 2 minutes
+	buildkitdContainerInitRetries    = 3
+	buildkitdContainerInitRetryDelay = 5 // 5 seconds
+	buildkitdContainerName           = "acrbuildkitdcontainer"
+	buildkitdContainerInitRepeat     = 0 // no repetition for retries
 )

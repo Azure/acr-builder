@@ -74,6 +74,9 @@ type BaseRenderOptions struct {
 
 	// SecretResolveTimeout is the timeout for resolving a secret during rendering.
 	SecretResolveTimeout time.Duration
+
+	// TaskName is the name of the Task executing this run
+	TaskName string
 }
 
 // OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
@@ -96,6 +99,7 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 			"OS":           opts.OS,
 			"OSVersion":    opts.OSVersion,
 			"Architecture": opts.Architecture,
+			"TaskName":     opts.TaskName,
 		},
 	}
 

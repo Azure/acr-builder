@@ -358,5 +358,5 @@ func createBuildTask(
 		credentials = append(credentials, cred)
 	}
 
-	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, true, workingDirectory)
+	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, true, workingDirectory, "")
 }

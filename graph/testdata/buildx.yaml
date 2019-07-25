@@ -1,0 +1,11 @@
+version: v1.0.0
+steps:
+  - build: -t shahzzzam.azurecr.io/repo:tag .
+    cache: "enabled"
+
+  - build: -t shahzzzam.azurecr.io/repo:tag2 .
+    cache: "enabled"
+
+  - id: myCustomStepID 
+    build: -t shahzzzam.azurecr.io/foo .
+    cache: "Enabled"

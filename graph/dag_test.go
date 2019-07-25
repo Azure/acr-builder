@@ -6,11 +6,12 @@ package graph
 import (
 	gocontext "context"
 	"fmt"
+	"runtime"
 	"testing"
 )
 
 func TestDagCreation_ValidFile(t *testing.T) {
-	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/acb.yaml", nil)
+	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/acb.yaml", nil, "")
 	if err != nil {
 		t.Fatalf("Failed to create task from file. Err: %v", err)
 	}
@@ -172,6 +173,84 @@ func TestDagCreation_ValidFile(t *testing.T) {
 
 		} else {
 			t.Fatalf("Unknown node name: %v", k)
+		}
+	}
+}
+
+func TestBuildxInBuildTask_ValidFile(t *testing.T) {
+	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/buildx.yaml", nil, "samsTask")
+	if err != nil {
+		t.Fatalf("Failed to create task from file. Err: %v", err)
+	}
+
+	expectedTaskName := "samsTask"
+	expectedSteps := []struct {
+		stepID  string
+		cacheID string
+	}{
+		{
+			"acb_step_0",
+			"cache_samsTask_acb_step_0",
+		},
+		{
+			"acb_step_1",
+			"cache_samsTask_acb_step_1",
+		},
+		{
+			"myCustomStepID",
+			"cache_samsTask_myCustomStepID",
+		},
+	}
+
+	if task.TaskName != expectedTaskName {
+		t.Errorf("Expected %s as the taskName, but got %s", expectedTaskName, task.TaskName)
+	}
+
+	if runtime.GOOS == linuxOS {
+		for i, step := range task.Steps {
+			expectedStep := expectedSteps[i]
+			if step.ID != expectedStep.stepID || step.DefaultBuildCacheTag != expectedStep.cacheID {
+				t.Errorf("Expected %v step, but got %v", expectedStep, step)
+			}
+		}
+	}
+}
+
+func TestBuildxQuickRun_ValidFile(t *testing.T) {
+	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/buildx.yaml", nil, "")
+	if err != nil {
+		t.Fatalf("Failed to create task from file. Err: %v", err)
+	}
+
+	expectedTaskName := noTaskNamePlaceholder
+	expectedSteps := []struct {
+		stepID  string
+		cacheID string
+	}{
+		{
+			"acb_step_0",
+			"cache_" + noTaskNamePlaceholder + "_acb_step_0",
+		},
+		{
+			"acb_step_1",
+			"cache_" + noTaskNamePlaceholder + "_acb_step_1",
+		},
+		{
+			"myCustomStepID",
+			"cache_" + noTaskNamePlaceholder + "_myCustomStepID",
+		},
+	}
+
+	if task.TaskName != expectedTaskName {
+		t.Errorf("Expected %s as the taskName, but got %s", expectedTaskName, task.TaskName)
+	}
+
+	if runtime.GOOS == linuxOS {
+		for i, step := range task.Steps {
+			expectedStep := expectedSteps[i]
+			if step.ID != expectedStep.stepID || step.DefaultBuildCacheTag != expectedStep.cacheID {
+				t.Errorf("Expected %v step, but got %v", expectedStep, step)
+			}
 		}
 	}
 }

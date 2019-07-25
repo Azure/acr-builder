@@ -29,6 +29,8 @@ const (
 	currentTaskVersion = "v1.0.0"
 
 	linuxOS = "linux"
+
+	noTaskNamePlaceholder = "quickrun"
 )
 
 var (
@@ -57,15 +59,16 @@ type Task struct {
 	WorkingDirectory         string               `yaml:"workingDirectory,omitempty"`
 	Version                  string               `yaml:"version,omitempty"`
 	RegistryName             string
+	TaskName                 string // Used to form the build cache image tag.
 	Credentials              []*RegistryCredential
 	RegistryLoginCredentials RegistryLoginCredentials
 	Dag                      *Dag
 	IsBuildTask              bool // Used to skip the default network creation for build.
-	InitBuildkitContainer    bool // Used to initialize buildkit container if a build step is using buildcache.
+	InitBuildkitContainer    bool // Used to initialize buildkit container if a build step is using build cache.
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential) (*Task, error) {
+func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string) (*Task, error) {
 	t, err := NewTaskFromString(data)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
@@ -83,6 +86,11 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 
 	t.Envs = newEnvs
 	t.Credentials = creds
+	if taskName != "" {
+		t.TaskName = taskName
+	} else {
+		t.TaskName = noTaskNamePlaceholder
+	}
 
 	// External network parsed in from CLI will be set as default network, it will be used for any step if no network provide for them
 	// The external network is append at the end of the list of networks, later we will do reverse iteration to get this network
@@ -100,7 +108,7 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 }
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
-func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCredential) (*Task, error) {
+func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCredential, taskName string) (*Task, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -111,6 +119,11 @@ func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCr
 	}
 
 	t.Credentials = creds
+	if taskName != "" {
+		t.TaskName = taskName
+	} else {
+		t.TaskName = noTaskNamePlaceholder
+	}
 	err = t.initialize(ctx)
 	return t, err
 }
@@ -159,7 +172,8 @@ func NewTask(
 	registry string,
 	credentials []*RegistryCredential,
 	isBuildTask bool,
-	defaultWorkDir string) (*Task, error) {
+	defaultWorkDir string,
+	taskName string) (*Task, error) {
 	t := &Task{
 		Steps:        steps,
 		StepTimeout:  defaultStepTimeoutInSeconds,
@@ -167,9 +181,15 @@ func NewTask(
 		RegistryName: registry,
 		Credentials:  credentials,
 		IsBuildTask:  isBuildTask,
+		TaskName:     taskName,
 	}
 	if defaultWorkDir != "" && t.WorkingDirectory == "" {
 		t.WorkingDirectory = defaultWorkDir
+	}
+	if taskName != "" {
+		t.TaskName = taskName
+	} else {
+		t.TaskName = noTaskNamePlaceholder
 	}
 	err := t.initialize(ctx)
 	return t, err
@@ -255,25 +275,25 @@ func (t *Task) initialize(ctx context.Context) error {
 		s.StepStatus = Skipped
 
 		if s.IsBuildStep() {
+			if len(s.Tags) == 0 {
+				s.Tags = util.ParseTags(s.Build)
+			}
+			s.BuildArgs = util.ParseBuildArgs(s.Build)
+
 			if s.UseBuildCacheForBuildStep() {
 				if runtime.GOOS == linuxOS {
-					log.Println("runtime os is linux and need to use buildcache")
-					if buildStepWithBuildCache, err := s.GetCmdWithCacheFlags(); err != nil {
-						log.Printf("error creating buildcache command %v\n", err)
+					log.Println("(debug) runtime os is linux and need to use build cache")
+					if buildStepWithBuildCache, err := s.GetCmdWithCacheFlags(t.TaskName); err != nil {
+						log.Printf("error creating build cache command %v\n", err)
 					} else {
 						// update the Build cmd with buildx cache flags
 						s.Build = buildStepWithBuildCache
 						t.InitBuildkitContainer = true
 					}
 				} else {
-					log.Println("buildcache is not supported on windows. Will use standard docker build")
+					log.Println("build cache is not supported on windows. Will use standard docker build")
 				}
 			}
-
-			if len(s.Tags) == 0 {
-				s.Tags = util.ParseTags(s.Build)
-			}
-			s.BuildArgs = util.ParseBuildArgs(s.Build)
 		} else if s.IsPushStep() {
 			s.Push = getNormalizedDockerImageNames(s.Push, t.RegistryName)
 		}

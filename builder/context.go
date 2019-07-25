@@ -31,65 +31,59 @@ const (
 // getDockerRunArgs populates the args for running a Docker container.
 func (b *Builder) getDockerRunArgs(
 	volName string,
-	stepWorkDir string,
-	step *graph.Step,
+	workDir string,
+	disableWorkDirOverride bool,
+	remove bool,
+	detach bool,
 	envs []string,
+	ports []string,
+	expose []string,
+	privilaged bool,
+	user string,
+	network string,
+	isolation string,
 	entrypoint string,
+	containerName string,
 	cmd string) []string {
-
 	var args []string
 	var sb strings.Builder
 	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
 	// so we don't have to write our own argv parser for exec.Command.
 	if runtime.GOOS == windowsOS {
 		args = []string{"powershell.exe", "-Command"}
-		if step != nil && step.Isolation == "" && !step.IsBuildStep() {
-			// Use hyperv isolation for non-build steps.
-			// Use default isolation for build step to improve performance. It assumes the docker-cli image is compatible with the host os.
-			step.Isolation = "hyperv"
-		}
 	} else {
 		args = []string{"/bin/sh", "-c"}
 	}
 
 	sb.WriteString("docker run")
-	if step != nil {
-		if !step.Keep {
-			sb.WriteString(" --rm")
-		}
-		if step.Detach {
-			sb.WriteString(" --detach")
-		}
-		for _, port := range step.Ports {
-			sb.WriteString(" -p " + port)
-		}
-		for _, exp := range step.Expose {
-			sb.WriteString(" --expose " + exp)
-		}
-		if step.Privileged {
-			sb.WriteString(" --privileged")
-		}
-		if step.User != "" {
-			sb.WriteString(" --user " + step.User)
-		}
-		if step.Network != "" {
-			sb.WriteString(" --network " + step.Network)
-		}
-		if step.Isolation != "" {
-			sb.WriteString(" --isolation " + step.Isolation)
-		}
-		sb.WriteString(" --name " + step.ID)
-		if !step.DisableWorkingDirectoryOverride {
-			sb.WriteString(" --workdir " + normalizeWorkDir(stepWorkDir))
-		}
-	} else {
-		sb.WriteString(" --name " + buildkitContainerName)
-		sb.WriteString(" --workdir " + normalizeWorkDir(stepWorkDir))
+	if remove {
+		sb.WriteString(" --rm")
 	}
-
+	if detach {
+		sb.WriteString(" --detach")
+	}
+	for _, port := range ports {
+		sb.WriteString(" -p " + port)
+	}
+	for _, exp := range expose {
+		sb.WriteString(" --expose " + exp)
+	}
+	if privilaged {
+		sb.WriteString(" --privileged")
+	}
+	if user != "" {
+		sb.WriteString(" --user " + user)
+	}
+	if network != "" {
+		sb.WriteString(" --network " + network)
+	}
+	if isolation != "" {
+		sb.WriteString(" --isolation " + isolation)
+	}
 	if entrypoint != "" {
 		sb.WriteString(" --entrypoint " + entrypoint)
 	}
+	sb.WriteString(" --name " + containerName)
 	sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
 	sb.WriteString(" --volume " + util.DockerSocketVolumeMapping)
 	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
@@ -103,10 +97,47 @@ func (b *Builder) getDockerRunArgs(
 		sb.WriteString(" --env " + env)
 	}
 
+	if !disableWorkDirOverride {
+		sb.WriteString(" --workdir " + normalizeWorkDir(workDir))
+	}
 	sb.WriteString(" " + cmd)
 
 	args = append(args, sb.String())
 	return args
+}
+
+// getDockerRunArgsForStep populates the args for running a Docker container for the step.
+func (b *Builder) getDockerRunArgsForStep(
+	volName string,
+	stepWorkDir string,
+	step *graph.Step,
+	entrypoint string,
+	cmd string) []string {
+	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
+	// so we don't have to write our own argv parser for exec.Command.
+	if runtime.GOOS == windowsOS && step.Isolation == "" && !step.IsBuildStep() {
+		// Use hyperv isolation for non-build steps.
+		// Use default isolation for build step to improve performance. It assumes the docker-cli image is compatible with the host os.
+		step.Isolation = "hyperv"
+	}
+
+	return b.getDockerRunArgs(
+		volName,
+		stepWorkDir,
+		step.DisableWorkingDirectoryOverride,
+		!step.Keep,
+		step.Detach,
+		step.Envs,
+		step.Ports,
+		step.Expose,
+		step.Privileged,
+		step.User,
+		step.Network,
+		step.Isolation,
+		entrypoint,
+		step.ID,
+		cmd,
+	)
 }
 
 func (b *Builder) scrapeDependencies(

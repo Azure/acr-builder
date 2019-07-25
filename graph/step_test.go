@@ -349,6 +349,12 @@ func TestUseBuildCache(t *testing.T) {
 		},
 		{
 			&Step{
+				Cache: "blah",
+			},
+			false,
+		},
+		{
+			&Step{
 				Cache: "Enabled",
 			},
 			false,
@@ -363,23 +369,9 @@ func TestUseBuildCache(t *testing.T) {
 		{
 			&Step{
 				Build: "a",
+				Cache: "disabled",
 			},
 			false,
-		},
-		{
-			&Step{
-				Build:   "a",
-				CacheID: "foo",
-			},
-			true,
-		},
-		{
-			&Step{
-				Build:   "a",
-				Cache:   "enabled",
-				CacheID: "foo",
-			},
-			true,
 		},
 	}
 
@@ -392,115 +384,93 @@ func TestUseBuildCache(t *testing.T) {
 
 func TestGetCmdForBuildCache(t *testing.T) {
 	tests := []struct {
-		s      *Step
-		result string
-		ok     bool
+		s        *Step
+		taskName string
+		result   string
+		ok       bool
 	}{
 		{
-			nil,
-			"",
-			false,
-		},
-		{
 			&Step{
-				Tags: []string{},
+				Tags:  []string{},
+				Cache: "disabled",
 			},
 			"",
-			false,
-		},
-		{
-			&Step{
-				Tags:    []string{"a"},
-				CacheID: "foo",
-			},
 			"",
 			false,
 		},
 		{
 			&Step{
+				Tags:  []string{"a"},
+				Cache: "enabled",
+			},
+			"",
+			"",
+			false,
+		},
+		{
+			&Step{
+				ID:    "step0",
 				Tags:  []string{"test.com/repo:tag"},
 				Cache: "enabled",
 			},
-			"test.com/repo:cache",
+			"fooTask",
+			"test.com/repo:cache_fooTask_step0",
 			true,
 		},
 		{
 			&Step{
-				Tags:    []string{"test.com/repo:tag"},
-				CacheID: "foo",
+				ID:    "step_acb0",
+				Tags:  []string{"test.com/repo:tag"},
+				Cache: "enAbled",
 			},
-			"test.com/foo",
+			noTaskNamePlaceholder,
+			"test.com/repo:cache_" + noTaskNamePlaceholder + "_step_acb0",
 			true,
 		},
 		{
 			&Step{
-				Tags:    []string{"test.com/repo:tag"},
-				CacheID: ":foo",
+				ID:    "step_myrandomlylongIDlaskcnlkascnlkanclkansclknaslkcnalkscnlaknsclkalknaslkncalscnlakscnlkascnlkascnlksn",
+				Tags:  []string{"test.com/repo:tag"},
+				Cache: "enabled",
 			},
-			"test.com/repo:foo",
-			true,
+			"task_myrandomlylongIDlaskcnlkascnlkanclkansclknaslkcnalkscnlaknsclkalknaslkncalscnlakscnlkascnlkascnlksn",
+			"",
+			false,
 		},
 		{
 			&Step{
-				Tags:    []string{"test:5000/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
-				CacheID: ":foo",
-			},
-			"test:5000/repo:foo",
-			true,
-		},
-		{
-			&Step{
-				Tags:    []string{"test:5000/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
-				CacheID: "foo",
-			},
-			"test:5000/foo",
-			true,
-		},
-		{
-			&Step{
+				ID:    "a_b_c",
 				Tags:  []string{"test:5000/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
 				Cache: "enabled",
 			},
-			"test:5000/repo:cache",
+			"foo",
+			"test:5000/repo:cache_foo_a_b_c",
 			true,
 		},
 		{
 			&Step{
-				Tags:    []string{"foo/foo_bar.com:8080"},
-				CacheID: ":tag",
+				ID:    "step_acb0",
+				Tags:  []string{"foo/foo_bar.com:8080"},
+				Cache: "enabled",
 			},
-			"foo/foo_bar.com:tag",
+			"myTask",
+			"foo/foo_bar.com:cache_myTask_step_acb0",
 			true,
 		},
 		{
 			&Step{
-				Tags:    []string{"foo/foo_bar.com:8080"},
-				CacheID: "repo:tag",
-			},
-			"foo/repo:tag",
-			true,
-		},
-		{
-			&Step{
-				Tags:    []string{"sub-dom1.foo.com/bar/baz/quux"},
-				CacheID: ":foo",
-			},
-			"sub-dom1.foo.com/bar/baz/quux:foo",
-			true,
-		},
-		{
-			&Step{
+				ID:    "1",
 				Tags:  []string{"sub-dom1.foo.com/bar/baz/quux"},
 				Cache: "enabled",
 			},
-			"sub-dom1.foo.com/bar/baz/quux:cache",
+			noTaskNamePlaceholder,
+			"sub-dom1.foo.com/bar/baz/quux:cache_" + noTaskNamePlaceholder + "_1",
 			true,
 		},
 	}
 
 	for _, test := range tests {
-		test.s.UseBuildCacheForBuildStep()
-		actual, err := test.s.GetCmdWithCacheFlags()
+		actual, err := test.s.GetCmdWithCacheFlags(test.taskName)
 
 		if test.ok {
 			if err != nil {
