@@ -1,6 +1,6 @@
 # contrib.go.opencensus.io/exporter/ocagent v0.4.12
 contrib.go.opencensus.io/exporter/ocagent
-# github.com/Azure/azure-sdk-for-go v31.1.0+incompatible
+# github.com/Azure/azure-sdk-for-go v31.2.0+incompatible
 github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault
 github.com/Azure/azure-sdk-for-go/version
 # github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
