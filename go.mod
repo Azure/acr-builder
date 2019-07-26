@@ -1,7 +1,7 @@
 module github.com/Azure/acr-builder
 
 require (
-	github.com/Azure/azure-sdk-for-go v31.1.0+incompatible
+	github.com/Azure/azure-sdk-for-go v31.2.0+incompatible
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Azure/go-autorest/autorest v0.5.0
 	github.com/Azure/go-autorest/autorest/adal v0.2.0
