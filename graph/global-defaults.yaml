@@ -1,0 +1,43 @@
+
+# Convenience definitions, use as eg. $commit
+commit : "{{.Run.Commit}}"
+repository : "{{.Run.Repository}}"
+branch : "{{.Run.Branch}}"
+gitTag : "{{.Run.GitTag}}"
+triggeredBy : "{{.Run.TriggeredBy}}"
+registry : "{{.Run.Registry}}"
+registryName : "{{.Run.RegistryName}}"
+date : "{{.Run.Date}}"
+sharedVolume : "{{.Run.SharedVolume}}"
+os : "{{.Run.OS}}"
+architecture : "{{.Run.Architecture}}"
+id : "{{.Run.ID}}"
+osArchitecture : ""
+
+#Usable without $
+# Containerized commands can be used without $ directive 
+purge : "mcr.microsoft.com/acr/acr-cli:linux-7ccdc3e purge"
+tagList : "mcr.microsoft.com/acr/acr-cli:linux-7ccdc3e tag list"
+manifestList : "mcr.microsoft.com/acr/acr-cli:linux-7ccdc3e manifest list"
+manifestDelete : "mcr.microsoft.com/acr/acr-cli:linux-7ccdc3e manifest delete"
+tagDelete : "mcr.microsoft.com/acr/acr-cli:linux-7ccdc3e tag delete"
+
+# Default image definitions, can be used without $ directive 
+acr : "mcr.microsoft.com/acr/acr-cli:linux-7ccdc3e"
+az : "mcr.microsoft.com/azure-cli"
+bash : "bash" #Note for this one bash is in fact the alias and the source at dockerhub
+buildkit :  
+buildx : ""
+curl : "appropriate/curl" 
+docker : "docker" #Note for this one docker is in fact the alias and the source at dockerhub
+dotnet : "mcr.microsoft.com/dotnet/core"
+git :  ""
+go : "golang"
+helm : "cmd.azurecr.io/helm:v2.11.0-rc.2"
+kubectl : "bitnami/kubectl"
+npm : "chekote/node"
+wget : "abihf/wget"
+yarn : "chekote/node"
+
+
+
