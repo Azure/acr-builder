@@ -115,7 +115,7 @@ github.com/opencontainers/runc/libcontainer/user
 github.com/pkg/errors
 # github.com/sirupsen/logrus v1.2.0
 github.com/sirupsen/logrus
-# github.com/urfave/cli v1.20.0
+# github.com/urfave/cli v1.21.0
 github.com/urfave/cli
 # go.opencensus.io v0.20.2
 go.opencensus.io/plugin/ochttp
