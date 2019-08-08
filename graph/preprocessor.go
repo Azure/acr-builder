@@ -107,6 +107,13 @@ func addAliasFromRemote(alias *Alias, url string) error {
 		return getErr
 	}
 
+	if res.StatusCode%100 != 2 {
+		httpErr, _ := ioutil.ReadAll(res.Body)
+		return errors.New(string(httpErr))
+	}
+
+	defer res.Body.Close()
+
 	data, readErr := ioutil.ReadAll(res.Body)
 	if readErr != nil {
 		return readErr

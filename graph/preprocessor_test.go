@@ -8,7 +8,9 @@ import (
 	"testing"
 )
 
-/* TestResolveMapAndValidate: */
+//Test alias parsing components
+
+/* TestResolveMapAndValidate: M*/
 func TestResolveMapAndValidate(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -18,22 +20,38 @@ func TestResolveMapAndValidate(t *testing.T) {
 		{
 			"Improper Directive Choice",
 			true,
-			Alias{},
+			Alias{
+				[]*string{},
+				map[string]string{"$": "a"},
+				'$',
+			},
 		},
 		{
 			"Improper Key Name",
 			true,
-			Alias{},
+			Alias{
+				[]*string{},
+				map[string]string{"totally&^Invalid": "hello-world"},
+				'$',
+			},
 		},
 		{
 			"Improper Directive Length",
 			true,
-			Alias{},
+			Alias{
+				[]*string{},
+				map[string]string{"$": "&&&"},
+				'$',
+			},
 		},
 		{
 			"Valid Alias",
 			false,
-			Alias{},
+			Alias{
+				[]*string{},
+				map[string]string{"$": "&", "totallyValid": "hello-world"},
+				'$',
+			},
 		},
 	}
 
@@ -49,6 +67,13 @@ func TestResolveMapAndValidate(t *testing.T) {
 }
 
 func TestLoadExternalAlias(t *testing.T) {
+	resStrings := []string{"nonexistent.yaml",
+		"https://httpstat.us/404",
+		"https://raw.githubusercontent.com/estebanreyl/preprocessor-test/master/input/valid-remote.yaml",
+		"./testdata/preprocessor/valid-external.yaml",
+		"./testdata/preprocessor/empty-external.yaml",
+	}
+
 	tests := []struct {
 		name          string
 		shouldError   bool
@@ -59,7 +84,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Single Nonexistent File",
 			true,
 			Alias{
-				[]*string{"nonexistent.yaml"},
+				[]*string{&resStrings[0]},
 				map[string]string{},
 				'$',
 			},
@@ -69,7 +94,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Single Nonexistent URL",
 			true,
 			Alias{
-				[]string{"https://httpstat.us/404"},
+				[]*string{&resStrings[1]},
 				map[string]string{},
 				'$',
 			},
@@ -79,13 +104,16 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Valid Remote",
 			false,
 			Alias{
-				[]string{"https://TODO"},
+				[]*string{&resStrings[2]},
 				map[string]string{},
 				'$',
 			},
 			Alias{
-				[]string{"https://TODO"},
-				map[string]string{"alias1": "something", "alias1": "something"},
+				[]*string{&resStrings[2]},
+				map[string]string{
+					"docker": "azure/images/docker",
+					"cache":  "--cache-from=ubuntu",
+				},
 				'$',
 			},
 		},
@@ -93,13 +121,31 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Valid Files",
 			false,
 			Alias{
-				[]string{"./testdata/preprocessor/valid-external.yaml"},
+				[]*string{&resStrings[3]},
 				map[string]string{},
 				'$',
 			},
 			Alias{
-				[]string{"./testdata/preprocessor/valid-external.yaml"},
-				map[string]string{"alias1": "something", "alias1": "something"},
+				[]*string{&resStrings[3]},
+				map[string]string{
+					"singularity": "mcr.microsoft.com/acr-task-commands/singularity-builder:3.3",
+					"pack":        "mcr.microsoft.com/azure-task-commands/buildpack:latest pack",
+					"git":         "azure/images/git",
+				},
+				'$',
+			},
+		},
+		{
+			"Empty File",
+			false,
+			Alias{
+				[]*string{&resStrings[4]},
+				map[string]string{"d": "docker", "azureCmd": "mcr.microsoft.com/azure-cli"},
+				'$',
+			},
+			Alias{
+				[]*string{&resStrings[4]},
+				map[string]string{"d": "docker", "azureCmd": "mcr.microsoft.com/azure-cli"},
 				'$',
 			},
 		},
@@ -107,13 +153,37 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Valid All",
 			false,
 			Alias{
-				[]string{"./testdata/preprocessor/valid-external.yaml", "https://TODO"},
+				[]*string{&resStrings[2], &resStrings[3]},
 				map[string]string{},
 				'$',
 			},
 			Alias{
-				[]string{"./testdata/preprocessor/valid-external.yaml", "https://TODO"},
-				map[string]string{"alias1": "something", "alias1": "something"},
+				[]*string{&resStrings[2], &resStrings[3]},
+				map[string]string{
+					"docker":      "azure/images/docker",
+					"cache":       "--cache-from=ubuntu",
+					"singularity": "mcr.microsoft.com/acr-task-commands/singularity-builder:3.3",
+					"pack":        "mcr.microsoft.com/azure-task-commands/buildpack:latest pack",
+					"git":         "azure/images/git",
+				},
+				'$',
+			},
+		},
+		{
+			"Precedence in override",
+			false,
+			Alias{
+				[]*string{&resStrings[3]},
+				map[string]string{"singularity": "something else"},
+				'$',
+			},
+			Alias{
+				[]*string{&resStrings[2], &resStrings[3]},
+				map[string]string{
+					"singularity": "something else",
+					"pack":        "mcr.microsoft.com/azure-task-commands/buildpack:latest pack",
+					"git":         "azure/images/git",
+				},
 				'$',
 			},
 		},
@@ -128,7 +198,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
 		}
 
-		eq := reflect.DeepEqual(test.alias, test.expectedAlias)
+		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
 		if !eq {
 			t.Fatalf("Expected output for " + test.name + " differed from actual")
 		}
@@ -136,6 +206,10 @@ func TestLoadExternalAlias(t *testing.T) {
 }
 
 func TestAddAliasFromRemote(t *testing.T) {
+	resStrings := []string{
+		"https://raw.githubusercontent.com/estebanreyl/preprocessor-test/master/input/invalid-remote.yaml",
+		"https://raw.githubusercontent.com/estebanreyl/preprocessor-test/master/input/valid-remote.yaml",
+	}
 	tests := []struct {
 		name          string
 		shouldError   bool
@@ -146,68 +220,110 @@ func TestAddAliasFromRemote(t *testing.T) {
 			"Improperly Formatted",
 			true,
 			Alias{
-				[]string{"https://TODO,json"},
-				map[string]string{},
+				[]*string{&resStrings[0]},
+				map[string]string{"pre": "someother/pre"},
 				'$',
 			},
 			Alias{},
 		},
 		{
 			"Properly Formatted",
-			true,
+			false,
 			Alias{
-				[]string{"https://TODO"},
-				map[string]string{},
+				[]*string{&resStrings[1]},
+				map[string]string{
+					"pre": "someother/pre",
+				},
 				'$',
 			},
 			Alias{
-				[]string{"https://TODO"},
-				map[string]string{"TODO"},
+				[]*string{&resStrings[1]},
+				map[string]string{
+					"pre":    "someother/pre",
+					"docker": "azure/images/docker",
+					"cache":  "--cache-from=ubuntu",
+				},
 				'$',
 			},
 		},
 	}
 
 	for _, test := range tests {
-		err := test.alias.resolveMapAndValidate()
+		err := addAliasFromRemote(&test.alias, *test.alias.AliasSrc[0])
 		if err != nil && test.shouldError {
 			continue
 		}
 		if err == nil && test.shouldError {
 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+		}
+		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
+		if !eq {
+			t.Fatalf("Expected output for " + test.name + " differed from actual")
 		}
 	}
 }
 
 func TestAddAliasFromFile(t *testing.T) {
+	resStrings := []string{
+		"./testdata/preprocessor/invalid-external.yaml",
+		"./testdata/preprocessor/valid-external.yaml",
+	}
 	tests := []struct {
-		name        string
-		shouldError bool
-		alias       Alias
+		name          string
+		shouldError   bool
+		alias         Alias
+		expectedAlias Alias
 	}{
 		{
 			"Improperly Formatted",
 			true,
+			Alias{
+				[]*string{&resStrings[0]},
+				map[string]string{"pre": "someother/pre"},
+				'$',
+			},
 			Alias{},
 		},
 		{
-			"Valid Remote",
-			true,
-			Alias{},
+			"Properly Formatted",
+			false,
+			Alias{
+				[]*string{&resStrings[1]},
+				map[string]string{
+					"pre": "someother/pre",
+				},
+				'$',
+			},
+			Alias{
+				[]*string{&resStrings[1]},
+				map[string]string{
+					"pre":         "someother/pre",
+					"singularity": "mcr.microsoft.com/acr-task-commands/singularity-builder:3.3",
+					"pack":        "mcr.microsoft.com/azure-task-commands/buildpack:latest pack",
+					"git":         "azure/images/git",
+				},
+				'$',
+			},
 		},
 	}
 
 	for _, test := range tests {
-		err := test.alias.resolveMapAndValidate()
+		err := addAliasFromFile(&test.alias, *test.alias.AliasSrc[0])
 		if err != nil && test.shouldError {
 			continue
 		}
 		if err == nil && test.shouldError {
 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
 		}
+		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
+		if !eq {
+			t.Fatalf("Expected output for " + test.name + " differed from actual")
+		}
 	}
 }
 
+/*
+// Task tests
 func TestPreProcessBytes(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -248,7 +364,7 @@ func TestPreProcessBytes(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := test.alias.resolveMapAndValidate()
+		err := nil
 		if err != nil && test.shouldError {
 			continue
 		}
@@ -379,3 +495,4 @@ func TestPreProcessTaskFully(t *testing.T) {
 		}
 	}
 }
+*/
