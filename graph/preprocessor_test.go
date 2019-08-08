@@ -4,39 +4,36 @@
 package graph
 
 import (
-	"context"
+	"reflect"
 	"testing"
-
-	"github.com/Azure/acr-builder/pkg/procmanager"
-	"github.com/Azure/acr-builder/util"
 )
 
 /* TestResolveMapAndValidate: */
 func TestResolveMapAndValidate(t *testing.T) {
 	tests := []struct {
-		name               string
-		shouldError        bool
-		alias Alias
+		name        string
+		shouldError bool
+		alias       Alias
 	}{
 		{
 			"Improper Directive Choice",
 			true,
-			Alias{}
+			Alias{},
 		},
 		{
 			"Improper Key Name",
 			true,
-			Alias{}
+			Alias{},
 		},
 		{
 			"Improper Directive Length",
 			true,
-			Alias{}
+			Alias{},
 		},
 		{
 			"Valid Alias",
 			false,
-			Alias{}
+			Alias{},
 		},
 	}
 
@@ -53,63 +50,122 @@ func TestResolveMapAndValidate(t *testing.T) {
 
 func TestLoadExternalAlias(t *testing.T) {
 	tests := []struct {
-		name               string
-		shouldError        bool
-		alias Alias
+		name          string
+		shouldError   bool
+		alias         Alias
+		expectedAlias Alias
 	}{
 		{
 			"Single Nonexistent File",
 			true,
-			Alias{}
+			Alias{
+				[]*string{"nonexistent.yaml"},
+				map[string]string{},
+				'$',
+			},
+			Alias{},
 		},
 		{
 			"Single Nonexistent URL",
 			true,
-			Alias{}
+			Alias{
+				[]string{"https://httpstat.us/404"},
+				map[string]string{},
+				'$',
+			},
+			Alias{},
 		},
 		{
 			"Valid Remote",
 			false,
-			Alias{}
+			Alias{
+				[]string{"https://TODO"},
+				map[string]string{},
+				'$',
+			},
+			Alias{
+				[]string{"https://TODO"},
+				map[string]string{"alias1": "something", "alias1": "something"},
+				'$',
+			},
 		},
 		{
 			"Valid Files",
 			false,
-			Alias{}
+			Alias{
+				[]string{"./testdata/preprocessor/valid-external.yaml"},
+				map[string]string{},
+				'$',
+			},
+			Alias{
+				[]string{"./testdata/preprocessor/valid-external.yaml"},
+				map[string]string{"alias1": "something", "alias1": "something"},
+				'$',
+			},
 		},
 		{
 			"Valid All",
 			false,
-			Alias{}
-		}
+			Alias{
+				[]string{"./testdata/preprocessor/valid-external.yaml", "https://TODO"},
+				map[string]string{},
+				'$',
+			},
+			Alias{
+				[]string{"./testdata/preprocessor/valid-external.yaml", "https://TODO"},
+				map[string]string{"alias1": "something", "alias1": "something"},
+				'$',
+			},
+		},
 	}
 
 	for _, test := range tests {
-		err := test.alias.resolveMapAndValidate()
+		err := test.alias.loadExternalAlias()
 		if err != nil && test.shouldError {
 			continue
 		}
 		if err == nil && test.shouldError {
 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
 		}
+
+		eq := reflect.DeepEqual(test.alias, test.expectedAlias)
+		if !eq {
+			t.Fatalf("Expected output for " + test.name + " differed from actual")
+		}
 	}
 }
+
 func TestAddAliasFromRemote(t *testing.T) {
 	tests := []struct {
-		name               string
-		shouldError        bool
-		alias Alias
+		name          string
+		shouldError   bool
+		alias         Alias
+		expectedAlias Alias
 	}{
 		{
 			"Improperly Formatted",
 			true,
-			Alias{}
+			Alias{
+				[]string{"https://TODO,json"},
+				map[string]string{},
+				'$',
+			},
+			Alias{},
 		},
 		{
-			"Valid Remote",
+			"Properly Formatted",
 			true,
-			Alias{}
-		}
+			Alias{
+				[]string{"https://TODO"},
+				map[string]string{},
+				'$',
+			},
+			Alias{
+				[]string{"https://TODO"},
+				map[string]string{"TODO"},
+				'$',
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -125,20 +181,20 @@ func TestAddAliasFromRemote(t *testing.T) {
 
 func TestAddAliasFromFile(t *testing.T) {
 	tests := []struct {
-		name               string
-		shouldError        bool
-		alias Alias
+		name        string
+		shouldError bool
+		alias       Alias
 	}{
 		{
 			"Improperly Formatted",
 			true,
-			Alias{}
+			Alias{},
 		},
 		{
 			"Valid Remote",
 			true,
-			Alias{}
-		}
+			Alias{},
+		},
 	}
 
 	for _, test := range tests {
@@ -154,42 +210,41 @@ func TestAddAliasFromFile(t *testing.T) {
 
 func TestPreProcessBytes(t *testing.T) {
 	tests := []struct {
-		name               string
-		shouldError        bool
-		isFile bool
-		value string
-		
+		name        string
+		shouldError bool
+		isFile      bool
+		value       string
 	}{
 		{
 			"Data from ACR Task Json",
 			false,
 			true,
-			"somefilename"
+			"somefilename",
 		},
 		{
 			"Data from ACR Task Commandline String",
 			false,
 			false,
-			"somefilename"
+			"somefilename",
 		},
 		{
 			"Invalid Task from File",
 			true,
 			true,
-			"somefilename"
+			"somefilename",
 		},
 		{
 			"Invalid Commandline String",
 			true,
 			false,
-			"somefilename"
+			"somefilename",
 		},
 		{
 			"Nested Values",
 			true,
 			true,
-			"somefilename"
-		}
+			"somefilename",
+		},
 	}
 
 	for _, test := range tests {
@@ -205,37 +260,35 @@ func TestPreProcessBytes(t *testing.T) {
 
 func TestPreProcessString(t *testing.T) {
 	tests := []struct {
-		name               string
-		shouldError        bool
-		isFile bool
-		value string
-		
+		name        string
+		shouldError bool
+		isFile      bool
+		value       string
 	}{
 		{
 			"Chained values",
 			false,
 			true,
-			"somefilename"
+			"somefilename",
 		},
 		{
 			"Chained values changed directive",
 			false,
 			true,
-			"somefilename"
+			"somefilename",
 		},
 		{
 			"Multiline replacements",
 			true,
 			true,
-			"somefilename"
+			"somefilename",
 		},
 		{
 			"Complex command",
 			true,
 			false,
-			"somecommand"
+			"somecommand",
 		},
-
 	}
 
 	for _, test := range tests {
@@ -249,32 +302,31 @@ func TestPreProcessString(t *testing.T) {
 	}
 }
 
-
 func TestPreProcessSteps(t *testing.T) {
 	tests := []struct {
-		name               string
-		shouldError        bool
-		alias Alias
+		name        string
+		shouldError bool
+		alias       Alias
 	}{
 		{
 			"Improper Directive Choice",
 			true,
-			Alias{}
+			Alias{},
 		},
 		{
 			"Improper Key Name",
 			true,
-			Alias{}
+			Alias{},
 		},
 		{
 			"Improper Directive Length",
 			true,
-			Alias{}
+			Alias{},
 		},
 		{
 			"Valid Alias",
 			false,
-			Alias{}
+			Alias{},
 		},
 	}
 
@@ -291,25 +343,30 @@ func TestPreProcessSteps(t *testing.T) {
 
 func TestPreProcessTaskFully(t *testing.T) {
 	tests := []struct {
-		name               string
-		shouldError        bool
-		alias Alias
+		name        string
+		shouldError bool
+		alias       Alias
 	}{
 		{
 			"Proper Pass File",
-			false,
-			Alias{}
+			true,
+			Alias{},
 		},
 		{
-			"Proper Pass Commands",
+			"Proper Pass Command",
 			false,
-			Alias{}
+			Alias{},
 		},
 		{
-			"Proper Pass External definitions",
+			"Proper Pass External definitions Command",
 			false,
-			Alias{}
-		}
+			Alias{},
+		},
+		{
+			"Proper Pass External definitions File",
+			true,
+			Alias{},
+		},
 	}
 
 	for _, test := range tests {
@@ -322,4 +379,3 @@ func TestPreProcessTaskFully(t *testing.T) {
 		}
 	}
 }
-
