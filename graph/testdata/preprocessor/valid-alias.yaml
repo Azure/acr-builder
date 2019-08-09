@@ -5,7 +5,7 @@
 
 alias:
   src :
-    - https://raw.githubusercontent.com/estebanreyl/preprocessor-test/master/input/global_src.yaml
+    - "https://raw.githubusercontent.com/estebanreyl/preprocessor-test/master/input/valid-remote.yaml"
     - ./valid-external.yaml
 
   values:

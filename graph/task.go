@@ -120,12 +120,17 @@ func NewTaskFromString(data string) (*Task, error) {
 func NewTaskFromBytes(data []byte) (*Task, error) {
 	t := &Task{}
 
-	post, alias, aliasErr := preprocessBytes(data)
+	post, alias, changed, aliasErr := preprocessBytes(data)
 	if aliasErr != nil {
 		return t, aliasErr
 	}
 
+	//This means unmarshalling was successful before but is no longer possible after alias
+	//replacements
 	if err := yaml.Unmarshal(post, t); err != nil {
+		if changed {
+			err = errors.New("Alias replacement yielded an improperly formatted task")
+		}
 		return t, err
 	}
 

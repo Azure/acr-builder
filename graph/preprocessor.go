@@ -6,12 +6,8 @@
 * files. This is done by unmarshaling these elements which will then be added in a hierarchical
 * manner. Note the input must still be valid Yaml.
 *
-* Existing issues: Once the alias is parsed out and the definitions are resolved, the read in
-* yaml will be processed to include the appropriate aliases, however this will include the previously
-* parsed in definitions which is not as efficient.
-*
 * TODO:
-* Add some form of default global alias mapping
+* Acquire list of globally accessible image endpoints
  */
 
 package graph
@@ -154,20 +150,21 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 }
 
 // PreprocessString handles managing alias definitions from a provided string definitions expected to be in JSON format.
-func preprocessString(alias *Alias, str string) (string, error) {
+func preprocessString(alias *Alias, str string) (string, bool, error) {
 	//alias.loadGlobalDefinitions TODO?
 
 	// Load Remote/Local alias definitions
 	if externalDefinitionErr := alias.loadExternalAlias(); externalDefinitionErr != nil {
-		return "", externalDefinitionErr
+		return "", false, externalDefinitionErr
 	}
 	//Validate alias definitions
 	if improperFormatErr := alias.resolveMapAndValidate(); improperFormatErr != nil {
-		return "", improperFormatErr
+		return "", false, improperFormatErr
 	}
 	var out strings.Builder
 	var command strings.Builder
 	ongoingCmd := false
+	changed := false
 
 	// Search and Replace all strings with $
 	for _, char := range str {
@@ -175,10 +172,11 @@ func preprocessString(alias *Alias, str string) (string, error) {
 			if matched := re.MatchString(string(char)); !matched { // Delineates the end of an alias
 				resolvedCommand, commandPresent := alias.AliasMap[command.String()]
 				if !commandPresent {
-					return "", errUnknownAlias
+					return "", false, errUnknownAlias
 				}
 
 				out.WriteString(resolvedCommand)
+				changed = true
 				if char != alias.directive {
 					ongoingCmd = false
 					out.WriteRune(char)
@@ -201,16 +199,15 @@ func preprocessString(alias *Alias, str string) (string, error) {
 		}
 	}
 
-	return out.String(), nil
+	return out.String(), changed, nil
 }
 
 // PreprocessBytes Handles byte encoded data that can be parsed through pre processing
-func preprocessBytes(data []byte) ([]byte, Alias, error) {
+func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	var config map[string]interface{}
 	alias := &Alias{}
-
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, Alias{}, err
+		return nil, Alias{}, false, err
 	}
 
 	// Removes alias portion from input file string
@@ -218,28 +215,28 @@ func preprocessBytes(data []byte) ([]byte, Alias, error) {
 	if ok {
 		aliasData, errMarshal := yaml.Marshal(config["alias"])
 		if errMarshal != nil {
-			return nil, Alias{}, errMarshal
+			return nil, Alias{}, false, errMarshal
 		}
 		errUnMarshal := yaml.Unmarshal(aliasData, alias)
 		if errUnMarshal != nil {
-			return nil, *alias, errUnMarshal
+			return nil, *alias, false, errUnMarshal
 		}
 		delete(config, "alias")
 	}
 
 	dataNoAlias, errMarshal := yaml.Marshal(config)
 	if errMarshal != nil {
-		return nil, *alias, errMarshal
+		return nil, *alias, false, errMarshal
 	}
 
 	if alias.AliasMap == nil && alias.AliasSrc == nil {
-		return data, *alias, nil
+		return data, *alias, false, nil
 	}
 
 	// Search and Replace
 	str := string(dataNoAlias)
-	parsedStr, err := preprocessString(alias, str)
-	return []byte(parsedStr), *alias, err
+	parsedStr, changed, err := preprocessString(alias, str)
+	return []byte(parsedStr), *alias, changed, err
 }
 
 // processSteps Will resolve image names in steps that are aliased without using $.

@@ -4,8 +4,11 @@
 package graph
 
 import (
+	"io/ioutil"
 	"reflect"
 	"testing"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 //Test alias parsing components
@@ -322,42 +325,61 @@ func TestAddAliasFromFile(t *testing.T) {
 	}
 }
 
-/*
 // Task tests
+
 func TestPreProcessBytes(t *testing.T) {
+	taskDefinitionSrc := "preprocessing-stress.yaml"
+	yamlMap, err := extractTaskYamlsAsBytes(taskDefinitionSrc)
+	if err != nil {
+		t.Fatalf("Could not read source for tests at:" + taskDefinitionSrc + "Error: " + err.Error())
+	}
 	tests := []struct {
-		name        string
-		shouldError bool
-		isFile      bool
-		value       string
+		nameAndTaskIdentifier string
+		shouldError           bool
+		description           string
 	}{
 		{
-			"Data from ACR Task Json",
+			"Chaining",
 			false,
-			true,
-			"somefilename",
+			"Tests 700+ chained aliases",
 		},
 		{
-			"Data from ACR Task Commandline String",
+			"Chaining Directive Changed",
 			false,
-			false,
-			"somefilename",
+			"Identical to Chaining but using a redefined directive",
 		},
 		{
-			"Invalid Task from File",
-			true,
-			true,
-			"somefilename",
+			"Chaining Directive Unicode",
+			false,
+			"Identical to Chaining but using a redefined Unicode directive",
 		},
 		{
-			"Invalid Commandline String",
-			true,
+			"Multiline Alias",
 			false,
 			"somefilename",
 		},
 		{
 			"Nested Values",
 			true,
+			"somefilename",
+		},
+		{
+			"Data from ACR Task Json",
+			false,
+			"somefilename",
+		},
+		{
+			"Invalid Task from File",
+			true,
+			"somefilename",
+		},
+		{
+			"Invalid Commandline String",
+			true,
+			"somefilename",
+		},
+		{
+			"Nested Values",
 			true,
 			"somefilename",
 		},
@@ -374,50 +396,30 @@ func TestPreProcessBytes(t *testing.T) {
 	}
 }
 
-func TestPreProcessString(t *testing.T) {
-	tests := []struct {
-		name        string
-		shouldError bool
-		isFile      bool
-		value       string
-	}{
-		{
-			"Chained values",
-			false,
-			true,
-			"somefilename",
-		},
-		{
-			"Chained values changed directive",
-			false,
-			true,
-			"somefilename",
-		},
-		{
-			"Multiline replacements",
-			true,
-			true,
-			"somefilename",
-		},
-		{
-			"Complex command",
-			true,
-			false,
-			"somecommand",
-		},
+func extractTaskYamlsAsBytes(file string) (map[string][]byte, error) {
+	var processed map[string][]byte
+	var config map[string]interface{}
+
+	data, fileReadingError := ioutil.ReadFile(file)
+	if fileReadingError != nil {
+		return processed, fileReadingError
 	}
 
-	for _, test := range tests {
-		err := test.alias.resolveMapAndValidate()
-		if err != nil && test.shouldError {
-			continue
-		}
-		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return processed, err
+	}
+
+	for k, v := range config {
+		var err error
+		processed[k], err = yaml.Marshal(v)
+		if err := yaml.Unmarshal(data, &config); err != nil {
+			return processed, err
 		}
 	}
+	return processed, nil
 }
 
+/*
 func TestPreProcessSteps(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -464,22 +466,7 @@ func TestPreProcessTaskFully(t *testing.T) {
 		alias       Alias
 	}{
 		{
-			"Proper Pass File",
-			true,
-			Alias{},
-		},
-		{
-			"Proper Pass Command",
-			false,
-			Alias{},
-		},
-		{
-			"Proper Pass External definitions Command",
-			false,
-			Alias{},
-		},
-		{
-			"Proper Pass External definitions File",
+			"Proper Pass Full",
 			true,
 			Alias{},
 		},
