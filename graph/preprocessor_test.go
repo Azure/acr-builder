@@ -4,13 +4,16 @@
 package graph
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"reflect"
+	"regexp"
+	"strings"
 	"testing"
 
-	yaml "gopkg.in/yaml.v2"
+	"github.com/pkg/errors"
 )
 
 //Test alias parsing components
@@ -343,7 +346,7 @@ func TestAddAliasFromFile(t *testing.T) {
 
 func TestPreProcessBytes(t *testing.T) {
 	taskDefinitionSrc := "./testdata/preprocessor/preprocessing-stress.yaml"
-	yamlMap, err := extractTaskYamlsAsBytes(taskDefinitionSrc)
+	yamlMap, err := extractTaskYamls(taskDefinitionSrc)
 	if err != nil {
 		t.Fatalf("Could not read source for tests at:" + taskDefinitionSrc + "Error: " + err.Error())
 	}
@@ -433,28 +436,45 @@ func TestPreProcessBytes(t *testing.T) {
 	}
 }
 
-func extractTaskYamlsAsBytes(file string) (map[string][]byte, error) {
+func extractTaskYamls(file string) (map[string][]byte, error) {
 	processed := make(map[string][]byte)
-	var config map[string]interface{}
-
 	data, fileReadingError := ioutil.ReadFile(file)
+
 	if fileReadingError != nil {
 		return processed, fileReadingError
 	}
 
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return processed, err
-	}
+	reader := bytes.NewReader(data)
+	scanner := bufio.NewScanner(reader)
+	scanner.Split(bufio.ScanLines)
 
-	for k, v := range config {
-		var err error
-		processed[k], err = yaml.Marshal(v)
+	var curBuffer bytes.Buffer
 
-		if err != nil {
-			return processed, err
+	genericTopLevelRe := regexp.MustCompile(`\A[^\s:]+[^:]*:.*\z`)
+	cleanName := regexp.MustCompile(`[^\s]+[^:]*`)
+
+	current := "Comments"
+	for scanner.Scan() {
+		text := scanner.Text()
+		if matched := genericTopLevelRe.MatchString(text); matched {
+
+			//Top level item has already been seen, this is not allowed
+			if _, ok := processed[current]; ok {
+				return processed, errors.New("Duplicate top level testing yaml was declared")
+			}
+
+			processed[current] = make([]byte, len(curBuffer.Bytes()))
+			copy(processed[current], curBuffer.Bytes())
+			curBuffer.Reset()
+			current = strings.Trim(cleanName.FindString(text), " ")
+		} else {
+			if len(text) >= 2 {
+				text = text[2:] // Remove spacing offset
+			}
+			curBuffer.WriteString(text + "\n")
 		}
-
 	}
+	//fmt.Println(string(processed["Chaining Directive Unicode"]))
 	return processed, nil
 }
 

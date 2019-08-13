@@ -22,8 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"encoding/json"
-
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -34,8 +32,6 @@ var (
 	directive                  = '$'
 	re                         = regexp.MustCompile("\\A[a-z,A-Z,0-9]+\\z")
 )
-
-type String string
 
 // Alias intermediate step for processing before complete unmarshall
 type Alias struct {
@@ -154,14 +150,6 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 	return nil
 }
 
-/*MarshalYaml something...*/
-func (s String) MarshalYAML() (string, error) {
-	cur := ""
-	yaml.Marshal(&cur)
-	cur = `"` + cur + `"`
-	return "", nil
-}
-
 // PreprocessString handles managing alias definitions from a provided string definitions expected to be in JSON format.
 func preprocessString(alias *Alias, str string) (string, bool, error) {
 	//alias.loadGlobalDefinitions TODO?
@@ -220,44 +208,27 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 
 // PreprocessBytes Handles byte encoded data that can be parsed through pre processing
 func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
-	var config map[string]interface{}
-	alias := &Alias{}
-
-	err := yaml.Unmarshal(data, &config)
-	if err != nil {
-		return nil, Alias{}, false, err
+	type Wrapper struct {
+		Alias Alias `yaml:"alias,omitempty"`
+	}
+	wrap := &Wrapper{}
+	aliasData, remainingData, err := basicAliasSeparation(data)
+	if errUnMarshal := yaml.Unmarshal(aliasData, wrap); errUnMarshal != nil {
+		return data, Alias{}, false, errUnMarshal
 	}
 
-	// Removes alias portion from input file string
-	_, ok := config["alias"]
-	if ok {
-		aliasData, errMarshal := yaml.Marshal(config["alias"])
-		if errMarshal != nil {
-			return nil, Alias{}, false, errMarshal
-		}
-		errUnMarshal := yaml.Unmarshal(aliasData, alias)
-		if errUnMarshal != nil {
-			return nil, *alias, false, errUnMarshal
-		}
-		delete(config, "alias")
-	}
-
-	dataNoAlias, errMarshal := json.Marshal(config)
-	if errMarshal != nil {
-		return nil, *alias, false, errMarshal
-	}
-
+	alias := &wrap.Alias
 	if alias.AliasMap == nil {
 		//Nothing to change
 		if alias.AliasSrc == nil {
 			return data, *alias, false, nil
 		}
-		//Alias Src defined. guarantees alias map can be populated
+		//Alias Src defined. Guarantees alias map can be populated
 		alias.AliasMap = make(map[string]string)
 	}
 
 	// Search and Replace
-	str := string(dataNoAlias)
+	str := string(remainingData)
 	parsedStr, changed, err := preprocessString(alias, str)
 
 	return []byte(parsedStr), *alias, changed, err
@@ -285,22 +256,26 @@ func basicAliasSeparation(data []byte) ([]byte, []byte, error) {
 	var buffer bytes.Buffer
 
 	inside := false
-	aliasRe := regexp.MustCompile(`\Aalias\s*:\s*\w\z`)
-	otherRe := regexp.MustCompile(`\A[^\s]+\s*:\s*\w\z`)
-	done := false
+	aliasRe := regexp.MustCompile(`\Aalias\s*:.*\z`)
+	genericTopLevelRe := regexp.MustCompile(`\A[^\s:]+[^:]*:.*\z`)
+	commentRe := regexp.MustCompile(`\A#.*`)
 
 	for scanner.Scan() {
 		text := scanner.Text()
-		if !done {
-			if matched := aliasRe.MatchString(text); matched && !inside {
-				inside = true
-				aliasBuffer.WriteString(text + "\n")
-				continue
-			} else if matched := otherRe.MatchString(text); matched && !inside {
-				done = true
-			}
+		if matched := commentRe.MatchString(text); matched {
+			continue
 		}
-		buffer.WriteString(text + "\n")
+		if matched := aliasRe.MatchString(text); matched && !inside {
+			inside = true
+		} else if matched := genericTopLevelRe.MatchString(text); matched && inside {
+			inside = false
+		}
+
+		if inside {
+			aliasBuffer.WriteString(text + "\n")
+		} else {
+			buffer.WriteString(text + "\n")
+		}
 	}
 	return aliasBuffer.Bytes(), buffer.Bytes(), nil
 }
