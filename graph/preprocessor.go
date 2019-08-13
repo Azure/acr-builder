@@ -30,7 +30,7 @@ var (
 	errImproperKeyName         = errors.New("alias key names only support alphanumeric characters")
 	errImproperDirectiveChoice = errors.New("overwritten directives may not be alphanumeric characters")
 	directive                  = '$'
-	re                         = regexp.MustCompile("\\A[a-z,A-Z,0-9]+\\z")
+	re                         = regexp.MustCompile("\\A[a-zA-Z0-9]+\\z")
 )
 
 // Alias intermediate step for processing before complete unmarshall
@@ -172,9 +172,6 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 		if ongoingCmd {
 			if matched := re.MatchString(string(char)); !matched { // Delineates the end of an alias
 				resolvedCommand, commandPresent := alias.AliasMap[command.String()]
-				if command.String() == "7" {
-					resolvedCommand += ""
-				}
 				if !commandPresent {
 					return "", false, errors.New("unknown Alias: " + command.String())
 				}

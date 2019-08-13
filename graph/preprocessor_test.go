@@ -451,7 +451,7 @@ func extractTaskYamls(file string) (map[string][]byte, error) {
 	var curBuffer bytes.Buffer
 
 	genericTopLevelRe := regexp.MustCompile(`\A[^\s:]+[^:]*:.*\z`)
-	cleanName := regexp.MustCompile(`[^\s]+[^:]*`)
+	cleanName := regexp.MustCompile(`[^\s:]+[^:]*`)
 
 	current := "Comments"
 	for scanner.Scan() {
@@ -474,7 +474,8 @@ func extractTaskYamls(file string) (map[string][]byte, error) {
 			curBuffer.WriteString(text + "\n")
 		}
 	}
-	//fmt.Println(string(processed["Chaining Directive Unicode"]))
+	processed[current] = make([]byte, len(curBuffer.Bytes()))
+	copy(processed[current], curBuffer.Bytes())
 	return processed, nil
 }
 
