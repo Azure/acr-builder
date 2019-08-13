@@ -4,6 +4,8 @@
 package graph
 
 import (
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"reflect"
 	"testing"
@@ -65,6 +67,9 @@ func TestResolveMapAndValidate(t *testing.T) {
 		}
 		if err == nil && test.shouldError {
 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+		}
+		if err != nil {
+			t.Fatalf("Test " + test.name + "failed with error: " + err.Error())
 		}
 	}
 }
@@ -201,6 +206,10 @@ func TestLoadExternalAlias(t *testing.T) {
 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
 		}
 
+		if err != nil {
+			t.Fatalf("Test " + test.name + "failed with error: " + err.Error())
+		}
+
 		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
 		if !eq {
 			t.Fatalf("Expected output for " + test.name + " differed from actual")
@@ -318,6 +327,11 @@ func TestAddAliasFromFile(t *testing.T) {
 		if err == nil && test.shouldError {
 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
 		}
+
+		if err != nil {
+			t.Fatalf("Test " + test.name + "failed with error: " + err.Error())
+		}
+
 		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
 		if !eq {
 			t.Fatalf("Expected output for " + test.name + " differed from actual")
@@ -328,7 +342,7 @@ func TestAddAliasFromFile(t *testing.T) {
 // Task tests
 
 func TestPreProcessBytes(t *testing.T) {
-	taskDefinitionSrc := "preprocessing-stress.yaml"
+	taskDefinitionSrc := "./testdata/preprocessor/preprocessing-stress.yaml"
 	yamlMap, err := extractTaskYamlsAsBytes(taskDefinitionSrc)
 	if err != nil {
 		t.Fatalf("Could not read source for tests at:" + taskDefinitionSrc + "Error: " + err.Error())
@@ -358,46 +372,69 @@ func TestPreProcessBytes(t *testing.T) {
 			false,
 			"somefilename",
 		},
-		{
-			"Nested Values",
-			true,
-			"somefilename",
-		},
-		{
-			"Data from ACR Task Json",
-			false,
-			"somefilename",
-		},
-		{
-			"Invalid Task from File",
-			true,
-			"somefilename",
-		},
-		{
-			"Invalid Commandline String",
-			true,
-			"somefilename",
-		},
-		{
-			"Nested Values",
-			true,
-			"somefilename",
-		},
+		// {
+		// 	"Nested Values",
+		// 	true,
+		// 	"somefilename",
+		// },
+		// {
+		// 	"Data from ACR Task Json",
+		// 	false,
+		// 	"somefilename",
+		// },
+		// {
+		// 	"Invalid Task from File",
+		// 	true,
+		// 	"somefilename",
+		// },
+		// {
+		// 	"Invalid Commandline String",
+		// 	true,
+		// 	"somefilename",
+		// },
+		// {
+		// 	"Nested Values",
+		// 	true,
+		// 	"somefilename",
+		// },
+		// {
+		// 	"No Alias",
+		// 	true,
+		// 	"somefilename",
+		// },
+		// {
+		// 	"Alias No Use",
+		// 	true,
+		// 	"somefilename",
+		// },
 	}
 
 	for _, test := range tests {
-		err := nil
+		input := yamlMap[test.nameAndTaskIdentifier]
+		data, _, _, err := preprocessBytes(input)
 		if err != nil && test.shouldError {
 			continue
 		}
 		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+			t.Fatalf("Expected test " + test.nameAndTaskIdentifier + " to error but it didn't")
 		}
+		if err != nil {
+			t.Fatalf("Test " + test.nameAndTaskIdentifier + "failed with error: " + err.Error())
+		}
+
+		if !bytes.Equal(data, yamlMap["Expected"]) {
+			fmt.Print("Actual: \n")
+			fmt.Print(string(data))
+			fmt.Print("Expected: \n")
+			fmt.Print(string(yamlMap["Expected"]))
+			t.Fatalf("Expected output for " + test.nameAndTaskIdentifier + " differed from actual")
+		}
+
 	}
 }
 
 func extractTaskYamlsAsBytes(file string) (map[string][]byte, error) {
-	var processed map[string][]byte
+	processed := make(map[string][]byte)
 	var config map[string]interface{}
 
 	data, fileReadingError := ioutil.ReadFile(file)
@@ -412,9 +449,11 @@ func extractTaskYamlsAsBytes(file string) (map[string][]byte, error) {
 	for k, v := range config {
 		var err error
 		processed[k], err = yaml.Marshal(v)
-		if err := yaml.Unmarshal(data, &config); err != nil {
+
+		if err != nil {
 			return processed, err
 		}
+
 	}
 	return processed, nil
 }

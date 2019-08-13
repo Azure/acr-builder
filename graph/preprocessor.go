@@ -13,6 +13,8 @@
 package graph
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -20,17 +22,20 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
+
 	yaml "gopkg.in/yaml.v2"
 )
 
 var (
-	errUnknownAlias            = errors.New("unknown Alias")
 	errImproperDirectiveLength = errors.New("$ directive can only be overwritten by a single character")
 	errImproperKeyName         = errors.New("alias key names only support alphanumeric characters")
 	errImproperDirectiveChoice = errors.New("overwritten directives may not be alphanumeric characters")
 	directive                  = '$'
 	re                         = regexp.MustCompile("\\A[a-z,A-Z,0-9]+\\z")
 )
+
+type String string
 
 // Alias intermediate step for processing before complete unmarshall
 type Alias struct {
@@ -43,16 +48,16 @@ type Alias struct {
 func (alias *Alias) resolveMapAndValidate() error {
 	//Set directive from Map
 	alias.directive = directive
-	if _, ok := alias.AliasMap[string(directive)]; ok {
-		if len(alias.AliasMap[string(directive)]) != 1 {
+	if value, ok := alias.AliasMap[string(directive)]; ok {
+		if len(value) != 1 {
 			return errImproperDirectiveLength
 		}
 
-		if matched := re.MatchString(string(directive)); !matched {
+		if matched := re.MatchString(value); matched {
 			return errImproperDirectiveChoice
 		}
 
-		alias.directive = rune(alias.AliasMap[string(directive)][0])
+		alias.directive = rune(value[0])
 	}
 
 	// Values may support all characters, no escaping and so forth necessary
@@ -149,6 +154,14 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 	return nil
 }
 
+/*MarshalYaml something...*/
+func (s String) MarshalYAML() (string, error) {
+	cur := ""
+	yaml.Marshal(&cur)
+	cur = `"` + cur + `"`
+	return "", nil
+}
+
 // PreprocessString handles managing alias definitions from a provided string definitions expected to be in JSON format.
 func preprocessString(alias *Alias, str string) (string, bool, error) {
 	//alias.loadGlobalDefinitions TODO?
@@ -171,8 +184,11 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 		if ongoingCmd {
 			if matched := re.MatchString(string(char)); !matched { // Delineates the end of an alias
 				resolvedCommand, commandPresent := alias.AliasMap[command.String()]
+				if command.String() == "7" {
+					resolvedCommand += ""
+				}
 				if !commandPresent {
-					return "", false, errUnknownAlias
+					return "", false, errors.New("unknown Alias: " + command.String())
 				}
 
 				out.WriteString(resolvedCommand)
@@ -206,7 +222,9 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	var config map[string]interface{}
 	alias := &Alias{}
-	if err := yaml.Unmarshal(data, &config); err != nil {
+
+	err := yaml.Unmarshal(data, &config)
+	if err != nil {
 		return nil, Alias{}, false, err
 	}
 
@@ -224,18 +242,24 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 		delete(config, "alias")
 	}
 
-	dataNoAlias, errMarshal := yaml.Marshal(config)
+	dataNoAlias, errMarshal := json.Marshal(config)
 	if errMarshal != nil {
 		return nil, *alias, false, errMarshal
 	}
 
-	if alias.AliasMap == nil && alias.AliasSrc == nil {
-		return data, *alias, false, nil
+	if alias.AliasMap == nil {
+		//Nothing to change
+		if alias.AliasSrc == nil {
+			return data, *alias, false, nil
+		}
+		//Alias Src defined. guarantees alias map can be populated
+		alias.AliasMap = make(map[string]string)
 	}
 
 	// Search and Replace
 	str := string(dataNoAlias)
 	parsedStr, changed, err := preprocessString(alias, str)
+
 	return []byte(parsedStr), *alias, changed, err
 }
 
@@ -250,4 +274,33 @@ func processSteps(alias *Alias, task *Task) {
 			task.Steps[i].Cmd = strings.Join(parts, " ")
 		}
 	}
+}
+
+func basicAliasSeparation(data []byte) ([]byte, []byte, error) {
+	reader := bytes.NewReader(data)
+	scanner := bufio.NewScanner(reader)
+	scanner.Split(bufio.ScanLines)
+
+	var aliasBuffer bytes.Buffer
+	var buffer bytes.Buffer
+
+	inside := false
+	aliasRe := regexp.MustCompile(`\Aalias\s*:\s*\w\z`)
+	otherRe := regexp.MustCompile(`\A[^\s]+\s*:\s*\w\z`)
+	done := false
+
+	for scanner.Scan() {
+		text := scanner.Text()
+		if !done {
+			if matched := aliasRe.MatchString(text); matched && !inside {
+				inside = true
+				aliasBuffer.WriteString(text + "\n")
+				continue
+			} else if matched := otherRe.MatchString(text); matched && !inside {
+				done = true
+			}
+		}
+		buffer.WriteString(text + "\n")
+	}
+	return aliasBuffer.Bytes(), buffer.Bytes(), nil
 }
