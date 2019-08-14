@@ -45,7 +45,8 @@ func (alias *Alias) resolveMapAndValidate() error {
 	//Set directive from Map
 	alias.directive = directive
 	if value, ok := alias.AliasMap[string(directive)]; ok {
-		if len(value) != 1 {
+		val := []rune(value)
+		if len(val) != 1 {
 			return errImproperDirectiveLength
 		}
 
@@ -53,7 +54,7 @@ func (alias *Alias) resolveMapAndValidate() error {
 			return errImproperDirectiveChoice
 		}
 
-		alias.directive = rune(value[0])
+		alias.directive = val[0]
 	}
 
 	// Values may support all characters, no escaping and so forth necessary
@@ -104,7 +105,7 @@ func addAliasFromRemote(alias *Alias, url string) error {
 		return getErr
 	}
 
-	if res.StatusCode%100 != 2 {
+	if int(res.StatusCode)/100 != 2 {
 		httpErr, _ := ioutil.ReadAll(res.Body)
 		return errors.New(string(httpErr))
 	}
@@ -244,6 +245,9 @@ func processSteps(alias *Alias, task *Task) {
 	}
 }
 
+// Provides simple separation of the top level items in a yaml file definition, however, need
+// to update to be fully compliant (include JSON top level for example). Alternative construction
+// of small compiler for this purpose is also under consideration.
 func basicAliasSeparation(data []byte) ([]byte, []byte, error) {
 	reader := bytes.NewReader(data)
 	scanner := bufio.NewScanner(reader)
@@ -256,7 +260,6 @@ func basicAliasSeparation(data []byte) ([]byte, []byte, error) {
 	aliasRe := regexp.MustCompile(`\Aalias\s*:.*\z`)
 	genericTopLevelRe := regexp.MustCompile(`\A[^\s:]+[^:]*:.*\z`)
 	commentRe := regexp.MustCompile(`\A#.*`)
-
 	for scanner.Scan() {
 		text := scanner.Text()
 		if matched := commentRe.MatchString(text); matched {

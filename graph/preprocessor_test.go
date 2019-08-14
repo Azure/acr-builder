@@ -13,10 +13,23 @@ import (
 	"strings"
 	"testing"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/pkg/errors"
 )
 
 //Test alias parsing components
+// Under consideration, multi alphabet alias support?
+/* yamlReserved... Note there are escapes for all
+ := c-indicator	::=	  “-” | “?” | “:” | “,” | “[” | “]” | “{” | “}”
+| “#” | “&” | “*” | “!” | “|” | “>” | “'” | “"”
+| “%” | “@” | “`”
+( b-carriage-return b-line-feed )  DOS, Windows
+| b-carriage-return MacOS upto 9.x
+| b-line-feed   UNIX, MacOS X
+s-space	::=	#x20  SP
+s-tab	::=	#x9  TAB
+*/
 
 /* TestResolveMapAndValidate: M*/
 func TestResolveMapAndValidate(t *testing.T) {
@@ -424,8 +437,20 @@ func TestPreProcessBytes(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Test " + test.nameAndTaskIdentifier + "failed with error: " + err.Error())
 		}
+		var actual interface{}
+		yaml.Unmarshal(data, &actual)
+		actualBytes, err := yaml.Marshal(actual)
+		if err != nil {
+			t.Fatalf("Test " + test.nameAndTaskIdentifier + "failed with error: " + err.Error())
+		}
+		var expected interface{}
+		yaml.Unmarshal(yamlMap["Expected"], &expected)
+		expectedBytes, err := yaml.Marshal(expected)
+		if err != nil {
+			t.Fatalf("Test " + test.nameAndTaskIdentifier + "failed with error: " + err.Error())
+		}
 
-		if !bytes.Equal(data, yamlMap["Expected"]) {
+		if !bytes.Equal(actualBytes, expectedBytes) {
 			fmt.Print("Actual: \n")
 			fmt.Print(string(data))
 			fmt.Print("Expected: \n")
