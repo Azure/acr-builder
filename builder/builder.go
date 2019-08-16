@@ -108,7 +108,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			log.Printf("task args: %v\n", strings.Join(args, ", "))
 		}
 
-		buildkitCtx, cancel := context.WithTimeout(ctx, buildkitdContainerRunTimeout)
+		buildkitCtx, cancel := context.WithTimeout(ctx, time.Duration(buildkitdContainerRunTimeoutInSeconds)*time.Second)
 		defer cancel()
 
 		err := b.procManager.RunRepeatWithRetries(
@@ -125,6 +125,31 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			false)
 		if err != nil {
 			log.Printf("(debug) buildx create --use failed %v", err)
+		}
+
+		log.Println("(debug) task will use build cache, checking buildkitd container")
+		args2 := []string{"/bin/sh", "-c", "docker ps -a"}
+		log.Printf("(debug) task args2: %v\n", strings.Join(args2, ", "))
+		if b.debug {
+			log.Printf("task args2: %v\n", strings.Join(args2, ", "))
+		}
+
+		buildkitCtx2, cancel := context.WithTimeout(ctx, time.Duration(buildkitdContainerRunTimeoutInSeconds)*time.Second)
+		defer cancel()
+		err = b.procManager.RunRepeatWithRetries(
+			buildkitCtx2,
+			args2,
+			nil,
+			os.Stdout,
+			os.Stderr,
+			"",
+			buildkitdContainerInitRetries,
+			buildkitdContainerInitRetryDelay,
+			"buildkitdtempcheck",
+			buildkitdContainerInitRepeat,
+			false)
+		if err != nil {
+			log.Printf("(debug) docker ps failed %v", err)
 		}
 	}
 

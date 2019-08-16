@@ -50,6 +50,7 @@ func (pm *ProcManager) RunRepeatWithRetries(
 	for i := 0; i <= repeat; i++ {
 		innerErr := pm.RunWithRetries(ctx, args, stdIn, stdOut, stdErr, cmdDir, retries, retryDelay, containerName)
 		if innerErr != nil {
+			log.Printf("error running command: %v\n", innerErr)
 			aggErrors = append(aggErrors, innerErr)
 		}
 	}
