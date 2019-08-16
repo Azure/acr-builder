@@ -83,8 +83,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	}
 
 	if task.InitBuildkitContainer {
-		// todo remove extra logs
-		log.Println("(debug) task will use build cache, initializing buildkitd container")
+		log.Println("Task will use build cache, initializing buildkitd container")
 		// --workdir = /workspace
 		args := b.getDockerRunArgs(
 			b.workspaceDir,
@@ -103,12 +102,12 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			buildkitdContainerName,
 			buildxImg+" create --use",
 		)
-		log.Printf("(debug) task args: %v\n", strings.Join(args, ", "))
 		if b.debug {
-			log.Printf("task args: %v\n", strings.Join(args, ", "))
+			log.Printf("buildkitd container args: %v\n", strings.Join(args, ", "))
 		}
 
-		buildkitCtx, cancel := context.WithTimeout(ctx, time.Duration(buildkitdContainerRunTimeoutInSeconds)*time.Second)
+		timeout := time.Duration(buildkitdContainerRunTimeoutInSeconds) * time.Second
+		buildkitCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 
 		err := b.procManager.RunRepeatWithRetries(
@@ -124,32 +123,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			buildkitdContainerInitRepeat,
 			false)
 		if err != nil {
-			log.Printf("(debug) buildx create --use failed %v", err)
-		}
-
-		log.Println("(debug) task will use build cache, checking buildkitd container")
-		args2 := []string{"/bin/sh", "-c", "docker ps -a"}
-		log.Printf("(debug) task args2: %v\n", strings.Join(args2, ", "))
-		if b.debug {
-			log.Printf("task args2: %v\n", strings.Join(args2, ", "))
-		}
-
-		buildkitCtx2, cancel := context.WithTimeout(ctx, time.Duration(buildkitdContainerRunTimeoutInSeconds)*time.Second)
-		defer cancel()
-		err = b.procManager.RunRepeatWithRetries(
-			buildkitCtx2,
-			args2,
-			nil,
-			os.Stdout,
-			os.Stderr,
-			"",
-			buildkitdContainerInitRetries,
-			buildkitdContainerInitRetryDelay,
-			"buildkitdtempcheck",
-			buildkitdContainerInitRepeat,
-			false)
-		if err != nil {
-			log.Printf("(debug) docker ps failed %v", err)
+			log.Printf("buildx create --use failed with error: '%v'", err)
 		}
 	}
 

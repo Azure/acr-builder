@@ -282,7 +282,6 @@ func (t *Task) initialize(ctx context.Context) error {
 
 			if s.UseBuildCacheForBuildStep() {
 				if runtime.GOOS == linuxOS {
-					log.Println("(debug) runtime os is linux and need to use build cache")
 					if buildStepWithBuildCache, err := s.GetCmdWithCacheFlags(t.TaskName); err != nil {
 						log.Printf("error creating build cache command %v\n", err)
 					} else {
