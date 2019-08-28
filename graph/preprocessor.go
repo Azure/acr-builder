@@ -4,7 +4,7 @@
 /* Alias preprocessor:
 * The set of elements here are meant to process the alias definition portion of task.yaml
 * files. This is done by unmarshaling these elements which will then be added in a hierarchical
-* manner. Note the input must still be valid Yaml.
+* manner. Note the input must still be valid YAML.
 *
 * TODO:
 * Acquire list of globally accessible image endpoints
@@ -30,7 +30,7 @@ var (
 	errImproperKeyName         = errors.New("alias key names only support alphanumeric characters")
 	errImproperDirectiveChoice = errors.New("overwritten directives may not be alphanumeric characters")
 	directive                  = '$'
-	re                         = regexp.MustCompile("\\A[a-zA-Z0-9]+\\z")
+	aliasFormat                = regexp.MustCompile("\\A[a-zA-Z0-9]+\\z")
 )
 
 // Alias intermediate step for processing before complete unmarshall
@@ -42,7 +42,7 @@ type Alias struct {
 
 // Prevents recursive definitions from occuring
 func (alias *Alias) resolveMapAndValidate() error {
-	//Set directive from Map
+	// Set directive from Map
 	alias.directive = directive
 	if value, ok := alias.AliasMap[string(directive)]; ok {
 		val := []rune(value)
@@ -50,7 +50,7 @@ func (alias *Alias) resolveMapAndValidate() error {
 			return errImproperDirectiveLength
 		}
 
-		if matched := re.MatchString(value); matched {
+		if matched := aliasFormat.MatchString(value); matched {
 			return errImproperDirectiveChoice
 		}
 
@@ -59,7 +59,7 @@ func (alias *Alias) resolveMapAndValidate() error {
 
 	// Values may support all characters, no escaping and so forth necessary
 	for key := range alias.AliasMap {
-		matched := re.MatchString(key)
+		matched := aliasFormat.MatchString(key)
 
 		if !matched && key != string(directive) {
 			return errImproperKeyName
@@ -68,7 +68,7 @@ func (alias *Alias) resolveMapAndValidate() error {
 	return nil
 }
 
-/* Loads in all Aliases defined as being a part of external resources. */
+// Loads in all Aliases defined as being a part of external resources.
 func (alias *Alias) loadExternalAlias() error {
 	// Iterating in reverse to easily and efficiently handle hierarchy. The later
 	// declared the higher in the hierarchy of alias definitions.
@@ -87,9 +87,9 @@ func (alias *Alias) loadExternalAlias() error {
 	return nil
 }
 
-/* Fetches and Parses out remote alias files and adds their content
-to the passed in Alias. Note alias definitions already in alias
-will not be overwritten. */
+// Fetches and Parses out remote alias files and adds their content
+// to the passed in Alias. Note alias definitions already in alias
+// will not be overwritten.
 func addAliasFromRemote(alias *Alias, url string) error {
 	remoteClient := http.Client{
 		Timeout: time.Second * 2, // Maximum of 2 secs
@@ -120,9 +120,9 @@ func addAliasFromRemote(alias *Alias, url string) error {
 	return readAliasFromBytes(data, alias)
 }
 
-/* Parses out local alias files and adds their content to the passed in
-Alias. Note alias definitions already in alias will not be
-overwritten. */
+// Parses out local alias files and adds their content to the passed in
+// Alias. Note alias definitions already in alias will not be
+// overwritten.
 func addAliasFromFile(alias *Alias, fileURI string) error {
 
 	data, fileReadingError := ioutil.ReadFile(fileURI)
@@ -132,9 +132,9 @@ func addAliasFromFile(alias *Alias, fileURI string) error {
 	return readAliasFromBytes(data, alias)
 }
 
-/* Parses out alias  definitions from a given bytes array and appends
-them to the Alias. Note alias definitions already in alias will
-not be overwritten even if present in the array. */
+// Parses out alias  definitions from a given bytes array and appends
+// them to the Alias. Note alias definitions already in alias will
+// not be overwritten even if present in the array.
 func readAliasFromBytes(data []byte, alias *Alias) error {
 
 	aliasMap := &map[string]string{}
@@ -153,13 +153,13 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 
 // PreprocessString handles managing alias definitions from a provided string definitions expected to be in JSON format.
 func preprocessString(alias *Alias, str string) (string, bool, error) {
-	//alias.loadGlobalDefinitions TODO?
+	// alias.loadGlobalDefinitions TODO?
 
 	// Load Remote/Local alias definitions
 	if externalDefinitionErr := alias.loadExternalAlias(); externalDefinitionErr != nil {
 		return "", false, externalDefinitionErr
 	}
-	//Validate alias definitions
+	// Validate alias definitions
 	if improperFormatErr := alias.resolveMapAndValidate(); improperFormatErr != nil {
 		return "", false, improperFormatErr
 	}
@@ -171,7 +171,7 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 	// Search and Replace all strings with $
 	for _, char := range str {
 		if ongoingCmd {
-			if matched := re.MatchString(string(char)); !matched { // Delineates the end of an alias
+			if matched := aliasFormat.MatchString(string(char)); !matched { // Delineates the end of an alias
 				resolvedCommand, commandPresent := alias.AliasMap[command.String()]
 				if !commandPresent {
 					return "", false, errors.New("unknown Alias: " + command.String())
@@ -204,8 +204,8 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 	return out.String(), changed, nil
 }
 
-// PreprocessBytes Handles byte encoded data that can be parsed through pre processing
-func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
+// PreprocessBytes handles byte encoded data that can be parsed through pre processing
+func PreprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	type Wrapper struct {
 		Alias Alias `yaml:"alias,omitempty"`
 	}
@@ -217,11 +217,11 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 
 	alias := &wrap.Alias
 	if alias.AliasMap == nil {
-		//Nothing to change
+		// Nothing to change
 		if alias.AliasSrc == nil {
 			return data, *alias, false, nil
 		}
-		//Alias Src defined. Guarantees alias map can be populated
+		// Alias Src defined. Guarantees alias map can be populated
 		alias.AliasMap = make(map[string]string)
 	}
 
@@ -257,7 +257,7 @@ func basicAliasSeparation(data []byte) ([]byte, []byte, error) {
 	var buffer bytes.Buffer
 
 	inside := false
-	aliasRe := regexp.MustCompile(`\Aalias\s*:.*\z`)
+	aliasFieldName := regexp.MustCompile(`\Aalias\s*:.*\z`)
 	genericTopLevelRe := regexp.MustCompile(`\A[^\s:]+[^:]*:.*\z`)
 	commentRe := regexp.MustCompile(`\A#.*`)
 	for scanner.Scan() {
@@ -265,7 +265,7 @@ func basicAliasSeparation(data []byte) ([]byte, []byte, error) {
 		if matched := commentRe.MatchString(text); matched {
 			continue
 		}
-		if matched := aliasRe.MatchString(text); matched && !inside {
+		if matched := aliasFieldName.MatchString(text); matched && !inside {
 			inside = true
 		} else if matched := genericTopLevelRe.MatchString(text); matched && inside {
 			inside = false
