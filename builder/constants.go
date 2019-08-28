@@ -22,4 +22,11 @@ const (
 	loginTimeoutInSec   = 60 * 5  // 5 minutes
 	digestsTimeoutInSec = 60 * 5  // 5 minutes
 	scrapeTimeoutInSec  = 60 * 15 // 15 minutes
+
+	// build cache constants
+	buildkitdContainerRunTimeoutInSeconds = 60 * 2 // 2 minutes
+	buildkitdContainerInitRetries         = 3
+	buildkitdContainerInitRetryDelay      = 5 // 5 seconds
+	buildkitdContainerName                = "acrbuildkitdcontainer"
+	buildkitdContainerInitRepeat          = 0 // no repetition for retries
 )

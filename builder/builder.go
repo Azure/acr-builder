@@ -20,6 +20,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	dockerImg = "docker"
+	buildxImg = "buildx"
+)
+
 // Builder builds images.
 type Builder struct {
 	procManager  *procmanager.ProcManager
@@ -75,6 +80,51 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	errorChan := make(chan error)
 	for _, node := range task.Dag.Nodes {
 		completedChans = append(completedChans, node.Value.CompletedChan)
+	}
+
+	if task.InitBuildkitContainer {
+		log.Println("Task will use build cache, initializing buildkitd container")
+		// --workdir = /workspace
+		args := b.getDockerRunArgs(
+			b.workspaceDir,
+			"",
+			false,
+			true,
+			true,
+			[]string{},
+			[]string{},
+			[]string{},
+			false,
+			"",
+			"",
+			"",
+			"",
+			buildkitdContainerName,
+			buildxImg+" create --use",
+		)
+		if b.debug {
+			log.Printf("buildkitd container args: %v\n", strings.Join(args, ", "))
+		}
+
+		timeout := time.Duration(buildkitdContainerRunTimeoutInSeconds) * time.Second
+		buildkitCtx, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+
+		err := b.procManager.RunRepeatWithRetries(
+			buildkitCtx,
+			args,
+			nil,
+			os.Stdout,
+			os.Stderr,
+			"",
+			buildkitdContainerInitRetries,
+			buildkitdContainerInitRetryDelay,
+			buildkitdContainerName,
+			buildkitdContainerInitRepeat,
+			false)
+		if err != nil {
+			log.Printf("buildx create --use failed with error: '%v'", err)
+		}
 	}
 
 	for _, child := range task.Dag.Root.Children() {
@@ -236,14 +286,19 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 			step.Build = replacePositionalContext(step.Build, ".")
 		}
 		step.UpdateBuildStepWithDefaults()
-		args = b.getDockerRunArgs(volName, workingDirectory, step, step.Envs, "", "docker build "+step.Build)
+
+		if step.UseBuildCacheForBuildStep() {
+			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", buildxImg+" build "+step.Build)
+		} else {
+			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", dockerImg+" build "+step.Build)
+		}
 	} else if step.IsPushStep() {
 		timeout := time.Duration(step.Timeout) * time.Second
 		pushCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 		return b.pushWithRetries(pushCtx, step.Push)
 	} else {
-		args = b.getDockerRunArgs(b.workspaceDir, step.WorkingDirectory, step, step.Envs, step.EntryPoint, step.Cmd)
+		args = b.getDockerRunArgsForStep(b.workspaceDir, step.WorkingDirectory, step, step.EntryPoint, step.Cmd)
 	}
 
 	if b.debug {

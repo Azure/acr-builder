@@ -79,7 +79,7 @@ func TestNewTask(t *testing.T) {
 			}
 		}
 
-		task, err := NewTask(gocontext.Background(), test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.isBuildTask, "")
+		task, err := NewTask(gocontext.Background(), test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.isBuildTask, "", "")
 		if err != nil {
 			t.Fatalf("Unexpected err while creating task: %v", err)
 		}
@@ -318,6 +318,7 @@ func TestUnmarshalTaskFromString_Envs(t *testing.T) {
 		network        string
 		envs           []string
 		creds          []*RegistryCredential
+		taskName       string
 		expected       *Task
 	}{
 		// A default environment variable shouldn't override
@@ -330,8 +331,10 @@ env: ["a=b", "c=d"]
 			"",
 			[]string{"a=g"},
 			[]*RegistryCredential{},
+			"",
 			&Task{
-				Envs: []string{"a=b", "c=d"},
+				Envs:     []string{"a=b", "c=d"},
+				TaskName: "quickrun",
 			},
 		},
 		{
@@ -342,8 +345,10 @@ env: ["a=b", "c=d"]
 			"",
 			[]string{"a=b", "c=d"},
 			[]*RegistryCredential{},
+			"",
 			&Task{
-				Envs: []string{"a=b", "c=d"},
+				Envs:     []string{"a=b", "c=d"},
+				TaskName: "quickrun",
 			},
 		},
 		{
@@ -352,8 +357,10 @@ env: ["a=b", "c=d"]
 			"",
 			[]string{"a=b", "c=d"},
 			[]*RegistryCredential{},
+			"myTask",
 			&Task{
-				Envs: []string{"a=b", "c=d"},
+				Envs:     []string{"a=b", "c=d"},
+				TaskName: "myTask",
 			},
 		},
 		{
@@ -362,8 +369,10 @@ env: ["a=b", "c=d"]
 			"",
 			[]string{},
 			[]*RegistryCredential{},
+			"myTask",
 			&Task{
-				Envs: nil,
+				Envs:     nil,
+				TaskName: "myTask",
 			},
 		},
 	}
@@ -376,6 +385,7 @@ env: ["a=b", "c=d"]
 			test.network,
 			test.envs,
 			test.creds,
+			test.taskName,
 		)
 		if err != nil {
 			t.Fatalf("unexpected err: %v", err)

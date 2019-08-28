@@ -112,6 +112,10 @@ var Command = cli.Command{
 			Name:  "set",
 			Usage: "set values on the command line (use --set multiple times or use commas: key1=val1,key2=val2)",
 		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "the name of the task",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		var (
@@ -138,6 +142,7 @@ var Command = cli.Command{
 			registry      = context.String("registry")
 			osVersion     = context.String("os-version")
 			setVals       = context.StringSlice("set")
+			taskName      = context.String("name")
 		)
 
 		if taskFile == "" && encodedTaskFile == "" {
@@ -180,6 +185,7 @@ var Command = cli.Command{
 			OSVersion:               osVersion,
 			Architecture:            runtime.GOARCH,
 			SecretResolveTimeout:    secretmgmt.DefaultSecretResolveTimeout,
+			TaskName:                taskName,
 		}
 
 		var template *templating.Template
@@ -215,7 +221,7 @@ var Command = cli.Command{
 			credentials = append(credentials, cred)
 		}
 
-		task, err := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials)
+		task, err := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName)
 		if err != nil {
 			return err
 		}

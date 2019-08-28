@@ -333,6 +333,7 @@ func createBuildTask(
 		ID:      "build",
 		Build:   rendered,
 		Timeout: buildTimeoutInSec,
+		Tags:    tags,
 	}
 
 	steps := []*graph.Step{buildStep}
@@ -357,5 +358,5 @@ func createBuildTask(
 		credentials = append(credentials, cred)
 	}
 
-	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, true, workingDirectory)
+	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, true, workingDirectory, "")
 }

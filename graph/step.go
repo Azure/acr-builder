@@ -4,7 +4,6 @@
 package graph
 
 import (
-	"errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -12,22 +11,27 @@ import (
 
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/util"
+	"github.com/docker/distribution/reference"
+	"github.com/pkg/errors"
 )
 
 const (
 	// ImmediateExecutionToken defines the when dependency to indicate a step should execute immediately.
 	ImmediateExecutionToken = "-"
 	windowsOS               = "windows"
+	enabled                 = "enabled"
+	disabled                = "disabled"
 )
 
 var (
-	errMissingID       = errors.New("step is missing an ID")
-	errMissingProps    = errors.New("step is missing a cmd, build, or push property")
-	errIDContainsSpace = errors.New("step ID cannot contain spaces")
-	errInvalidDeps     = errors.New("step cannot contain other IDs in when if the immediate execution token is specified")
-	errInvalidStepType = errors.New("step must only contain a single build, cmd, or push property")
-	errInvalidRetries  = errors.New("step must specify retries >= 0")
-	errInvalidRepeat   = errors.New("step must specify repeat >= 0")
+	errMissingID         = errors.New("step is missing an ID")
+	errMissingProps      = errors.New("step is missing a cmd, build, or push property")
+	errIDContainsSpace   = errors.New("step ID cannot contain spaces")
+	errInvalidDeps       = errors.New("step cannot contain other IDs in when if the immediate execution token is specified")
+	errInvalidStepType   = errors.New("step must only contain a single build, cmd, or push property")
+	errInvalidRetries    = errors.New("step must specify retries >= 0")
+	errInvalidRepeat     = errors.New("step must specify repeat >= 0")
+	errInvalidCacheValue = errors.New("invalid value for cache property. Valid values are 'enabled', 'disabled'")
 )
 
 // Step is a step in the execution task.
@@ -40,6 +44,7 @@ type Step struct {
 	User                string   `yaml:"user"`
 	Network             string   `yaml:"network"`
 	Isolation           string   `yaml:"isolation"`
+	Cache               string   `yaml:"cache"`
 	Push                []string `yaml:"push"`
 	Envs                []string `yaml:"env"`
 	Expose              []string `yaml:"expose"`
@@ -69,9 +74,10 @@ type Step struct {
 	// that the step has been processed.
 	CompletedChan chan bool
 
-	ImageDependencies []*image.Dependencies
-	Tags              []string
-	BuildArgs         []string
+	ImageDependencies    []*image.Dependencies
+	Tags                 []string
+	BuildArgs            []string
+	DefaultBuildCacheTag string
 }
 
 // Validate validates the step and returns an error if the Step has problems.
@@ -105,6 +111,11 @@ func (s *Step) Validate() error {
 			return NewSelfReferencedStepError(fmt.Sprintf("Step ID: %v is self-referenced", s.ID))
 		}
 	}
+
+	if s.Cache != "" && !strings.EqualFold(s.Cache, enabled) && !strings.EqualFold(s.Cache, disabled) {
+		return errInvalidCacheValue
+	}
+
 	return nil
 }
 
@@ -139,6 +150,7 @@ func (s *Step) Equals(t *Step) bool {
 		s.User == t.User &&
 		s.Network == t.Network &&
 		s.Isolation == t.Isolation &&
+		s.Cache == t.Cache &&
 		s.IgnoreErrors == t.IgnoreErrors &&
 		s.Retries == t.Retries &&
 		s.RetryDelayInSeconds == t.RetryDelayInSeconds &&
@@ -195,4 +207,52 @@ func (s *Step) UpdateBuildStepWithDefaults() {
 	if s.IsBuildStep() && runtime.GOOS == windowsOS && !strings.Contains(s.Build, "--isolation") {
 		s.Build = fmt.Sprintf("--isolation hyperv %s", s.Build)
 	}
+}
+
+// UseBuildCacheForBuildStep indicates if buildx needs to be used.
+func (s *Step) UseBuildCacheForBuildStep() bool {
+	return s != nil && s.IsBuildStep() && strings.ToLower(s.Cache) == enabled
+}
+
+// GetBuildCacheImageTag returns a default cacheid used to tag buildx images.
+func GetBuildCacheImageTag(taskName, stepID string) string {
+	return fmt.Sprintf("cache_%s_%s", taskName, stepID)
+}
+
+// GetCmdWithCacheFlags adds buildx cache parameters to the cmd.
+func (s *Step) GetCmdWithCacheFlags(taskName string) (string, error) {
+	result := ""
+
+	if len(s.Tags) == 0 {
+		return result, errors.New("at least one tag is required to use build cache's cache registry")
+	}
+
+	if strings.ToLower(s.Cache) != enabled {
+		return result, errors.New("cache needs to be set to 'enabled' to use build cache")
+	}
+
+	// grab the repo name from the first Image Tag.
+	buildImg := s.Tags[0]
+	repo, err := reference.Parse(buildImg)
+	if err != nil {
+		return result, errors.Wrap(err, "failed to parse the image name")
+	}
+	named, ok := repo.(reference.Named)
+	if !ok {
+		return result, errors.New("failed to extract the name from registry url")
+	}
+	//  trim out any digests and tags
+	named = reference.TrimNamed(named)
+	domain, _ := reference.SplitHostname(named)
+	if domain == "" {
+		return result, errors.New("domain for the registry is required to push build cache")
+	}
+
+	s.DefaultBuildCacheTag = GetBuildCacheImageTag(taskName, s.ID)
+	cacheImage, err := reference.WithTag(named, s.DefaultBuildCacheTag)
+	if err != nil {
+		return result, errors.Wrap(err, "failed to attach cache ID tag to the repo for build cache")
+	}
+	result = fmt.Sprintf("--load --cache-to=type=registry,ref=%s,mode=max --cache-from=type=registry,ref=%s %s", cacheImage.String(), cacheImage.String(), s.Build)
+	return result, nil
 }
