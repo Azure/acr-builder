@@ -205,7 +205,7 @@ var Command = cli.Command{
 			return err
 		}
 
-		shouldIncludeAlias := wrap == nil || wrap.Version >= "v.1.1.0"
+		shouldIncludeAlias := wrap.Version == "" || wrap.Version >= "v1.1.0"
 		var task *graph.Task
 		if shouldIncludeAlias {
 			// Generate the base task file without resolving environment variables.
@@ -214,7 +214,7 @@ var Command = cli.Command{
 				return err
 			}
 
-			// Remarshall functional task file to resolve templating
+			// Remarshal functional task file to resolve templating
 			fromTask, err := yaml.Marshal(task)
 			if err != nil {
 				return err
@@ -250,7 +250,6 @@ var Command = cli.Command{
 			if err != nil {
 				return err
 			}
-
 		} else {
 			var err error
 			task, err = graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials)
