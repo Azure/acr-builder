@@ -1,2 +1,2 @@
-docker : azure/images/docker
-cache : --cache-from=ubuntu
+docker: azure/images/docker
+cache: --cache-from=ubuntu

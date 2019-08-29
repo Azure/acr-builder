@@ -4,17 +4,17 @@
 #      -> build-bar
 
 alias:
-  src :
+  src:
     - "https://raw.githubusercontent.com/estebanreyl/preprocessor-test/master/input/valid-remote.yaml"
     - ./valid-external.yaml
 
   values:
-    registry : "{{.Run.Registry}}"
-    commit : "{{.Run.Commit}}"
-    id : "{{.Run.ID}}"
-    bar : https://github.com/ehotinger/bar
-    qux : https://github.com/ehotinger/qux
-    acb : "azure/images/acr-builder"
+    registry: "{{.Run.Registry}}"
+    commit: "{{.Run.Commit}}"
+    id: "{{.Run.ID}}"
+    bar: https://github.com/ehotinger/bar
+    qux: https://github.com/ehotinger/qux
+    acb: "azure/images/acr-builder"
 
 test: 600
 stepTimeout: 600
@@ -35,7 +35,7 @@ steps:
     pull: true
 
   - id: build-qux
-    cmd: 'azure/images/acr-builder build -f Dockerfile $qux --cache-from=ubuntu'
+    cmd: "azure/images/acr-builder build -f Dockerfile $qux --cache-from=ubuntu"
     when: ["-"]
     detach: true
     startDelay: 50

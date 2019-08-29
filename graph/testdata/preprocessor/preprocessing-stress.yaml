@@ -1,9 +1,8 @@
-
-Chaining :
+Chaining:
   alias:
-    src :
+    src:
       - testdata/preprocessor/alphanumeric-external.yaml
-    
+
   $s$t$e$p$T$i$m$e$o$u$t: $6$0$0
   $v$e$r$s$i$o$n: $v$1.$0.$0
 
@@ -22,7 +21,7 @@ Chaining :
       $p$u$l$l: $t$r$u$e
 
     - $i$d: $b$u$i$l$d-$q$u$x
-      $c$m$d: '$a$z$u$r$e/$i$m$a$g$e$s/$a$c$r-$b$u$i$l$d$e$r $b$u$i$l$d -$f $D$o$c$k$e$r$f$i$l$e $h$t$t$p$s://$g$i$t$h$u$b.$c$o$m/$e$h$o$t$i$n$g$e$r/$q$u$x --$c$a$c$h$e-$f$r$o$m=$u$b$u$n$t$u'
+      $c$m$d: "$a$z$u$r$e/$i$m$a$g$e$s/$a$c$r-$b$u$i$l$d$e$r $b$u$i$l$d -$f $D$o$c$k$e$r$f$i$l$e $h$t$t$p$s://$g$i$t$h$u$b.$c$o$m/$e$h$o$t$i$n$g$e$r/$q$u$x --$c$a$c$h$e-$f$r$o$m=$u$b$u$n$t$u"
       $w$h$e$n: ["-"]
       $d$e$t$a$c$h: $t$r$u$e
       $s$t$a$r$t$D$e$l$a$y: $5$0
@@ -61,12 +60,12 @@ Chaining :
       $u$s$e$r: $r$o$o$t
       $n$e$t$w$o$r$k: "$h$o$s$t"
       $r$e$p$e$a$t: $2
-Chaining Directive Changed :
+Chaining Directive Changed:
   alias:
-    src :
+    src:
       - testdata/preprocessor/alphanumeric-external.yaml
-    values : 
-      $ : ^
+    values:
+      $: ^
   ^s^t^e^p^T^i^m^e^o^u^t: ^6^0^0
   ^v^e^r^s^i^o^n: ^v^1.^0.^0
 
@@ -85,7 +84,7 @@ Chaining Directive Changed :
       ^p^u^l^l: ^t^r^u^e
 
     - ^i^d: ^b^u^i^l^d-^q^u^x
-      ^c^m^d: '^a^z^u^r^e/^i^m^a^g^e^s/^a^c^r-^b^u^i^l^d^e^r ^b^u^i^l^d -^f ^D^o^c^k^e^r^f^i^l^e ^h^t^t^p^s://^g^i^t^h^u^b.^c^o^m/^e^h^o^t^i^n^g^e^r/^q^u^x --^c^a^c^h^e-^f^r^o^m=^u^b^u^n^t^u'
+      ^c^m^d: "^a^z^u^r^e/^i^m^a^g^e^s/^a^c^r-^b^u^i^l^d^e^r ^b^u^i^l^d -^f ^D^o^c^k^e^r^f^i^l^e ^h^t^t^p^s://^g^i^t^h^u^b.^c^o^m/^e^h^o^t^i^n^g^e^r/^q^u^x --^c^a^c^h^e-^f^r^o^m=^u^b^u^n^t^u"
       ^w^h^e^n: ["-"]
       ^d^e^t^a^c^h: ^t^r^u^e
       ^s^t^a^r^t^D^e^l^a^y: ^5^0
@@ -124,13 +123,13 @@ Chaining Directive Changed :
       ^u^s^e^r: ^r^o^o^t
       ^n^e^t^w^o^r^k: "^h^o^s^t"
       ^r^e^p^e^a^t: ^2
-Chaining Directive Unicode :
+Chaining Directive Unicode:
   alias:
-    src :
+    src:
       - testdata/preprocessor/alphanumeric-external.yaml
-    values : 
-      $ : 😎
-    
+    values:
+      $: 😎
+
   😎s😎t😎e😎p😎T😎i😎m😎e😎o😎u😎t: 😎6😎0😎0
   😎v😎e😎r😎s😎i😎o😎n: 😎v😎1.😎0.😎0
 
@@ -149,7 +148,7 @@ Chaining Directive Unicode :
       😎p😎u😎l😎l: 😎t😎r😎u😎e
 
     - 😎i😎d: 😎b😎u😎i😎l😎d-😎q😎u😎x
-      😎c😎m😎d: '😎a😎z😎u😎r😎e/😎i😎m😎a😎g😎e😎s/😎a😎c😎r-😎b😎u😎i😎l😎d😎e😎r 😎b😎u😎i😎l😎d -😎f 😎D😎o😎c😎k😎e😎r😎f😎i😎l😎e 😎h😎t😎t😎p😎s://😎g😎i😎t😎h😎u😎b.😎c😎o😎m/😎e😎h😎o😎t😎i😎n😎g😎e😎r/😎q😎u😎x --😎c😎a😎c😎h😎e-😎f😎r😎o😎m=😎u😎b😎u😎n😎t😎u'
+      😎c😎m😎d: "😎a😎z😎u😎r😎e/😎i😎m😎a😎g😎e😎s/😎a😎c😎r-😎b😎u😎i😎l😎d😎e😎r 😎b😎u😎i😎l😎d -😎f 😎D😎o😎c😎k😎e😎r😎f😎i😎l😎e 😎h😎t😎t😎p😎s://😎g😎i😎t😎h😎u😎b.😎c😎o😎m/😎e😎h😎o😎t😎i😎n😎g😎e😎r/😎q😎u😎x --😎c😎a😎c😎h😎e-😎f😎r😎o😎m=😎u😎b😎u😎n😎t😎u"
       😎w😎h😎e😎n: ["-"]
       😎d😎e😎t😎a😎c😎h: 😎t😎r😎u😎e
       😎s😎t😎a😎r😎t😎D😎e😎l😎a😎y: 😎5😎0
@@ -188,7 +187,7 @@ Chaining Directive Unicode :
       😎u😎s😎e😎r: 😎r😎o😎o😎t
       😎n😎e😎t😎w😎o😎r😎k: "😎h😎o😎s😎t"
       😎r😎e😎p😎e😎a😎t: 😎2
-Complex :
+Complex:
   test: 600
   stepTimeout: 600
   version: v1.0.0
@@ -208,7 +207,7 @@ Complex :
       pull: true
 
     - id: build-qux
-      cmd: 'azure/images/acr-builder build -f Dockerfile $qux --cache-from=ubuntu'
+      cmd: "azure/images/acr-builder build -f Dockerfile $qux --cache-from=ubuntu"
       when: ["-"]
       detach: true
       startDelay: 50
@@ -247,8 +246,8 @@ Complex :
       user: root
       network: "host"
       repeat: 2
-Multiline Alias :
-  alias :
+Multiline Alias:
+  alias:
     values:
       buildQux: |
         id: build-qux
@@ -269,11 +268,11 @@ Multiline Alias :
             exitedWith: [0, 1, 2, 3, 4]
             keep: true
             isolation: default
-      buildBar : |
+      buildBar: |
         id: build-bar
             cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/bar --cache-from=ubuntu
             when: ["-"]
-      Puller : |
+      Puller: |
         id: puller
             cmd: azure/images/docker pull ubuntu
             entryPoint: someEntryPoint
@@ -294,14 +293,14 @@ Multiline Alias :
             cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu
             env: ["eric=foo"]
             when: [build-qux]
-      buildQuaz : |
+      buildQuaz: |
         id: build-qaz
             build: "-f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu"
             privileged: true
             user: root
             network: "host"
             repeat: 2
-        
+
   stepTimeout: 600
   version: v1.0.0
 
@@ -335,7 +334,7 @@ Expected:
       pull: true
 
     - id: build-qux
-      cmd: 'azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu'
+      cmd: "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu"
       when: ["-"]
       detach: true
       startDelay: 50

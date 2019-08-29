@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/acr-builder/util"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -29,22 +30,23 @@ var (
 	errImproperDirectiveLength = errors.New("$ directive can only be overwritten by a single character")
 	errImproperKeyName         = errors.New("alias key names only support alphanumeric characters")
 	errImproperDirectiveChoice = errors.New("overwritten directives may not be alphanumeric characters")
-	directive                  = '$'
-	aliasFormat                = regexp.MustCompile("\\A[a-zA-Z0-9]+\\z")
+	defaultDirective           = '$'
+	aliasFormat                = regexp.MustCompile(`\A[a-zA-Z0-9]+\z`)
 )
 
-// Alias intermediate step for processing before complete unmarshall
+// Alias intermediate step for processing before complete unmarshal
 type Alias struct {
 	AliasSrc  []*string         `yaml:"src"`
 	AliasMap  map[string]string `yaml:"values"`
 	directive rune
 }
 
-// Prevents recursive definitions from occuring
+// Validates aliases making sure all are alphanumeric
+// Additionally sets and validates directive overrides
 func (alias *Alias) resolveMapAndValidate() error {
 	// Set directive from Map
-	alias.directive = directive
-	if value, ok := alias.AliasMap[string(directive)]; ok {
+	alias.directive = defaultDirective
+	if value, ok := alias.AliasMap[string(defaultDirective)]; ok {
 		val := []rune(value)
 		if len(val) != 1 {
 			return errImproperDirectiveLength
@@ -61,7 +63,7 @@ func (alias *Alias) resolveMapAndValidate() error {
 	for key := range alias.AliasMap {
 		matched := aliasFormat.MatchString(key)
 
-		if !matched && key != string(directive) {
+		if !matched && key != string(defaultDirective) {
 			return errImproperKeyName
 		}
 	}
@@ -74,7 +76,7 @@ func (alias *Alias) loadExternalAlias() error {
 	// declared the higher in the hierarchy of alias definitions.
 	for i := len(alias.AliasSrc) - 1; i >= 0; i-- {
 		aliasURI := *alias.AliasSrc[i]
-		if strings.HasPrefix(aliasURI, "https://") || strings.HasPrefix(aliasURI, "http://") { // Rewrite in nice case insensitive regex
+		if util.IsURL(aliasURI) {
 			if err := addAliasFromRemote(alias, aliasURI); err != nil {
 				return err
 			}
@@ -91,7 +93,7 @@ func (alias *Alias) loadExternalAlias() error {
 // to the passed in Alias. Note alias definitions already in alias
 // will not be overwritten.
 func addAliasFromRemote(alias *Alias, url string) error {
-	remoteClient := http.Client{
+	remoteClient := &http.Client{
 		Timeout: time.Second * 2, // Maximum of 2 secs
 	}
 
@@ -106,8 +108,12 @@ func addAliasFromRemote(alias *Alias, url string) error {
 	}
 
 	if int(res.StatusCode)/100 != 2 {
-		httpErr, _ := ioutil.ReadAll(res.Body)
+		httpErr, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return err
+		}
 		return errors.New(string(httpErr))
+
 	}
 
 	defer res.Body.Close()
@@ -124,7 +130,6 @@ func addAliasFromRemote(alias *Alias, url string) error {
 // Alias. Note alias definitions already in alias will not be
 // overwritten.
 func addAliasFromFile(alias *Alias, fileURI string) error {
-
 	data, fileReadingError := ioutil.ReadFile(fileURI)
 	if fileReadingError != nil {
 		return fileReadingError
@@ -132,11 +137,10 @@ func addAliasFromFile(alias *Alias, fileURI string) error {
 	return readAliasFromBytes(data, alias)
 }
 
-// Parses out alias  definitions from a given bytes array and appends
+// Parses out alias definitions from a given bytes array and appends
 // them to the Alias. Note alias definitions already in alias will
 // not be overwritten even if present in the array.
 func readAliasFromBytes(data []byte, alias *Alias) error {
-
 	aliasMap := &map[string]string{}
 
 	if err := yaml.Unmarshal(data, aliasMap); err != nil {
@@ -168,7 +172,7 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 	ongoingCmd := false
 	changed := false
 
-	// Search and Replace all strings with $
+	// Search and Replace all strings with the directive
 	for _, char := range str {
 		if ongoingCmd {
 			if matched := aliasFormat.MatchString(string(char)); !matched { // Delineates the end of an alias
@@ -189,7 +193,6 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 				command.WriteRune(char)
 			}
 		} else if char == alias.directive {
-
 			if ongoingCmd { // Escape character triggered
 				out.WriteRune(alias.directive)
 				ongoingCmd = false
@@ -204,8 +207,8 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 	return out.String(), changed, nil
 }
 
-// PreprocessBytes handles byte encoded data that can be parsed through pre processing
-func PreprocessBytes(data []byte) ([]byte, Alias, bool, error) {
+// preprocessBytes handles byte encoded data that can be parsed through pre processing
+func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	type Wrapper struct {
 		Alias Alias `yaml:"alias,omitempty"`
 	}
