@@ -18,20 +18,19 @@ import (
 	"github.com/pkg/errors"
 )
 
-//Test alias parsing components
+// Test alias parsing components
 // Under consideration, multi alphabet alias support?
-/* yamlReserved... Note there are escapes for all
- := c-indicator	::=	  “-” | “?” | “:” | “,” | “[” | “]” | “{” | “}”
-| “#” | “&” | “*” | “!” | “|” | “>” | “'” | “"”
-| “%” | “@” | “`”
-( b-carriage-return b-line-feed )  DOS, Windows
-| b-carriage-return MacOS upto 9.x
-| b-line-feed   UNIX, MacOS X
-s-space	::=	#x20  SP
-s-tab	::=	#x9  TAB
-*/
+// yamlReserved... Note there are escapes for all
+//  := c-indicator	::=	  “-” | “?” | “:” | “,” | “[” | “]” | “{” | “}”
+// | “#” | “&” | “*” | “!” | “|” | “>” | “'” | “"”
+// | “%” | “@” | “`”
+// ( b-carriage-return b-line-feed )  DOS, Windows
+// | b-carriage-return MacOS upto 9.x
+// | b-line-feed   UNIX, MacOS X
+// s-space	::=	#x20  SP
+// s-tab	::=	#x9  TAB
 
-/* TestResolveMapAndValidate: M*/
+// TestResolveMapAndValidate: Will make sure ResolveMapAndValidate is performing as expected
 func TestResolveMapAndValidate(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -42,7 +41,7 @@ func TestResolveMapAndValidate(t *testing.T) {
 			"Improper Directive Choice",
 			true,
 			Alias{
-				[]*string{},
+				[]string{},
 				map[string]string{"$": "a"},
 				'$',
 			},
@@ -51,7 +50,7 @@ func TestResolveMapAndValidate(t *testing.T) {
 			"Improper Key Name",
 			true,
 			Alias{
-				[]*string{},
+				[]string{},
 				map[string]string{"totally&^Invalid": "hello-world"},
 				'$',
 			},
@@ -60,7 +59,7 @@ func TestResolveMapAndValidate(t *testing.T) {
 			"Improper Directive Length",
 			true,
 			Alias{
-				[]*string{},
+				[]string{},
 				map[string]string{"$": "&&&"},
 				'$',
 			},
@@ -69,7 +68,7 @@ func TestResolveMapAndValidate(t *testing.T) {
 			"Valid Alias",
 			false,
 			Alias{
-				[]*string{},
+				[]string{},
 				map[string]string{"$": "&", "totallyValid": "hello-world"},
 				'$',
 			},
@@ -90,6 +89,7 @@ func TestResolveMapAndValidate(t *testing.T) {
 	}
 }
 
+// TestLoadExternalAlias: Makes sure Loading an external Alias works as expected
 func TestLoadExternalAlias(t *testing.T) {
 	resStrings := []string{"nonexistent.yaml",
 		"https://httpstat.us/404",
@@ -108,7 +108,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Single Nonexistent File",
 			true,
 			Alias{
-				[]*string{&resStrings[0]},
+				[]string{resStrings[0]},
 				map[string]string{},
 				'$',
 			},
@@ -118,7 +118,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Single Nonexistent URL",
 			true,
 			Alias{
-				[]*string{&resStrings[1]},
+				[]string{resStrings[1]},
 				map[string]string{},
 				'$',
 			},
@@ -128,12 +128,12 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Valid Remote",
 			false,
 			Alias{
-				[]*string{&resStrings[2]},
+				[]string{resStrings[2]},
 				map[string]string{},
 				'$',
 			},
 			Alias{
-				[]*string{&resStrings[2]},
+				[]string{resStrings[2]},
 				map[string]string{
 					"docker": "azure/images/docker",
 					"cache":  "--cache-from=ubuntu",
@@ -145,12 +145,12 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Valid Files",
 			false,
 			Alias{
-				[]*string{&resStrings[3]},
+				[]string{resStrings[3]},
 				map[string]string{},
 				'$',
 			},
 			Alias{
-				[]*string{&resStrings[3]},
+				[]string{resStrings[3]},
 				map[string]string{
 					"singularity": "mcr.microsoft.com/acr-task-commands/singularity-builder:3.3",
 					"pack":        "mcr.microsoft.com/azure-task-commands/buildpack:latest pack",
@@ -163,12 +163,12 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Empty File",
 			false,
 			Alias{
-				[]*string{&resStrings[4]},
+				[]string{resStrings[4]},
 				map[string]string{"d": "docker", "azureCmd": "mcr.microsoft.com/azure-cli"},
 				'$',
 			},
 			Alias{
-				[]*string{&resStrings[4]},
+				[]string{resStrings[4]},
 				map[string]string{"d": "docker", "azureCmd": "mcr.microsoft.com/azure-cli"},
 				'$',
 			},
@@ -177,12 +177,12 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Valid All",
 			false,
 			Alias{
-				[]*string{&resStrings[2], &resStrings[3]},
+				[]string{resStrings[2], resStrings[3]},
 				map[string]string{},
 				'$',
 			},
 			Alias{
-				[]*string{&resStrings[2], &resStrings[3]},
+				[]string{resStrings[2], resStrings[3]},
 				map[string]string{
 					"docker":      "azure/images/docker",
 					"cache":       "--cache-from=ubuntu",
@@ -197,12 +197,12 @@ func TestLoadExternalAlias(t *testing.T) {
 			"Precedence in override",
 			false,
 			Alias{
-				[]*string{&resStrings[3]},
+				[]string{resStrings[3]},
 				map[string]string{"singularity": "something else"},
 				'$',
 			},
 			Alias{
-				[]*string{&resStrings[2], &resStrings[3]},
+				[]string{resStrings[2], resStrings[3]},
 				map[string]string{
 					"singularity": "something else",
 					"pack":        "mcr.microsoft.com/azure-task-commands/buildpack:latest pack",
@@ -248,7 +248,7 @@ func TestAddAliasFromRemote(t *testing.T) {
 			"Improperly Formatted",
 			true,
 			Alias{
-				[]*string{&resStrings[0]},
+				[]string{resStrings[0]},
 				map[string]string{"pre": "someother/pre"},
 				'$',
 			},
@@ -258,14 +258,14 @@ func TestAddAliasFromRemote(t *testing.T) {
 			"Properly Formatted",
 			false,
 			Alias{
-				[]*string{&resStrings[1]},
+				[]string{resStrings[1]},
 				map[string]string{
 					"pre": "someother/pre",
 				},
 				'$',
 			},
 			Alias{
-				[]*string{&resStrings[1]},
+				[]string{resStrings[1]},
 				map[string]string{
 					"pre":    "someother/pre",
 					"docker": "azure/images/docker",
@@ -277,7 +277,7 @@ func TestAddAliasFromRemote(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := addAliasFromRemote(&test.alias, *test.alias.AliasSrc[0])
+		err := addAliasFromRemote(&test.alias, test.alias.AliasSrc[0])
 		if err != nil && test.shouldError {
 			continue
 		}
@@ -306,7 +306,7 @@ func TestAddAliasFromFile(t *testing.T) {
 			"Improperly Formatted",
 			true,
 			Alias{
-				[]*string{&resStrings[0]},
+				[]string{resStrings[0]},
 				map[string]string{"pre": "someother/pre"},
 				'$',
 			},
@@ -316,14 +316,14 @@ func TestAddAliasFromFile(t *testing.T) {
 			"Properly Formatted",
 			false,
 			Alias{
-				[]*string{&resStrings[1]},
+				[]string{resStrings[1]},
 				map[string]string{
 					"pre": "someother/pre",
 				},
 				'$',
 			},
 			Alias{
-				[]*string{&resStrings[1]},
+				[]string{resStrings[1]},
 				map[string]string{
 					"pre":         "someother/pre",
 					"singularity": "mcr.microsoft.com/acr-task-commands/singularity-builder:3.3",
@@ -336,7 +336,7 @@ func TestAddAliasFromFile(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := addAliasFromFile(&test.alias, *test.alias.AliasSrc[0])
+		err := addAliasFromFile(&test.alias, test.alias.AliasSrc[0])
 		if err != nil && test.shouldError {
 			continue
 		}
@@ -483,7 +483,7 @@ func extractTaskYamls(file string) (map[string][]byte, error) {
 		text := scanner.Text()
 		if matched := genericTopLevelRe.MatchString(text); matched {
 
-			//Top level item has already been seen, this is not allowed
+			// Top level item has already been seen, this is not allowed
 			if _, ok := processed[current]; ok {
 				return processed, errors.New("Duplicate top level testing yaml was declared")
 			}

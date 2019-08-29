@@ -36,7 +36,7 @@ var (
 
 // Alias intermediate step for processing before complete unmarshal
 type Alias struct {
-	AliasSrc  []*string         `yaml:"src"`
+	AliasSrc  []string          `yaml:"src"`
 	AliasMap  map[string]string `yaml:"values"`
 	directive rune
 }
@@ -75,7 +75,7 @@ func (alias *Alias) loadExternalAlias() error {
 	// Iterating in reverse to easily and efficiently handle hierarchy. The later
 	// declared the higher in the hierarchy of alias definitions.
 	for i := len(alias.AliasSrc) - 1; i >= 0; i-- {
-		aliasURI := *alias.AliasSrc[i]
+		aliasURI := alias.AliasSrc[i]
 		if util.IsURL(aliasURI) {
 			if err := addAliasFromRemote(alias, aliasURI); err != nil {
 				return err
@@ -89,7 +89,7 @@ func (alias *Alias) loadExternalAlias() error {
 	return nil
 }
 
-// Fetches and Parses out remote alias files and adds their content
+// Fetches and parses out remote alias files and adds their content
 // to the passed in Alias. Note alias definitions already in alias
 // will not be overwritten.
 func addAliasFromRemote(alias *Alias, url string) error {
@@ -107,7 +107,7 @@ func addAliasFromRemote(alias *Alias, url string) error {
 		return getErr
 	}
 
-	if int(res.StatusCode)/100 != 2 {
+	if res.StatusCode > 299 {
 		httpErr, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return err
@@ -172,10 +172,14 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 	ongoingCmd := false
 	changed := false
 
-	// Search and Replace all strings with the directive
+	// Search and replace all strings with the directive
 	for _, char := range str {
 		if ongoingCmd {
-			if matched := aliasFormat.MatchString(string(char)); !matched { // Delineates the end of an alias
+			if char == alias.directive && command.Len() == 0 { // Escape Character Triggered
+				out.WriteRune(alias.directive)
+				ongoingCmd = false
+
+			} else if !isAlphanumeric(char) { // Delineates the end of an alias
 				resolvedCommand, commandPresent := alias.AliasMap[command.String()]
 				if !commandPresent {
 					return "", false, errors.New("unknown Alias: " + command.String())
@@ -193,11 +197,6 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 				command.WriteRune(char)
 			}
 		} else if char == alias.directive {
-			if ongoingCmd { // Escape character triggered
-				out.WriteRune(alias.directive)
-				ongoingCmd = false
-				continue
-			}
 			ongoingCmd = true
 		} else {
 			out.WriteRune(char)
@@ -281,4 +280,9 @@ func basicAliasSeparation(data []byte) ([]byte, []byte, error) {
 		}
 	}
 	return aliasBuffer.Bytes(), buffer.Bytes(), nil
+}
+
+// isAlphanumeric checks whether a particular rune is alphanumeric
+func isAlphanumeric(c rune) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
 }

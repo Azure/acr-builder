@@ -41,7 +41,7 @@ type ResolvedRegistryCred struct {
 	Password *secretmgmt.Secret
 }
 
-//RegistryLoginCredentials is a map of registryName -> ResolvedRegistryCred
+// RegistryLoginCredentials is a map of registryName -> ResolvedRegistryCred
 type RegistryLoginCredentials map[string]*ResolvedRegistryCred
 
 // Task represents a task execution.
@@ -125,11 +125,11 @@ func NewTaskFromBytes(data []byte) (*Task, error) {
 		return t, aliasErr
 	}
 
-	//This means unmarshalling was successful before but is no longer possible after alias
-	//replacements
+	// This means unmarshaling was successful before but is no longer possible after alias
+	// replacements
 	if err := yaml.Unmarshal(post, t); err != nil {
 		if changed {
-			err = errors.New("Alias replacement yielded an improperly formatted task")
+			err = errors.New("alias replacement yielded an improperly formatted task")
 		}
 		return t, err
 	}
