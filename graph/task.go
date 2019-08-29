@@ -66,6 +66,12 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
+	t.CompleteTask(ctx, defaultWorkDir, network, envs, creds)
+	return t, err
+}
+
+// CompleteTask unmarshals a Task from a raw string.
+func (t *Task) CompleteTask(ctx context.Context, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential) error {
 	if defaultWorkDir != "" && t.WorkingDirectory == "" {
 		t.WorkingDirectory = defaultWorkDir
 	}
@@ -74,7 +80,7 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 	// NB: Order is important here. Allow the Task's environment variables to override the defaults provided.
 	newEnvs, err := mergeEnvs(t.Envs, envs)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	t.Envs = newEnvs
@@ -86,13 +92,13 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 		var externalNetwork *Network
 		externalNetwork, err = NewNetwork(network, false, "external", true, true)
 		if err != nil {
-			return t, err
+			return err
 		}
 		t.Networks = append(t.Networks, externalNetwork)
 	}
 
 	err = t.initialize(ctx)
-	return t, err
+	return err
 }
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.

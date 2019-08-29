@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/Azure/acr-builder/builder"
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/procmanager"
@@ -194,6 +196,32 @@ var Command = cli.Command{
 			}
 		}
 
+		type Wrapper struct {
+			Version string `yaml:"version,omitempty"`
+		}
+
+		wrap := &Wrapper{}
+		if err := yaml.Unmarshal(template.GetData(), wrap); err != nil {
+			return err
+		}
+
+		shouldIncludeAlias := wrap == nil || wrap.Version >= "v.1.1.0"
+		var task *graph.Task
+		if shouldIncludeAlias {
+			// Generate the base task file without resolving environment variables.
+			task, err := graph.NewTaskFromBytes(template.GetData())
+			if err != nil {
+				return err
+			}
+
+			// Remarshall functional task file to resolve templating
+			fromTask, err := yaml.Marshal(task)
+			if err != nil {
+				return err
+			}
+			template.Data = fromTask
+		}
+
 		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
 		if err != nil {
 			return err
@@ -215,9 +243,20 @@ var Command = cli.Command{
 			credentials = append(credentials, cred)
 		}
 
-		task, err := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials)
-		if err != nil {
-			return err
+		// If work has been done before as a result of preprocessing avoid re
+		// computing the TaskFrom a string.
+		if shouldIncludeAlias {
+			task.CompleteTask(ctx, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials)
+			if err != nil {
+				return err
+			}
+
+		} else {
+			var err error
+			task, err = graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials)
+			if err != nil {
+				return err
+			}
 		}
 
 		builder := builder.NewBuilder(pm, debug, homevol)

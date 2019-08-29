@@ -155,7 +155,9 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 	return nil
 }
 
-// PreprocessString handles managing alias definitions from a provided string definitions expected to be in JSON format.
+// preprocessString handles the preprocessing (string replacement and resolution)
+// of all aliases in an input yaml (passed in as a string). The resolved aliases are
+// defined in the input alias file.
 func preprocessString(alias *Alias, str string) (string, bool, error) {
 	// alias.loadGlobalDefinitions TODO?
 
@@ -181,18 +183,19 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 
 			} else if !isAlphanumeric(char) { // Delineates the end of an alias
 				resolvedCommand, commandPresent := alias.AliasMap[command.String()]
+				// If command is not found we assume this to be the expect item itself.
 				if !commandPresent {
-					return "", false, errors.New("unknown Alias: " + command.String())
+					out.WriteString(string(alias.directive) + command.String())
+					command.Reset()
+				} else {
+					out.WriteString(resolvedCommand)
+					changed = true
+					if char != alias.directive {
+						ongoingCmd = false
+						out.WriteRune(char)
+					}
+					command.Reset()
 				}
-
-				out.WriteString(resolvedCommand)
-				changed = true
-				if char != alias.directive {
-					ongoingCmd = false
-					out.WriteRune(char)
-				}
-				command.Reset()
-
 			} else {
 				command.WriteRune(char)
 			}
