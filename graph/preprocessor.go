@@ -34,9 +34,10 @@ var (
 
 // Alias intermediate step for processing before complete unmarshal
 type Alias struct {
-	AliasSrc  []string          `yaml:"src"`
-	AliasMap  map[string]string `yaml:"values"`
-	directive rune
+	AliasSrc        []string          `yaml:"src"`
+	AliasMap        map[string]string `yaml:"values"`
+	DirectiveParsed string            `yaml:"directive"`
+	directive       rune
 }
 
 // Validates aliases making sure all are alphanumeric
@@ -45,13 +46,13 @@ func (alias *Alias) resolveMapAndValidate() error {
 	log.Printf("(resolveMapAndValidate) started")
 	// Set directive from Map
 	alias.directive = defaultDirective
-	if value, ok := alias.AliasMap[string(defaultDirective)]; ok {
-		val := []rune(value)
+	if alias.DirectiveParsed != "" {
+		val := []rune(alias.DirectiveParsed)
 		if len(val) != 1 {
 			return errImproperDirectiveLength
 		}
 
-		if matched := aliasFormat.MatchString(value); matched {
+		if matched := aliasFormat.MatchString(alias.DirectiveParsed); matched {
 			return errImproperDirectiveChoice
 		}
 		log.Printf("(resolveMapAndValidate) directive overwritten to %c", val[0])
@@ -62,7 +63,7 @@ func (alias *Alias) resolveMapAndValidate() error {
 	for key := range alias.AliasMap {
 		matched := aliasFormat.MatchString(key)
 
-		if !matched && key != string(defaultDirective) {
+		if !matched {
 			return errImproperKeyName
 		}
 	}
@@ -272,7 +273,7 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 func processSteps(alias *Alias, task *Task) {
 	log.Printf("(preprocessSteps) started")
 	for i, step := range task.Steps {
-		parts := strings.Split(step.Cmd, " ")
+		parts := strings.Split(strings.TrimSpace(step.Cmd), " ")
 		if val, ok := alias.AliasMap[parts[0]]; ok {
 			// Image name should always go first
 			log.Printf("(preprocessSteps) command resolved %s to %s", parts[0], val)

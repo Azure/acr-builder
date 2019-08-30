@@ -64,8 +64,7 @@ Chaining Directive Changed:
   alias:
     src:
       - testdata/preprocessor/alphanumeric-external.yaml
-    values:
-      $: ^
+    directive: ^
   ^s^t^e^p^T^i^m^e^o^u^t: ^6^0^0
   ^v^e^r^s^i^o^n: ^v^1.^0.^0
 
@@ -127,8 +126,7 @@ Chaining Directive Unicode:
   alias:
     src:
       - testdata/preprocessor/alphanumeric-external.yaml
-    values:
-      $: 😎
+    directive: 😎
 
   😎s😎t😎e😎p😎T😎i😎m😎e😎o😎u😎t: 😎6😎0😎0
   😎v😎e😎r😎s😎i😎o😎n: 😎v😎1.😎0.😎0

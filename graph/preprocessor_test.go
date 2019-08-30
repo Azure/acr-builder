@@ -42,7 +42,8 @@ func TestResolveMapAndValidate(t *testing.T) {
 			true,
 			Alias{
 				[]string{},
-				map[string]string{"$": "a"},
+				map[string]string{},
+				"a",
 				'$',
 			},
 		},
@@ -52,6 +53,7 @@ func TestResolveMapAndValidate(t *testing.T) {
 			Alias{
 				[]string{},
 				map[string]string{"totally&^Invalid": "hello-world"},
+				"$",
 				'$',
 			},
 		},
@@ -60,7 +62,8 @@ func TestResolveMapAndValidate(t *testing.T) {
 			true,
 			Alias{
 				[]string{},
-				map[string]string{"$": "&&&"},
+				map[string]string{},
+				"&&&",
 				'$',
 			},
 		},
@@ -69,7 +72,8 @@ func TestResolveMapAndValidate(t *testing.T) {
 			false,
 			Alias{
 				[]string{},
-				map[string]string{"$": "&", "totallyValid": "hello-world"},
+				map[string]string{"totallyValid": "hello-world"},
+				"&",
 				'$',
 			},
 		},
@@ -110,6 +114,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			Alias{
 				[]string{resStrings[0]},
 				map[string]string{},
+				"$",
 				'$',
 			},
 			Alias{},
@@ -120,6 +125,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			Alias{
 				[]string{resStrings[1]},
 				map[string]string{},
+				"$",
 				'$',
 			},
 			Alias{},
@@ -130,6 +136,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			Alias{
 				[]string{resStrings[2]},
 				map[string]string{},
+				"$",
 				'$',
 			},
 			Alias{
@@ -138,6 +145,7 @@ func TestLoadExternalAlias(t *testing.T) {
 					"docker": "azure/images/docker",
 					"cache":  "--cache-from=ubuntu",
 				},
+				"$",
 				'$',
 			},
 		},
@@ -147,6 +155,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			Alias{
 				[]string{resStrings[3]},
 				map[string]string{},
+				"$",
 				'$',
 			},
 			Alias{
@@ -156,6 +165,7 @@ func TestLoadExternalAlias(t *testing.T) {
 					"pack":        "mcr.microsoft.com/azure-task-commands/buildpack:latest pack",
 					"git":         "azure/images/git",
 				},
+				"$",
 				'$',
 			},
 		},
@@ -165,11 +175,13 @@ func TestLoadExternalAlias(t *testing.T) {
 			Alias{
 				[]string{resStrings[4]},
 				map[string]string{"d": "docker", "azureCmd": "mcr.microsoft.com/azure-cli"},
+				"$",
 				'$',
 			},
 			Alias{
 				[]string{resStrings[4]},
 				map[string]string{"d": "docker", "azureCmd": "mcr.microsoft.com/azure-cli"},
+				"$",
 				'$',
 			},
 		},
@@ -179,6 +191,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			Alias{
 				[]string{resStrings[2], resStrings[3]},
 				map[string]string{},
+				"$",
 				'$',
 			},
 			Alias{
@@ -190,6 +203,7 @@ func TestLoadExternalAlias(t *testing.T) {
 					"pack":        "mcr.microsoft.com/azure-task-commands/buildpack:latest pack",
 					"git":         "azure/images/git",
 				},
+				"$",
 				'$',
 			},
 		},
@@ -199,6 +213,7 @@ func TestLoadExternalAlias(t *testing.T) {
 			Alias{
 				[]string{resStrings[3]},
 				map[string]string{"singularity": "something else"},
+				"$",
 				'$',
 			},
 			Alias{
@@ -208,6 +223,7 @@ func TestLoadExternalAlias(t *testing.T) {
 					"pack":        "mcr.microsoft.com/azure-task-commands/buildpack:latest pack",
 					"git":         "azure/images/git",
 				},
+				"$",
 				'$',
 			},
 		},
@@ -250,6 +266,7 @@ func TestAddAliasFromRemote(t *testing.T) {
 			Alias{
 				[]string{resStrings[0]},
 				map[string]string{"pre": "someother/pre"},
+				"$",
 				'$',
 			},
 			Alias{},
@@ -262,6 +279,7 @@ func TestAddAliasFromRemote(t *testing.T) {
 				map[string]string{
 					"pre": "someother/pre",
 				},
+				"$",
 				'$',
 			},
 			Alias{
@@ -271,6 +289,7 @@ func TestAddAliasFromRemote(t *testing.T) {
 					"docker": "azure/images/docker",
 					"cache":  "--cache-from=ubuntu",
 				},
+				"$",
 				'$',
 			},
 		},
@@ -308,6 +327,7 @@ func TestAddAliasFromFile(t *testing.T) {
 			Alias{
 				[]string{resStrings[0]},
 				map[string]string{"pre": "someother/pre"},
+				"$",
 				'$',
 			},
 			Alias{},
@@ -320,6 +340,7 @@ func TestAddAliasFromFile(t *testing.T) {
 				map[string]string{
 					"pre": "someother/pre",
 				},
+				"$",
 				'$',
 			},
 			Alias{
@@ -330,6 +351,7 @@ func TestAddAliasFromFile(t *testing.T) {
 					"pack":        "mcr.microsoft.com/azure-task-commands/buildpack:latest pack",
 					"git":         "azure/images/git",
 				},
+				"$",
 				'$',
 			},
 		},
