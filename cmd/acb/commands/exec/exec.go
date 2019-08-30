@@ -216,7 +216,7 @@ var Command = cli.Command{
 		if shouldIncludeAlias {
 			log.Printf("(exec) alias support detected")
 			// Generate the base task file without resolving environment variables.
-			task, err = graph.NewTaskFromBytes(template.GetData())
+			task, err = graph.NewTaskFromBytes(template.GetData(), true)
 			if err != nil {
 				return err
 			}
