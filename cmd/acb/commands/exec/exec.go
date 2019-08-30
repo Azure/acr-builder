@@ -214,12 +214,13 @@ var Command = cli.Command{
 		shouldIncludeAlias := wrap.Version == "" || wrap.Version >= "v1.1.0"
 		var task *graph.Task
 		if shouldIncludeAlias {
+			log.Printf("(exec) alias support detected")
 			// Generate the base task file without resolving environment variables.
 			task, err = graph.NewTaskFromBytes(template.GetData())
 			if err != nil {
 				return err
 			}
-
+			log.Printf("(exec) alias resolution executed, marshalling")
 			// Remarshal functional task file to resolve templating
 			var fromTask []byte
 			fromTask, err = yaml.Marshal(task)
@@ -227,6 +228,7 @@ var Command = cli.Command{
 				return err
 			}
 			template.Data = fromTask
+			log.Printf("(exec) rendering post alias started")
 		}
 
 		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
@@ -253,10 +255,12 @@ var Command = cli.Command{
 		// If work has been done before as a result of preprocessing avoid re
 		// computing the TaskFrom a string.
 		if shouldIncludeAlias {
+			log.Printf("(exec) task completion started")
 			err := task.CompleteTask(ctx, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName)
 			if err != nil {
 				return err
 			}
+			log.Printf("(exec) task completion successful")
 		} else {
 			var err error
 			task, err = graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName)
