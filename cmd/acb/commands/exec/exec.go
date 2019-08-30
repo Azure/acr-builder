@@ -252,7 +252,7 @@ var Command = cli.Command{
 		// If work has been done before as a result of preprocessing avoid re
 		// computing the TaskFrom a string.
 		if shouldIncludeAlias {
-			task.CompleteTask(ctx, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName)
+			err := task.CompleteTask(ctx, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName)
 			if err != nil {
 				return err
 			}
