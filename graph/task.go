@@ -73,12 +73,12 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
-	t.CompleteTask(ctx, defaultWorkDir, network, envs, creds)
+	t.CompleteTask(ctx, defaultWorkDir, network, envs, creds, taskName)
 	return t, err
 }
 
 // CompleteTask unmarshals a Task from a raw string.
-func (t *Task) CompleteTask(ctx context.Context, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential) error {
+func (t *Task) CompleteTask(ctx context.Context, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string) error {
 	if defaultWorkDir != "" && t.WorkingDirectory == "" {
 		t.WorkingDirectory = defaultWorkDir
 	}
