@@ -142,9 +142,9 @@ func addAliasFromFile(alias *Alias, fileURI string) error {
 func (alias *Alias) loadGlobalAlias() error {
 	var fileLoc string
 	if runtime.GOOS == "windows" {
-		fileLoc = "./global-defaults-windows.yaml"
+		fileLoc = "c:/acr-builder/global-defaults-windows.yaml"
 	} else { // Looking at Linux
-		fileLoc = "./global-defaults-linux.yaml"
+		fileLoc = "/usr/bin/global-defaults-linux.yaml"
 	}
 	if err := addAliasFromFile(alias, fileLoc); err != nil {
 		return err
