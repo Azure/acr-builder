@@ -232,7 +232,7 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 		Alias Alias `yaml:"alias,omitempty"`
 	}
 	wrap := &Wrapper{}
-	aliasData, remainingData, err := basicAliasSeparation(data)
+	aliasData, remainingData := basicAliasSeparation(data)
 	if errUnmarshal := yaml.Unmarshal(aliasData, wrap); errUnmarshal != nil {
 		return data, Alias{}, false, errUnmarshal
 	}
@@ -270,7 +270,7 @@ func processSteps(alias *Alias, task *Task) {
 // Provides simple separation of the top level items in a yaml file definition, however, need
 // to update to be fully compliant (include JSON top level for example). Alternative construction
 // of small compiler for this purpose is also under consideration.
-func basicAliasSeparation(data []byte) ([]byte, []byte, error) {
+func basicAliasSeparation(data []byte) ([]byte, []byte) {
 	reader := bytes.NewReader(data)
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
@@ -299,5 +299,5 @@ func basicAliasSeparation(data []byte) ([]byte, []byte, error) {
 			buffer.WriteString(text + "\n")
 		}
 	}
-	return aliasBuffer.Bytes(), buffer.Bytes(), nil
+	return aliasBuffer.Bytes(), buffer.Bytes()
 }
