@@ -265,7 +265,7 @@ steps:
 	}
 
 	for _, test := range tests {
-		task, err := NewTaskFromString(test.template)
+		task, err := NewTaskFromString(test.template, true)
 		if test.shouldError && err == nil {
 			t.Fatalf("Expected task: %v to error but it didn't", test.template)
 		}
@@ -386,6 +386,7 @@ env: ["a=b", "c=d"]
 			test.envs,
 			test.creds,
 			test.taskName,
+			true,
 		)
 		if err != nil {
 			t.Fatalf("unexpected err: %v", err)

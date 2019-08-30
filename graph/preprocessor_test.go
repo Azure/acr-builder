@@ -389,16 +389,6 @@ func TestPreProcessBytes(t *testing.T) {
 			"somefilename",
 		},
 		// {
-		// 	"Nested Values",
-		// 	true,
-		// 	"somefilename",
-		// },
-		// {
-		// 	"Data from ACR Task Json",
-		// 	false,
-		// 	"somefilename",
-		// },
-		// {
 		// 	"Invalid Task from File",
 		// 	true,
 		// 	"somefilename",
@@ -504,46 +494,56 @@ func extractTaskYamls(file string) (map[string][]byte, error) {
 	return processed, nil
 }
 
+// func TestPreProcessSteps(t *testing.T) {
+// 	tests := []struct {
+// 		name        string
+// 		shouldError bool
+// 		alias       Alias
+// 		current 	Task
+// 		expected	Task
+// 	}{
+// 		{
+// 			"Simple replacement",
+// 			false,
+// 			Alias{},
+// 			Task{},
+// 			Task{}
+// 		},
+// 		{
+// 			"Non-existent alias",
+// 			false,
+// 			Alias{},
+// 			Task{},
+// 			Task{}
+// 		},
+// 		{
+// 			"Directive included",
+// 			false,
+// 			Alias{},
+// 			Task{},
+// 			Task{}
+// 		},
+// 		{
+// 			"Space before command",
+// 			false,
+// 			Alias{},
+// 			Task{},
+// 			Task{}
+// 		},
+// 	}
+
+// 	for _, test := range tests {
+// 		err := test.alias.resolveMapAndValidate()
+// 		if err != nil && test.shouldError {
+// 			continue
+// 		}
+// 		if err == nil && test.shouldError {
+// 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+// 		}
+// 	}
+// }
+
 /*
-func TestPreProcessSteps(t *testing.T) {
-	tests := []struct {
-		name        string
-		shouldError bool
-		alias       Alias
-	}{
-		{
-			"Improper Directive Choice",
-			true,
-			Alias{},
-		},
-		{
-			"Improper Key Name",
-			true,
-			Alias{},
-		},
-		{
-			"Improper Directive Length",
-			true,
-			Alias{},
-		},
-		{
-			"Valid Alias",
-			false,
-			Alias{},
-		},
-	}
-
-	for _, test := range tests {
-		err := test.alias.resolveMapAndValidate()
-		if err != nil && test.shouldError {
-			continue
-		}
-		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.name + " to error but it didn't")
-		}
-	}
-}
-
 func TestPreProcessTaskFully(t *testing.T) {
 	tests := []struct {
 		name        string

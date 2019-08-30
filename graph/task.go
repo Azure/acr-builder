@@ -68,8 +68,8 @@ type Task struct {
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string) (*Task, error) {
-	t, err := NewTaskFromString(data)
+func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string, doPreprocessing bool) (*Task, error) {
+	t, err := NewTaskFromString(data, doPreprocessing)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
@@ -117,12 +117,12 @@ func (t *Task) CompleteTask(ctx context.Context, defaultWorkDir string, network 
 }
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
-func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCredential, taskName string) (*Task, error) {
+func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCredential, taskName string, doPreprocessing bool) (*Task, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
-	t, err := NewTaskFromBytes(data)
+	t, err := NewTaskFromBytes(data, doPreprocessing)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
@@ -138,29 +138,35 @@ func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCr
 }
 
 // NewTaskFromString unmarshals a Task from string without any initialization.
-func NewTaskFromString(data string) (*Task, error) {
-	return NewTaskFromBytes([]byte(data))
+func NewTaskFromString(data string, doPreprocessing bool) (*Task, error) {
+	return NewTaskFromBytes([]byte(data), doPreprocessing)
 }
 
 // NewTaskFromBytes unmarshals a Task from given bytes without any initialization.
-func NewTaskFromBytes(data []byte) (*Task, error) {
+func NewTaskFromBytes(data []byte, doPreprocessing bool) (*Task, error) {
 	t := &Task{}
+	if doPreprocessing {
+		post, alias, changed, aliasErr := preprocessBytes(data)
 
-	post, alias, changed, aliasErr := preprocessBytes(data)
-	if aliasErr != nil {
-		return t, aliasErr
-	}
-
-	// This means unmarshaling was successful before but is no longer possible after alias
-	// replacements
-	if err := yaml.Unmarshal(post, t); err != nil {
-		if changed {
-			err = errors.New("alias replacement yielded an improperly formatted task")
+		if aliasErr != nil {
+			return t, aliasErr
 		}
-		return t, err
-	}
 
-	processSteps(&alias, t)
+		// This means unmarshal was successful before but is no longer possible after alias
+		// replacements
+		if err := yaml.Unmarshal(post, t); err != nil {
+			if changed {
+				err = errors.New("alias replacement yielded an improperly formatted task")
+			}
+			return t, err
+		}
+		processSteps(&alias, t)
+
+	} else {
+		if err := yaml.Unmarshal(data, t); err != nil {
+			return t, err
+		}
+	}
 
 	return t, t.Validate()
 }
