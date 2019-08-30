@@ -485,7 +485,7 @@ func extractTaskYamls(file string) (map[string][]byte, error) {
 
 			// Top level item has already been seen, this is not allowed
 			if _, ok := processed[current]; ok {
-				return processed, errors.New("Duplicate top level testing yaml was declared")
+				return processed, errors.New("duplicate top level testing yaml was declared")
 			}
 
 			processed[current] = make([]byte, len(curBuffer.Bytes()))

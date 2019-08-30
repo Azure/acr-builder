@@ -207,7 +207,7 @@ var Command = cli.Command{
 		}
 
 		wrap := &Wrapper{}
-		if err := yaml.Unmarshal(template.GetData(), wrap); err != nil {
+		if err = yaml.Unmarshal(template.GetData(), wrap); err != nil {
 			return err
 		}
 
@@ -215,13 +215,14 @@ var Command = cli.Command{
 		var task *graph.Task
 		if shouldIncludeAlias {
 			// Generate the base task file without resolving environment variables.
-			task, err := graph.NewTaskFromBytes(template.GetData())
+			task, err = graph.NewTaskFromBytes(template.GetData())
 			if err != nil {
 				return err
 			}
 
 			// Remarshal functional task file to resolve templating
-			fromTask, err := yaml.Marshal(task)
+			var fromTask []byte
+			fromTask, err = yaml.Marshal(task)
 			if err != nil {
 				return err
 			}

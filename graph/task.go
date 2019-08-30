@@ -80,7 +80,7 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 	return t, err
 }
 
-// CompleteTask unmarshals a Task from a raw string.
+// CompleteTask prepares a Task with remaining parameters
 func (t *Task) CompleteTask(ctx context.Context, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string) error {
 	if defaultWorkDir != "" && t.WorkingDirectory == "" {
 		t.WorkingDirectory = defaultWorkDir
