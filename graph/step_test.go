@@ -3,6 +3,7 @@
 package graph
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -327,6 +328,162 @@ func TestHasNoWhen(t *testing.T) {
 	for _, test := range tests {
 		if actual := test.s.HasNoWhen(); actual != test.expected {
 			t.Errorf("Expected %v but got %v", test.expected, actual)
+		}
+	}
+}
+
+func TestUseBuildCache(t *testing.T) {
+	tests := []struct {
+		s        *Step
+		expected bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&Step{
+				Cmd: "",
+			},
+			false,
+		},
+		{
+			&Step{
+				Cache: "blah",
+			},
+			false,
+		},
+		{
+			&Step{
+				Cache: "Enabled",
+			},
+			false,
+		},
+		{
+			&Step{
+				Build: "a",
+				Cache: "enabled",
+			},
+			true,
+		},
+		{
+			&Step{
+				Build: "a",
+				Cache: "disabled",
+			},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		if actual := test.s.UseBuildCacheForBuildStep(); actual != test.expected {
+			t.Errorf("Use Build Cache for %v. Expected %v but got %v", test.s, test.expected, actual)
+		}
+	}
+}
+
+func TestGetCmdForBuildCache(t *testing.T) {
+	tests := []struct {
+		s        *Step
+		taskName string
+		result   string
+		ok       bool
+	}{
+		{
+			&Step{
+				Tags:  []string{},
+				Cache: "disabled",
+			},
+			"",
+			"",
+			false,
+		},
+		{
+			&Step{
+				Tags:  []string{"a"},
+				Cache: "enabled",
+			},
+			"",
+			"",
+			false,
+		},
+		{
+			&Step{
+				ID:    "step0",
+				Tags:  []string{"test.com/repo:tag"},
+				Cache: "enabled",
+			},
+			"fooTask",
+			"test.com/repo:cache_fooTask_step0",
+			true,
+		},
+		{
+			&Step{
+				ID:    "step_acb0",
+				Tags:  []string{"test.com/repo:tag"},
+				Cache: "enAbled",
+			},
+			noTaskNamePlaceholder,
+			"test.com/repo:cache_" + noTaskNamePlaceholder + "_step_acb0",
+			true,
+		},
+		{
+			&Step{
+				ID:    "step_myrandomlylongIDlaskcnlkascnlkanclkansclknaslkcnalkscnlaknsclkalknaslkncalscnlakscnlkascnlkascnlksn",
+				Tags:  []string{"test.com/repo:tag"},
+				Cache: "enabled",
+			},
+			"task_myrandomlylongIDlaskcnlkascnlkanclkansclknaslkcnalkscnlaknsclkalknaslkncalscnlakscnlkascnlkascnlksn",
+			"",
+			false,
+		},
+		{
+			&Step{
+				ID:    "a_b_c",
+				Tags:  []string{"test:5000/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
+				Cache: "enabled",
+			},
+			"foo",
+			"test:5000/repo:cache_foo_a_b_c",
+			true,
+		},
+		{
+			&Step{
+				ID:    "step_acb0",
+				Tags:  []string{"foo/foo_bar.com:8080"},
+				Cache: "enabled",
+			},
+			"myTask",
+			"foo/foo_bar.com:cache_myTask_step_acb0",
+			true,
+		},
+		{
+			&Step{
+				ID:    "1",
+				Tags:  []string{"sub-dom1.foo.com/bar/baz/quux"},
+				Cache: "enabled",
+			},
+			noTaskNamePlaceholder,
+			"sub-dom1.foo.com/bar/baz/quux:cache_" + noTaskNamePlaceholder + "_1",
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		actual, err := test.s.GetCmdWithCacheFlags(test.taskName)
+
+		if test.ok {
+			if err != nil {
+				t.Errorf("expected %v to be okay but got an error %v", test.s, err)
+			}
+		} else {
+			if err == nil {
+				t.Errorf("expected %v to be errored out but got none", test.s)
+			}
+		}
+
+		if !strings.Contains(actual, test.result) {
+			t.Errorf("step %v could not extract right registry from tags. Expected cache id tag: %v but got %v", test.s, test.result, actual)
 		}
 	}
 }

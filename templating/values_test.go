@@ -133,6 +133,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedOS := "linux"
 	expectedOSVersion := "1903"
 	expectedArchitecture := "amd64"
+	expectedTaskName := "taskFoo"
 
 	parsedTime, err := time.Parse("20060102-150405", "20100520-131422")
 	if err != nil {
@@ -154,6 +155,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		OS:           expectedOS,
 		OSVersion:    expectedOSVersion,
 		Architecture: expectedArchitecture,
+		TaskName:     expectedTaskName,
 	}
 	vals, err := OverrideValuesWithBuildInfo(c1, c2, options)
 	if err != nil {
@@ -176,6 +178,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 		{"{{.Run.OS}}", expectedOS},
 		{"{{.Run.OSVersion}}", expectedOSVersion},
 		{"{{.Run.Architecture}}", expectedArchitecture},
+		{"{{.Run.TaskName}}", expectedTaskName},
 		{"{{.Values.born}}", eCurieBorn},
 		{"{{.Values.first}}", eCurieFirst},
 		{"{{.Values.last}}", eCurieLast},
@@ -199,6 +202,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 			"\",\"RegistryName\":\"" + expectedRegistryName +
 			"\",\"Repository\":\"" + expectedRepository +
 			"\",\"SharedVolume\":\"" + expectedSharedVolume +
+			"\",\"TaskName\":\"" + expectedTaskName +
 			"\",\"TriggeredBy\":\"" + expectedTriggeredBy + "\"}'"},
 	}
 	for _, test := range tests {
