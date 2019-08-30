@@ -1,0 +1,13 @@
+# Convenience definitions, use as eg. $commit
+ID: "{{.Run.ID}}"
+SharedVolume: "{{.Run.SharedVolume}}"
+Registry: "{{.Run.Registry}}"
+RegistryName: "{{.Run.RegistryName}}"
+Date: "{{.Run.Date}}"
+OS: "{{.Run.OS}}"
+Architecture: "{{.Run.Architecture}}"
+Commit: "{{.Run.Commit}}"
+Branch: "{{.Run.Branch}}"
+
+# Default image definitions, can be used without $ directive
+az: "mcr.microsoft.com/azure-cli"

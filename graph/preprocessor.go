@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -137,6 +138,19 @@ func addAliasFromFile(alias *Alias, fileURI string) error {
 	return readAliasFromBytes(data, alias)
 }
 
+func (alias *Alias) loadGlobalAlias() error {
+	var fileLoc string
+	if runtime.GOOS == "windows" {
+		fileLoc = "./global-defaults-windows.yaml"
+	} else { // Looking at Linux
+		fileLoc = "./global-defaults-linux.yaml"
+	}
+	if err := addAliasFromFile(alias, fileLoc); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Parses out alias definitions from a given bytes array and appends
 // them to the Alias. Note alias definitions already in alias will
 // not be overwritten even if present in the array.
@@ -159,11 +173,14 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 // of all aliases in an input yaml (passed in as a string). The resolved aliases are
 // defined in the input alias file.
 func preprocessString(alias *Alias, str string) (string, bool, error) {
-	// alias.loadGlobalDefinitions TODO?
 
 	// Load Remote/Local alias definitions
 	if externalDefinitionErr := alias.loadExternalAlias(); externalDefinitionErr != nil {
 		return "", false, externalDefinitionErr
+	}
+	// Load Globally defined aliases
+	if globalLoadErr := alias.loadGlobalAlias(); globalLoadErr != nil {
+		return "", false, globalLoadErr
 	}
 	// Validate alias definitions
 	if improperFormatErr := alias.resolveMapAndValidate(); improperFormatErr != nil {
@@ -216,8 +233,8 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	}
 	wrap := &Wrapper{}
 	aliasData, remainingData, err := basicAliasSeparation(data)
-	if errUnMarshal := yaml.Unmarshal(aliasData, wrap); errUnMarshal != nil {
-		return data, Alias{}, false, errUnMarshal
+	if errUnmarshal := yaml.Unmarshal(aliasData, wrap); errUnmarshal != nil {
+		return data, Alias{}, false, errUnmarshal
 	}
 
 	alias := &wrap.Alias
@@ -242,9 +259,9 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 func processSteps(alias *Alias, task *Task) {
 	for i, step := range task.Steps {
 		parts := strings.Split(step.Cmd, " ")
-		if _, ok := alias.AliasMap[parts[0]]; ok {
+		if val, ok := alias.AliasMap[parts[0]]; ok {
 			// Image name should always go first
-			parts[0] = alias.AliasMap[parts[0]]
+			parts[0] = val
 			task.Steps[i].Cmd = strings.Join(parts, " ")
 		}
 	}
@@ -283,9 +300,4 @@ func basicAliasSeparation(data []byte) ([]byte, []byte, error) {
 		}
 	}
 	return aliasBuffer.Bytes(), buffer.Bytes(), nil
-}
-
-// isAlphanumeric checks whether a particular rune is alphanumeric
-func isAlphanumeric(c rune) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
 }

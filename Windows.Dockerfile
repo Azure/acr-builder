@@ -88,16 +88,18 @@ FROM builder as dockercli
 ARG DOCKER_CLI_LKG_COMMIT=c98c4080a323fb0e4fdf7429d8af4e2e946d09b5
 WORKDIR \\gopath\\src\\github.com\\docker\\cli
 RUN git clone https://github.com/docker/cli.git \gopath\src\github.com\docker\cli; \
-    git checkout $env:DOCKER_CLI_LKG_COMMIT; \
-    scripts\\make.ps1 -Binary -ForceBuildAll
+	git checkout $env:DOCKER_CLI_LKG_COMMIT; \
+	scripts\\make.ps1 -Binary -ForceBuildAll
 
 # Build the acr-builder
 FROM builder as acb
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
+RUN mkdir -p builder-files
+COPY .\graph\global-defaults-windows.yaml builderfiles/
 RUN Write-Host ('Running build'); \
-    go build -o acb.exe .\cmd\acb; \
+	go build -o builder-files\acb.exe .\cmd\acb; \
 	Write-Host ('Running unit tests'); \
 	go test ./...
 
@@ -105,7 +107,7 @@ RUN Write-Host ('Running build'); \
 FROM base as runtime
 ARG ACB_BASEIMAGE=mcr.microsoft.com/windows/servercore:1903
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
-COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe c:/acr-builder/acb.exe
+COPY --from=acb /gopath/src/github.com/Azure/acr-builder/builder-files/ c:/acr-builder/
 ENV ACB_CONFIGIMAGENAME=$ACB_BASEIMAGE
 
 RUN setx /M PATH $('c:\acr-builder;c:\docker;{0}' -f $env:PATH);
