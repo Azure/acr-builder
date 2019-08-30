@@ -1,14 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-/* Alias preprocessor:
-* The set of elements here are meant to process the alias definition portion of task.yaml
-* files. This is done by unmarshaling these elements which will then be added in a hierarchical
-* manner. Note the input must still be valid YAML.
-*
-* TODO:
-* Acquire list of globally accessible image endpoints
- */
+// Alias preprocessor:
+// The set of elements here are meant to process the alias definition portion of task.yaml
+// files. This is done by unmarshaling these elements which will then be added in a hierarchical
+// manner. Note the input must still be valid YAML.
 
 package graph
 
@@ -239,10 +235,6 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 
 	alias := &wrap.Alias
 	if alias.AliasMap == nil {
-		// Nothing to change
-		if alias.AliasSrc == nil {
-			return data, *alias, false, nil
-		}
 		// Alias Src defined. Guarantees alias map can be populated
 		alias.AliasMap = make(map[string]string)
 	}
@@ -254,8 +246,8 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	return []byte(parsedStr), *alias, changed, err
 }
 
-// processSteps Will resolve image names in steps that are aliased without using $.
-// Invoked after resolving $
+// processSteps Will resolve image names in steps that are aliased without using directive.
+// Invoked after resolving all directive using aliases
 func processSteps(alias *Alias, task *Task) {
 	for i, step := range task.Steps {
 		parts := strings.Split(step.Cmd, " ")
