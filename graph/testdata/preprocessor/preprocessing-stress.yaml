@@ -1,200 +1,17 @@
-Chaining:
-  alias:
-    src:
-      - testdata/preprocessor/alphanumeric-external.yaml
-
-  $s$t$e$p$T$i$m$e$o$u$t: $6$0$0
-  $v$e$r$s$i$o$n: $v$1.$0.$0
-
-  $e$n$v:
-    - "$f$o$o=$t$a$s$k$E$n$v"
-
-  $s$t$e$p$s:
-    - $i$d: $p$u$l$l$e$r
-      $c$m$d: $a$z$u$r$e/$i$m$a$g$e$s/$d$o$c$k$e$r $p$u$l$l $u$b$u$n$t$u
-      $e$n$t$r$y$P$o$i$n$t: $s$o$m$e$E$n$t$r$y$P$o$i$n$t
-      $e$n$v: [$e$r$i$c=$f$o$o, $f$o$o=$b$a$r]
-      $e$x$i$t$e$d$W$i$t$h$o$u$t: [$0, $2$5$5]
-      $w$o$r$k$i$n$g$D$i$r$e$c$t$o$r$y: $p$u$l$l$D$i$r
-      $r$e$t$r$i$e$s: $5
-      $r$e$t$r$y$D$e$l$a$y: $9$0
-      $p$u$l$l: $t$r$u$e
-
-    - $i$d: $b$u$i$l$d-$q$u$x
-      $c$m$d: "$a$z$u$r$e/$i$m$a$g$e$s/$a$c$r-$b$u$i$l$d$e$r $b$u$i$l$d -$f $D$o$c$k$e$r$f$i$l$e $h$t$t$p$s://$g$i$t$h$u$b.$c$o$m/$e$h$o$t$i$n$g$e$r/$q$u$x --$c$a$c$h$e-$f$r$o$m=$u$b$u$n$t$u"
-      $w$h$e$n: ["-"]
-      $d$e$t$a$c$h: $t$r$u$e
-      $s$t$a$r$t$D$e$l$a$y: $5$0
-
-    - $i$d: $C
-      $c$m$d: $b$l$a$h
-      $w$h$e$n: ["-"]
-      $p$o$r$t$s:
-        - "$8$0$0$0:$8$0$0$0"
-        - "$8$0$8$0:$8$0$8$0"
-      $e$x$p$o$s$e:
-        - "$8$0"
-        - "$8$1"
-      $e$x$i$t$e$d$W$i$t$h: [$0, $1, $2, $3, $4]
-      $k$e$e$p: $t$r$u$e
-      $i$s$o$l$a$t$i$o$n: $d$e$f$a$u$l$t
-
-    - $i$d: $b$u$i$l$d-$b$a$r
-      $c$m$d: $a$z$u$r$e/$i$m$a$g$e$s/$a$c$r-$b$u$i$l$d$e$r $b$u$i$l$d -$f $D$o$c$k$e$r$f$i$l$e $h$t$t$p$s://$g$i$t$h$u$b.$c$o$m/$e$h$o$t$i$n$g$e$r/$b$a$r --$c$a$c$h$e-$f$r$o$m=$u$b$u$n$t$u
-      $w$h$e$n: ["-"]
-
-    - $i$d: $B
-      $w$h$e$n: [$C]
-      $c$m$d: $a$z$u$r$e/$i$m$a$g$e$s/$g$i$t $c$l$o$n$e $h$t$t$p$s://$g$i$t$h$u$b.$c$o$m/$e$h$o$t$i$n$g$e$r/$c$l$o$n$e
-      $i$g$n$o$r$e$E$r$r$o$r$s: $t$r$u$e
-      $d$i$s$a$b$l$e$W$o$r$k$i$n$g$D$i$r$e$c$t$o$r$y$O$v$e$r$r$i$d$e: $t$r$u$e
-
-    - $i$d: $b$u$i$l$d-$f$o$o
-      $c$m$d: $a$z$u$r$e/$i$m$a$g$e$s/$a$c$r-$b$u$i$l$d$e$r $b$u$i$l$d -$f $D$o$c$k$e$r$f$i$l$e $h$t$t$p$s://$g$i$t$h$u$b.$c$o$m/$e$h$o$t$i$n$g$e$r/$f$o$o --$c$a$c$h$e-$f$r$o$m=$u$b$u$n$t$u
-      $e$n$v: ["$e$r$i$c=$f$o$o"]
-      $w$h$e$n: [$b$u$i$l$d-$q$u$x]
-
-    - $i$d: $b$u$i$l$d-$q$a$z
-      $b$u$i$l$d: "-$f $D$o$c$k$e$r$f$i$l$e $h$t$t$p$s://$g$i$t$h$u$b.$c$o$m/$e$h$o$t$i$n$g$e$r/$q$a$z --$c$a$c$h$e-$f$r$o$m=$u$b$u$n$t$u"
-      $p$r$i$v$i$l$e$g$e$d: $t$r$u$e
-      $u$s$e$r: $r$o$o$t
-      $n$e$t$w$o$r$k: "$h$o$s$t"
-      $r$e$p$e$a$t: $2
-Chaining Directive Changed:
-  alias:
-    src:
-      - testdata/preprocessor/alphanumeric-external.yaml
-    directive: ^
-  ^s^t^e^p^T^i^m^e^o^u^t: ^6^0^0
-  ^v^e^r^s^i^o^n: ^v^1.^0.^0
-
-  ^e^n^v:
-    - "^f^o^o=^t^a^s^k^E^n^v"
-
-  ^s^t^e^p^s:
-    - ^i^d: ^p^u^l^l^e^r
-      ^c^m^d: ^a^z^u^r^e/^i^m^a^g^e^s/^d^o^c^k^e^r ^p^u^l^l ^u^b^u^n^t^u
-      ^e^n^t^r^y^P^o^i^n^t: ^s^o^m^e^E^n^t^r^y^P^o^i^n^t
-      ^e^n^v: [^e^r^i^c=^f^o^o, ^f^o^o=^b^a^r]
-      ^e^x^i^t^e^d^W^i^t^h^o^u^t: [^0, ^2^5^5]
-      ^w^o^r^k^i^n^g^D^i^r^e^c^t^o^r^y: ^p^u^l^l^D^i^r
-      ^r^e^t^r^i^e^s: ^5
-      ^r^e^t^r^y^D^e^l^a^y: ^9^0
-      ^p^u^l^l: ^t^r^u^e
-
-    - ^i^d: ^b^u^i^l^d-^q^u^x
-      ^c^m^d: "^a^z^u^r^e/^i^m^a^g^e^s/^a^c^r-^b^u^i^l^d^e^r ^b^u^i^l^d -^f ^D^o^c^k^e^r^f^i^l^e ^h^t^t^p^s://^g^i^t^h^u^b.^c^o^m/^e^h^o^t^i^n^g^e^r/^q^u^x --^c^a^c^h^e-^f^r^o^m=^u^b^u^n^t^u"
-      ^w^h^e^n: ["-"]
-      ^d^e^t^a^c^h: ^t^r^u^e
-      ^s^t^a^r^t^D^e^l^a^y: ^5^0
-
-    - ^i^d: ^C
-      ^c^m^d: ^b^l^a^h
-      ^w^h^e^n: ["-"]
-      ^p^o^r^t^s:
-        - "^8^0^0^0:^8^0^0^0"
-        - "^8^0^8^0:^8^0^8^0"
-      ^e^x^p^o^s^e:
-        - "^8^0"
-        - "^8^1"
-      ^e^x^i^t^e^d^W^i^t^h: [^0, ^1, ^2, ^3, ^4]
-      ^k^e^e^p: ^t^r^u^e
-      ^i^s^o^l^a^t^i^o^n: ^d^e^f^a^u^l^t
-
-    - ^i^d: ^b^u^i^l^d-^b^a^r
-      ^c^m^d: ^a^z^u^r^e/^i^m^a^g^e^s/^a^c^r-^b^u^i^l^d^e^r ^b^u^i^l^d -^f ^D^o^c^k^e^r^f^i^l^e ^h^t^t^p^s://^g^i^t^h^u^b.^c^o^m/^e^h^o^t^i^n^g^e^r/^b^a^r --^c^a^c^h^e-^f^r^o^m=^u^b^u^n^t^u
-      ^w^h^e^n: ["-"]
-
-    - ^i^d: ^B
-      ^w^h^e^n: [^C]
-      ^c^m^d: ^a^z^u^r^e/^i^m^a^g^e^s/^g^i^t ^c^l^o^n^e ^h^t^t^p^s://^g^i^t^h^u^b.^c^o^m/^e^h^o^t^i^n^g^e^r/^c^l^o^n^e
-      ^i^g^n^o^r^e^E^r^r^o^r^s: ^t^r^u^e
-      ^d^i^s^a^b^l^e^W^o^r^k^i^n^g^D^i^r^e^c^t^o^r^y^O^v^e^r^r^i^d^e: ^t^r^u^e
-
-    - ^i^d: ^b^u^i^l^d-^f^o^o
-      ^c^m^d: ^a^z^u^r^e/^i^m^a^g^e^s/^a^c^r-^b^u^i^l^d^e^r ^b^u^i^l^d -^f ^D^o^c^k^e^r^f^i^l^e ^h^t^t^p^s://^g^i^t^h^u^b.^c^o^m/^e^h^o^t^i^n^g^e^r/^f^o^o --^c^a^c^h^e-^f^r^o^m=^u^b^u^n^t^u
-      ^e^n^v: ["^e^r^i^c=^f^o^o"]
-      ^w^h^e^n: [^b^u^i^l^d-^q^u^x]
-
-    - ^i^d: ^b^u^i^l^d-^q^a^z
-      ^b^u^i^l^d: "-^f ^D^o^c^k^e^r^f^i^l^e ^h^t^t^p^s://^g^i^t^h^u^b.^c^o^m/^e^h^o^t^i^n^g^e^r/^q^a^z --^c^a^c^h^e-^f^r^o^m=^u^b^u^n^t^u"
-      ^p^r^i^v^i^l^e^g^e^d: ^t^r^u^e
-      ^u^s^e^r: ^r^o^o^t
-      ^n^e^t^w^o^r^k: "^h^o^s^t"
-      ^r^e^p^e^a^t: ^2
 Chaining Directive Unicode:
   alias:
     src:
       - testdata/preprocessor/alphanumeric-external.yaml
-    directive: 😎
+    directive: 🐳
 
-  😎s😎t😎e😎p😎T😎i😎m😎e😎o😎u😎t: 😎6😎0😎0
-  😎v😎e😎r😎s😎i😎o😎n: 😎v😎1.😎0.😎0
-
-  😎e😎n😎v:
-    - "😎f😎o😎o=😎t😎a😎s😎k😎E😎n😎v"
-
-  😎s😎t😎e😎p😎s:
-    - 😎i😎d: 😎p😎u😎l😎l😎e😎r
-      😎c😎m😎d: 😎a😎z😎u😎r😎e/😎i😎m😎a😎g😎e😎s/😎d😎o😎c😎k😎e😎r 😎p😎u😎l😎l 😎u😎b😎u😎n😎t😎u
-      😎e😎n😎t😎r😎y😎P😎o😎i😎n😎t: 😎s😎o😎m😎e😎E😎n😎t😎r😎y😎P😎o😎i😎n😎t
-      😎e😎n😎v: [😎e😎r😎i😎c=😎f😎o😎o, 😎f😎o😎o=😎b😎a😎r]
-      😎e😎x😎i😎t😎e😎d😎W😎i😎t😎h😎o😎u😎t: [😎0, 😎2😎5😎5]
-      😎w😎o😎r😎k😎i😎n😎g😎D😎i😎r😎e😎c😎t😎o😎r😎y: 😎p😎u😎l😎l😎D😎i😎r
-      😎r😎e😎t😎r😎i😎e😎s: 😎5
-      😎r😎e😎t😎r😎y😎D😎e😎l😎a😎y: 😎9😎0
-      😎p😎u😎l😎l: 😎t😎r😎u😎e
-
-    - 😎i😎d: 😎b😎u😎i😎l😎d-😎q😎u😎x
-      😎c😎m😎d: "😎a😎z😎u😎r😎e/😎i😎m😎a😎g😎e😎s/😎a😎c😎r-😎b😎u😎i😎l😎d😎e😎r 😎b😎u😎i😎l😎d -😎f 😎D😎o😎c😎k😎e😎r😎f😎i😎l😎e 😎h😎t😎t😎p😎s://😎g😎i😎t😎h😎u😎b.😎c😎o😎m/😎e😎h😎o😎t😎i😎n😎g😎e😎r/😎q😎u😎x --😎c😎a😎c😎h😎e-😎f😎r😎o😎m=😎u😎b😎u😎n😎t😎u"
-      😎w😎h😎e😎n: ["-"]
-      😎d😎e😎t😎a😎c😎h: 😎t😎r😎u😎e
-      😎s😎t😎a😎r😎t😎D😎e😎l😎a😎y: 😎5😎0
-
-    - 😎i😎d: 😎C
-      😎c😎m😎d: 😎b😎l😎a😎h
-      😎w😎h😎e😎n: ["-"]
-      😎p😎o😎r😎t😎s:
-        - "😎8😎0😎0😎0:😎8😎0😎0😎0"
-        - "😎8😎0😎8😎0:😎8😎0😎8😎0"
-      😎e😎x😎p😎o😎s😎e:
-        - "😎8😎0"
-        - "😎8😎1"
-      😎e😎x😎i😎t😎e😎d😎W😎i😎t😎h: [😎0, 😎1, 😎2, 😎3, 😎4]
-      😎k😎e😎e😎p: 😎t😎r😎u😎e
-      😎i😎s😎o😎l😎a😎t😎i😎o😎n: 😎d😎e😎f😎a😎u😎l😎t
-
-    - 😎i😎d: 😎b😎u😎i😎l😎d-😎b😎a😎r
-      😎c😎m😎d: 😎a😎z😎u😎r😎e/😎i😎m😎a😎g😎e😎s/😎a😎c😎r-😎b😎u😎i😎l😎d😎e😎r 😎b😎u😎i😎l😎d -😎f 😎D😎o😎c😎k😎e😎r😎f😎i😎l😎e 😎h😎t😎t😎p😎s://😎g😎i😎t😎h😎u😎b.😎c😎o😎m/😎e😎h😎o😎t😎i😎n😎g😎e😎r/😎b😎a😎r --😎c😎a😎c😎h😎e-😎f😎r😎o😎m=😎u😎b😎u😎n😎t😎u
-      😎w😎h😎e😎n: ["-"]
-
-    - 😎i😎d: 😎B
-      😎w😎h😎e😎n: [😎C]
-      😎c😎m😎d: 😎a😎z😎u😎r😎e/😎i😎m😎a😎g😎e😎s/😎g😎i😎t 😎c😎l😎o😎n😎e 😎h😎t😎t😎p😎s://😎g😎i😎t😎h😎u😎b.😎c😎o😎m/😎e😎h😎o😎t😎i😎n😎g😎e😎r/😎c😎l😎o😎n😎e
-      😎i😎g😎n😎o😎r😎e😎E😎r😎r😎o😎r😎s: 😎t😎r😎u😎e
-      😎d😎i😎s😎a😎b😎l😎e😎W😎o😎r😎k😎i😎n😎g😎D😎i😎r😎e😎c😎t😎o😎r😎y😎O😎v😎e😎r😎r😎i😎d😎e: 😎t😎r😎u😎e
-
-    - 😎i😎d: 😎b😎u😎i😎l😎d-😎f😎o😎o
-      😎c😎m😎d: 😎a😎z😎u😎r😎e/😎i😎m😎a😎g😎e😎s/😎a😎c😎r-😎b😎u😎i😎l😎d😎e😎r 😎b😎u😎i😎l😎d -😎f 😎D😎o😎c😎k😎e😎r😎f😎i😎l😎e 😎h😎t😎t😎p😎s://😎g😎i😎t😎h😎u😎b.😎c😎o😎m/😎e😎h😎o😎t😎i😎n😎g😎e😎r/😎f😎o😎o --😎c😎a😎c😎h😎e-😎f😎r😎o😎m=😎u😎b😎u😎n😎t😎u
-      😎e😎n😎v: ["😎e😎r😎i😎c=😎f😎o😎o"]
-      😎w😎h😎e😎n: [😎b😎u😎i😎l😎d-😎q😎u😎x]
-
-    - 😎i😎d: 😎b😎u😎i😎l😎d-😎q😎a😎z
-      😎b😎u😎i😎l😎d: "-😎f 😎D😎o😎c😎k😎e😎r😎f😎i😎l😎e 😎h😎t😎t😎p😎s://😎g😎i😎t😎h😎u😎b.😎c😎o😎m/😎e😎h😎o😎t😎i😎n😎g😎e😎r/😎q😎a😎z --😎c😎a😎c😎h😎e-😎f😎r😎o😎m=😎u😎b😎u😎n😎t😎u"
-      😎p😎r😎i😎v😎i😎l😎e😎g😎e😎d: 😎t😎r😎u😎e
-      😎u😎s😎e😎r: 😎r😎o😎o😎t
-      😎n😎e😎t😎w😎o😎r😎k: "😎h😎o😎s😎t"
-      😎r😎e😎p😎e😎a😎t: 😎2
-Complex:
-  test: 600
   stepTimeout: 600
-  version: v1.0.0
+  version: v1.1.0
 
   env:
     - "foo=taskEnv"
 
   steps:
-    - id: puller
+    - 🐳i🐳d: puller
       cmd: azure/images/docker pull ubuntu
       entryPoint: someEntryPoint
       env: [eric=foo, foo=bar]
@@ -205,17 +22,17 @@ Complex:
       pull: true
 
     - id: build-qux
-      cmd: "azure/images/acr-builder build -f Dockerfile $qux --cache-from=ubuntu"
+      cmd: "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu"
       when: ["-"]
       detach: true
       startDelay: 50
 
-    - id: C
+    - id: 🐳C
       cmd: blah
       when: ["-"]
       ports:
-        - "8000:8000"
-        - "8080:8080"
+        - "8000:8🐳0🐳0🐳0"
+        - "8080:8🐳0🐳8🐳0"
       expose:
         - "80"
         - "81"
@@ -224,17 +41,17 @@ Complex:
       isolation: default
 
     - id: build-bar
-      cmd: acb build -f Dockerfile $bar --cache-from=ubuntu
+      cmd: azure/images/acr-builder build -🐳f Dockerfile https://github.com/ehotinger/bar --cache-from=ubuntu
       when: ["-"]
 
-    - id: B
-      when: [C]
-      cmd: git clone https://github.com/ehotinger/clone
+    - id: 🐳B
+      when: [🐳C]
+      cmd: azure/images/git clone https://github.com/ehotinger/clone
       ignoreErrors: true
       disableWorkingDirectoryOverride: true
 
     - id: build-foo
-      cmd: acb build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu
+      cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu
       env: ["eric=foo"]
       when: [build-qux]
 
@@ -300,7 +117,7 @@ Multiline Alias:
             repeat: 2
 
   stepTimeout: 600
-  version: v1.0.0
+  version: v1.1.0
 
   env:
     - "foo=taskEnv"
@@ -315,7 +132,115 @@ Multiline Alias:
     - $buildQuaz
 Expected:
   stepTimeout: 600
-  version: v1.0.0
+  version: v1.1.0
+
+  env:
+    - "foo=taskEnv"
+
+  steps:
+    - id: puller
+      cmd: azure/images/docker pull ubuntu
+      entryPoint: someEntryPoint
+      env: [eric=foo, foo=bar]
+      exitedWithout: [0, 255]
+      workingDirectory: pullDir
+      retries: 5
+      retryDelay: 90
+      pull: true
+
+    - id: build-qux
+      cmd: "azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/qux --cache-from=ubuntu"
+      when: ["-"]
+      detach: true
+      startDelay: 50
+
+    - id: C
+      cmd: blah
+      when: ["-"]
+      ports:
+        - "8000:8000"
+        - "8080:8080"
+      expose:
+        - "80"
+        - "81"
+      exitedWith: [0, 1, 2, 3, 4]
+      keep: true
+      isolation: default
+
+    - id: build-bar
+      cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/bar --cache-from=ubuntu
+      when: ["-"]
+
+    - id: B
+      when: [C]
+      cmd: azure/images/git clone https://github.com/ehotinger/clone
+      ignoreErrors: true
+      disableWorkingDirectoryOverride: true
+
+    - id: build-foo
+      cmd: azure/images/acr-builder build -f Dockerfile https://github.com/ehotinger/foo --cache-from=ubuntu
+      env: ["eric=foo"]
+      when: [build-qux]
+
+    - id: build-qaz
+      build: "-f Dockerfile https://github.com/ehotinger/qaz --cache-from=ubuntu"
+      privileged: true
+      user: root
+      network: "host"
+      repeat: 2
+Expected Escape:
+  stepTimeout: 600
+  version: v1.1.0
+
+  env:
+    - "foo=taskEnv"
+
+  steps:
+    - id: $puller
+      cmd: $azure/$images/$docker pull ubuntu
+      entryPoint: $someEntryPoint
+      env: [eric=foo, foo=bar]
+      exitedWithout: [0, 255]
+      workingDirectory: pullDir
+      retries: 5
+      retryDelay: 90
+      pull: true
+Escape:
+  alias:
+    values:
+      puller: "break"
+      azure: "break"
+      images: "break"
+      docker: "break"
+
+  stepTimeout: 600
+  version: v1.1.0
+
+  env:
+    - "foo=taskEnv"
+
+  steps:
+    - id: $$puller
+      cmd: $$azure/$$images/$$docker pull ubuntu
+      entryPoint: $$someEntryPoint
+      env: [eric=foo, foo=bar]
+      exitedWithout: [0, 255]
+      workingDirectory: pullDir
+      retries: 5
+      retryDelay: 90
+      pull: true
+Alias No Use:
+  alias:
+    values:
+      puller: "break"
+      azure: "break"
+      images: "break"
+      docker: "break"
+      id: "break"
+      build: "break"
+
+  stepTimeout: 600
+  version: v1.1.0
 
   env:
     - "foo=taskEnv"

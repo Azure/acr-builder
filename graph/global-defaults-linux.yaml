@@ -1,4 +1,4 @@
-# Convenience definitions, use as eg. $commit
+# Native Task aliases, use as eg. $Commit
 ID: "{{.Run.ID}}"
 SharedVolume: "{{.Run.SharedVolume}}"
 Registry: "{{.Run.Registry}}"
@@ -13,6 +13,8 @@ Branch: "{{.Run.Branch}}"
 # Containerized commands can be used without $ directive
 purge: "mcr.microsoft.com/acr/acr-cli:0.1 purge"
 
-# Default image definitions, can be used without $ directive
+# Default image aliases, can be used without $ directive
 acr: "mcr.microsoft.com/acr/acr-cli:0.1"
-az: "mcr.microsoft.com/azure-cli"
+az: mcr.microsoft.com/azure-cli:d0725bc
+bash: mcr.microsoft.com/bash:d0725bc
+curl: mcr.microsoft.com/curl:d0725bc

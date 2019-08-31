@@ -377,7 +377,7 @@ func TestAddAliasFromFile(t *testing.T) {
 	}
 }
 
-// Task tests
+// Task with processing tests
 
 func TestPreProcessBytes(t *testing.T) {
 	taskDefinitionSrc := "./testdata/preprocessor/preprocessing-stress.yaml"
@@ -387,54 +387,40 @@ func TestPreProcessBytes(t *testing.T) {
 	}
 	tests := []struct {
 		nameAndTaskIdentifier string
+		expected              string
 		shouldError           bool
 		description           string
 	}{
 		{
-			"Chaining",
-			false,
-			"Tests 700+ chained aliases",
-		},
-		{
-			"Chaining Directive Changed",
-			false,
-			"Identical to Chaining but using a redefined directive",
-		},
-		{
 			"Chaining Directive Unicode",
+			"Expected",
 			false,
-			"Identical to Chaining but using a redefined Unicode directive",
+			"Tests multiple single letter aliases using an overwritten directive",
 		},
 		{
 			"Multiline Alias",
+			"Expected",
 			false,
-			"somefilename",
+			"Tests the edge case where a user specifies a multiline alias",
 		},
-		// {
-		// 	"Invalid Task from File",
-		// 	true,
-		// 	"somefilename",
-		// },
-		// {
-		// 	"Invalid Commandline String",
-		// 	true,
-		// 	"somefilename",
-		// },
-		// {
-		// 	"Nested Values",
-		// 	true,
-		// 	"somefilename",
-		// },
-		// {
-		// 	"No Alias",
-		// 	true,
-		// 	"somefilename",
-		// },
-		// {
-		// 	"Alias No Use",
-		// 	true,
-		// 	"somefilename",
-		// },
+		{
+			"Escape",
+			"Expected Escape",
+			false,
+			"Verifies escape sequences work correctly",
+		},
+		{
+			"Expected",
+			"Expected",
+			false,
+			"Makes sure files with no Alias remain unaffected",
+		},
+		{
+			"Alias No Use",
+			"Expected",
+			false,
+			"Makes sure if aliases are defined and unused no unexpected changes will happen",
+		},
 	}
 
 	for _, test := range tests {
@@ -456,7 +442,7 @@ func TestPreProcessBytes(t *testing.T) {
 			t.Fatalf("Test " + test.nameAndTaskIdentifier + "failed with error: " + err.Error())
 		}
 		var expected interface{}
-		yaml.Unmarshal(yamlMap["Expected"], &expected)
+		yaml.Unmarshal(yamlMap[test.expected], &expected)
 		expectedBytes, err := yaml.Marshal(expected)
 		if err != nil {
 			t.Fatalf("Test " + test.nameAndTaskIdentifier + "failed with error: " + err.Error())
@@ -466,7 +452,7 @@ func TestPreProcessBytes(t *testing.T) {
 			fmt.Print("Actual: \n")
 			fmt.Print(string(data))
 			fmt.Print("Expected: \n")
-			fmt.Print(string(yamlMap["Expected"]))
+			fmt.Print(string(yamlMap[test.expected]))
 			t.Fatalf("Expected output for " + test.nameAndTaskIdentifier + " differed from actual")
 		}
 
@@ -516,77 +502,72 @@ func extractTaskYamls(file string) (map[string][]byte, error) {
 	return processed, nil
 }
 
-// func TestPreProcessSteps(t *testing.T) {
-// 	tests := []struct {
-// 		name        string
-// 		shouldError bool
-// 		alias       Alias
-// 		current 	Task
-// 		expected	Task
-// 	}{
-// 		{
-// 			"Simple replacement",
-// 			false,
-// 			Alias{},
-// 			Task{},
-// 			Task{}
-// 		},
-// 		{
-// 			"Non-existent alias",
-// 			false,
-// 			Alias{},
-// 			Task{},
-// 			Task{}
-// 		},
-// 		{
-// 			"Directive included",
-// 			false,
-// 			Alias{},
-// 			Task{},
-// 			Task{}
-// 		},
-// 		{
-// 			"Space before command",
-// 			false,
-// 			Alias{},
-// 			Task{},
-// 			Task{}
-// 		},
-// 	}
-
-// 	for _, test := range tests {
-// 		err := test.alias.resolveMapAndValidate()
-// 		if err != nil && test.shouldError {
-// 			continue
-// 		}
-// 		if err == nil && test.shouldError {
-// 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
-// 		}
-// 	}
-// }
-
-/*
-func TestPreProcessTaskFully(t *testing.T) {
+func TestPreProcessSteps(t *testing.T) {
+	resSteps := []Step{
+		Step{Cmd: `purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"`},
+		Step{Cmd: `        purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"            `},
+		Step{Cmd: `fakealias --wait 300`},
+		Step{Cmd: `acrmixedin --wait 300`},
+		Step{Cmd: `acr purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"`},
+	}
 	tests := []struct {
-		name        string
-		shouldError bool
-		alias       Alias
+		nameAndTaskIdentifier string
+		shouldError           bool
+		alias                 Alias
+		current               Task
+		expected              Step
 	}{
 		{
-			"Proper Pass Full",
-			true,
-			Alias{},
+			"Simple replacement",
+			false,
+			Alias{
+				AliasMap: map[string]string{"purge": "acr purge"},
+			},
+			Task{
+				Steps: []*Step{&resSteps[0]},
+			},
+			resSteps[4],
+		},
+		{
+			"Spaces untrimmed",
+			false,
+			Alias{
+				AliasMap: map[string]string{"purge": "acr purge"},
+			},
+			Task{
+				Steps: []*Step{&resSteps[1]},
+			},
+			resSteps[4],
+		},
+		{
+			"Non-existent alias",
+			false,
+			Alias{
+				AliasMap: map[string]string{"acr": "acr expanded"},
+			},
+			Task{
+				Steps: []*Step{&resSteps[2]},
+			},
+			resSteps[2],
+		},
+		{
+			"Alias is substring",
+			false,
+			Alias{
+				AliasMap: map[string]string{"acr": "acr expanded"},
+			},
+			Task{
+				Steps: []*Step{&resSteps[3]},
+			},
+			resSteps[3],
 		},
 	}
 
 	for _, test := range tests {
-		err := test.alias.resolveMapAndValidate()
-		if err != nil && test.shouldError {
-			continue
-		}
-		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+		processSteps(&test.alias, &test.current)
+
+		if test.current.Steps[0].Cmd != test.expected.Cmd {
+			t.Fatalf("Test " + test.nameAndTaskIdentifier + " expected: " + test.expected.Cmd + " but resolved to " + test.current.Steps[0].Cmd)
 		}
 	}
 }
-*/
