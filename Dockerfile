@@ -9,7 +9,6 @@ FROM gobuild-base AS acb
 WORKDIR /go/src/github.com/Azure/acr-builder
 COPY . .
 RUN mkdir -p /usr/bin/builder-files
-COPY ./graph/global-defaults-linux.yaml /usr/bin/builder-files/global-defaults-linux.yaml
 RUN make binaries && mv bin/acb /usr/bin/builder-files/acb
 
 FROM ${DOCKER_CLI_BASE_IMAGE}

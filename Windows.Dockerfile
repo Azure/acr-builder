@@ -97,7 +97,6 @@ COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/dock
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
 RUN mkdir -p builder-files
-COPY .\graph\global-defaults-windows.yaml builderfiles/
 RUN Write-Host ('Running build'); \
 	go build -o builder-files\acb.exe .\cmd\acb; \
 	Write-Host ('Running unit tests'); \

@@ -16,6 +16,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -87,6 +88,16 @@ func (alias *Alias) loadExternalAlias() error {
 		}
 	}
 	return nil
+}
+
+// Loads in all global aliases switching definition based on os
+func (alias *Alias) loadGlobalAlias() {
+	//Identify defaults location.
+	if runtime.GOOS == "windows" {
+		readAliasFromBytes([]byte(globalDefaultYamlWindows), alias)
+	} else { // Looking at Linux
+		readAliasFromBytes([]byte(globalDefaultYamlLinux), alias)
+	}
 }
 
 // Fetches and parses out remote alias files and adds their content
@@ -162,7 +173,7 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 // preprocessString handles the preprocessing (string replacement and resolution)
 // of all aliases in an input yaml (passed in as a string). The resolved aliases are
 // defined in the input alias file.
-func preprocessString(alias *Alias, str string, globalSrc string) (string, bool, error) {
+func preprocessString(alias *Alias, str string) (string, bool, error) {
 	log.Printf("(readAliasFromBytes) started")
 
 	// Load Remote/Local alias definitions
@@ -171,11 +182,10 @@ func preprocessString(alias *Alias, str string, globalSrc string) (string, bool,
 	}
 	log.Printf("(readAliasFromBytes) external definitions loaded")
 
-	// Load Globally defined aliases
-	if globalLoadErr := addAliasFromFile(alias, globalSrc); globalLoadErr != nil {
-		return "", false, globalLoadErr
-	}
+	alias.loadGlobalAlias()
+
 	log.Printf("(readAliasFromBytes) global definitions loaded")
+
 	// Validate alias definitions
 	if improperFormatErr := alias.resolveMapAndValidate(); improperFormatErr != nil {
 		return "", false, improperFormatErr
@@ -229,7 +239,7 @@ func preprocessString(alias *Alias, str string, globalSrc string) (string, bool,
 }
 
 // preprocessBytes handles byte encoded data that can be parsed through pre processing
-func preprocessBytes(data []byte, globalSrc string) ([]byte, Alias, bool, error) {
+func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	type Wrapper struct {
 		Alias Alias `yaml:"alias,omitempty"`
 	}
@@ -248,7 +258,7 @@ func preprocessBytes(data []byte, globalSrc string) ([]byte, Alias, bool, error)
 	}
 	// Search and Replace
 	str := string(remainingData)
-	parsedStr, changed, err := preprocessString(alias, str, globalSrc)
+	parsedStr, changed, err := preprocessString(alias, str)
 
 	log.Printf("(preprocessBytes) completed with: %s", parsedStr)
 	return []byte(parsedStr), *alias, changed, err

@@ -34,6 +34,14 @@ var (
 	errInvalidCacheValue = errors.New("invalid value for cache property. Valid values are 'enabled', 'disabled'")
 )
 
+type chanBool chan bool
+
+// MarshalYAML for chan bool's in step. Avoids having Marshall try to render chan bool values as these
+// cannot be marshalled. Removing this interface causes a crash when marshaling a task.
+func (c chanBool) MarshalYAML() (interface{}, error) {
+	return "", nil
+}
+
 // Step is a step in the execution task.
 type Step struct {
 	ID                  string   `yaml:"id"`
@@ -72,7 +80,7 @@ type Step struct {
 
 	// CompletedChan can be used to signal to readers
 	// that the step has been processed.
-	CompletedChan chan bool
+	CompletedChan chanBool
 
 	ImageDependencies    []*image.Dependencies
 	Tags                 []string

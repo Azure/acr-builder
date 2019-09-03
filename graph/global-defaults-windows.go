@@ -1,3 +1,6 @@
+package graph
+
+const globalDefaultYamlWindows string = `
 # Native Task aliases, use as eg. $Commit
 ID: "{{.Run.ID}}"
 SharedVolume: "{{.Run.SharedVolume}}"
@@ -8,4 +11,4 @@ OS: "{{.Run.OS}}"
 Architecture: "{{.Run.Architecture}}"
 Commit: "{{.Run.Commit}}"
 Branch: "{{.Run.Branch}}"
-# Default image aliases, can be used without $ directive
+`

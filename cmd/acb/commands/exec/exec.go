@@ -7,9 +7,6 @@ import (
 	gocontext "context"
 	"fmt"
 	"log"
-	"os"
-	"path"
-	"path/filepath"
 	"runtime"
 	"time"
 
@@ -219,27 +216,10 @@ var Command = cli.Command{
 		if shouldIncludeAlias {
 			log.Printf("(exec) alias support detected")
 
-			//Identify defaults location.
-			var ex string
-			ex, err = os.Executable()
-			if err != nil {
-				panic(err)
-			}
-			exPath := filepath.Dir(ex)
-			log.Printf("(exec) Found workdir as %s", exPath)
-
-			var fileLoc string
-			if runtime.GOOS == "windows" {
-				fileLoc = path.Join(exPath, "global-defaults-windows.yaml")
-			} else { // Looking at Linux
-				fileLoc = path.Join(exPath, "global-defaults-linux.yaml")
-				log.Printf("(exec) Found workdir as %s", exPath)
-			}
-			log.Printf("(exec) Set global-defaults to %s", fileLoc)
 			log.Printf("(exec) Resolved all to: %s", string(template.GetData()))
 
 			// Generate the base task file without resolving environment variables.
-			task, err = graph.NewTaskFromBytes(template.GetData(), true, fileLoc)
+			task, err = graph.NewTaskFromBytes(template.GetData(), true)
 			if err != nil {
 				return err
 			}
@@ -258,6 +238,7 @@ var Command = cli.Command{
 		if err != nil {
 			return err
 		}
+		log.Printf("(exec) rendering result : %s", rendered)
 
 		if debug {
 			log.Println("Rendered template:")
@@ -279,14 +260,14 @@ var Command = cli.Command{
 		// computing the TaskFrom a string.
 		if shouldIncludeAlias {
 			log.Printf("(exec) task completion started")
-			err := task.CompleteTask(ctx, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName)
+			err := task.AddTaskDefaults(ctx, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName)
 			if err != nil {
 				return err
 			}
 			log.Printf("(exec) task completion successful")
 		} else {
 			var err error
-			task, err = graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false, "")
+			task, err = graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
 			if err != nil {
 				return err
 			}
