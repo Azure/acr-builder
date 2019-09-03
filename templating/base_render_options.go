@@ -198,7 +198,7 @@ func renderAndResolveSecrets(ctx context.Context, template *Template, templateEn
 	}
 
 	// Unmarshall the template to Task and get all secrets defined in the template.
-	task, err := graph.NewTaskFromString(rendered, false)
+	task, err := graph.NewTaskFromString(rendered, false, "")
 	if err != nil {
 		return result, errors.Wrap(err, "failed to parse template to create task")
 	}
