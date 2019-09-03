@@ -236,6 +236,7 @@ var Command = cli.Command{
 				log.Printf("(exec) Found workdir as %s", exPath)
 			}
 			log.Printf("(exec) Set global-defaults to %s", fileLoc)
+			log.Printf("(exec) Resolved all to: %s", string(template.GetData()))
 
 			// Generate the base task file without resolving environment variables.
 			task, err = graph.NewTaskFromBytes(template.GetData(), true, fileLoc)
@@ -245,7 +246,7 @@ var Command = cli.Command{
 			log.Printf("(exec) alias resolution executed, marshalling")
 			// Remarshal functional task file to resolve templating
 			var fromTask []byte
-			fromTask, err = yaml.Marshal(task)
+			fromTask, err = yaml.Marshal(*task)
 			if err != nil {
 				return err
 			}

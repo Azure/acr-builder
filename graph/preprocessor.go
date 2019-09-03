@@ -250,7 +250,7 @@ func preprocessBytes(data []byte, globalSrc string) ([]byte, Alias, bool, error)
 	str := string(remainingData)
 	parsedStr, changed, err := preprocessString(alias, str, globalSrc)
 
-	log.Printf("(preprocessBytes) completed")
+	log.Printf("(preprocessBytes) completed with: %s", parsedStr)
 	return []byte(parsedStr), *alias, changed, err
 }
 
