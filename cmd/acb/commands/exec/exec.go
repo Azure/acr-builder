@@ -220,7 +220,8 @@ var Command = cli.Command{
 			log.Printf("(exec) alias support detected")
 
 			//Identify defaults location.
-			ex, err := os.Executable()
+			var ex string
+			ex, err = os.Executable()
 			if err != nil {
 				panic(err)
 			}
