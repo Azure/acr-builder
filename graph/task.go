@@ -26,7 +26,7 @@ const (
 	defaultStepRetryDelayInSeconds = 5
 
 	// currentTaskVersion is the most recent Task version.
-	currentTaskVersion = "v1..0"
+	currentTaskVersion = "v1.1.0"
 
 	linuxOS = "linux"
 
