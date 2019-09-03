@@ -504,11 +504,11 @@ func extractTaskYamls(file string) (map[string][]byte, error) {
 
 func TestPreProcessSteps(t *testing.T) {
 	resSteps := []Step{
-		Step{Cmd: `purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"`},
-		Step{Cmd: `        purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"            `},
-		Step{Cmd: `fakealias --wait 300`},
-		Step{Cmd: `acrmixedin --wait 300`},
-		Step{Cmd: `acr purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"`},
+		{Cmd: `purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"`},
+		{Cmd: `        purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"            `},
+		{Cmd: `fakealias --wait 300`},
+		{Cmd: `acrmixedin --wait 300`},
+		{Cmd: `acr purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"`},
 	}
 	tests := []struct {
 		nameAndTaskIdentifier string
