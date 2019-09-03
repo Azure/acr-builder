@@ -425,7 +425,7 @@ func TestPreProcessBytes(t *testing.T) {
 
 	for _, test := range tests {
 		input := yamlMap[test.nameAndTaskIdentifier]
-		data, _, _, err := preprocessBytes(input, "./global-defaults-linux.yaml")
+		data, _, _, err := preprocessBytes(input, getTestGlobalDefaults())
 		if err != nil && test.shouldError {
 			continue
 		}

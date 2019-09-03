@@ -284,7 +284,7 @@ var Command = cli.Command{
 			log.Printf("(exec) task completion successful")
 		} else {
 			var err error
-			task, err = graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
+			task, err = graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false, "")
 			if err != nil {
 				return err
 			}

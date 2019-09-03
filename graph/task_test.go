@@ -265,7 +265,7 @@ steps:
 	}
 
 	for _, test := range tests {
-		task, err := NewTaskFromString(test.template, true, "./global-defaults-linux.yaml")
+		task, err := NewTaskFromString(test.template, true, getTestGlobalDefaults())
 		if test.shouldError && err == nil {
 			t.Fatalf("Expected task: %v to error but it didn't", test.template)
 		}
@@ -387,7 +387,7 @@ env: ["a=b", "c=d"]
 			test.creds,
 			test.taskName,
 			true,
-			"./global-defaults-linux.yaml",
+			getTestGlobalDefaults(),
 		)
 		if err != nil {
 			t.Fatalf("unexpected err: %v", err)
