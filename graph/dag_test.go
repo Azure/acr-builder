@@ -11,7 +11,7 @@ import (
 )
 
 func TestDagCreation_ValidFile(t *testing.T) {
-	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/acb.yaml", nil, "", true)
+	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/acb.yaml", nil, "", true, "./global-defaults-linux.yaml")
 	if err != nil {
 		t.Fatalf("Failed to create task from file. Err: %v", err)
 	}
@@ -178,7 +178,7 @@ func TestDagCreation_ValidFile(t *testing.T) {
 }
 
 func TestBuildxInBuildTask_ValidFile(t *testing.T) {
-	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/buildx.yaml", nil, "samsTask", true)
+	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/buildx.yaml", nil, "samsTask", true, "./global-defaults-linux.yaml")
 	if err != nil {
 		t.Fatalf("Failed to create task from file. Err: %v", err)
 	}
@@ -217,7 +217,7 @@ func TestBuildxInBuildTask_ValidFile(t *testing.T) {
 }
 
 func TestBuildxQuickRun_ValidFile(t *testing.T) {
-	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/buildx.yaml", nil, "", true)
+	task, err := UnmarshalTaskFromFile(gocontext.Background(), "testdata/buildx.yaml", nil, "", true, "./global-defaults-linux.yaml")
 	if err != nil {
 		t.Fatalf("Failed to create task from file. Err: %v", err)
 	}

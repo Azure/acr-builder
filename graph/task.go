@@ -68,8 +68,8 @@ type Task struct {
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string, doPreprocessing bool) (*Task, error) {
-	t, err := NewTaskFromString(data, doPreprocessing)
+func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string, doPreprocessing bool, globalSrc string) (*Task, error) {
+	t, err := NewTaskFromString(data, doPreprocessing, globalSrc)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
@@ -117,12 +117,12 @@ func (t *Task) CompleteTask(ctx context.Context, defaultWorkDir string, network 
 }
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
-func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCredential, taskName string, doPreprocessing bool) (*Task, error) {
+func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCredential, taskName string, doPreprocessing bool, globalSrc string) (*Task, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
-	t, err := NewTaskFromBytes(data, doPreprocessing)
+	t, err := NewTaskFromBytes(data, doPreprocessing, globalSrc)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
@@ -138,15 +138,15 @@ func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCr
 }
 
 // NewTaskFromString unmarshals a Task from string without any initialization.
-func NewTaskFromString(data string, doPreprocessing bool) (*Task, error) {
-	return NewTaskFromBytes([]byte(data), doPreprocessing)
+func NewTaskFromString(data string, doPreprocessing bool, globalSrc string) (*Task, error) {
+	return NewTaskFromBytes([]byte(data), doPreprocessing, globalSrc)
 }
 
 // NewTaskFromBytes unmarshals a Task from given bytes without any initialization.
-func NewTaskFromBytes(data []byte, doPreprocessing bool) (*Task, error) {
+func NewTaskFromBytes(data []byte, doPreprocessing bool, globalSrc string) (*Task, error) {
 	t := &Task{}
 	if doPreprocessing {
-		post, alias, changed, aliasErr := preprocessBytes(data)
+		post, alias, changed, aliasErr := preprocessBytes(data, globalSrc)
 
 		if aliasErr != nil {
 			return t, aliasErr

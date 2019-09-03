@@ -7,6 +7,9 @@ import (
 	gocontext "context"
 	"fmt"
 	"log"
+	"os"
+	"path"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -215,8 +218,26 @@ var Command = cli.Command{
 		var task *graph.Task
 		if shouldIncludeAlias {
 			log.Printf("(exec) alias support detected")
+
+			//Identify defaults location.
+			ex, err := os.Executable()
+			if err != nil {
+				panic(err)
+			}
+			exPath := filepath.Dir(ex)
+			log.Printf("(exec) Found workdir as %s", exPath)
+
+			var fileLoc string
+			if runtime.GOOS == "windows" {
+				fileLoc = path.Join(exPath, "global-defaults-windows.yaml")
+			} else { // Looking at Linux
+				fileLoc = path.Join(exPath, "global-defaults-linux.yaml")
+				log.Printf("(exec) Found workdir as %s", exPath)
+			}
+			log.Printf("(exec) Set global-defaults to %s", fileLoc)
+
 			// Generate the base task file without resolving environment variables.
-			task, err = graph.NewTaskFromBytes(template.GetData(), true)
+			task, err = graph.NewTaskFromBytes(template.GetData(), true, fileLoc)
 			if err != nil {
 				return err
 			}
