@@ -73,9 +73,12 @@ func (alias *Alias) resolveMapAndValidate() error {
 
 // Loads in all Aliases defined as being a part of external resources.
 func (alias *Alias) loadExternalAlias() error {
+	log.Printf("(loadExternalAlias) called ")
+
 	// Iterating in reverse to easily and efficiently handle hierarchy. The later
 	// declared the higher in the hierarchy of alias definitions.
 	for i := len(alias.AliasSrc) - 1; i >= 0; i-- {
+		log.Printf("(loadExternalAlias) called for %s", alias.AliasSrc[i])
 		aliasURI := alias.AliasSrc[i]
 		if util.IsURL(aliasURI) {
 			if err := addAliasFromRemote(alias, aliasURI); err != nil {
@@ -245,12 +248,18 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	log.Printf("(preprocessBytes) separating alias bytes")
 	wrap := &Wrapper{}
 	aliasData, remainingData := basicAliasSeparation(data)
+	log.Printf("(preprocessBytes) original : %s", string(data))
+	log.Printf("(preprocessBytes) alias : %s", string(aliasData))
+	log.Printf("(preprocessBytes) remainder : %s", string(remainingData))
+
 	log.Printf("(preprocessBytes) unmarshal alias bytes")
 	if errUnmarshal := yaml.Unmarshal(aliasData, wrap); errUnmarshal != nil {
 		return data, Alias{}, false, errUnmarshal
 	}
 
 	alias := &wrap.Alias
+	log.Printf("(preprocessBytes) %+v", alias.AliasSrc)
+
 	if alias.AliasMap == nil {
 		// Alias Src defined. Guarantees alias map can be populated
 		alias.AliasMap = make(map[string]string)

@@ -42,6 +42,12 @@ func (c chanBool) MarshalYAML() (interface{}, error) {
 	return "", nil
 }
 
+// UnMarshalYAML for chan bool's in step. Avoids having UnMarshal try to resolve chan bool values as these
+// cannot be unmarshaled. Removing this interface causes a crash when umarshaling a task.
+func (c chanBool) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	return nil
+}
+
 // Step is a step in the execution task.
 type Step struct {
 	ID                  string   `yaml:"id"`

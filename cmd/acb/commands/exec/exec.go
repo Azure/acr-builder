@@ -260,8 +260,9 @@ var Command = cli.Command{
 		// computing the TaskFrom a string.
 		taskFinal, errUnmarshal := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
 		if errUnmarshal != nil {
-			return err
+			return errUnmarshal
 		}
+		log.Printf("(exec) Running")
 
 		builder := builder.NewBuilder(pm, debug, homevol)
 		defer builder.CleanTask(gocontext.Background(), taskFinal) // Use a separate context since the other may have expired.

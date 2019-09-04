@@ -96,9 +96,8 @@ FROM builder as acb
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
-RUN mkdir -p builder-files
 RUN Write-Host ('Running build'); \
-	go build -o builder-files\acb.exe .\cmd\acb; \
+	go build -o acb.exe .\cmd\acb; \
 	Write-Host ('Running unit tests'); \
 	go test ./...
 
@@ -106,7 +105,7 @@ RUN Write-Host ('Running build'); \
 FROM base as runtime
 ARG ACB_BASEIMAGE=mcr.microsoft.com/windows/servercore:1903
 COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
-COPY --from=acb /gopath/src/github.com/Azure/acr-builder/builder-files/ c:/acr-builder/
+COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe c:/acr-builder/acb.exe
 ENV ACB_CONFIGIMAGENAME=$ACB_BASEIMAGE
 
 RUN setx /M PATH $('c:\acr-builder;c:\docker;{0}' -f $env:PATH);
