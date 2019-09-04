@@ -148,7 +148,8 @@ func (b *Builder) scrapeDependencies(
 	dockerfile string,
 	sourceContext string,
 	tags []string,
-	buildArgs []string) ([]*image.Dependencies, error) {
+	buildArgs []string,
+	target string) ([]*image.Dependencies, error) {
 	containerName := fmt.Sprintf("acb_dep_scanner_%s", uuid.New())
 
 	args := getScanArgs(
@@ -160,6 +161,7 @@ func (b *Builder) scrapeDependencies(
 		outputDir,
 		tags,
 		buildArgs,
+		target,
 		sourceContext)
 
 	if b.debug {
@@ -186,6 +188,7 @@ func getScanArgs(
 	outputDir string,
 	tags []string,
 	buildArgs []string,
+	target string,
 	sourceContext string) []string {
 	args := []string{
 		"docker",
@@ -211,6 +214,10 @@ func getScanArgs(
 
 	for _, buildArg := range buildArgs {
 		args = append(args, "--build-arg", buildArg)
+	}
+
+	if len(target) > 0 {
+		args = append(args, "--target", target)
 	}
 
 	// Positional context must appear last

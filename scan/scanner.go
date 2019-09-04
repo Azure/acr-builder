@@ -20,10 +20,11 @@ type Scanner struct {
 	destinationFolder string
 	buildArgs         []string
 	tags              []string
+	target            string
 }
 
 // NewScanner creates a new Scanner.
-func NewScanner(pm *procmanager.ProcManager, sourceContext string, dockerfile string, destination string, buildArgs []string, tags []string) (*Scanner, error) {
+func NewScanner(pm *procmanager.ProcManager, sourceContext string, dockerfile string, destination string, buildArgs []string, tags []string, target string) (*Scanner, error) {
 	// NOTE (bindu): vendor/github.com/docker/docker/pkg/idtools/idtools_unix.go#mkdirAs (L51-60) looks for "/" to determine the root folder.
 	// But if it is a relative path, the code will enter dead-loop. Ensure passing in the absolute path to workaround the bug.
 	var err error
@@ -40,6 +41,7 @@ func NewScanner(pm *procmanager.ProcManager, sourceContext string, dockerfile st
 		destinationFolder: destination,
 		buildArgs:         buildArgs,
 		tags:              tags,
+		target:            target,
 	}, nil
 }
 
@@ -50,7 +52,7 @@ func (s *Scanner) Scan(ctx context.Context) (deps []*image.Dependencies, err err
 		return deps, errors.Wrap(err, "failed to download source code")
 	}
 
-	deps, err = s.ScanForDependencies(s.context, workingDir, s.dockerfile, s.buildArgs, s.tags)
+	deps, err = s.ScanForDependencies(s.context, workingDir, s.dockerfile, s.buildArgs, s.tags, s.target)
 	if err != nil {
 		return deps, err
 	}

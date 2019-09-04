@@ -17,18 +17,21 @@ const (
 )
 
 // parseDockerBuildCmd parses a docker build command and extracts the
-// context and Dockerfile from it.
-func parseDockerBuildCmd(cmd string) (dockerfile string, context string) {
+// context, target and Dockerfile from it.
+func parseDockerBuildCmd(cmd string) (dockerfile string, target string, context string) {
 	fields := strings.Fields(cmd)
 	prev := ""
 	dockerfile = ""
 	context = "."
+	target = ""
 
 	for i := 0; i < len(fields); i++ {
 		v := fields[i]
 
 		if prev == "-f" || prev == "--file" {
 			dockerfile = v
+		} else if prev == "--target" {
+			target = v
 		} else if !strings.HasPrefix(prev, "-") && !strings.HasPrefix(v, "-") {
 			context = v
 		}
@@ -36,7 +39,7 @@ func parseDockerBuildCmd(cmd string) (dockerfile string, context string) {
 		prev = v
 	}
 
-	return dockerfile, context
+	return dockerfile, target, context
 }
 
 // replacePositionalContext parses the specified command for its positional context
