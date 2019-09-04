@@ -176,15 +176,14 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 func preprocessString(alias *Alias, str string) (string, bool, error) {
 	log.Printf("(readAliasFromBytes) started")
 
+	alias.loadGlobalAlias()
+	log.Printf("(readAliasFromBytes) global definitions loaded")
+
 	// Load Remote/Local alias definitions
 	if externalDefinitionErr := alias.loadExternalAlias(); externalDefinitionErr != nil {
 		return "", false, externalDefinitionErr
 	}
 	log.Printf("(readAliasFromBytes) external definitions loaded")
-
-	alias.loadGlobalAlias()
-
-	log.Printf("(readAliasFromBytes) global definitions loaded")
 
 	// Validate alias definitions
 	if improperFormatErr := alias.resolveMapAndValidate(); improperFormatErr != nil {
