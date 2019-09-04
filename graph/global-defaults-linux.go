@@ -18,7 +18,7 @@ purge: "mcr.microsoft.com/acr/acr-cli:0.1 purge"
 
 # Default image aliases, can be used without $ directive
 acr: "mcr.microsoft.com/acr/acr-cli:0.1"
-az: mcr.microsoft.com/azure-cli:d0725bc
-bash: mcr.microsoft.com/bash:d0725bc
-curl: mcr.microsoft.com/curl:d0725bc
+az: mcr.microsoft.com/acr/azure-cli:d0725bc
+bash: mcr.microsoft.com/acr/bash:d0725bc
+curl: mcr.microsoft.com/acr/curl:d0725bc
 `

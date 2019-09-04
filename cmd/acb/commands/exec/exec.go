@@ -258,23 +258,13 @@ var Command = cli.Command{
 
 		// If work has been done before as a result of preprocessing avoid re
 		// computing the TaskFrom a string.
-		if shouldIncludeAlias {
-			log.Printf("(exec) task completion started")
-			err := task.AddTaskDefaults(ctx, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName)
-			if err != nil {
-				return err
-			}
-			log.Printf("(exec) task completion successful")
-		} else {
-			var err error
-			task, err = graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
-			if err != nil {
-				return err
-			}
+		taskFinal, errUnmarshal := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
+		if errUnmarshal != nil {
+			return err
 		}
 
 		builder := builder.NewBuilder(pm, debug, homevol)
-		defer builder.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
-		return builder.RunTask(gocontext.Background(), task)
+		defer builder.CleanTask(gocontext.Background(), taskFinal) // Use a separate context since the other may have expired.
+		return builder.RunTask(gocontext.Background(), taskFinal)
 	},
 }
