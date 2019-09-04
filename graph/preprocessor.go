@@ -13,7 +13,6 @@ import (
 	"bytes"
 	"errors"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"regexp"
 	"runtime"
@@ -43,7 +42,7 @@ type Alias struct {
 // Validates aliases making sure all are alphanumeric
 // Additionally sets and validates directive overrides
 func (alias *Alias) resolveMapAndValidate() error {
-	log.Printf("(resolveMapAndValidate) started")
+
 	// Set directive from Map
 	alias.directive = defaultDirective
 	if alias.DirectiveParsed != "" {
@@ -55,7 +54,7 @@ func (alias *Alias) resolveMapAndValidate() error {
 		if matched := aliasFormat.MatchString(alias.DirectiveParsed); matched {
 			return errImproperDirectiveChoice
 		}
-		log.Printf("(resolveMapAndValidate) directive overwritten to %c", val[0])
+
 		alias.directive = val[0]
 	}
 
@@ -67,18 +66,17 @@ func (alias *Alias) resolveMapAndValidate() error {
 			return errImproperKeyName
 		}
 	}
-	log.Printf("(resolveMapAndValidate) completed")
+
 	return nil
 }
 
 // Loads in all Aliases defined as being a part of external resources.
 func (alias *Alias) loadExternalAlias() error {
-	log.Printf("(loadExternalAlias) called ")
 
 	// Iterating in reverse to easily and efficiently handle hierarchy. The later
 	// declared the higher in the hierarchy of alias definitions.
 	for i := len(alias.AliasSrc) - 1; i >= 0; i-- {
-		log.Printf("(loadExternalAlias) called for %s", alias.AliasSrc[i])
+
 		aliasURI := alias.AliasSrc[i]
 		if util.IsURL(aliasURI) {
 			if err := addAliasFromRemote(alias, aliasURI); err != nil {
@@ -107,7 +105,7 @@ func (alias *Alias) loadGlobalAlias() {
 // to the passed in Alias. Note alias definitions already in alias
 // will not be overwritten.
 func addAliasFromRemote(alias *Alias, url string) error {
-	log.Printf("(addAliasFromRemote) called for %s", url)
+
 	remoteClient := &http.Client{
 		Timeout: time.Second * 2, // Maximum of 2 secs
 	}
@@ -137,7 +135,7 @@ func addAliasFromRemote(alias *Alias, url string) error {
 	if readErr != nil {
 		return readErr
 	}
-	log.Printf("(addAliasFromRemote) %s acquired successfully", url)
+
 	return readAliasFromBytes(data, alias)
 }
 
@@ -145,7 +143,7 @@ func addAliasFromRemote(alias *Alias, url string) error {
 // Alias. Note alias definitions already in alias will not be
 // overwritten.
 func addAliasFromFile(alias *Alias, fileURI string) error {
-	log.Printf("(addAliasFromFile) called for %s", fileURI)
+
 	data, fileReadingError := ioutil.ReadFile(fileURI)
 	if fileReadingError != nil {
 		return fileReadingError
@@ -157,7 +155,7 @@ func addAliasFromFile(alias *Alias, fileURI string) error {
 // them to the Alias. Note alias definitions already in alias will
 // not be overwritten even if present in the array.
 func readAliasFromBytes(data []byte, alias *Alias) error {
-	log.Printf("(readAliasFromBytes) started")
+
 	aliasMap := &map[string]string{}
 
 	if err := yaml.Unmarshal(data, aliasMap); err != nil {
@@ -169,7 +167,7 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 			alias.AliasMap[key] = value
 		}
 	}
-	log.Printf("(readAliasFromBytes) completed")
+
 	return nil
 }
 
@@ -177,50 +175,44 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 // of all aliases in an input yaml (passed in as a string). The resolved aliases are
 // defined in the input alias file.
 func preprocessString(alias *Alias, str string) (string, bool, error) {
-	log.Printf("(readAliasFromBytes) started")
 
 	// Load Remote/Local alias definitions
 	if externalDefinitionErr := alias.loadExternalAlias(); externalDefinitionErr != nil {
 		return "", false, externalDefinitionErr
 	}
-	log.Printf("(readAliasFromBytes) external definitions loaded")
 
 	alias.loadGlobalAlias()
-	log.Printf("(readAliasFromBytes) global definitions loaded")
 
 	// Validate alias definitions
 	if improperFormatErr := alias.resolveMapAndValidate(); improperFormatErr != nil {
 		return "", false, improperFormatErr
 	}
-	log.Printf("(readAliasFromBytes) alias map validated")
 
 	var out strings.Builder
 	var command strings.Builder
 	ongoingCmd := false
 	changed := false
 
-	log.Printf("(readAliasFromBytes) replacement started")
 	// Search and replace all strings with the directive
 	for _, char := range str {
 		if ongoingCmd {
 			if char == alias.directive && command.Len() == 0 { // Escape Character Triggered
 				out.WriteRune(alias.directive)
 				ongoingCmd = false
-				log.Printf("(readAliasFromBytes) escape character triggered")
 
 			} else if !isAlphanumeric(char) { // Delineates the end of an alias
 				resolvedCommand, commandPresent := alias.AliasMap[command.String()]
 				// If command is not found we assume this to be the expect item itself.
 				if !commandPresent {
-					log.Printf("(readAliasFromBytes) unknown alias found, resolved to identical value")
+
 					out.WriteString(string(alias.directive) + command.String())
 					command.Reset()
 				} else {
-					log.Printf("(readAliasFromBytes) command resolved %s to %s", command.String(), resolvedCommand)
+
 					out.WriteString(resolvedCommand)
 					changed = true
 					if char != alias.directive {
-						log.Printf("(readAliasFromBytes) back to back alias")
+
 						ongoingCmd = false
 						out.WriteRune(char)
 					}
@@ -235,7 +227,6 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 			out.WriteRune(char)
 		}
 	}
-	log.Printf("(readAliasFromBytes) completed")
 
 	return out.String(), changed, nil
 }
@@ -245,20 +236,15 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	type Wrapper struct {
 		Alias Alias `yaml:"alias,omitempty"`
 	}
-	log.Printf("(preprocessBytes) separating alias bytes")
+
 	wrap := &Wrapper{}
 	aliasData, remainingData := basicAliasSeparation(data)
-	log.Printf("(preprocessBytes) original : %s", string(data))
-	log.Printf("(preprocessBytes) alias : %s", string(aliasData))
-	log.Printf("(preprocessBytes) remainder : %s", string(remainingData))
 
-	log.Printf("(preprocessBytes) unmarshal alias bytes")
 	if errUnmarshal := yaml.Unmarshal(aliasData, wrap); errUnmarshal != nil {
 		return data, Alias{}, false, errUnmarshal
 	}
 
 	alias := &wrap.Alias
-	log.Printf("(preprocessBytes) %+v", alias.AliasSrc)
 
 	if alias.AliasMap == nil {
 		// Alias Src defined. Guarantees alias map can be populated
@@ -268,19 +254,18 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	str := string(remainingData)
 	parsedStr, changed, err := preprocessString(alias, str)
 
-	log.Printf("(preprocessBytes) completed with: %s", parsedStr)
 	return []byte(parsedStr), *alias, changed, err
 }
 
 // processSteps Will resolve image names in steps that are aliased without using directive.
 // Invoked after resolving all directive using aliases
 func processSteps(alias *Alias, task *Task) {
-	log.Printf("(preprocessSteps) started")
+
 	for i, step := range task.Steps {
 		parts := strings.Split(strings.TrimSpace(step.Cmd), " ")
 		if val, ok := alias.AliasMap[parts[0]]; ok {
 			// Image name should always go first
-			log.Printf("(preprocessSteps) command resolved %s to %s", parts[0], val)
+
 			parts[0] = val
 			task.Steps[i].Cmd = strings.Join(parts, " ")
 		}
@@ -291,7 +276,7 @@ func processSteps(alias *Alias, task *Task) {
 // to update to be fully compliant (include JSON top level for example). Alternative construction
 // of small compiler for this purpose is also under consideration.
 func basicAliasSeparation(data []byte) ([]byte, []byte) {
-	log.Printf("(basicAliasSeparation) started")
+
 	reader := bytes.NewReader(data)
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
@@ -320,6 +305,6 @@ func basicAliasSeparation(data []byte) ([]byte, []byte) {
 			buffer.WriteString(text + "\n")
 		}
 	}
-	log.Printf("(basicAliasSeparation) completed. Alias section size :%d, remainder section size : %d, original size : %d", aliasBuffer.Len(), buffer.Len(), len(data))
+
 	return aliasBuffer.Bytes(), buffer.Bytes()
 }

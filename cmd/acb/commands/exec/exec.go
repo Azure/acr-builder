@@ -166,7 +166,6 @@ var Command = cli.Command{
 				}()
 			}
 		}
-		log.Printf("Using %s as the home volume\n", homevol)
 
 		renderOpts := &templating.BaseRenderOptions{
 			TaskFile:                taskFile,
@@ -214,16 +213,13 @@ var Command = cli.Command{
 		shouldIncludeAlias := wrap.Version == "" || wrap.Version >= "v1.1.0"
 		var task *graph.Task
 		if shouldIncludeAlias {
-			log.Printf("(exec) alias support detected")
-
-			log.Printf("(exec) Resolved all to: %s", string(template.GetData()))
-
+			log.Printf("Alias support enabled for version >= 1.1.0, please see https://aka.ms/acr/tasks/task-aliases for more information.")
 			// Generate the base task file without resolving environment variables.
 			task, err = graph.NewTaskFromBytes(template.GetData(), true)
 			if err != nil {
 				return err
 			}
-			log.Printf("(exec) alias resolution executed, marshalling")
+
 			// Remarshal functional task file to resolve templating
 			var fromTask []byte
 			fromTask, err = yaml.Marshal(*task)
@@ -231,14 +227,13 @@ var Command = cli.Command{
 				return err
 			}
 			template.Data = fromTask
-			log.Printf("(exec) rendering post alias started")
+
 		}
 
 		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
 		if err != nil {
 			return err
 		}
-		log.Printf("(exec) rendering result : %s", rendered)
 
 		if debug {
 			log.Println("Rendered template:")
@@ -256,13 +251,10 @@ var Command = cli.Command{
 			credentials = append(credentials, cred)
 		}
 
-		// If work has been done before as a result of preprocessing avoid re
-		// computing the TaskFrom a string.
 		taskFinal, errUnmarshal := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
 		if errUnmarshal != nil {
 			return errUnmarshal
 		}
-		log.Printf("(exec) Running")
 
 		builder := builder.NewBuilder(pm, debug, homevol)
 		defer builder.CleanTask(gocontext.Background(), taskFinal) // Use a separate context since the other may have expired.
