@@ -54,7 +54,7 @@ COPY --from=publish /app .
 COPY --from=3 /cert /app
 ENTRYPOINT ["dotnet", "Web.dll"]`)
 
-	runtimeDep, buildDeps, err := resolveDockerfileDependencies(bytes.NewReader(df), args)
+	runtimeDep, buildDeps, err := resolveDockerfileDependencies(bytes.NewReader(df), args, "")
 
 	if err != nil {
 		t.Errorf("Failed to resolve dependencies: %v", err)
@@ -91,7 +91,32 @@ COPY --from=base /usr/bin/scratch /usr/bin/scratch
 ENTRYPOINT [ "scratch" ]
 CMD [ ]`)
 	bomPrefixDockerfile := append(utf8BOM, df...)
-	runtimeDep, buildDeps, err := resolveDockerfileDependencies(bytes.NewReader(bomPrefixDockerfile), nil)
+	runtimeDep, buildDeps, err := resolveDockerfileDependencies(bytes.NewReader(bomPrefixDockerfile), nil, "")
+	if err != nil {
+		t.Errorf("Failed to resolve dependencies: %v", err)
+	}
+	if runtimeDep != expectedRuntime {
+		t.Errorf("Unexpected runtime. Got %s, expected %s", runtimeDep, expectedRuntime)
+	}
+	for _, buildDep := range buildDeps {
+		if ok := expectedBuildDeps[buildDep]; !ok {
+			t.Errorf("Unexpected build-time dependencies. Got %v which wasn't expected", buildDep)
+		}
+	}
+}
+
+func TestResolveDockerfileDependencies_WithTarget(t *testing.T) {
+	expectedRuntime := "node:lts"
+	expectedBuildDeps := map[string]bool{
+		fmt.Sprintf("scratch"): true,
+	}
+	df := []byte(`FROM scratch AS base
+	RUN ls
+	FROM node:lts AS build
+	RUN ls
+	FROM nginx:stable AS final
+	RUN ls`)
+	runtimeDep, buildDeps, err := resolveDockerfileDependencies(bytes.NewReader(df), nil, "build")
 	if err != nil {
 		t.Errorf("Failed to resolve dependencies: %v", err)
 	}

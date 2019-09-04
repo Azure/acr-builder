@@ -57,7 +57,7 @@ var Command = cli.Command{
 		defer cancel()
 
 		pm := procmanager.NewProcManager(dryRun)
-		scanner, err := scan.NewScanner(pm, downloadCtx, "", destination, nil, nil)
+		scanner, err := scan.NewScanner(pm, downloadCtx, "", destination, nil, nil, "")
 		if err != nil {
 			return err
 		}

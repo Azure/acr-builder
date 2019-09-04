@@ -48,6 +48,10 @@ var Command = cli.Command{
 			Name:  "build-arg",
 			Usage: "build arguments",
 		},
+		cli.StringFlag{
+			Name:  "target",
+			Usage: "build target",
+		},
 		cli.Int64Flag{
 			Name:  "timeout",
 			Usage: "maximum execution time in seconds",
@@ -63,6 +67,7 @@ var Command = cli.Command{
 			destination = context.String("destination")
 			tags        = context.StringSlice("tag")
 			buildArgs   = context.StringSlice("build-arg")
+			target      = context.String("target")
 			timeout     = time.Duration(context.Int64("timeout")) * time.Second
 		)
 
@@ -80,7 +85,7 @@ var Command = cli.Command{
 		}
 
 		pm := procmanager.NewProcManager(dryRun)
-		scanner, err := scan.NewScanner(pm, downloadCtx, dockerfile, destination, buildArgs, tags)
+		scanner, err := scan.NewScanner(pm, downloadCtx, dockerfile, destination, buildArgs, tags, target)
 		if err != nil {
 			return err
 		}

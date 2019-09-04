@@ -254,7 +254,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 	var args []string
 
 	if step.IsBuildStep() {
-		dockerfile, dockerContext := parseDockerBuildCmd(step.Build)
+		dockerfile, target, dockerContext := parseDockerBuildCmd(step.Build)
 		volName := b.workspaceDir
 
 		// Print out a warning message if a remote context doesn't appear to be valid, i.e. doesn't end with .git.
@@ -264,7 +264,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		timeout := time.Duration(scrapeTimeoutInSec) * time.Second
 		scrapeCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		deps, err := b.scrapeDependencies(scrapeCtx, volName, step.WorkingDirectory, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs)
+		deps, err := b.scrapeDependencies(scrapeCtx, volName, step.WorkingDirectory, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs, target)
 		if err != nil {
 			return errors.Wrap(err, "failed to scan dependencies")
 		}

@@ -13,21 +13,26 @@ func TestParseDockerBuildCmd(t *testing.T) {
 		id         int
 		build      string
 		dockerfile string
+		target     string
 		context    string
 	}{
-		{1, "-f Dockerfile -t {{.Run.ID}}:latest https://github.com/Azure/acr-builder.git", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
-		{2, "https://github.com/Azure/acr-builder.git -f Dockerfile -t foo:bar", "Dockerfile", "https://github.com/Azure/acr-builder.git"},
-		{3, "https://github.com/Azure/acr-builder.git#master:blah -f Dockerfile -t foo:bar", "Dockerfile", "https://github.com/Azure/acr-builder.git#master:blah"},
-		{4, ".", "", "."},
-		{5, "--file src/Dockerfile . -t foo:bar", "src/Dockerfile", "."},
-		{6, "-f src/Dockerfile .", "src/Dockerfile", "."},
-		{7, "-t foo https://github.com/Azure/acr-builder.git#:HelloWorld", "", "https://github.com/Azure/acr-builder.git#:HelloWorld"},
+		{1, "-f Dockerfile -t {{.Run.ID}}:latest https://github.com/Azure/acr-builder.git", "Dockerfile", "", "https://github.com/Azure/acr-builder.git"},
+		{2, "https://github.com/Azure/acr-builder.git -f Dockerfile -t foo:bar", "Dockerfile", "", "https://github.com/Azure/acr-builder.git"},
+		{3, "https://github.com/Azure/acr-builder.git#master:blah -f Dockerfile -t foo:bar", "Dockerfile", "", "https://github.com/Azure/acr-builder.git#master:blah"},
+		{4, ".", "", "", "."},
+		{5, "--file src/Dockerfile . -t foo:bar", "src/Dockerfile", "", "."},
+		{6, "-f src/Dockerfile .", "src/Dockerfile", "", "."},
+		{7, "-t foo https://github.com/Azure/acr-builder.git#:HelloWorld", "", "", "https://github.com/Azure/acr-builder.git#:HelloWorld"},
+		{8, "-t foo --target build https://github.com/Azure/acr-builder.git#:HelloWorld", "", "build", "https://github.com/Azure/acr-builder.git#:HelloWorld"},
 	}
 
 	for _, test := range tests {
-		dockerfile, context := parseDockerBuildCmd(test.build)
+		dockerfile, target, context := parseDockerBuildCmd(test.build)
 		if test.dockerfile != dockerfile {
 			t.Errorf("Test %d failed. Expected %s as the dockerfile, got %s", test.id, test.dockerfile, dockerfile)
+		}
+		if test.target != target {
+			t.Errorf("Test %d failed. Expected %s as the target, got %s", test.id, test.target, target)
 		}
 		if test.context != context {
 			t.Errorf("Test %d failed. Expected %s as the context, got %s", test.id, test.context, context)

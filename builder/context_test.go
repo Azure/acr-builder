@@ -137,6 +137,7 @@ func TestGetScanArgs(t *testing.T) {
 		outputDir             string
 		tags                  []string
 		buildArgs             []string
+		target                string
 		context               string
 		expected              string
 	}{
@@ -149,6 +150,7 @@ func TestGetScanArgs(t *testing.T) {
 			"OutputDirectory",
 			[]string{"tag1", "tag2"},
 			[]string{"arg1=a", "arg2=b"},
+			"build",
 			"someContext",
 			"docker run --rm " +
 				"--name containerName " +
@@ -157,7 +159,7 @@ func TestGetScanArgs(t *testing.T) {
 				"--volume " + homeVol + ":" + homeWorkDir + " " +
 				"--env " + homeEnv + " " +
 				"acb scan -f Dockerfile --destination OutputDirectory " +
-				"-t tag1 -t tag2 --build-arg arg1=a --build-arg arg2=b someContext",
+				"-t tag1 -t tag2 --build-arg arg1=a --build-arg arg2=b --target build someContext",
 		},
 	}
 
@@ -172,6 +174,7 @@ func TestGetScanArgs(t *testing.T) {
 				test.outputDir,
 				test.tags,
 				test.buildArgs,
+				test.target,
 				test.context),
 			" ")
 		if test.expected != actual {

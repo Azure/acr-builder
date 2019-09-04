@@ -29,7 +29,7 @@ var (
 )
 
 // ScanForDependencies scans for base image dependencies.
-func (s *Scanner) ScanForDependencies(context string, workingDir string, dockerfile string, buildArgs []string, pushTo []string) (deps []*image.Dependencies, err error) {
+func (s *Scanner) ScanForDependencies(context string, workingDir string, dockerfile string, buildArgs []string, pushTo []string, target string) (deps []*image.Dependencies, err error) {
 	dockerfilePath := createDockerfilePath(context, workingDir, dockerfile)
 	file, err := os.Open(dockerfilePath)
 	if err != nil {
@@ -37,7 +37,7 @@ func (s *Scanner) ScanForDependencies(context string, workingDir string, dockerf
 	}
 	defer func() { _ = file.Close() }()
 
-	runtime, buildtime, err := resolveDockerfileDependencies(file, buildArgs)
+	runtime, buildtime, err := resolveDockerfileDependencies(file, buildArgs, target)
 	if err != nil {
 		return deps, err
 	}
@@ -160,7 +160,7 @@ func NewImageReference(imagePath string) (*image.Reference, error) {
 }
 
 // resolveDockerfileDependencies resolves dependencies given an io.Reader for a Dockerfile.
-func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (origin string, buildtimeDependencies []string, err error) {
+func resolveDockerfileDependencies(r io.Reader, buildArgs []string, target string) (origin string, buildtimeDependencies []string, err error) {
 	scanner := bufio.NewScanner(r)
 	context, err := parseBuildArgs(buildArgs)
 	if err != nil {
@@ -169,6 +169,8 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (origin stri
 	originLookup := map[string]string{} // given an alias, look up its origin
 	allOrigins := map[string]bool{}     // set of all origins
 	firstLine := true
+
+SCAN: // label for the scan loop
 	for scanner.Scan() {
 		var line string
 		// Trim UTF-8 BOM if necessary.
@@ -214,6 +216,11 @@ func resolveDockerfileDependencies(r io.Reader, buildArgs []string) (origin stri
 					// Just ignore the rest of the tokens...
 					if len(tokens) > 4 {
 						log.Printf("Ignoring chunks from FROM clause: %v\n", tokens[4:])
+					}
+
+					// reach the target, stop the scanning
+					if len(target) > 0 && target == alias {
+						break SCAN
 					}
 				}
 			case "ARG":
