@@ -201,16 +201,9 @@ var Command = cli.Command{
 			}
 		}
 
-		type Wrapper struct {
-			Version string `yaml:"version,omitempty"`
-		}
+		versionInUse := graph.FindVersion(template.GetData())
 
-		wrap := &Wrapper{}
-		if err = yaml.Unmarshal(template.GetData(), wrap); err != nil {
-			return err
-		}
-
-		shouldIncludeAlias := wrap.Version == "" || wrap.Version >= "v1.1.0"
+		shouldIncludeAlias := versionInUse == "" || versionInUse >= "v1.1.0"
 		var task *graph.Task
 		if shouldIncludeAlias {
 			log.Printf("Alias support enabled for version >= 1.1.0, please see https://aka.ms/acr/tasks/task-aliases for more information.")
