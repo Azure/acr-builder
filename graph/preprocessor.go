@@ -70,7 +70,6 @@ func (alias *Alias) resolveMapAndValidate() error {
 
 // Loads in all Aliases defined as being a part of external resources.
 func (alias *Alias) loadExternalAlias() error {
-
 	// Iterating in reverse to easily and efficiently handle hierarchy. The later
 	// declared the higher in the hierarchy of alias definitions.
 	for i := len(alias.AliasSrc) - 1; i >= 0; i-- {
@@ -258,9 +257,7 @@ func processSteps(alias *Alias, task *Task) {
 	}
 }
 
-// Provides simple separation of the top level items in a yaml file definition, however, need
-// to update to be fully compliant (include JSON top level for example). Alternative construction
-// of small compiler for this purpose is also under consideration.
+// Provides simple separation of the top level items in a yaml file definition.
 func basicAliasSeparation(data []byte) ([]byte, []byte) {
 	reader := bytes.NewReader(data)
 	scanner := bufio.NewScanner(reader)
@@ -295,25 +292,26 @@ func basicAliasSeparation(data []byte) ([]byte, []byte) {
 	return aliasBuffer.Bytes(), buffer.Bytes()
 }
 
-// FindVersion Determines the current version of an Alias task file
+// FindVersion determines the current version of an Alias task file
 func FindVersion(data []byte) string {
 	reader := bytes.NewReader(data)
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
-	commentRe := regexp.MustCompile(`\A\s*#.*`)
-	versionField := regexp.MustCompile(`\Aversion\s*:.+\z`)
-
 	for scanner.Scan() {
 		text := scanner.Text()
 
-		//Finds the first non empty and non comment string
-		comment := commentRe.MatchString(text)
-		if !(text == "" || comment) {
-			if version := versionField.MatchString(text); version {
-				return strings.TrimSpace(strings.Split(strings.TrimSpace(text), ":")[1])
-			}
-			break
+		trimmedText := strings.TrimSpace(text)
+
+		// Skip comments and just whitespace.
+		if trimmedText == "" || strings.HasPrefix(trimmedText, "#") {
+			continue
 		}
+
+		// use text instead of trimmedText since '   version: ' is also invalid.
+		if strings.HasPrefix(text, "version:") {
+			return strings.TrimSpace(strings.TrimPrefix(trimmedText, "version:"))
+		}
+		break
 	}
 
 	return ""

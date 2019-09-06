@@ -88,8 +88,8 @@ FROM builder as dockercli
 ARG DOCKER_CLI_LKG_COMMIT=c98c4080a323fb0e4fdf7429d8af4e2e946d09b5
 WORKDIR \\gopath\\src\\github.com\\docker\\cli
 RUN git clone https://github.com/docker/cli.git \gopath\src\github.com\docker\cli; \
-	git checkout $env:DOCKER_CLI_LKG_COMMIT; \
-	scripts\\make.ps1 -Binary -ForceBuildAll
+    git checkout $env:DOCKER_CLI_LKG_COMMIT; \
+    scripts\\make.ps1 -Binary -ForceBuildAll
 
 # Build the acr-builder
 FROM builder as acb
@@ -97,7 +97,7 @@ COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/dock
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
 RUN Write-Host ('Running build'); \
-	go build -o acb.exe .\cmd\acb; \
+    go build -o acb.exe .\cmd\acb; \
 	Write-Host ('Running unit tests'); \
 	go test ./...
 
