@@ -314,16 +314,17 @@ func FindVersion(data []byte) string {
 	reader := bytes.NewReader(data)
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
-	commentRe := regexp.MustCompile(`\A#.*`)
+	commentRe := regexp.MustCompile(`\A\s*#.*`)
 	versionField := regexp.MustCompile(`\Aversion\s*:.+\z`)
 
 	for scanner.Scan() {
 		text := scanner.Text()
+
 		//Finds the first non empty and non comment string
 		comment := commentRe.MatchString(text)
 		if !(text == "" || comment) {
 			if version := versionField.MatchString(text); version {
-				return strings.Split(strings.TrimSpace(text), ":")[1]
+				return strings.TrimSpace(strings.Split(strings.TrimSpace(text), ":")[1])
 			}
 			break
 		}
