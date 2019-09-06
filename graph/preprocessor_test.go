@@ -476,7 +476,6 @@ func extractTaskYamls(file string) (map[string][]byte, error) {
 	for scanner.Scan() {
 		text := scanner.Text()
 		if matched := genericTopLevelRe.MatchString(text); matched {
-
 			// Top level item has already been seen, this is not allowed
 			if _, ok := processed[current]; ok {
 				return processed, errors.New("duplicate top level testing yaml was declared")
