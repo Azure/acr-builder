@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"time"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/Azure/acr-builder/builder"
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/procmanager"
@@ -164,7 +166,6 @@ var Command = cli.Command{
 				}()
 			}
 		}
-		log.Printf("Using %s as the home volume\n", homevol)
 
 		renderOpts := &templating.BaseRenderOptions{
 			TaskFile:                taskFile,
@@ -200,6 +201,27 @@ var Command = cli.Command{
 			}
 		}
 
+		versionInUse := graph.FindVersion(template.GetData())
+		shouldIncludeAlias := versionInUse == "" || versionInUse >= "v1.1.0"
+
+		var task *graph.Task
+		if shouldIncludeAlias {
+			log.Printf("Alias support enabled for version >= 1.1.0, please see https://aka.ms/acr/tasks/task-aliases for more information.")
+			// Generate the base task file without resolving environment variables.
+			task, err = graph.NewTaskFromBytes(template.GetData(), true)
+			if err != nil {
+				return err
+			}
+
+			// Remarshal functional task file to resolve templating
+			var fromTask []byte
+			fromTask, err = yaml.Marshal(*task)
+			if err != nil {
+				return err
+			}
+			template.Data = fromTask
+		}
+
 		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
 		if err != nil {
 			return err
@@ -221,13 +243,13 @@ var Command = cli.Command{
 			credentials = append(credentials, cred)
 		}
 
-		task, err := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName)
-		if err != nil {
-			return err
+		taskFinal, errUnmarshal := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
+		if errUnmarshal != nil {
+			return errUnmarshal
 		}
 
 		builder := builder.NewBuilder(pm, debug, homevol)
-		defer builder.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
-		return builder.RunTask(gocontext.Background(), task)
+		defer builder.CleanTask(gocontext.Background(), taskFinal) // Use a separate context since the other may have expired.
+		return builder.RunTask(gocontext.Background(), taskFinal)
 	},
 }

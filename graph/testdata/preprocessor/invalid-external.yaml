@@ -1,0 +1,6 @@
+"{{.Run.Registry}}"
+"{{.Run.Commit}}"
+id: "{{.Run.ID}}"
+bar: https://github.com/ehotinger/bar
+qux: https://github.com/ehotinger/qux
+acb: "azure/images/acr-builder"

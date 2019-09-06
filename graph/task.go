@@ -26,7 +26,7 @@ const (
 	defaultStepRetryDelayInSeconds = 5
 
 	// currentTaskVersion is the most recent Task version.
-	currentTaskVersion = "v1.0.0"
+	currentTaskVersion = "v1.1.0"
 
 	linuxOS = "linux"
 
@@ -36,6 +36,7 @@ const (
 var (
 	validTaskVersions = map[string]bool{
 		"1.0-preview-1":    true,
+		"v1.0.0":           true,
 		currentTaskVersion: true,
 	}
 )
@@ -46,7 +47,7 @@ type ResolvedRegistryCred struct {
 	Password *secretmgmt.Secret
 }
 
-//RegistryLoginCredentials is a map of registryName -> ResolvedRegistryCred
+// RegistryLoginCredentials is a map of registryName -> ResolvedRegistryCred
 type RegistryLoginCredentials map[string]*ResolvedRegistryCred
 
 // Task represents a task execution.
@@ -68,11 +69,20 @@ type Task struct {
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string) (*Task, error) {
-	t, err := NewTaskFromString(data)
+func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string, doPreprocessing bool) (*Task, error) {
+	t, err := NewTaskFromString(data, doPreprocessing)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
+	err = t.AddTaskDefaults(ctx, defaultWorkDir, network, envs, creds, taskName)
+	if err != nil {
+		return t, err
+	}
+	return t, err
+}
+
+// AddTaskDefaults prepares a Task with remaining parameters
+func (t *Task) AddTaskDefaults(ctx context.Context, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string) error {
 	if defaultWorkDir != "" && t.WorkingDirectory == "" {
 		t.WorkingDirectory = defaultWorkDir
 	}
@@ -81,7 +91,7 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 	// NB: Order is important here. Allow the Task's environment variables to override the defaults provided.
 	newEnvs, err := mergeEnvs(t.Envs, envs)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	t.Envs = newEnvs
@@ -98,22 +108,22 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 		var externalNetwork *Network
 		externalNetwork, err = NewNetwork(network, false, "external", true, true)
 		if err != nil {
-			return t, err
+			return err
 		}
 		t.Networks = append(t.Networks, externalNetwork)
 	}
 
 	err = t.initialize(ctx)
-	return t, err
+	return err
 }
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
-func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCredential, taskName string) (*Task, error) {
+func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCredential, taskName string, doPreprocessing bool) (*Task, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
-	t, err := NewTaskFromBytes(data)
+	t, err := NewTaskFromBytes(data, doPreprocessing)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
@@ -129,16 +139,36 @@ func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCr
 }
 
 // NewTaskFromString unmarshals a Task from string without any initialization.
-func NewTaskFromString(data string) (*Task, error) {
-	return NewTaskFromBytes([]byte(data))
+func NewTaskFromString(data string, doPreprocessing bool) (*Task, error) {
+	return NewTaskFromBytes([]byte(data), doPreprocessing)
 }
 
 // NewTaskFromBytes unmarshals a Task from given bytes without any initialization.
-func NewTaskFromBytes(data []byte) (*Task, error) {
+func NewTaskFromBytes(data []byte, doPreprocessing bool) (*Task, error) {
 	t := &Task{}
-	if err := yaml.Unmarshal(data, t); err != nil {
-		return t, err
+	if doPreprocessing {
+		post, alias, changed, aliasErr := preprocessBytes(data)
+
+		if aliasErr != nil {
+			return t, aliasErr
+		}
+
+		// This means unmarshal was successful before but is no longer possible after alias
+		// replacements
+		if err := yaml.Unmarshal(post, t); err != nil {
+			if changed {
+				err = errors.New("alias replacement yielded an improperly formatted task")
+			}
+			return t, err
+		}
+		processSteps(&alias, t)
+
+	} else {
+		if err := yaml.Unmarshal(data, t); err != nil {
+			return t, err
+		}
 	}
+
 	return t, t.Validate()
 }
 
