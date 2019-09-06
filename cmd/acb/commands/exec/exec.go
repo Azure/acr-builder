@@ -220,7 +220,6 @@ var Command = cli.Command{
 				return err
 			}
 			template.Data = fromTask
-
 		}
 
 		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)

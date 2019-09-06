@@ -42,15 +42,14 @@ type Alias struct {
 // Validates aliases making sure all are alphanumeric
 // Additionally sets and validates directive overrides
 func (alias *Alias) resolveMapAndValidate() error {
-
 	// Set directive from Map
 	alias.directive = defaultDirective
 	if alias.DirectiveParsed != "" {
 		val := []rune(alias.DirectiveParsed)
+
 		if len(val) != 1 {
 			return errImproperDirectiveLength
 		}
-
 		if matched := aliasFormat.MatchString(alias.DirectiveParsed); matched {
 			return errImproperDirectiveChoice
 		}
@@ -61,7 +60,6 @@ func (alias *Alias) resolveMapAndValidate() error {
 	// Values may support all characters, no escaping and so forth necessary
 	for key := range alias.AliasMap {
 		matched := aliasFormat.MatchString(key)
-
 		if !matched {
 			return errImproperKeyName
 		}
@@ -76,7 +74,6 @@ func (alias *Alias) loadExternalAlias() error {
 	// Iterating in reverse to easily and efficiently handle hierarchy. The later
 	// declared the higher in the hierarchy of alias definitions.
 	for i := len(alias.AliasSrc) - 1; i >= 0; i-- {
-
 		aliasURI := alias.AliasSrc[i]
 		if util.IsURL(aliasURI) {
 			if err := addAliasFromRemote(alias, aliasURI); err != nil {
@@ -119,14 +116,12 @@ func addAliasFromRemote(alias *Alias, url string) error {
 	if getErr != nil {
 		return getErr
 	}
-
 	if res.StatusCode > 299 {
 		httpErr, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			return err
 		}
 		return errors.New(string(httpErr))
-
 	}
 
 	defer res.Body.Close()
@@ -143,7 +138,6 @@ func addAliasFromRemote(alias *Alias, url string) error {
 // Alias. Note alias definitions already in alias will not be
 // overwritten.
 func addAliasFromFile(alias *Alias, fileURI string) error {
-
 	data, fileReadingError := ioutil.ReadFile(fileURI)
 	if fileReadingError != nil {
 		return fileReadingError
@@ -155,7 +149,6 @@ func addAliasFromFile(alias *Alias, fileURI string) error {
 // them to the Alias. Note alias definitions already in alias will
 // not be overwritten even if present in the array.
 func readAliasFromBytes(data []byte, alias *Alias) error {
-
 	aliasMap := &map[string]string{}
 
 	if err := yaml.Unmarshal(data, aliasMap); err != nil {
@@ -175,7 +168,6 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 // of all aliases in an input yaml (passed in as a string). The resolved aliases are
 // defined in the input alias file.
 func preprocessString(alias *Alias, str string) (string, bool, error) {
-
 	// Load Remote/Local alias definitions
 	if externalDefinitionErr := alias.loadExternalAlias(); externalDefinitionErr != nil {
 		return "", false, externalDefinitionErr
@@ -199,20 +191,16 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 			if char == alias.directive && command.Len() == 0 { // Escape Character Triggered
 				out.WriteRune(alias.directive)
 				ongoingCmd = false
-
 			} else if !isAlphanumeric(char) { // Delineates the end of an alias
 				resolvedCommand, commandPresent := alias.AliasMap[command.String()]
 				// If command is not found we assume this to be the expect item itself.
 				if !commandPresent {
-
 					out.WriteString(string(alias.directive) + command.String())
 					command.Reset()
 				} else {
-
 					out.WriteString(resolvedCommand)
 					changed = true
 					if char != alias.directive {
-
 						ongoingCmd = false
 						out.WriteRune(char)
 					}
@@ -260,12 +248,10 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 // processSteps Will resolve image names in steps that are aliased without using directive.
 // Invoked after resolving all directive using aliases
 func processSteps(alias *Alias, task *Task) {
-
 	for i, step := range task.Steps {
 		parts := strings.Split(strings.TrimSpace(step.Cmd), " ")
 		if val, ok := alias.AliasMap[parts[0]]; ok {
 			// Image name should always go first
-
 			parts[0] = val
 			task.Steps[i].Cmd = strings.Join(parts, " ")
 		}
@@ -276,7 +262,6 @@ func processSteps(alias *Alias, task *Task) {
 // to update to be fully compliant (include JSON top level for example). Alternative construction
 // of small compiler for this purpose is also under consideration.
 func basicAliasSeparation(data []byte) ([]byte, []byte) {
-
 	reader := bytes.NewReader(data)
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
@@ -287,12 +272,13 @@ func basicAliasSeparation(data []byte) ([]byte, []byte) {
 	inside := false
 	aliasFieldName := regexp.MustCompile(`\Aalias\s*:.*\z`)
 	genericTopLevelRe := regexp.MustCompile(`\A[^\s:]+[^:]*:.*\z`)
-	commentRe := regexp.MustCompile(`\A#.*`)
+	commentRe := regexp.MustCompile(`\A\s*#.*`)
 	for scanner.Scan() {
 		text := scanner.Text()
 		if matched := commentRe.MatchString(text); matched {
 			continue
 		}
+
 		if matched := aliasFieldName.MatchString(text); matched && !inside {
 			inside = true
 		} else if matched := genericTopLevelRe.MatchString(text); matched && inside {

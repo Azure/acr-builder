@@ -237,11 +237,9 @@ func TestLoadExternalAlias(t *testing.T) {
 		if err == nil && test.shouldError {
 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
 		}
-
 		if err != nil {
 			t.Fatalf("Test " + test.name + "failed with error: " + err.Error())
 		}
-
 		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
 		if !eq {
 			t.Fatalf("Expected output for " + test.name + " differed from actual")
@@ -365,11 +363,9 @@ func TestAddAliasFromFile(t *testing.T) {
 		if err == nil && test.shouldError {
 			t.Fatalf("Expected test " + test.name + " to error but it didn't")
 		}
-
 		if err != nil {
 			t.Fatalf("Test " + test.name + "failed with error: " + err.Error())
 		}
-
 		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
 		if !eq {
 			t.Fatalf("Expected output for " + test.name + " differed from actual")
