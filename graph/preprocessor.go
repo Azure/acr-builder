@@ -31,6 +31,8 @@ var (
 	aliasFormat                = regexp.MustCompile(`\A[a-zA-Z0-9]+\z`)
 )
 
+const versionKey = "version"
+
 // Alias intermediate step for processing before complete unmarshal
 type Alias struct {
 	AliasSrc        []string          `yaml:"src"`
@@ -292,14 +294,13 @@ func basicAliasSeparation(data []byte) ([]byte, []byte) {
 	return aliasBuffer.Bytes(), buffer.Bytes()
 }
 
-// FindVersion determines the current version of an Alias task file
+// FindVersion determines the current version of a task file
 func FindVersion(data []byte) string {
 	reader := bytes.NewReader(data)
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)
 	for scanner.Scan() {
 		text := scanner.Text()
-
 		trimmedText := strings.TrimSpace(text)
 
 		// Skip comments and just whitespace.
@@ -307,9 +308,12 @@ func FindVersion(data []byte) string {
 			continue
 		}
 
-		// use text instead of trimmedText since '   version: ' is also invalid.
-		if strings.HasPrefix(text, "version:") {
-			return strings.TrimSpace(strings.TrimPrefix(trimmedText, "version:"))
+		// use text instead of trimmedText since ' version: ' is also invalid.
+		if strings.HasPrefix(text, versionKey) {
+			tokens := strings.SplitN(text, ":", 2)
+			if len(tokens) == 2 && strings.TrimSpace(tokens[0]) == versionKey {
+				return strings.TrimSpace(tokens[1])
+			}
 		}
 		break
 	}
