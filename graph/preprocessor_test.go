@@ -566,3 +566,57 @@ func TestPreProcessSteps(t *testing.T) {
 		}
 	}
 }
+
+func TestFindVersion(t *testing.T) {
+	tests := []struct {
+		task            string
+		expectedVersion string
+	}{
+		{
+			"",
+			"",
+		},
+		{
+			` # task.yml file
+# should be skipped
+
+version  : v1.1.0    
+`,
+			"v1.1.0",
+		},
+		{
+			`
+build: something
+version: v1.1.0`,
+			"",
+		},
+		{
+			`
+versionOfTask:v1.1.0`,
+			"",
+		},
+		{
+			`       
+version`,
+			"",
+		},
+		{
+			`       
+version:v1.1.0
+			`,
+			"v1.1.0",
+		},
+		{
+			`       
+version:foo:bar:beta`,
+			"foo:bar:beta",
+		},
+	}
+
+	for _, test := range tests {
+		actualVersion := FindVersion([]byte(test.task))
+		if actualVersion != test.expectedVersion {
+			t.Errorf("Expected %s but got %s", test.expectedVersion, actualVersion)
+		}
+	}
+}
