@@ -1,10 +1,11 @@
-version: 1
-update_configs:
-  - package_manager: "go:modules"
-    directory: "/"
-    update_schedule: "daily"
-    default_reviewers:
-      - "northtyphoon"
-      - "shahzzzam"
-    default_labels:
-      - "dependencies"
+# Turning dependabot off
+# version: 1
+# update_configs:
+#   - package_manager: "go:modules"
+#     directory: "/"
+#     update_schedule: "monthly"
+#     default_reviewers:
+#       - "northtyphoon"
+#       - "shahzzzam"
+#     default_labels:
+#       - "dependencies"
