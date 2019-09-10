@@ -27,7 +27,7 @@ require (
 	github.com/opencontainers/runc v0.1.1 // indirect
 	github.com/opencontainers/selinux v1.0.0-rc1 // indirect
 	github.com/pkg/errors v0.8.1
-	github.com/urfave/cli v1.21.0
+	github.com/urfave/cli v1.22.0
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 	gotest.tools v2.2.0+incompatible // indirect
