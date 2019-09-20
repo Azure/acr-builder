@@ -220,8 +220,8 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 	return out.String(), changed, nil
 }
 
-// preprocessBytes handles byte encoded data that can be parsed through pre processing
-func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
+// PreprocessBytes handles byte encoded data that can be parsed through pre processing
+func PreprocessBytes(data []byte) ([]byte, *Alias, bool, error) {
 	type Wrapper struct {
 		Alias Alias `yaml:"alias,omitempty"`
 	}
@@ -230,7 +230,7 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	aliasData, remainingData := basicAliasSeparation(data)
 
 	if errUnmarshal := yaml.Unmarshal(aliasData, wrap); errUnmarshal != nil {
-		return data, Alias{}, false, errUnmarshal
+		return data, &Alias{}, false, errUnmarshal
 	}
 
 	alias := &wrap.Alias
@@ -243,12 +243,12 @@ func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
 	str := string(remainingData)
 	parsedStr, changed, err := preprocessString(alias, str)
 
-	return []byte(parsedStr), *alias, changed, err
+	return []byte(parsedStr), alias, changed, err
 }
 
-// processSteps Will resolve image names in steps that are aliased without using directive.
+// ExpandCommandAliases will resolve image names in cmd steps that are aliased without using directive.
 // Invoked after resolving all directive using aliases
-func processSteps(alias *Alias, task *Task) {
+func ExpandCommandAliases(alias *Alias, task *Task) {
 	for i, step := range task.Steps {
 		parts := strings.Split(strings.TrimSpace(step.Cmd), " ")
 		if val, ok := alias.AliasMap[parts[0]]; ok {

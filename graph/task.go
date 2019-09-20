@@ -147,7 +147,7 @@ func NewTaskFromString(data string, doPreprocessing bool) (*Task, error) {
 func NewTaskFromBytes(data []byte, doPreprocessing bool) (*Task, error) {
 	t := &Task{}
 	if doPreprocessing {
-		post, alias, changed, aliasErr := preprocessBytes(data)
+		post, alias, changed, aliasErr := PreprocessBytes(data)
 
 		if aliasErr != nil {
 			return t, aliasErr
@@ -161,7 +161,7 @@ func NewTaskFromBytes(data []byte, doPreprocessing bool) (*Task, error) {
 			}
 			return t, err
 		}
-		processSteps(&alias, t)
+		ExpandCommandAliases(alias, t)
 
 	} else {
 		if err := yaml.Unmarshal(data, t); err != nil {

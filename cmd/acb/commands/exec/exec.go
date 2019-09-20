@@ -10,8 +10,6 @@ import (
 	"runtime"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/Azure/acr-builder/builder"
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/procmanager"
@@ -151,7 +149,7 @@ var Command = cli.Command{
 			taskFile = defaultTaskFile
 		}
 
-		ctx := gocontext.Background()
+		ctx := gocontext.WithValue(gocontext.Background(), "debug", debug)
 		pm := procmanager.NewProcManager(dryRun)
 
 		if homevol == "" {
@@ -201,55 +199,49 @@ var Command = cli.Command{
 			}
 		}
 
+		// Add all creds provided by the user in the --credential flag
+		credentials, err := graph.CreateRegistryCredentialFromList(creds)
+		if err != nil {
+			return err
+		}
+
 		versionInUse := graph.FindVersion(template.GetData())
 		shouldIncludeAlias := versionInUse == "" || versionInUse >= "v1.1.0"
-
+		var alias *graph.Alias
 		var task *graph.Task
+		// TODO: (sam) refactor this.
+		// Find a way to do "rendering" and "preprocessing" in Task initialization `graph` module, instead of `commands`.
 		if shouldIncludeAlias {
 			log.Printf("Alias support enabled for version >= 1.1.0, please see https://aka.ms/acr/tasks/task-aliases for more information.")
-			// Generate the base task file without resolving environment variables.
-			task, err = graph.NewTaskFromBytes(template.GetData(), true)
-			if err != nil {
-				return err
+			// Preprocess the task to replace all aliases based on the alias sources.
+			post, aliasPtr, _, aliasErr := graph.PreprocessBytes(template.GetData())
+			alias = aliasPtr
+			if aliasErr != nil {
+				return aliasErr
 			}
 
-			// Remarshal functional task file to resolve templating
-			var fromTask []byte
-			fromTask, err = yaml.Marshal(*task)
-			if err != nil {
-				return err
-			}
-			template.Data = fromTask
+			template.Data = post
 		}
 
 		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
 		if err != nil {
 			return err
 		}
-
-		if debug {
+		if ctx.Value("debug").(bool) {
 			log.Println("Rendered template:")
 			log.Println(rendered)
 		}
 
-		var credentials []*graph.RegistryCredential
-		// Add all creds provided by the user in the --credential flag
-		for _, credString := range creds {
-			var cred *graph.RegistryCredential
-			cred, err = graph.CreateRegistryCredentialFromString(credString)
-			if err != nil {
-				return err
-			}
-			credentials = append(credentials, cred)
+		task, err = graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
+		if err != nil {
+			return err
 		}
 
-		taskFinal, errUnmarshal := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
-		if errUnmarshal != nil {
-			return errUnmarshal
+		if shouldIncludeAlias {
+			graph.ExpandCommandAliases(alias, task)
 		}
-
 		builder := builder.NewBuilder(pm, debug, homevol)
-		defer builder.CleanTask(gocontext.Background(), taskFinal) // Use a separate context since the other may have expired.
-		return builder.RunTask(gocontext.Background(), taskFinal)
+		defer builder.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
+		return builder.RunTask(gocontext.Background(), task)
 	},
 }

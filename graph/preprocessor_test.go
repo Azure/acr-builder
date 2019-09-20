@@ -421,7 +421,7 @@ func TestPreProcessBytes(t *testing.T) {
 
 	for _, test := range tests {
 		input := yamlMap[test.nameAndTaskIdentifier]
-		data, _, _, err := preprocessBytes(input)
+		data, _, _, err := PreprocessBytes(input)
 		if err != nil && test.shouldError {
 			continue
 		}
@@ -559,7 +559,7 @@ func TestPreProcessSteps(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		processSteps(&test.alias, &test.current)
+		ExpandCommandAliases(&test.alias, &test.current)
 
 		if test.current.Steps[0].Cmd != test.expected.Cmd {
 			t.Fatalf("Test " + test.nameAndTaskIdentifier + " expected: " + test.expected.Cmd + " but resolved to " + test.current.Steps[0].Cmd)

@@ -37,6 +37,22 @@ type RegistryCredential struct {
 	AadResourceID string `json:"aadResourceId,omitempty"`
 }
 
+// CreateRegistryCredentialFromList creates a list of RegistryCredential
+// objects from list of serialized credentials.
+func CreateRegistryCredentialFromList(creds []string) ([]*RegistryCredential, error) {
+	var credentials []*RegistryCredential
+	for _, credString := range creds {
+		var cred *RegistryCredential
+		cred, err := CreateRegistryCredentialFromString(credString)
+		if err != nil {
+			return nil, err
+		}
+		credentials = append(credentials, cred)
+	}
+
+	return credentials, nil
+}
+
 // CreateRegistryCredentialFromString creates a RegistryCredential object from a serialized string.
 func CreateRegistryCredentialFromString(str string) (*RegistryCredential, error) {
 	var cred RegistryCredential
