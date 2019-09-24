@@ -17,6 +17,7 @@ import (
 	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
@@ -206,18 +207,17 @@ var Command = cli.Command{
 		}
 
 		versionInUse := graph.FindVersion(template.GetData())
-		shouldIncludeAlias := versionInUse == "" || versionInUse >= "v1.1.0"
+		shouldIncludeAlias := versionInUse >= "v1.1.0"
+
 		var alias *graph.Alias
 		var task *graph.Task
-		// TODO: (sam) refactor this.
-		// Find a way to do "rendering" and "preprocessing" in Task initialization `graph` module, instead of `commands`.
 		if shouldIncludeAlias {
 			log.Printf("Alias support enabled for version >= 1.1.0, please see https://aka.ms/acr/tasks/task-aliases for more information.")
 			// Preprocess the task to replace all aliases based on the alias sources.
-			post, aliasPtr, _, aliasErr := graph.PreprocessBytes(template.GetData())
-			alias = aliasPtr
+			post, _alias, _, aliasErr := graph.PreprocessBytes(template.GetData(), renderOpts)
+			alias = _alias
 			if aliasErr != nil {
-				return aliasErr
+				return errors.Wrapf(aliasErr, "preprocessing a task returned an error. Task \n%s", post)
 			}
 
 			template.Data = post
@@ -232,14 +232,22 @@ var Command = cli.Command{
 			log.Println(rendered)
 		}
 
-		task, err = graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
-		if err != nil {
-			return err
+		task, errUnmarshal := graph.UnmarshalTaskFromString(ctx, rendered, &graph.TaskOptions{
+			DefaultWorkingDir: defaultWorkingDirectory,
+			Network:           defaultNetwork,
+			Envs:              defaultEnvs,
+			Credentials:       credentials,
+			TaskName:          taskName,
+			DoPreprocessing:   false,
+		})
+		if errUnmarshal != nil {
+			return errors.Wrapf(errUnmarshal, "failed to unmarshal task from the string %s", rendered)
 		}
 
 		if shouldIncludeAlias {
 			graph.ExpandCommandAliases(alias, task)
 		}
+
 		builder := builder.NewBuilder(pm, debug, homevol)
 		defer builder.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
 		return builder.RunTask(gocontext.Background(), task)

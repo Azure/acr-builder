@@ -421,7 +421,7 @@ func TestPreProcessBytes(t *testing.T) {
 
 	for _, test := range tests {
 		input := yamlMap[test.nameAndTaskIdentifier]
-		data, _, _, err := PreprocessBytes(input)
+		data, _, _, err := PreprocessBytes(input, nil)
 		if err != nil && test.shouldError {
 			continue
 		}

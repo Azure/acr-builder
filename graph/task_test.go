@@ -265,7 +265,7 @@ steps:
 	}
 
 	for _, test := range tests {
-		task, err := NewTaskFromString(test.template, true)
+		task, err := NewTaskFromString(test.template, &TaskOptions{DoPreprocessing: true})
 		if test.shouldError && err == nil {
 			t.Fatalf("Expected task: %v to error but it didn't", test.template)
 		}
@@ -381,13 +381,14 @@ env: ["a=b", "c=d"]
 		actual, err := UnmarshalTaskFromString(
 			context.Background(),
 			test.data,
-			test.defaultWorkDir,
-			test.network,
-			test.envs,
-			test.creds,
-			test.taskName,
-			true,
-		)
+			&TaskOptions{
+				DefaultWorkingDir: test.defaultWorkDir,
+				Network:           test.network,
+				Envs:              test.envs,
+				Credentials:       test.creds,
+				TaskName:          test.taskName,
+				DoPreprocessing:   true,
+			})
 		if err != nil {
 			t.Fatalf("unexpected err: %v", err)
 		}

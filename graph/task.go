@@ -13,6 +13,7 @@ import (
 
 	"github.com/Azure/acr-builder/scan"
 	"github.com/Azure/acr-builder/secretmgmt"
+	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
@@ -25,8 +26,8 @@ const (
 	// The default step retry delay is 5 seconds.
 	defaultStepRetryDelayInSeconds = 5
 
-	// currentTaskVersion is the most recent Task version.
-	currentTaskVersion = "v1.1.0"
+	// currentTaskVersion is the most recent Task version
+	currentTaskVersion = "v1.0.0"
 
 	linuxOS = "linux"
 
@@ -36,8 +37,8 @@ const (
 var (
 	validTaskVersions = map[string]bool{
 		"1.0-preview-1":    true,
-		"v1.0.0":           true,
 		currentTaskVersion: true,
+		"v1.1.0":           true,
 	}
 )
 
@@ -68,13 +69,37 @@ type Task struct {
 	InitBuildkitContainer    bool // Used to initialize buildkit container if a build step is using build cache.
 }
 
+// TaskOptions are used to configure a new Task
+type TaskOptions struct {
+	// DefaultWorkingDir is the default working directory for the Task
+	DefaultWorkingDir string
+
+	// Network is the network the Task runs on
+	Network string
+
+	// Envs is a list of Task environment variables
+	Envs []string
+
+	// Credentials is a list of Registry credentials required to run a Task
+	Credentials []*RegistryCredential
+
+	// TaskName is the name of the Task
+	TaskName string
+
+	// DoPreprocessing is a property to decide whether we use Alias
+	DoPreprocessing bool
+
+	// BaseRenderingOptions is required to render Alias blurb
+	BaseRenderingOptions *templating.BaseRenderOptions
+}
+
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
-func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string, doPreprocessing bool) (*Task, error) {
-	t, err := NewTaskFromString(data, doPreprocessing)
+func UnmarshalTaskFromString(ctx context.Context, data string, opts *TaskOptions) (*Task, error) {
+	t, err := NewTaskFromString(data, opts)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
-	err = t.AddTaskDefaults(ctx, defaultWorkDir, network, envs, creds, taskName)
+	err = t.AddTaskDefaults(ctx, opts)
 	if err != nil {
 		return t, err
 	}
@@ -82,31 +107,31 @@ func UnmarshalTaskFromString(ctx context.Context, data string, defaultWorkDir st
 }
 
 // AddTaskDefaults prepares a Task with remaining parameters
-func (t *Task) AddTaskDefaults(ctx context.Context, defaultWorkDir string, network string, envs []string, creds []*RegistryCredential, taskName string) error {
-	if defaultWorkDir != "" && t.WorkingDirectory == "" {
-		t.WorkingDirectory = defaultWorkDir
+func (t *Task) AddTaskDefaults(ctx context.Context, opts *TaskOptions) error {
+	if opts.DefaultWorkingDir != "" && t.WorkingDirectory == "" {
+		t.WorkingDirectory = opts.DefaultWorkingDir
 	}
 
 	// Merge in the defaults with the Task's specific environment variables.
 	// NB: Order is important here. Allow the Task's environment variables to override the defaults provided.
-	newEnvs, err := mergeEnvs(t.Envs, envs)
+	newEnvs, err := mergeEnvs(t.Envs, opts.Envs)
 	if err != nil {
 		return err
 	}
 
 	t.Envs = newEnvs
-	t.Credentials = creds
-	if taskName != "" {
-		t.TaskName = taskName
+	t.Credentials = opts.Credentials
+	if opts.TaskName != "" {
+		t.TaskName = opts.TaskName
 	} else {
 		t.TaskName = noTaskNamePlaceholder
 	}
 
 	// External network parsed in from CLI will be set as default network, it will be used for any step if no network provide for them
 	// The external network is append at the end of the list of networks, later we will do reverse iteration to get this network
-	if network != "" {
+	if opts.Network != "" {
 		var externalNetwork *Network
-		externalNetwork, err = NewNetwork(network, false, "external", true, true)
+		externalNetwork, err = NewNetwork(opts.Network, false, "external", true, true)
 		if err != nil {
 			return err
 		}
@@ -118,19 +143,19 @@ func (t *Task) AddTaskDefaults(ctx context.Context, defaultWorkDir string, netwo
 }
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
-func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCredential, taskName string, doPreprocessing bool) (*Task, error) {
+func UnmarshalTaskFromFile(ctx context.Context, file string, opts *TaskOptions) (*Task, error) {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
-	t, err := NewTaskFromBytes(data, doPreprocessing)
+	t, err := NewTaskFromBytes(data, opts)
 	if err != nil {
 		return t, errors.Wrap(err, "failed to deserialize task and validate")
 	}
 
-	t.Credentials = creds
-	if taskName != "" {
-		t.TaskName = taskName
+	t.Credentials = opts.Credentials
+	if opts.TaskName != "" {
+		t.TaskName = opts.TaskName
 	} else {
 		t.TaskName = noTaskNamePlaceholder
 	}
@@ -139,15 +164,15 @@ func UnmarshalTaskFromFile(ctx context.Context, file string, creds []*RegistryCr
 }
 
 // NewTaskFromString unmarshals a Task from string without any initialization.
-func NewTaskFromString(data string, doPreprocessing bool) (*Task, error) {
-	return NewTaskFromBytes([]byte(data), doPreprocessing)
+func NewTaskFromString(data string, opts *TaskOptions) (*Task, error) {
+	return NewTaskFromBytes([]byte(data), opts)
 }
 
 // NewTaskFromBytes unmarshals a Task from given bytes without any initialization.
-func NewTaskFromBytes(data []byte, doPreprocessing bool) (*Task, error) {
+func NewTaskFromBytes(data []byte, opts *TaskOptions) (*Task, error) {
 	t := &Task{}
-	if doPreprocessing {
-		post, alias, changed, aliasErr := PreprocessBytes(data)
+	if opts.DoPreprocessing {
+		post, alias, changed, aliasErr := PreprocessBytes(data, opts.BaseRenderingOptions)
 
 		if aliasErr != nil {
 			return t, aliasErr
@@ -162,7 +187,6 @@ func NewTaskFromBytes(data []byte, doPreprocessing bool) (*Task, error) {
 			return t, err
 		}
 		ExpandCommandAliases(alias, t)
-
 	} else {
 		if err := yaml.Unmarshal(data, t); err != nil {
 			return t, err

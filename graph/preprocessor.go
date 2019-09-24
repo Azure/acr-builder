@@ -11,7 +11,6 @@ package graph
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -19,7 +18,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/util"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -221,7 +223,7 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 }
 
 // PreprocessBytes handles byte encoded data that can be parsed through pre processing
-func PreprocessBytes(data []byte) ([]byte, *Alias, bool, error) {
+func PreprocessBytes(data []byte, renderingOpts *templating.BaseRenderOptions) ([]byte, *Alias, bool, error) {
 	type Wrapper struct {
 		Alias Alias `yaml:"alias,omitempty"`
 	}
@@ -229,8 +231,18 @@ func PreprocessBytes(data []byte) ([]byte, *Alias, bool, error) {
 	wrap := &Wrapper{}
 	aliasData, remainingData := basicAliasSeparation(data)
 
+	// render any templates in Alias blurb first
+	if renderingOpts != nil {
+		values := templating.GetTaskRenderObject(renderingOpts)
+		renderedAlias, err := templating.NewEngine().RenderGoTemplate(uuid.New().String(), string(aliasData), values)
+		if err != nil {
+			return data, &Alias{}, false, errors.Wrap(err, "unable to render alias object")
+		}
+		aliasData = []byte(renderedAlias)
+	}
+
 	if errUnmarshal := yaml.Unmarshal(aliasData, wrap); errUnmarshal != nil {
-		return data, &Alias{}, false, errUnmarshal
+		return data, &Alias{}, false, errors.Wrap(errUnmarshal, "error during alias unmarshaling")
 	}
 
 	alias := &wrap.Alias
