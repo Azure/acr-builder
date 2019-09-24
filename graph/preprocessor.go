@@ -11,7 +11,6 @@ package graph
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -20,6 +19,7 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/util"
+	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -222,27 +222,28 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 
 // PreprocessBytes handles byte encoded data that can be parsed through pre processing
 func PreprocessBytes(data []byte) ([]byte, *Alias, bool, error) {
-	type Wrapper struct {
+	aliasData, remainingData := SeparateAliasFromRest(data)
+	return SearchReplaceAlias(data, aliasData, remainingData)
+}
+
+// SearchReplaceAlias replaces aliasData in the Task
+func SearchReplaceAlias(originalData, aliasData, remainingData []byte) ([]byte, *Alias, bool, error) {
+	type wrapper struct {
 		Alias Alias `yaml:"alias,omitempty"`
 	}
-
-	wrap := &Wrapper{}
-	aliasData, remainingData := basicAliasSeparation(data)
-
+	wrap := &wrapper{}
 	if errUnmarshal := yaml.Unmarshal(aliasData, wrap); errUnmarshal != nil {
-		return data, &Alias{}, false, errUnmarshal
+		return originalData, &Alias{}, false, errors.Wrap(errUnmarshal, "error during alias unmarshaling")
 	}
 
 	alias := &wrap.Alias
 
+	// Alias Src defined. Guarantees alias map can be populated
 	if alias.AliasMap == nil {
-		// Alias Src defined. Guarantees alias map can be populated
 		alias.AliasMap = make(map[string]string)
 	}
 	// Search and Replace
-	str := string(remainingData)
-	parsedStr, changed, err := preprocessString(alias, str)
-
+	parsedStr, changed, err := preprocessString(alias, string(remainingData))
 	return []byte(parsedStr), alias, changed, err
 }
 
@@ -259,8 +260,8 @@ func ExpandCommandAliases(alias *Alias, task *Task) {
 	}
 }
 
-// Provides simple separation of the top level items in a yaml file definition.
-func basicAliasSeparation(data []byte) ([]byte, []byte) {
+// SeparateAliasFromRest separates out alias blurb from the rest of the Task
+func SeparateAliasFromRest(data []byte) ([]byte, []byte) {
 	reader := bytes.NewReader(data)
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)

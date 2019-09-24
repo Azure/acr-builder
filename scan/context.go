@@ -136,7 +136,7 @@ func getWithStatusError(url string) (resp *http.Response, err error) {
 		if resp.StatusCode < 500 || attempt == maxRetries-1 {
 			body, bodyReadErr := ioutil.ReadAll(resp.Body)
 			if bodyReadErr != nil {
-				return nil, errors.Wrapf(bodyReadErr, fmt.Sprintf("%s: error reading body", msg))
+				return nil, errors.Wrap(bodyReadErr, fmt.Sprintf("%s: error reading body", msg))
 			}
 
 			resp.Body.Close()

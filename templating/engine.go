@@ -52,7 +52,11 @@ func (e *Engine) Render(t *Template, values Values) (string, error) {
 }
 
 func (e *Engine) render(rt renderableTemplate) (rendered string, err error) {
-	// If a template panics, recover the engine.
+	return e.RenderGoTemplate(rt.name, rt.template, rt.values)
+}
+
+// RenderGoTemplate renders a go template given template and data.
+func (e *Engine) RenderGoTemplate(name string, input string, data interface{}) (rendered string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("Template rendering recovered. Value: %v\n", r)
@@ -68,14 +72,14 @@ func (e *Engine) render(rt renderableTemplate) (rendered string, err error) {
 		t.Option("missingkey=zero")
 	}
 
-	t = t.New(rt.name).Funcs(e.FuncMap)
-	if _, err := t.Parse(rt.template); err != nil {
-		return "", fmt.Errorf("failed to parse template: %s. Err: %v", rt.name, err)
+	t = t.New(name).Funcs(e.FuncMap)
+	if _, err := t.Parse(input); err != nil {
+		return "", fmt.Errorf("failed to parse template: %s. Err: %v", name, err)
 	}
 
 	var buf bytes.Buffer
-	if err := t.ExecuteTemplate(&buf, rt.name, rt.values); err != nil {
-		return "", fmt.Errorf("failed to execute template: %s. Err: %v", rt.name, err)
+	if err := t.ExecuteTemplate(&buf, name, data); err != nil {
+		return "", fmt.Errorf("failed to execute template: %s. Err: %v", name, err)
 	}
 
 	// NB: handle `missingkey=zero` by removing the string.

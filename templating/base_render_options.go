@@ -79,9 +79,10 @@ type BaseRenderOptions struct {
 	TaskName string
 }
 
-// OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
-func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions) (Values, error) {
-	base := map[string]interface{}{
+// GetTaskRenderObject returns an Object based on Task primitives.
+// You can use this object to pass into Go template engine.
+func GetTaskRenderObject(opts *BaseRenderOptions) Values {
+	return map[string]interface{}{
 		"Build": map[string]interface{}{
 			"ID": opts.ID,
 		},
@@ -102,6 +103,11 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 			"TaskName":     opts.TaskName,
 		},
 	}
+}
+
+// OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
+func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions) (Values, error) {
+	base := GetTaskRenderObject(opts)
 
 	vals, err := OverrideValues(c1, c2)
 	if err != nil {
@@ -177,8 +183,13 @@ func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRende
 }
 
 // renderAndResolveSecrets parses the secrets in the template, resolves them using vault providers and returns the resolved secret values.
-func renderAndResolveSecrets(ctx context.Context, template *Template, templateEngine *Engine, resolveSecretFunc secretmgmt.ResolveSecretFunc, opts *BaseRenderOptions, sourceValues Values) (Values, error) {
-
+func renderAndResolveSecrets(
+	ctx context.Context,
+	template *Template,
+	templateEngine *Engine,
+	resolveSecretFunc secretmgmt.ResolveSecretFunc,
+	opts *BaseRenderOptions,
+	sourceValues Values) (Values, error) {
 	result := Values{}
 	// Cheap optimization to skip the secrets merging if it doesn't contain "secrets" string in it. Note that the task can
 	// have the string secrets but may not essentially the secrets section.
@@ -198,7 +209,7 @@ func renderAndResolveSecrets(ctx context.Context, template *Template, templateEn
 	}
 
 	// Unmarshall the template to Task and get all secrets defined in the template.
-	task, err := graph.NewTaskFromString(rendered, false)
+	task, err := graph.NewTaskFromString(rendered)
 	if err != nil {
 		return result, errors.Wrap(err, "failed to parse template to create task")
 	}
