@@ -186,7 +186,10 @@ func preprocessString(alias *Alias, str string) (string, error) {
 	ongoingCmd := false
 
 	// Search and replace all strings with the directive
-	for _, char := range str {
+	// (sam) we add a placeholder space at the end of the string below
+	// to force the state machine to END. We remove it before returning
+	// the result to user
+	for _, char := range str + " " {
 		if ongoingCmd {
 			if char == alias.directive && command.Len() == 0 { // Escape Character Triggered
 				out.WriteRune(alias.directive)
@@ -216,7 +219,7 @@ func preprocessString(alias *Alias, str string) (string, error) {
 		}
 	}
 
-	return out.String(), nil
+	return strings.TrimSuffix(out.String(), " "), nil
 }
 
 // PreprocessBytes handles byte encoded data that can be parsed through pre processing

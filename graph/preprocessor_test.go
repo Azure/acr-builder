@@ -620,3 +620,51 @@ version:foo:bar:beta`,
 		}
 	}
 }
+
+func TestProcessString(t *testing.T) {
+	tests := []struct {
+		input    string
+		alias    *Alias
+		expected string
+	}{
+		{
+			input: "build: -t $foo ",
+			alias: &Alias{
+				AliasMap: map[string]string{
+					"foo": "bar",
+				},
+			},
+			expected: "build: -t bar ",
+		},
+		{
+			input: `
+- build: -t $reg/$repo:$ID .
+- cmd: $acr {{$foo}}
+- cmd: $acb exec 
+- push:
+	- {{.Run.Registry}}/hello-world:$ID
+	- $Registry/hello-world:$ID2`,
+			alias: &Alias{
+				AliasMap: map[string]string{
+					"reg": "{{.Run.Registry}}",
+					"foo": ".Values.bar",
+					"acb": "mcr.microsoft.com/acb:zzz",
+				},
+			},
+			expected: `
+- build: -t {{.Run.Registry}}/$repo:{{.Run.ID}} .
+- cmd: mcr.microsoft.com/acr/acr-cli:0.1 {{.Values.bar}}
+- cmd: mcr.microsoft.com/acb:zzz exec 
+- push:
+	- {{.Run.Registry}}/hello-world:{{.Run.ID}}
+	- {{.Run.Registry}}/hello-world:$ID2`,
+		},
+	}
+
+	for _, test := range tests {
+		actual, _ := preprocessString(test.alias, test.input)
+		if actual != test.expected {
+			t.Errorf("Expected %s but got %s", test.expected, actual)
+		}
+	}
+}
