@@ -639,8 +639,7 @@ func TestProcessString(t *testing.T) {
 		{
 			input: `
 - build: -t $reg/$repo:$ID .
-- cmd: $acr {{$foo}}
-- cmd: $acb exec 
+- cmd: $acb exec {{$foo}}
 - push:
 	- {{.Run.Registry}}/hello-world:$ID
 	- $Registry/hello-world:$ID2`,
@@ -653,8 +652,7 @@ func TestProcessString(t *testing.T) {
 			},
 			expected: `
 - build: -t {{.Run.Registry}}/$repo:{{.Run.ID}} .
-- cmd: mcr.microsoft.com/acr/acr-cli:0.1 {{.Values.bar}}
-- cmd: mcr.microsoft.com/acb:zzz exec 
+- cmd: mcr.microsoft.com/acb:zzz exec {{.Values.bar}}
 - push:
 	- {{.Run.Registry}}/hello-world:{{.Run.ID}}
 	- {{.Run.Registry}}/hello-world:$ID2`,
