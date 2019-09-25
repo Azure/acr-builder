@@ -421,7 +421,7 @@ func TestPreProcessBytes(t *testing.T) {
 
 	for _, test := range tests {
 		input := yamlMap[test.nameAndTaskIdentifier]
-		data, _, _, err := preprocessBytes(input)
+		data, _, err := PreprocessBytes(input)
 		if err != nil && test.shouldError {
 			continue
 		}
@@ -559,7 +559,7 @@ func TestPreProcessSteps(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		processSteps(&test.alias, &test.current)
+		ExpandCommandAliases(&test.alias, &test.current)
 
 		if test.current.Steps[0].Cmd != test.expected.Cmd {
 			t.Fatalf("Test " + test.nameAndTaskIdentifier + " expected: " + test.expected.Cmd + " but resolved to " + test.current.Steps[0].Cmd)
@@ -617,6 +617,54 @@ version:foo:bar:beta`,
 		actualVersion := FindVersion([]byte(test.task))
 		if actualVersion != test.expectedVersion {
 			t.Errorf("Expected %s but got %s", test.expectedVersion, actualVersion)
+		}
+	}
+}
+
+func TestProcessString(t *testing.T) {
+	tests := []struct {
+		input    string
+		alias    *Alias
+		expected string
+	}{
+		{
+			input: "build: -t $foo ",
+			alias: &Alias{
+				AliasMap: map[string]string{
+					"foo": "bar",
+				},
+			},
+			expected: "build: -t bar ",
+		},
+		{
+			input: `
+- build: -t $reg/$repo:$ID .
+- cmd: $acr {{$foo}}
+- cmd: $acb exec 
+- push:
+	- {{.Run.Registry}}/hello-world:$ID
+	- $Registry/hello-world:$ID2`,
+			alias: &Alias{
+				AliasMap: map[string]string{
+					"reg": "{{.Run.Registry}}",
+					"foo": ".Values.bar",
+					"acb": "mcr.microsoft.com/acb:zzz",
+				},
+			},
+			expected: `
+- build: -t {{.Run.Registry}}/$repo:{{.Run.ID}} .
+- cmd: mcr.microsoft.com/acr/acr-cli:0.1 {{.Values.bar}}
+- cmd: mcr.microsoft.com/acb:zzz exec 
+- push:
+	- {{.Run.Registry}}/hello-world:{{.Run.ID}}
+	- {{.Run.Registry}}/hello-world:$ID2`,
+		},
+	}
+
+	for _, test := range tests {
+		actual, _ := preprocessString(test.alias, test.input)
+		if actual != test.expected {
+			t.Errorf("Expected %s but got %s", test.expected, actual)
 		}
 	}
 }

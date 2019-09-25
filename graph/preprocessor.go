@@ -11,7 +11,6 @@ package graph
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -20,6 +19,7 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/util"
+	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -168,26 +168,28 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 // preprocessString handles the preprocessing (string replacement and resolution)
 // of all aliases in an input yaml (passed in as a string). The resolved aliases are
 // defined in the input alias file.
-func preprocessString(alias *Alias, str string) (string, bool, error) {
+func preprocessString(alias *Alias, str string) (string, error) {
 	// Load Remote/Local alias definitions
 	if externalDefinitionErr := alias.loadExternalAlias(); externalDefinitionErr != nil {
-		return "", false, externalDefinitionErr
+		return "", externalDefinitionErr
 	}
 
 	alias.loadGlobalAlias()
 
 	// Validate alias definitions
 	if improperFormatErr := alias.resolveMapAndValidate(); improperFormatErr != nil {
-		return "", false, improperFormatErr
+		return "", improperFormatErr
 	}
 
 	var out strings.Builder
 	var command strings.Builder
 	ongoingCmd := false
-	changed := false
 
 	// Search and replace all strings with the directive
-	for _, char := range str {
+	// (sam) we add a placeholder space at the end of the string below
+	// to force the state machine to END. We remove it before returning
+	// the result to user
+	for _, char := range str + " " {
 		if ongoingCmd {
 			if char == alias.directive && command.Len() == 0 { // Escape Character Triggered
 				out.WriteRune(alias.directive)
@@ -196,11 +198,11 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 				resolvedCommand, commandPresent := alias.AliasMap[command.String()]
 				// If command is not found we assume this to be the expect item itself.
 				if !commandPresent {
-					out.WriteString(string(alias.directive) + command.String())
+					out.WriteString(string(alias.directive) + command.String() + string(char))
+					ongoingCmd = false
 					command.Reset()
 				} else {
 					out.WriteString(resolvedCommand)
-					changed = true
 					if char != alias.directive {
 						ongoingCmd = false
 						out.WriteRune(char)
@@ -217,38 +219,39 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 		}
 	}
 
-	return out.String(), changed, nil
+	return strings.TrimSuffix(out.String(), " "), nil
 }
 
-// preprocessBytes handles byte encoded data that can be parsed through pre processing
-func preprocessBytes(data []byte) ([]byte, Alias, bool, error) {
-	type Wrapper struct {
+// PreprocessBytes handles byte encoded data that can be parsed through pre processing
+func PreprocessBytes(data []byte) ([]byte, *Alias, error) {
+	aliasData, remainingData := SeparateAliasFromRest(data)
+	return SearchReplaceAlias(data, aliasData, remainingData)
+}
+
+// SearchReplaceAlias replaces aliasData in the Task
+func SearchReplaceAlias(originalData, aliasData, data []byte) ([]byte, *Alias, error) {
+	type wrapper struct {
 		Alias Alias `yaml:"alias,omitempty"`
 	}
-
-	wrap := &Wrapper{}
-	aliasData, remainingData := basicAliasSeparation(data)
-
+	wrap := &wrapper{}
 	if errUnmarshal := yaml.Unmarshal(aliasData, wrap); errUnmarshal != nil {
-		return data, Alias{}, false, errUnmarshal
+		return originalData, &Alias{}, errors.Wrap(errUnmarshal, "error during alias unmarshaling")
 	}
 
 	alias := &wrap.Alias
 
+	// Alias Src defined. Guarantees alias map can be populated
 	if alias.AliasMap == nil {
-		// Alias Src defined. Guarantees alias map can be populated
 		alias.AliasMap = make(map[string]string)
 	}
 	// Search and Replace
-	str := string(remainingData)
-	parsedStr, changed, err := preprocessString(alias, str)
-
-	return []byte(parsedStr), *alias, changed, err
+	parsedStr, err := preprocessString(alias, string(data))
+	return []byte(parsedStr), alias, err
 }
 
-// processSteps Will resolve image names in steps that are aliased without using directive.
+// ExpandCommandAliases will resolve image names in cmd steps that are aliased without using directive.
 // Invoked after resolving all directive using aliases
-func processSteps(alias *Alias, task *Task) {
+func ExpandCommandAliases(alias *Alias, task *Task) {
 	for i, step := range task.Steps {
 		parts := strings.Split(strings.TrimSpace(step.Cmd), " ")
 		if val, ok := alias.AliasMap[parts[0]]; ok {
@@ -259,8 +262,8 @@ func processSteps(alias *Alias, task *Task) {
 	}
 }
 
-// Provides simple separation of the top level items in a yaml file definition.
-func basicAliasSeparation(data []byte) ([]byte, []byte) {
+// SeparateAliasFromRest separates out alias blurb from the rest of the Task
+func SeparateAliasFromRest(data []byte) ([]byte, []byte) {
 	reader := bytes.NewReader(data)
 	scanner := bufio.NewScanner(reader)
 	scanner.Split(bufio.ScanLines)

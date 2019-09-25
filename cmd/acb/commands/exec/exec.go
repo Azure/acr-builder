@@ -10,8 +10,6 @@ import (
 	"runtime"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/Azure/acr-builder/builder"
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/procmanager"
@@ -19,6 +17,7 @@ import (
 	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/templating"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
@@ -151,7 +150,7 @@ var Command = cli.Command{
 			taskFile = defaultTaskFile
 		}
 
-		ctx := gocontext.Background()
+		ctx := gocontext.WithValue(gocontext.Background(), "debug", debug)
 		pm := procmanager.NewProcManager(dryRun)
 
 		if homevol == "" {
@@ -201,55 +200,66 @@ var Command = cli.Command{
 			}
 		}
 
-		versionInUse := graph.FindVersion(template.GetData())
-		shouldIncludeAlias := versionInUse == "" || versionInUse >= "v1.1.0"
+		// Add all creds provided by the user in the --credential flag
+		credentials, err := graph.CreateRegistryCredentialFromList(creds)
+		if err != nil {
+			return errors.Wrap(err, "error creating registry credentials from given list")
+		}
 
 		var task *graph.Task
+		var alias *graph.Alias
+
+		versionInUse := graph.FindVersion(template.GetData())
+		shouldIncludeAlias := versionInUse >= "v1.1.0"
 		if shouldIncludeAlias {
 			log.Printf("Alias support enabled for version >= 1.1.0, please see https://aka.ms/acr/tasks/task-aliases for more information.")
-			// Generate the base task file without resolving environment variables.
-			task, err = graph.NewTaskFromBytes(template.GetData(), true)
-			if err != nil {
-				return err
-			}
+			// separate alias and remaining data from the Task
+			aliasData, taskData := graph.SeparateAliasFromRest(template.GetData())
 
-			// Remarshal functional task file to resolve templating
-			var fromTask []byte
-			fromTask, err = yaml.Marshal(*task)
-			if err != nil {
-				return err
+			// render alias data
+			renderedAlias, renderAliasErr := templating.LoadAndRenderSteps(ctx, templating.NewTemplate("aliasData", aliasData), renderOpts)
+			if renderAliasErr != nil {
+				return errors.Wrap(renderAliasErr, "unable to render alias data")
 			}
-			template.Data = fromTask
+			aliasData = []byte(renderedAlias)
+			// Preprocess the task to replace all aliases based on the alias sources.
+			processedTask, _alias, aliasErr := graph.SearchReplaceAlias(template.GetData(), aliasData, taskData)
+			alias = _alias
+			if aliasErr != nil {
+				return errors.Wrap(renderAliasErr, "unable to search/replace aliases in task")
+			}
+			if ctx.Value("debug").(bool) {
+				log.Printf("Processed task before rendering data:\n%s", processedTask)
+			}
+			// update the template.Data
+			template.Data = processedTask
 		}
 
 		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "unable to render task")
+		}
+		if ctx.Value("debug").(bool) {
+			log.Printf("Rendered template:\n%s", rendered)
 		}
 
-		if debug {
-			log.Println("Rendered template:")
-			log.Println(rendered)
-		}
-
-		var credentials []*graph.RegistryCredential
-		// Add all creds provided by the user in the --credential flag
-		for _, credString := range creds {
-			var cred *graph.RegistryCredential
-			cred, err = graph.CreateRegistryCredentialFromString(credString)
-			if err != nil {
-				return err
-			}
-			credentials = append(credentials, cred)
-		}
-
-		taskFinal, errUnmarshal := graph.UnmarshalTaskFromString(ctx, rendered, defaultWorkingDirectory, defaultNetwork, defaultEnvs, credentials, taskName, false)
+		task, errUnmarshal := graph.UnmarshalTaskFromString(ctx, rendered, &graph.TaskOptions{
+			DefaultWorkingDir: defaultWorkingDirectory,
+			Network:           defaultNetwork,
+			Envs:              defaultEnvs,
+			Credentials:       credentials,
+			TaskName:          taskName,
+		})
 		if errUnmarshal != nil {
-			return errUnmarshal
+			return errors.Wrap(errUnmarshal, "failed to unmarshal task before running")
+		}
+
+		if shouldIncludeAlias {
+			graph.ExpandCommandAliases(alias, task)
 		}
 
 		builder := builder.NewBuilder(pm, debug, homevol)
-		defer builder.CleanTask(gocontext.Background(), taskFinal) // Use a separate context since the other may have expired.
-		return builder.RunTask(gocontext.Background(), taskFinal)
+		defer builder.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
+		return builder.RunTask(gocontext.Background(), task)
 	},
 }
