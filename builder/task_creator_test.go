@@ -1,14 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package build
+package builder
 
 import (
 	"context"
 	"testing"
 
 	"github.com/Azure/acr-builder/graph"
-	"github.com/Azure/acr-builder/templating"
 	"github.com/Azure/acr-builder/util"
 )
 
@@ -26,34 +25,32 @@ func TestCreateBuildTask(t *testing.T) {
 		platform        = "somePlatform"
 		buildContext    = "src"
 		registry        = "foo.azurecr.io"
-		renderOpts      = &templating.BaseRenderOptions{
-			Registry: registry,
-		}
-		debug      = false
-		push       = true
-		creds      = []string{`{"registry":"foo.azurecr.io","username":"user","userNameProviderType":"opaque","password":"pw","passwordProviderType":"opaque"}`}
-		workingDir = ""
+		push            = true
+		creds           = []string{`{"registry":"foo.azurecr.io","username":"user","userNameProviderType":"opaque","password":"pw","passwordProviderType":"opaque"}`}
+		workingDir      = ""
 	)
 
-	task, err := createBuildTask(
-		context.Background(),
-		isolation,
-		pull,
-		labels,
-		noCache,
-		dockerfile,
-		tags,
-		buildArgs,
-		secretBuildArgs,
-		target,
-		platform,
-		buildContext,
-		renderOpts,
-		debug,
-		registry,
-		push,
-		creds,
-		workingDir)
+	type ctxKey string
+	var debug ctxKey = "debug"
+	ctx := context.WithValue(context.Background(), debug, true)
+
+	task, err := CreateBuildTask(ctx, &TaskCreateOptions{
+		Isolation:        isolation,
+		Pull:             pull,
+		Labels:           labels,
+		NoCache:          noCache,
+		Dockerfile:       dockerfile,
+		Tags:             tags,
+		BuildArgs:        buildArgs,
+		SecretBuildArgs:  secretBuildArgs,
+		Target:           target,
+		Platform:         platform,
+		BuildContext:     buildContext,
+		Registry:         registry,
+		Push:             push,
+		Credentials:      creds,
+		WorkingDirectory: workingDir,
+	})
 	if err != nil {
 		t.Fatalf("failed to create build task, err: %v", err)
 	}

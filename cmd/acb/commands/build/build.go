@@ -5,27 +5,16 @@ package build
 
 import (
 	gocontext "context"
-	"errors"
 	"fmt"
 	"log"
-	"runtime"
-	"strings"
-	"time"
 
 	"github.com/Azure/acr-builder/builder"
-	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/executor"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/pkg/volume"
-	"github.com/Azure/acr-builder/secretmgmt"
-	"github.com/Azure/acr-builder/templating"
-	"github.com/Azure/acr-builder/util"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-)
-
-const (
-	buildTimeoutInSec = 60 * 60 * 8 // 8 hours
-	pushTimeoutInSec  = 60 * 30     // 30 minutes
 )
 
 // Command executes a container build.
@@ -209,10 +198,22 @@ var Command = cli.Command{
 		}
 		log.Printf("Using %s as the home volume\n", homevol)
 
-		renderOpts := &templating.BaseRenderOptions{
+		task, err := builder.CreateBuildTask(ctx, &builder.TaskCreateOptions{
+			BuildContext:            buildContext,
+			Dockerfile:              dockerfile,
+			WorkingDirectory:        defaultWorkingDirectory,
+			Target:                  target,
+			Isolation:               isolation,
+			Platform:                platform,
+			Tags:                    tags,
+			BuildArgs:               buildArgs,
+			SecretBuildArgs:         secretBuildArgs,
+			Labels:                  labels,
+			Pull:                    pull,
+			NoCache:                 noCache,
 			ValuesFile:              values,
 			Base64EncodedValuesFile: encodedValues,
-			TemplateValues:          setVals,
+			SharedVolume:            homevol,
 			ID:                      id,
 			Commit:                  commit,
 			Repository:              repository,
@@ -220,143 +221,16 @@ var Command = cli.Command{
 			TriggeredBy:             triggeredBy,
 			GitTag:                  tag,
 			Registry:                registry,
-			Date:                    time.Now().UTC(),
-			SharedVolume:            homevol,
-			OS:                      runtime.GOOS,
 			OSVersion:               osVersion,
-			Architecture:            runtime.GOARCH,
-		}
-
-		task, err := createBuildTask(
-			ctx,
-			isolation,
-			pull,
-			labels,
-			noCache,
-			dockerfile,
-			tags,
-			buildArgs,
-			secretBuildArgs,
-			target,
-			platform,
-			buildContext,
-			renderOpts,
-			debug,
-			registry,
-			push,
-			creds,
-			defaultWorkingDirectory)
+			TemplateValues:          setVals,
+			Credentials:             creds,
+		})
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to build a task")
 		}
 
-		builder := builder.NewBuilder(pm, debug, homevol)
-		defer builder.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
-		return builder.RunTask(gocontext.Background(), task)
+		executor := executor.NewBuilder(pm, debug, homevol)
+		defer executor.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
+		return executor.RunTask(gocontext.Background(), task)
 	},
-}
-
-func createBuildTask(
-	ctx gocontext.Context,
-	isolation string,
-	pull bool,
-	labels []string,
-	noCache bool,
-	dockerfile string,
-	tags []string,
-	buildArgs []string,
-	secretBuildArgs []string,
-	target string,
-	platform string,
-	buildContext string,
-	renderOpts *templating.BaseRenderOptions,
-	debug bool,
-	registry string,
-	push bool,
-	creds []string,
-	workingDirectory string,
-) (*graph.Task, error) {
-	// Create the run command to be used in the template
-	args := []string{}
-	if isolation != "" {
-		args = append(args, fmt.Sprintf("--isolation=%s", isolation))
-	}
-	if pull {
-		args = append(args, "--pull")
-	}
-	for _, label := range labels {
-		args = append(args, "--label", label)
-	}
-	if noCache {
-		args = append(args, "--no-cache")
-	}
-	if dockerfile != "" {
-		args = append(args, "-f", dockerfile)
-	}
-	for _, tag := range tags {
-		args = append(args, "-t", tag)
-	}
-	for _, buildArg := range buildArgs {
-		args = append(args, "--build-arg", buildArg)
-	}
-	for _, secretBuildArg := range secretBuildArgs {
-		args = append(args, "--build-arg", secretBuildArg)
-	}
-	if target != "" {
-		args = append(args, "--target", target)
-	}
-	if platform != "" {
-		args = append(args, "--platform", platform)
-	}
-	args = append(args, buildContext)
-	runCmd := strings.Join(args, " ")
-
-	// Create the template
-	template := templating.NewTemplate("build", []byte(runCmd))
-
-	rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	if debug {
-		log.Println("Rendered template:")
-		log.Println(rendered)
-	}
-
-	// After the template has rendered, we have to parse the tags again
-	// so we can properly set the build/push tags.
-	rendered, prefixedTags := util.PrefixTags(rendered, registry)
-	tags = prefixedTags
-
-	buildStep := &graph.Step{
-		ID:      "build",
-		Build:   rendered,
-		Timeout: buildTimeoutInSec,
-		Tags:    tags,
-	}
-
-	steps := []*graph.Step{buildStep}
-
-	if push {
-		pushStep := &graph.Step{
-			ID:      "push",
-			Push:    tags,
-			Timeout: pushTimeoutInSec,
-			When:    []string{buildStep.ID},
-		}
-
-		steps = append(steps, pushStep)
-	}
-
-	var credentials []*graph.RegistryCredential
-	for _, credString := range creds {
-		cred, err := graph.CreateRegistryCredentialFromString(credString)
-		if err != nil {
-			return nil, err
-		}
-		credentials = append(credentials, cred)
-	}
-
-	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, true, workingDirectory, "")
 }

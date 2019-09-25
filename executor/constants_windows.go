@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package builder
+package executor
 
 const (
 	// homeWorkDir is the working directory to start at in $HOME

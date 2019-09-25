@@ -6,16 +6,14 @@ package exec
 import (
 	gocontext "context"
 	"fmt"
-	"log"
 	"runtime"
 	"time"
 
 	"github.com/Azure/acr-builder/builder"
-	"github.com/Azure/acr-builder/graph"
+	"github.com/Azure/acr-builder/executor"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/pkg/volume"
 	"github.com/Azure/acr-builder/secretmgmt"
-	"github.com/Azure/acr-builder/templating"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -166,12 +164,16 @@ var Command = cli.Command{
 			}
 		}
 
-		renderOpts := &templating.BaseRenderOptions{
+		task, err := builder.CreateExecTask(ctx, &builder.TaskCreateOptions{
 			TaskFile:                taskFile,
 			Base64EncodedTaskFile:   encodedTaskFile,
+			WorkingDirectory:        defaultWorkingDirectory,
+			Network:                 defaultNetwork,
+			Env:                     defaultEnvs,
+			Credentials:             creds,
 			ValuesFile:              values,
 			Base64EncodedValuesFile: encodedValues,
-			TemplateValues:          setVals,
+			SharedVolume:            homevol,
 			ID:                      id,
 			Commit:                  commit,
 			Repository:              repository,
@@ -180,86 +182,20 @@ var Command = cli.Command{
 			GitTag:                  tag,
 			Registry:                registry,
 			Date:                    time.Now().UTC(),
-			SharedVolume:            homevol,
 			OS:                      runtime.GOOS,
 			OSVersion:               osVersion,
 			Architecture:            runtime.GOARCH,
 			SecretResolveTimeout:    secretmgmt.DefaultSecretResolveTimeout,
+			TemplateValues:          setVals,
 			TaskName:                taskName,
-		}
-
-		var template *templating.Template
-		var err error
-		if taskFile == "" {
-			if template, err = templating.DecodeTemplate(encodedTaskFile); err != nil {
-				return err
-			}
-		} else {
-			if template, err = templating.LoadTemplate(taskFile); err != nil {
-				return err
-			}
-		}
-
-		// Add all creds provided by the user in the --credential flag
-		credentials, err := graph.CreateRegistryCredentialFromList(creds)
-		if err != nil {
-			return errors.Wrap(err, "error creating registry credentials from given list")
-		}
-
-		var task *graph.Task
-		var alias *graph.Alias
-
-		versionInUse := graph.FindVersion(template.GetData())
-		shouldIncludeAlias := versionInUse >= "v1.1.0"
-		if shouldIncludeAlias {
-			log.Printf("Alias support enabled for version >= 1.1.0, please see https://aka.ms/acr/tasks/task-aliases for more information.")
-			// separate alias and remaining data from the Task
-			aliasData, taskData := graph.SeparateAliasFromRest(template.GetData())
-
-			// render alias data
-			renderedAlias, renderAliasErr := templating.LoadAndRenderSteps(ctx, templating.NewTemplate("aliasData", aliasData), renderOpts)
-			if renderAliasErr != nil {
-				return errors.Wrap(renderAliasErr, "unable to render alias data")
-			}
-			aliasData = []byte(renderedAlias)
-			// Preprocess the task to replace all aliases based on the alias sources.
-			processedTask, _alias, aliasErr := graph.SearchReplaceAlias(template.GetData(), aliasData, taskData)
-			alias = _alias
-			if aliasErr != nil {
-				return errors.Wrap(renderAliasErr, "unable to search/replace aliases in task")
-			}
-			if ctx.Value("debug").(bool) {
-				log.Printf("Processed task before rendering data:\n%s", processedTask)
-			}
-			// update the template.Data
-			template.Data = processedTask
-		}
-
-		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
-		if err != nil {
-			return errors.Wrap(err, "unable to render task")
-		}
-		if ctx.Value("debug").(bool) {
-			log.Printf("Rendered template:\n%s", rendered)
-		}
-
-		task, errUnmarshal := graph.UnmarshalTaskFromString(ctx, rendered, &graph.TaskOptions{
-			DefaultWorkingDir: defaultWorkingDirectory,
-			Network:           defaultNetwork,
-			Envs:              defaultEnvs,
-			Credentials:       credentials,
-			TaskName:          taskName,
 		})
-		if errUnmarshal != nil {
-			return errors.Wrap(errUnmarshal, "failed to unmarshal task before running")
+
+		if err != nil {
+			return errors.Wrap(err, "failed to build a task")
 		}
 
-		if shouldIncludeAlias {
-			graph.ExpandCommandAliases(alias, task)
-		}
-
-		builder := builder.NewBuilder(pm, debug, homevol)
-		defer builder.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
-		return builder.RunTask(gocontext.Background(), task)
+		executor := executor.NewBuilder(pm, debug, homevol)
+		defer executor.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
+		return executor.RunTask(gocontext.Background(), task)
 	},
 }

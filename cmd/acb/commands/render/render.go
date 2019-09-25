@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/Azure/acr-builder/builder"
 	"github.com/Azure/acr-builder/secretmgmt"
-	"github.com/Azure/acr-builder/templating"
 	"github.com/urfave/cli"
 )
 
@@ -100,7 +100,7 @@ var Command = cli.Command{
 			osVersion     = context.String("os-version")
 			setVals       = context.StringSlice("set")
 
-			renderOpts = &templating.BaseRenderOptions{
+			renderOpts = &builder.BaseRenderOptions{
 				TaskFile:                taskFile,
 				Base64EncodedTaskFile:   encodedTaskFile,
 				ValuesFile:              values,
@@ -126,19 +126,19 @@ var Command = cli.Command{
 			return errors.New("a task file or base64 encoded task file is required")
 		}
 
-		var template *templating.Template
+		var template *builder.Template
 		var err error
 		if taskFile == "" {
-			if template, err = templating.DecodeTemplate(encodedTaskFile); err != nil {
+			if template, err = builder.DecodeTemplate(encodedTaskFile); err != nil {
 				return err
 			}
 		} else {
-			if template, err = templating.LoadTemplate(taskFile); err != nil {
+			if template, err = builder.LoadTemplate(taskFile); err != nil {
 				return err
 			}
 		}
 
-		rendered, err := templating.LoadAndRenderSteps(gocontext.Background(), template, renderOpts)
+		rendered, err := builder.LoadAndRenderSteps(gocontext.Background(), template, renderOpts)
 		if err != nil {
 			return err
 		}
