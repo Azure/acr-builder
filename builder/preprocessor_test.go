@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package graph
+package builder
 
 import (
 	"bufio"
@@ -15,6 +15,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/Azure/acr-builder/graph"
 	"github.com/pkg/errors"
 )
 
@@ -498,7 +499,7 @@ func extractTaskYamls(file string) (map[string][]byte, error) {
 }
 
 func TestPreProcessSteps(t *testing.T) {
-	resSteps := []Step{
+	resSteps := []graph.Step{
 		{Cmd: `purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"`},
 		{Cmd: `        purge --registry {{.Run.Registry}} --filter 'samples/devimage1:.*' --filter 'samples/devimage2:.*' --ago 0d --untagged --dry-run"            `},
 		{Cmd: `fakealias --wait 300`},
@@ -509,8 +510,8 @@ func TestPreProcessSteps(t *testing.T) {
 		nameAndTaskIdentifier string
 		shouldError           bool
 		alias                 Alias
-		current               Task
-		expected              Step
+		current               graph.Task
+		expected              graph.Step
 	}{
 		{
 			"Simple replacement",
@@ -518,8 +519,8 @@ func TestPreProcessSteps(t *testing.T) {
 			Alias{
 				AliasMap: map[string]string{"purge": "acr purge"},
 			},
-			Task{
-				Steps: []*Step{&resSteps[0]},
+			graph.Task{
+				Steps: []*graph.Step{&resSteps[0]},
 			},
 			resSteps[4],
 		},
@@ -529,8 +530,8 @@ func TestPreProcessSteps(t *testing.T) {
 			Alias{
 				AliasMap: map[string]string{"purge": "acr purge"},
 			},
-			Task{
-				Steps: []*Step{&resSteps[1]},
+			graph.Task{
+				Steps: []*graph.Step{&resSteps[1]},
 			},
 			resSteps[4],
 		},
@@ -540,8 +541,8 @@ func TestPreProcessSteps(t *testing.T) {
 			Alias{
 				AliasMap: map[string]string{"acr": "acr expanded"},
 			},
-			Task{
-				Steps: []*Step{&resSteps[2]},
+			graph.Task{
+				Steps: []*graph.Step{&resSteps[2]},
 			},
 			resSteps[2],
 		},
@@ -551,8 +552,8 @@ func TestPreProcessSteps(t *testing.T) {
 			Alias{
 				AliasMap: map[string]string{"acr": "acr expanded"},
 			},
-			Task{
-				Steps: []*Step{&resSteps[3]},
+			graph.Task{
+				Steps: []*graph.Step{&resSteps[3]},
 			},
 			resSteps[3],
 		},

@@ -6,7 +6,7 @@
 // files. This is done by unmarshaling these elements which will then be added in a hierarchical
 // manner. Note the input must still be valid YAML.
 
-package graph
+package builder
 
 import (
 	"bufio"
@@ -18,8 +18,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
+
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -251,7 +253,7 @@ func SearchReplaceAlias(originalData, aliasData, data []byte) ([]byte, *Alias, e
 
 // ExpandCommandAliases will resolve image names in cmd steps that are aliased without using directive.
 // Invoked after resolving all directive using aliases
-func ExpandCommandAliases(alias *Alias, task *Task) {
+func ExpandCommandAliases(alias *Alias, task *graph.Task) {
 	for i, step := range task.Steps {
 		parts := strings.Split(strings.TrimSpace(step.Cmd), " ")
 		if val, ok := alias.AliasMap[parts[0]]; ok {

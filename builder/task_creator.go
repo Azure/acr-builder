@@ -176,13 +176,13 @@ func CreateExecTask(ctx context.Context, opts *TaskCreateOptions) (*graph.Task, 
 	}
 
 	var task *graph.Task
-	var alias *graph.Alias
-	versionInUse := graph.FindVersion(template.GetData())
+	var alias *Alias
+	versionInUse := FindVersion(template.GetData())
 	shouldIncludeAlias := versionInUse >= "v1.1.0"
 	if shouldIncludeAlias {
 		log.Printf("Alias support enabled for version >= 1.1.0, please see https://aka.ms/acr/tasks/task-aliases for more information.")
 		// separate alias and remaining data from the Task
-		aliasData, taskData := graph.SeparateAliasFromRest(template.GetData())
+		aliasData, taskData := SeparateAliasFromRest(template.GetData())
 
 		// render alias data
 		renderedAlias, renderAliasErr := LoadAndRenderSteps(ctx, NewTemplate("aliasData", aliasData), renderOpts)
@@ -191,7 +191,7 @@ func CreateExecTask(ctx context.Context, opts *TaskCreateOptions) (*graph.Task, 
 		}
 		aliasData = []byte(renderedAlias)
 		// Preprocess the task to replace all aliases based on the alias sources.
-		processedTask, _alias, aliasErr := graph.SearchReplaceAlias(template.GetData(), aliasData, taskData)
+		processedTask, _alias, aliasErr := SearchReplaceAlias(template.GetData(), aliasData, taskData)
 		alias = _alias
 		if aliasErr != nil {
 			return nil, errors.Wrap(renderAliasErr, "unable to search/replace aliases in task")
@@ -223,7 +223,7 @@ func CreateExecTask(ctx context.Context, opts *TaskCreateOptions) (*graph.Task, 
 	}
 
 	if shouldIncludeAlias {
-		graph.ExpandCommandAliases(alias, task)
+		ExpandCommandAliases(alias, task)
 	}
 
 	return task, nil

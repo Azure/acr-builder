@@ -1,4 +1,4 @@
-package graph
+package builder
 
 // isAlphanumeric checks whether a particular rune is alphanumeric
 func isAlphanumeric(c rune) bool {
