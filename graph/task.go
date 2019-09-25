@@ -87,6 +87,9 @@ type TaskOptions struct {
 
 	// DoPreprocessing is a property to decide whether we use Alias
 	DoPreprocessing bool
+
+	// GlobalAliases keeps track of all the Task native global aliases
+	GlobalAliases []byte
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
@@ -170,7 +173,6 @@ func NewTaskFromBytes(data []byte) (*Task, error) {
 	if err := yaml.Unmarshal(data, t); err != nil {
 		return t, err
 	}
-
 	return t, t.Validate()
 }
 

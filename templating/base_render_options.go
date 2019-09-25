@@ -79,10 +79,9 @@ type BaseRenderOptions struct {
 	TaskName string
 }
 
-// GetTaskRenderObject returns an Object based on Task primitives.
-// You can use this object to pass into Go template engine.
-func GetTaskRenderObject(opts *BaseRenderOptions) Values {
-	return map[string]interface{}{
+// OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
+func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions) (Values, error) {
+	base := map[string]interface{}{
 		"Build": map[string]interface{}{
 			"ID": opts.ID,
 		},
@@ -103,11 +102,6 @@ func GetTaskRenderObject(opts *BaseRenderOptions) Values {
 			"TaskName":     opts.TaskName,
 		},
 	}
-}
-
-// OverrideValuesWithBuildInfo overrides the specified config's values and provides a default set of values.
-func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions) (Values, error) {
-	base := GetTaskRenderObject(opts)
 
 	vals, err := OverrideValues(c1, c2)
 	if err != nil {

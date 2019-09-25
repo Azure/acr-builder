@@ -203,45 +203,44 @@ var Command = cli.Command{
 		// Add all creds provided by the user in the --credential flag
 		credentials, err := graph.CreateRegistryCredentialFromList(creds)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "error creating registry credentials from given list")
 		}
+
+		var task *graph.Task
+		var alias *graph.Alias
 
 		versionInUse := graph.FindVersion(template.GetData())
 		shouldIncludeAlias := versionInUse >= "v1.1.0"
-
-		var alias *graph.Alias
-		var task *graph.Task
 		if shouldIncludeAlias {
 			log.Printf("Alias support enabled for version >= 1.1.0, please see https://aka.ms/acr/tasks/task-aliases for more information.")
-			// separate alias and remaining data
-			aliasData, remainingData := graph.SeparateAliasFromRest(template.GetData())
-			// render alias data
-			values := templating.GetTaskRenderObject(renderOpts)
-			renderedAlias, renderAliasErr := templating.NewEngine().RenderGoTemplate(uuid.New().String(), string(aliasData), values)
-			if renderAliasErr == nil {
-				aliasData = []byte(renderedAlias)
+			// separate alias and remaining data from the Task
+			aliasData, taskData := graph.SeparateAliasFromRest(template.GetData())
 
-				// Preprocess the task to replace all aliases based on the alias sources.
-				post, _alias, _, aliasErr := graph.SearchReplaceAlias(template.GetData(), aliasData, remainingData)
-				alias = _alias
-				if aliasErr != nil {
-					log.Printf("unable to search/replace alias in task %s due to error %+v", post, aliasErr)
-				} else {
-					// update the template.Data
-					template.Data = post
-				}
-			} else {
-				log.Printf("unable to render alias %s due to error %+v", string(aliasData), renderAliasErr)
+			// render alias data
+			renderedAlias, renderAliasErr := templating.LoadAndRenderSteps(ctx, templating.NewTemplate("aliasData", aliasData), renderOpts)
+			if renderAliasErr != nil {
+				return errors.Wrap(renderAliasErr, "unable to render alias data")
 			}
+			aliasData = []byte(renderedAlias)
+			// Preprocess the task to replace all aliases based on the alias sources.
+			processedTask, _alias, aliasErr := graph.SearchReplaceAlias(template.GetData(), aliasData, taskData)
+			alias = _alias
+			if aliasErr != nil {
+				return errors.Wrap(renderAliasErr, "unable to search/replace aliases in task")
+			}
+			if ctx.Value("debug").(bool) {
+				log.Printf("Processed task before rendering data:\n%s", processedTask)
+			}
+			// update the template.Data
+			template.Data = processedTask
 		}
 
 		rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
 		if err != nil {
-			return err
+			return errors.Wrap(err, "unable to render task")
 		}
 		if ctx.Value("debug").(bool) {
-			log.Println("Rendered template:")
-			log.Println(rendered)
+			log.Printf("Rendered template:\n%s", rendered)
 		}
 
 		task, errUnmarshal := graph.UnmarshalTaskFromString(ctx, rendered, &graph.TaskOptions{
@@ -252,7 +251,7 @@ var Command = cli.Command{
 			TaskName:          taskName,
 		})
 		if errUnmarshal != nil {
-			return errors.Wrapf(errUnmarshal, "failed to unmarshal task from the string %s", rendered)
+			return errors.Wrap(errUnmarshal, "failed to unmarshal task before running")
 		}
 
 		if shouldIncludeAlias {

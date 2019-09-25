@@ -58,3 +58,56 @@ func TestCreateCredentialFromString(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateCredentialFromList(t *testing.T) {
+	tests := []struct {
+		credential []string
+		ok         bool
+		credList   []*RegistryCredential
+	}{
+		{[]string{
+			`{"usernameProviderType": "opaque","passwordProviderType":"opaque", "registry": "foo", "username": "bar", "password": "qux"}`,
+			`{"usernameProviderType":"opaque","passwordProviderType":"vaultsecret","registry":"r","username":"my_username","password":"some/vault/id", "identity":"clientID"}`,
+		}, true, []*RegistryCredential{
+			{
+				Registry:     "foo",
+				Username:     "bar",
+				UsernameType: Opaque,
+				Password:     "qux",
+				PasswordType: Opaque,
+				Identity:     "",
+			},
+			{
+				Registry:     "r",
+				Username:     "my_username",
+				UsernameType: Opaque,
+				Password:     "some/vault/id",
+				PasswordType: VaultSecret,
+				Identity:     "clientID",
+			},
+		},
+		},
+	}
+
+	for _, test := range tests {
+		actual, err := CreateRegistryCredentialFromList(test.credential)
+
+		if !test.ok {
+			if err == nil {
+				t.Errorf("Expected the tests to return error but did not: %v", test)
+			}
+			continue
+		} else {
+			for i, a := range actual {
+				expected := test.credList[i]
+				if !a.Equals(expected) {
+					t.Fatalf("Expected %v but got %v", expected, actual)
+				}
+			}
+		}
+
+		if err != nil {
+			t.Errorf("Unexpected error: %v", test)
+		}
+	}
+}

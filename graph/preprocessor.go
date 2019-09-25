@@ -168,23 +168,22 @@ func readAliasFromBytes(data []byte, alias *Alias) error {
 // preprocessString handles the preprocessing (string replacement and resolution)
 // of all aliases in an input yaml (passed in as a string). The resolved aliases are
 // defined in the input alias file.
-func preprocessString(alias *Alias, str string) (string, bool, error) {
+func preprocessString(alias *Alias, str string) (string, error) {
 	// Load Remote/Local alias definitions
 	if externalDefinitionErr := alias.loadExternalAlias(); externalDefinitionErr != nil {
-		return "", false, externalDefinitionErr
+		return "", externalDefinitionErr
 	}
 
 	alias.loadGlobalAlias()
 
 	// Validate alias definitions
 	if improperFormatErr := alias.resolveMapAndValidate(); improperFormatErr != nil {
-		return "", false, improperFormatErr
+		return "", improperFormatErr
 	}
 
 	var out strings.Builder
 	var command strings.Builder
 	ongoingCmd := false
-	changed := false
 
 	// Search and replace all strings with the directive
 	for _, char := range str {
@@ -196,11 +195,11 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 				resolvedCommand, commandPresent := alias.AliasMap[command.String()]
 				// If command is not found we assume this to be the expect item itself.
 				if !commandPresent {
-					out.WriteString(string(alias.directive) + command.String())
+					out.WriteString(string(alias.directive) + command.String() + string(char))
+					ongoingCmd = false
 					command.Reset()
 				} else {
 					out.WriteString(resolvedCommand)
-					changed = true
 					if char != alias.directive {
 						ongoingCmd = false
 						out.WriteRune(char)
@@ -217,23 +216,23 @@ func preprocessString(alias *Alias, str string) (string, bool, error) {
 		}
 	}
 
-	return out.String(), changed, nil
+	return out.String(), nil
 }
 
 // PreprocessBytes handles byte encoded data that can be parsed through pre processing
-func PreprocessBytes(data []byte) ([]byte, *Alias, bool, error) {
+func PreprocessBytes(data []byte) ([]byte, *Alias, error) {
 	aliasData, remainingData := SeparateAliasFromRest(data)
 	return SearchReplaceAlias(data, aliasData, remainingData)
 }
 
 // SearchReplaceAlias replaces aliasData in the Task
-func SearchReplaceAlias(originalData, aliasData, remainingData []byte) ([]byte, *Alias, bool, error) {
+func SearchReplaceAlias(originalData, aliasData, data []byte) ([]byte, *Alias, error) {
 	type wrapper struct {
 		Alias Alias `yaml:"alias,omitempty"`
 	}
 	wrap := &wrapper{}
 	if errUnmarshal := yaml.Unmarshal(aliasData, wrap); errUnmarshal != nil {
-		return originalData, &Alias{}, false, errors.Wrap(errUnmarshal, "error during alias unmarshaling")
+		return originalData, &Alias{}, errors.Wrap(errUnmarshal, "error during alias unmarshaling")
 	}
 
 	alias := &wrap.Alias
@@ -243,8 +242,8 @@ func SearchReplaceAlias(originalData, aliasData, remainingData []byte) ([]byte, 
 		alias.AliasMap = make(map[string]string)
 	}
 	// Search and Replace
-	parsedStr, changed, err := preprocessString(alias, string(remainingData))
-	return []byte(parsedStr), alias, changed, err
+	parsedStr, err := preprocessString(alias, string(data))
+	return []byte(parsedStr), alias, err
 }
 
 // ExpandCommandAliases will resolve image names in cmd steps that are aliased without using directive.
