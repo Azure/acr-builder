@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/builder"
-	"github.com/Azure/acr-builder/secretmgmt"
+	"github.com/Azure/acr-builder/pkg/secretmgmt"
 	"github.com/urfave/cli"
 )
 

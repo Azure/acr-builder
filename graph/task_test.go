@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/Azure/acr-builder/secretmgmt"
+	"github.com/Azure/acr-builder/pkg/secretmgmt"
 )
 
 func TestUsingRegistryCreds(t *testing.T) {

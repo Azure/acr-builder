@@ -9,7 +9,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/Azure/acr-builder/vaults"
+	"github.com/Azure/acr-builder/pkg/azurekeyvault"
 	"github.com/urfave/cli"
 )
 
@@ -49,7 +49,10 @@ var Command = cli.Command{
 					return errInvalidURL
 				}
 
-				secretConfig, err := vaults.NewAKVSecretConfig(url, clientID)
+				secretConfig, err := azurekeyvault.NewAKVSecretConfig(&azurekeyvault.AKVSecretOptions{
+					VaultURL:    url,
+					MSIClientID: clientID,
+				})
 				if err != nil {
 					return err
 				}
@@ -58,7 +61,7 @@ var Command = cli.Command{
 				ctx, cancel := gocontext.WithTimeout(gocontext.Background(), timeout)
 				defer cancel()
 
-				secretValue, err := secretConfig.GetValue(ctx)
+				secretValue, err := secretConfig.FetchSecretValue(ctx)
 				if err != nil {
 					return err
 				}

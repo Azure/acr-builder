@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Azure/acr-builder/tokenutil"
-	"github.com/Azure/acr-builder/vaults"
+	"github.com/Azure/acr-builder/pkg/azurekeyvault"
+	"github.com/Azure/acr-builder/pkg/tokenutil"
 	"github.com/pkg/errors"
 )
 
@@ -99,14 +99,17 @@ func resolveSecret(ctx context.Context, secret *Secret, errorChan chan error) {
 		return
 	}
 
-	if secret.IsKeyVaultSecret() {
-		secretConfig, err := vaults.NewAKVSecretConfig(secret.KeyVault, secret.MsiClientID)
+	if secret.IsKeyVaultSecret() { //secret.KeyVault, secret.MsiClientID
+		secretConfig, err := azurekeyvault.NewAKVSecretConfig(&azurekeyvault.AKVSecretOptions{
+			VaultURL:    secret.KeyVault,
+			MSIClientID: secret.MsiClientID,
+		})
 		if err != nil {
 			errorChan <- errors.Wrap(err, "failed to create key vault secret config")
 			return
 		}
 
-		secretValue, err := secretConfig.GetValue(ctx)
+		secretValue, err := secretConfig.FetchSecretValue(ctx)
 		if err != nil {
 			errorChan <- errors.Wrap(err, "failed to fetch key vault secret")
 			return

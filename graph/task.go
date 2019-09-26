@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/Azure/acr-builder/pkg/secretmgmt"
 	"github.com/Azure/acr-builder/scan"
-	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"

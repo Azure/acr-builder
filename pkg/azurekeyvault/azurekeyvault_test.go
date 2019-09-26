@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package vaults
+package azurekeyvault
 
 import (
 	"strings"
@@ -12,7 +12,7 @@ func TestNewAKVSecretConfig(t *testing.T) {
 	tests := []struct {
 		vaultURL             string
 		shouldError          bool
-		expectedSecretConfig *AKVSecretConfig
+		expectedSecretConfig *AKVSecretFetcher
 	}{
 		{
 			"",
@@ -47,7 +47,7 @@ func TestNewAKVSecretConfig(t *testing.T) {
 		{
 			"https://test.vault.azure.net/secrets/mysecret/mysecretversion",
 			false,
-			&AKVSecretConfig{
+			&AKVSecretFetcher{
 				VaultURL:       "https://test.vault.azure.net",
 				SecretName:     "mysecret",
 				SecretVersion:  "mysecretversion",
@@ -57,7 +57,7 @@ func TestNewAKVSecretConfig(t *testing.T) {
 		{
 			"https://test.vault.azure.net/secrets/mysecret/mysecretversion/",
 			false,
-			&AKVSecretConfig{
+			&AKVSecretFetcher{
 				VaultURL:       "https://test.vault.azure.net",
 				SecretName:     "mysecret",
 				SecretVersion:  "mysecretversion",
@@ -68,7 +68,7 @@ func TestNewAKVSecretConfig(t *testing.T) {
 		{
 			"https://test.vault.azure.net/secrets/mysecret",
 			false,
-			&AKVSecretConfig{
+			&AKVSecretFetcher{
 				VaultURL:       "https://test.vault.azure.net",
 				SecretName:     "mysecret",
 				AADResourceURL: "https://vault.azure.net",
@@ -77,7 +77,7 @@ func TestNewAKVSecretConfig(t *testing.T) {
 		{
 			"https://test.vault.azure.net/secrets/mysecret/",
 			false,
-			&AKVSecretConfig{
+			&AKVSecretFetcher{
 				VaultURL:       "https://test.vault.azure.net",
 				SecretName:     "mysecret",
 				MSIClientID:    "myclientId",
@@ -87,7 +87,7 @@ func TestNewAKVSecretConfig(t *testing.T) {
 		{
 			"https://test.vault-int.azure-int.net/secrets/mysecret/",
 			false,
-			&AKVSecretConfig{
+			&AKVSecretFetcher{
 				VaultURL:       "https://test.vault-int.azure-int.net",
 				SecretName:     "mysecret",
 				MSIClientID:    "myclientId",
@@ -97,7 +97,7 @@ func TestNewAKVSecretConfig(t *testing.T) {
 		{
 			"https://test.vault.azure.cn/secrets/mysecret/",
 			false,
-			&AKVSecretConfig{
+			&AKVSecretFetcher{
 				VaultURL:       "https://test.vault.azure.cn",
 				SecretName:     "mysecret",
 				MSIClientID:    "myclientId",
@@ -107,12 +107,14 @@ func TestNewAKVSecretConfig(t *testing.T) {
 	}
 
 	for _, test := range tests {
-
 		clientID := ""
 		if test.expectedSecretConfig != nil {
 			clientID = test.expectedSecretConfig.MSIClientID
 		}
-		config, err := NewAKVSecretConfig(test.vaultURL, clientID)
+		fetcher, err := NewAKVSecretConfig(&AKVSecretOptions{
+			VaultURL:    test.vaultURL,
+			MSIClientID: clientID,
+		})
 		if test.shouldError && err == nil {
 			t.Fatalf("Expected vaultURL: %s to error but it didn't", test.vaultURL)
 		}
@@ -121,12 +123,12 @@ func TestNewAKVSecretConfig(t *testing.T) {
 		}
 
 		if test.expectedSecretConfig != nil {
-			if !strings.EqualFold(config.VaultURL, test.expectedSecretConfig.VaultURL) ||
-				!strings.EqualFold(config.SecretName, test.expectedSecretConfig.SecretName) ||
-				!strings.EqualFold(config.SecretVersion, test.expectedSecretConfig.SecretVersion) ||
-				!strings.EqualFold(config.MSIClientID, test.expectedSecretConfig.MSIClientID) ||
-				!strings.EqualFold(config.AADResourceURL, test.expectedSecretConfig.AADResourceURL) {
-				t.Fatalf("The config generated from vaultURL: %s doesn't match with expected, Generated: %v, Expected: %v", test.vaultURL, config, test.expectedSecretConfig)
+			if !strings.EqualFold(fetcher.(*AKVSecretFetcher).VaultURL, test.expectedSecretConfig.VaultURL) ||
+				!strings.EqualFold(fetcher.(*AKVSecretFetcher).SecretName, test.expectedSecretConfig.SecretName) ||
+				!strings.EqualFold(fetcher.(*AKVSecretFetcher).SecretVersion, test.expectedSecretConfig.SecretVersion) ||
+				!strings.EqualFold(fetcher.(*AKVSecretFetcher).MSIClientID, test.expectedSecretConfig.MSIClientID) ||
+				!strings.EqualFold(fetcher.(*AKVSecretFetcher).AADResourceURL, test.expectedSecretConfig.AADResourceURL) {
+				t.Fatalf("The fetcher generated from vaultURL: %s doesn't match with expected, Generated: %v, Expected: %v", test.vaultURL, fetcher.(*AKVSecretFetcher), test.expectedSecretConfig)
 			}
 		}
 	}

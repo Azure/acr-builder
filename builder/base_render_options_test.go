@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Azure/acr-builder/secretmgmt"
+	"github.com/Azure/acr-builder/pkg/secretmgmt"
 	"github.com/pkg/errors"
 )
 

@@ -60,18 +60,12 @@ func (s *Secret) Validate() error {
 
 // IsKeyVaultSecret returns true if a Secret is a key vault, false otherwise.
 func (s *Secret) IsKeyVaultSecret() bool {
-	if s == nil {
-		return false
-	}
-	return s.KeyVault != ""
+	return s != nil && s.KeyVault != ""
 }
 
 // IsMsiSecret returns true if a Secret is an MSI, false otherwise.
 func (s *Secret) IsMsiSecret() bool {
-	if s == nil {
-		return false
-	}
-	return s.AadResourceID != ""
+	return s != nil && s.AadResourceID != ""
 }
 
 // Equals determines whether or not two secrets are equal.

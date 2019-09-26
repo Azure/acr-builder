@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-package vaults
+package azurekeyvault
 
 import (
 	"context"
@@ -9,14 +9,21 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Azure/acr-builder/tokenutil"
+	"github.com/Azure/acr-builder/pkg/tokenutil"
+	"github.com/Azure/acr-builder/vault"
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/pkg/errors"
 )
 
-// AKVSecretConfig provides the options to get secret from Azure keyvault using MSI.
-type AKVSecretConfig struct {
+// AKVSecretOptions provides the options to get secret from Azure keyvault using MSI.
+type AKVSecretOptions struct {
+	VaultURL    string
+	MSIClientID string
+}
+
+// AKVSecretFetcher provides the options to get secret from Azure keyvault using MSI.
+type AKVSecretFetcher struct {
 	VaultURL       string
 	SecretName     string
 	SecretVersion  string
@@ -24,24 +31,26 @@ type AKVSecretConfig struct {
 	AADResourceURL string
 }
 
-// GetValue gets the secret vaule as defined by the config from Azure key vault using MSI.
-func (secretConfig *AKVSecretConfig) GetValue(ctx context.Context) (string, error) {
-	if secretConfig == nil {
+var _ vault.SecretFetcher = &AKVSecretFetcher{}
+
+// FetchSecretValue gets the secret vault as defined by the config from Azure key vault using MSI.
+func (fetcher *AKVSecretFetcher) FetchSecretValue(ctx context.Context) (string, error) {
+	if fetcher == nil {
 		return "", errors.New("secret config is required")
 	}
 
-	if secretConfig.VaultURL == "" ||
-		secretConfig.SecretName == "" ||
-		secretConfig.AADResourceURL == "" {
+	if fetcher.VaultURL == "" ||
+		fetcher.SecretName == "" ||
+		fetcher.AADResourceURL == "" {
 		return "", errors.New("missing required properties VaultURL, SecretName, and AADResourceURL")
 	}
 
-	keyClient, err := newKeyVaultClient(secretConfig.VaultURL, secretConfig.MSIClientID, secretConfig.AADResourceURL)
+	keyClient, err := newKeyVaultClient(fetcher.VaultURL, fetcher.MSIClientID, fetcher.AADResourceURL)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create azure key vault client")
 	}
 
-	secretValue, err := keyClient.getSecret(ctx, secretConfig.SecretName, secretConfig.SecretVersion)
+	secretValue, err := keyClient.getSecret(ctx, fetcher.SecretName, fetcher.SecretVersion)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to fetch secret value from azure key vault client")
 	}
@@ -50,12 +59,12 @@ func (secretConfig *AKVSecretConfig) GetValue(ctx context.Context) (string, erro
 }
 
 // NewAKVSecretConfig creates the Azure Key Vault config.
-func NewAKVSecretConfig(vaultURL, msiClientID string) (*AKVSecretConfig, error) {
-	if vaultURL == "" {
+func NewAKVSecretConfig(opts *AKVSecretOptions) (vault.SecretFetcher, error) {
+	if opts.VaultURL == "" {
 		return nil, errors.New("missing azure keyvault URL")
 	}
 
-	normalizedVaultURL := strings.TrimSuffix(strings.ToLower(vaultURL), "/")
+	normalizedVaultURL := strings.TrimSuffix(strings.ToLower(opts.VaultURL), "/")
 
 	parsedURL, err := url.Parse(normalizedVaultURL)
 	if err != nil {
@@ -86,21 +95,19 @@ func NewAKVSecretConfig(vaultURL, msiClientID string) (*AKVSecretConfig, error) 
 	splitStr := strings.SplitAfterN(vaultHostWithScheme, ".", 2)
 	// Ex. https://myacbvault.vault.azure.net -> ["https://myacbvault." "vault.azure.net"]
 	if len(splitStr) != 2 {
-		return nil, fmt.Errorf("extracted vault resource %s from vault URL %s is invalid", vaultHostWithScheme, vaultURL)
+		return nil, fmt.Errorf("extracted vault resource %s from vault URL %s is invalid", vaultHostWithScheme, opts.VaultURL)
 	}
 
 	// Ex. https://vault.azure.net
 	vaultAADResourceURL := fmt.Sprintf("%s://%s", parsedURL.Scheme, splitStr[1])
 
-	akvConfig := &AKVSecretConfig{
+	return &AKVSecretFetcher{
 		VaultURL:       vaultHostWithScheme,
 		SecretName:     urlSegments[2],
 		SecretVersion:  secretVersion,
-		MSIClientID:    msiClientID,
+		MSIClientID:    opts.MSIClientID,
 		AADResourceURL: vaultAADResourceURL,
-	}
-
-	return akvConfig, nil
+	}, nil
 }
 
 // keyVault holds the information for a keyvault instance
