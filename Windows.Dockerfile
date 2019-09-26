@@ -66,7 +66,7 @@ RUN $newPath = ('{0}\bin;C:\go\bin;{1}' -f $env:GOPATH, $env:PATH); \
 # 1. The go lang for 1803 tag is not available.
 # 2. The image pulls 2.11.1 version of MinGit which has an issue with git submodules command. https://github.com/git-for-windows/git/issues/1007#issuecomment-384281260
 
-ENV GOLANG_VERSION 1.12.5
+ENV GOLANG_VERSION 1.13.1
 
 RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSION); \
 	Write-Host ('Downloading {0} ...' -f $url); \
@@ -88,8 +88,8 @@ FROM builder as dockercli
 ARG DOCKER_CLI_LKG_COMMIT=c98c4080a323fb0e4fdf7429d8af4e2e946d09b5
 WORKDIR \\gopath\\src\\github.com\\docker\\cli
 RUN git clone https://github.com/docker/cli.git \gopath\src\github.com\docker\cli; \
-    git checkout $env:DOCKER_CLI_LKG_COMMIT; \
-    scripts\\make.ps1 -Binary -ForceBuildAll
+	git checkout $env:DOCKER_CLI_LKG_COMMIT; \
+	scripts\\make.ps1 -Binary -ForceBuildAll
 
 # Build the acr-builder
 FROM builder as acb
@@ -97,7 +97,7 @@ COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/dock
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
 RUN Write-Host ('Running build'); \
-    go build -o acb.exe .\cmd\acb; \
+	go build -o acb.exe .\cmd\acb; \
 	Write-Host ('Running unit tests'); \
 	go test ./...
 
