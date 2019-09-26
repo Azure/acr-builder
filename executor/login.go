@@ -20,7 +20,7 @@ const (
 )
 
 // dockerLogin performs a docker login
-func (b *Builder) dockerLogin(ctx context.Context, registry string, user string, pw string) error {
+func (e *Executor) dockerLogin(ctx context.Context, registry string, user string, pw string) error {
 	args := []string{
 		"docker",
 		"run",
@@ -45,7 +45,7 @@ func (b *Builder) dockerLogin(ctx context.Context, registry string, user string,
 	stdIn := strings.NewReader(pw + "\n")
 
 	var buf bytes.Buffer
-	if err := b.procManager.Run(ctx, args, stdIn, &buf, &buf, ""); err != nil {
+	if err := e.procManager.Run(ctx, args, stdIn, &buf, &buf, ""); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to set docker credentials: %s", buf.String()))
 	}
 
@@ -53,12 +53,12 @@ func (b *Builder) dockerLogin(ctx context.Context, registry string, user string,
 }
 
 // dockerLoginWithRetries performs a Docker login with retries.
-func (b *Builder) dockerLoginWithRetries(ctx context.Context, registry string, user string, pw string, attempt int) error {
-	err := b.dockerLogin(ctx, registry, user, pw)
+func (e *Executor) dockerLoginWithRetries(ctx context.Context, registry string, user string, pw string, attempt int) error {
+	err := e.dockerLogin(ctx, registry, user, pw)
 	if err != nil {
 		if attempt < maxLoginRetries {
 			time.Sleep(util.GetExponentialBackoff(attempt))
-			return b.dockerLoginWithRetries(ctx, registry, user, pw, attempt+1)
+			return e.dockerLoginWithRetries(ctx, registry, user, pw, attempt+1)
 		}
 
 		return errors.Wrap(err, "failed to login, ran out of retries")

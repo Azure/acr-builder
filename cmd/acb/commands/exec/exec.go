@@ -194,7 +194,7 @@ var Command = cli.Command{
 			return errors.Wrap(err, "failed to build a task")
 		}
 
-		executor := executor.NewBuilder(pm, debug, homevol)
+		executor := executor.NewExecutor(pm, debug, homevol)
 		defer executor.CleanTask(gocontext.Background(), task) // Use a separate context since the other may have expired.
 		return executor.RunTask(gocontext.Background(), task)
 	},

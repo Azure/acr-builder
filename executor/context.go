@@ -29,7 +29,7 @@ const (
 )
 
 // getDockerRunArgs populates the args for running a Docker container.
-func (b *Builder) getDockerRunArgs(
+func (e *Executor) getDockerRunArgs(
 	volName string,
 	workDir string,
 	disableWorkDirOverride bool,
@@ -107,7 +107,7 @@ func (b *Builder) getDockerRunArgs(
 }
 
 // getDockerRunArgsForStep populates the args for running a Docker container for the step.
-func (b *Builder) getDockerRunArgsForStep(
+func (e *Executor) getDockerRunArgsForStep(
 	volName string,
 	stepWorkDir string,
 	step *graph.Step,
@@ -121,7 +121,7 @@ func (b *Builder) getDockerRunArgsForStep(
 		step.Isolation = "hyperv"
 	}
 
-	return b.getDockerRunArgs(
+	return e.getDockerRunArgs(
 		volName,
 		stepWorkDir,
 		step.DisableWorkingDirectoryOverride,
@@ -140,7 +140,7 @@ func (b *Builder) getDockerRunArgsForStep(
 	)
 }
 
-func (b *Builder) scrapeDependencies(
+func (e *Executor) scrapeDependencies(
 	ctx context.Context,
 	volName string,
 	stepWorkDir string,
@@ -164,12 +164,12 @@ func (b *Builder) scrapeDependencies(
 		target,
 		sourceContext)
 
-	if b.debug {
+	if e.debug {
 		log.Printf("Scan args: %v\n", args)
 	}
 
 	var buf bytes.Buffer
-	err := b.procManager.Run(ctx, args, nil, &buf, &buf, "")
+	err := e.procManager.Run(ctx, args, nil, &buf, &buf, "")
 	output := strings.TrimSpace(buf.String())
 	if err != nil {
 		log.Printf("Output from dependency scanning: %s\n", output)

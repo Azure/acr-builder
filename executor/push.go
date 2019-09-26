@@ -18,7 +18,7 @@ const (
 	maxPushRetries = 3
 )
 
-func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
+func (e *Executor) pushWithRetries(ctx context.Context, images []string) error {
 	if len(images) == 0 {
 		return nil
 	}
@@ -43,7 +43,7 @@ func (b *Builder) pushWithRetries(ctx context.Context, images []string) error {
 		attempt := 0
 		for attempt < maxPushRetries {
 			log.Printf("Pushing image: %s, attempt %d\n", img, attempt+1)
-			if err := b.procManager.Run(ctx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
+			if err := e.procManager.Run(ctx, args, nil, os.Stdout, os.Stderr, ""); err != nil {
 				time.Sleep(util.GetExponentialBackoff(attempt))
 				attempt++
 			} else {

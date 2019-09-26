@@ -25,16 +25,16 @@ const (
 	buildxImg = "buildx"
 )
 
-// Builder builds images.
-type Builder struct {
+// Executor executes Tasks.
+type Executor struct {
 	procManager  *procmanager.ProcManager
 	workspaceDir string
 	debug        bool
 }
 
-// NewBuilder creates a new Builder.
-func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *Builder {
-	return &Builder{
+// NewExecutor creates a new Executor.
+func NewExecutor(pm *procmanager.ProcManager, debug bool, workspaceDir string) *Executor {
+	return &Executor{
 		procManager:  pm,
 		debug:        debug,
 		workspaceDir: workspaceDir,
@@ -42,14 +42,14 @@ func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *B
 }
 
 // RunTask executes a Task.
-func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
+func (e *Executor) RunTask(ctx context.Context, task *graph.Task) error {
 	for _, network := range task.Networks {
 		if network.SkipCreation {
 			log.Printf("Skip creating network: %s\n", network.Name)
 			continue
 		}
 		log.Printf("Creating Docker network: %s, driver: '%s'\n", network.Name, network.Driver)
-		if msg, err := network.Create(ctx, b.procManager); err != nil {
+		if msg, err := network.Create(ctx, e.procManager); err != nil {
 			return fmt.Errorf("failed to create network: %s, err: %v, msg: %s", network.Name, err, msg)
 		}
 		log.Printf("Successfully set up Docker network: %s\n", network.Name)
@@ -59,7 +59,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	timeout := time.Duration(configTimeoutInSec) * time.Second
 	configCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	if err := b.setupConfig(configCtx); err != nil {
+	if err := e.setupConfig(configCtx); err != nil {
 		return err
 	}
 	log.Println("Successfully set up Docker configuration")
@@ -69,7 +69,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			loginCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
 			log.Printf("Logging in to registry: %s\n", registry)
-			if err := b.dockerLoginWithRetries(loginCtx, registry, cred.Username.ResolvedValue, cred.Password.ResolvedValue, 0); err != nil {
+			if err := e.dockerLoginWithRetries(loginCtx, registry, cred.Username.ResolvedValue, cred.Password.ResolvedValue, 0); err != nil {
 				return err
 			}
 			log.Printf("Successfully logged into %s\n", registry)
@@ -85,8 +85,8 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	if task.InitBuildkitContainer {
 		log.Println("Task will use build cache, initializing buildkitd container")
 		// --workdir = /workspace
-		args := b.getDockerRunArgs(
-			b.workspaceDir,
+		args := e.getDockerRunArgs(
+			e.workspaceDir,
 			"",
 			false,
 			true,
@@ -102,7 +102,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			buildkitdContainerName,
 			buildxImg+" create --use",
 		)
-		if b.debug {
+		if e.debug {
 			log.Printf("buildkitd container args: %v\n", strings.Join(args, ", "))
 		}
 
@@ -110,7 +110,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		buildkitCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 
-		err := b.procManager.RunRepeatWithRetries(
+		err := e.procManager.RunRepeatWithRetries(
 			buildkitCtx,
 			args,
 			nil,
@@ -128,7 +128,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	}
 
 	for _, child := range task.Dag.Root.Children() {
-		go b.processVertex(ctx, task, task.Dag.Root, child, errorChan)
+		go e.processVertex(ctx, task, task.Dag.Root, child, errorChan)
 	}
 
 	// Block until either:
@@ -155,7 +155,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			timeout := time.Duration(digestsTimeoutInSec) * time.Second
 			digestCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
-			if err := b.populateDigests(digestCtx, step.ImageDependencies); err != nil {
+			if err := e.populateDigests(digestCtx, step.ImageDependencies); err != nil {
 				return err
 			}
 			log.Printf("Successfully populated digests for step ID: %s\n", step.ID)
@@ -177,13 +177,13 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 
 // CleanTask iterates through all build steps and removes
 // their corresponding containers.
-func (b *Builder) CleanTask(ctx context.Context, task *graph.Task) {
+func (e *Executor) CleanTask(ctx context.Context, task *graph.Task) {
 	args := []string{"docker", "rm", "-f"}
 	for _, n := range task.Dag.Nodes {
 		step := n.Value
 		if step.StepStatus != graph.Skipped {
 			killArgs := append(args, step.ID)
-			_ = b.procManager.Run(ctx, killArgs, nil, nil, nil, "")
+			_ = e.procManager.Run(ctx, killArgs, nil, nil, nil, "")
 		}
 	}
 
@@ -192,15 +192,15 @@ func (b *Builder) CleanTask(ctx context.Context, task *graph.Task) {
 			log.Printf("Skip deleting network: %s\n", network.Name)
 			continue
 		}
-		if msg, err := network.Delete(ctx, b.procManager); err != nil {
+		if msg, err := network.Delete(ctx, e.procManager); err != nil {
 			log.Printf("Failed to delete network: %s, err: %v, msg: %s\n", network.Name, err, msg)
 		}
 	}
 
-	_ = b.procManager.Stop()
+	_ = e.procManager.Stop()
 }
 
-func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *graph.Node, child *graph.Node, errorChan chan error) {
+func (e *Executor) processVertex(ctx context.Context, task *graph.Task, parent *graph.Node, child *graph.Node, errorChan chan error) {
 	err := task.Dag.RemoveEdge(parent.Name, child.Name)
 	if err != nil {
 		errorChan <- errors.Wrap(err, "failed to remove edge")
@@ -210,12 +210,12 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 	degree := child.GetDegree()
 	if degree == 0 {
 		step := child.Value
-		err := b.runStep(ctx, step)
+		err := e.runStep(ctx, step)
 		if err != nil && step.IgnoreErrors {
 			log.Printf("Step ID: %s encountered an error: %v, but is set to ignore errors. Continuing...\n", step.ID, err)
 			step.StepStatus = graph.Successful
 			for _, c := range child.Children() {
-				go b.processVertex(ctx, task, child, c, errorChan)
+				go e.processVertex(ctx, task, child, c, errorChan)
 			}
 		} else if err != nil {
 			step.StepStatus = graph.Failed
@@ -223,7 +223,7 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 		} else {
 			step.StepStatus = graph.Successful
 			for _, c := range child.Children() {
-				go b.processVertex(ctx, task, child, c, errorChan)
+				go e.processVertex(ctx, task, child, c, errorChan)
 			}
 		}
 		// Step must always be marked as complete.
@@ -231,7 +231,7 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 	}
 }
 
-func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
+func (e *Executor) runStep(ctx context.Context, step *graph.Step) error {
 	log.Printf("Executing step ID: %s. Timeout(sec): %d, Working directory: '%s', Network: '%s'\n", step.ID, step.Timeout, step.WorkingDirectory, step.Network)
 	if step.StartDelay > 0 {
 		log.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
@@ -240,7 +240,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 
 	if step.IsCmdStep() && step.Pull {
 		log.Printf("Step specified pull. Performing an explicit pull...\n")
-		if err := b.pullImageBeforeRun(ctx, step.Cmd); err != nil {
+		if err := e.pullImageBeforeRun(ctx, step.Cmd); err != nil {
 			return err
 		}
 	}
@@ -255,7 +255,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 
 	if step.IsBuildStep() {
 		dockerfile, target, dockerContext := parseDockerBuildCmd(step.Build)
-		volName := b.workspaceDir
+		volName := e.workspaceDir
 
 		// Print out a warning message if a remote context doesn't appear to be valid, i.e. doesn't end with .git.
 		validateDockerContext(dockerContext)
@@ -264,7 +264,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		timeout := time.Duration(scrapeTimeoutInSec) * time.Second
 		scrapeCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		deps, err := b.scrapeDependencies(scrapeCtx, volName, step.WorkingDirectory, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs, target)
+		deps, err := e.scrapeDependencies(scrapeCtx, volName, step.WorkingDirectory, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs, target)
 		if err != nil {
 			return errors.Wrap(err, "failed to scan dependencies")
 		}
@@ -288,20 +288,20 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		step.UpdateBuildStepWithDefaults()
 
 		if step.UseBuildCacheForBuildStep() {
-			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", buildxImg+" build "+step.Build)
+			args = e.getDockerRunArgsForStep(volName, workingDirectory, step, "", buildxImg+" build "+step.Build)
 		} else {
-			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", dockerImg+" build "+step.Build)
+			args = e.getDockerRunArgsForStep(volName, workingDirectory, step, "", dockerImg+" build "+step.Build)
 		}
 	} else if step.IsPushStep() {
 		timeout := time.Duration(step.Timeout) * time.Second
 		pushCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		return b.pushWithRetries(pushCtx, step.Push)
+		return e.pushWithRetries(pushCtx, step.Push)
 	} else {
-		args = b.getDockerRunArgsForStep(b.workspaceDir, step.WorkingDirectory, step, step.EntryPoint, step.Cmd)
+		args = e.getDockerRunArgsForStep(e.workspaceDir, step.WorkingDirectory, step, step.EntryPoint, step.Cmd)
 	}
 
-	if b.debug {
+	if e.debug {
 		log.Printf("Step args: %v\n", strings.Join(args, ", "))
 	}
 
@@ -309,7 +309,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 	stepCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	return b.procManager.RunRepeatWithRetries(
+	return e.procManager.RunRepeatWithRetries(
 		stepCtx,
 		args,
 		nil,
@@ -324,16 +324,16 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 }
 
 // populateDigests populates digests on dependencies
-func (b *Builder) populateDigests(ctx context.Context, dependencies []*image.Dependencies) error {
+func (e *Executor) populateDigests(ctx context.Context, dependencies []*image.Dependencies) error {
 	for _, entry := range dependencies {
-		if err := b.queryDigest(ctx, entry.Image); err != nil {
+		if err := e.queryDigest(ctx, entry.Image); err != nil {
 			return err
 		}
-		if err := b.queryDigest(ctx, entry.Runtime); err != nil {
+		if err := e.queryDigest(ctx, entry.Runtime); err != nil {
 			return err
 		}
 		for _, buildtime := range entry.Buildtime {
-			if err := b.queryDigest(ctx, buildtime); err != nil {
+			if err := e.queryDigest(ctx, buildtime); err != nil {
 				return err
 			}
 		}
@@ -341,7 +341,7 @@ func (b *Builder) populateDigests(ctx context.Context, dependencies []*image.Dep
 	return nil
 }
 
-func (b *Builder) queryDigest(ctx context.Context, reference *image.Reference) error {
+func (e *Executor) queryDigest(ctx context.Context, reference *image.Reference) error {
 	if reference != nil {
 		// refString will always have the tag specified at this point.
 		// For "scratch", we have to compare it against "scratch:latest" even though
@@ -365,11 +365,11 @@ func (b *Builder) queryDigest(ctx context.Context, reference *image.Reference) e
 			"\"{{json .RepoDigests}}\"",
 			reference.Reference,
 		}
-		if b.debug {
+		if e.debug {
 			log.Printf("query digest args: %v\n", args)
 		}
 		var buf bytes.Buffer
-		if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+		if err := e.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
 			return errors.Wrapf(err, "failed to query digests, msg: %s", buf.String())
 		}
 		trimCharPredicate := func(c rune) bool {
@@ -409,7 +409,7 @@ func validateDockerContext(sourceContext string) {
 	}
 }
 
-func (b *Builder) pullImageBeforeRun(ctx context.Context, cmdArgs string) error {
+func (e *Executor) pullImageBeforeRun(ctx context.Context, cmdArgs string) error {
 	imageName := parseImageNameFromArgs(cmdArgs)
 	args := []string{
 		"docker",
@@ -420,10 +420,10 @@ func (b *Builder) pullImageBeforeRun(ctx context.Context, cmdArgs string) error 
 		"pull",
 		imageName,
 	}
-	if b.debug {
+	if e.debug {
 		log.Printf("pull image args: %v\n", args)
 	}
-	return b.procManager.Run(ctx, args, nil, os.Stdout, os.Stdout, "")
+	return e.procManager.Run(ctx, args, nil, os.Stdout, os.Stdout, "")
 }
 
 // parseImageNameFromArgs parses an image's name from a command step's arguments.

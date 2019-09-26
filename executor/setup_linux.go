@@ -20,7 +20,7 @@ const (
 )
 
 // setupConfig initializes ~/.docker/config.json
-func (b *Builder) setupConfig(ctx context.Context) error {
+func (e *Executor) setupConfig(ctx context.Context) error {
 	args := []string{
 		"docker",
 		"run",
@@ -36,7 +36,7 @@ func (b *Builder) setupConfig(ctx context.Context) error {
 	}
 
 	var buf bytes.Buffer
-	if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+	if err := e.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to setup config, msg: %s", buf.String()))
 	}
 
