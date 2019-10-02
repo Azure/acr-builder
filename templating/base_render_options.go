@@ -126,6 +126,11 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 // LoadAndRenderSteps loads a template file and renders it according to an optional values file, --set values,
 // and base render options.
 func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRenderOptions) (string, error) {
+	// return empty rendered string for an empty template.
+	if len(template.GetData()) == 0 {
+		return "", nil
+	}
+
 	var err error
 
 	config := &Config{}
