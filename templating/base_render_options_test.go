@@ -97,10 +97,15 @@ func TestParseRegistryName(t *testing.T) {
 
 func TestLoadAndRenderSteps(t *testing.T) {
 	opts := &BaseRenderOptions{
-		TaskFile:   "testdata/caching/cache.yaml",
 		ValuesFile: "testdata/caching/values.yaml",
 	}
-	expected := `steps:
+	tests := []struct {
+		taskFile string
+		expected string
+	}{
+		{
+			"testdata/caching/cache.yaml",
+			`steps:
   - id: "puller"
     cmd: docker pull golang:1.10.1-stretch
 
@@ -109,21 +114,26 @@ func TestLoadAndRenderSteps(t *testing.T) {
 
   - id: build-bar
     cmd: build -f Dockerfile https://github.com/Azure/acr-builder.git --cache-from=ubuntu
-    when: ["puller"]`
-
-	var template *Template
-	template, err := LoadTemplate(opts.TaskFile)
-	if err != nil {
-		t.Fatalf("Unexpected err: %v", err)
+    when: ["puller"]`,
+		},
+		{"testdata/caching/empty.yaml", ""},
 	}
 
-	actual, err := LoadAndRenderSteps(context.Background(), template, opts)
-	if err != nil {
-		t.Fatalf("Unexpected err: %v", err)
-	}
-	expected = adjustCRInExpectedStringOnWindows(expected)
-	if actual != expected {
-		t.Errorf("Expected \n%s\n but got \n%s\n", expected, actual)
+	for _, test := range tests {
+		var template *Template
+		template, err := LoadTemplate(test.taskFile)
+		if err != nil {
+			t.Fatalf("Unexpected err: %v", err)
+		}
+
+		actual, err := LoadAndRenderSteps(context.Background(), template, opts)
+		if err != nil {
+			t.Fatalf("Unexpected err: %v", err)
+		}
+		expected := adjustCRInExpectedStringOnWindows(test.expected)
+		if actual != expected {
+			t.Errorf("Expected \n%s\n but got \n%s\n", expected, actual)
+		}
 	}
 }
 
