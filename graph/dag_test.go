@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"runtime"
 	"testing"
+
+	"github.com/Azure/acr-builder/util"
 )
 
 func TestDagCreation_ValidFile(t *testing.T) {
@@ -211,7 +213,7 @@ func TestBuildxInBuildTask_ValidFile(t *testing.T) {
 		t.Errorf("Expected %s as the taskName, but got %s", expectedTaskName, task.TaskName)
 	}
 
-	if runtime.GOOS == linuxOS {
+	if runtime.GOOS == util.LinuxOS {
 		for i, step := range task.Steps {
 			expectedStep := expectedSteps[i]
 			if step.ID != expectedStep.stepID || step.DefaultBuildCacheTag != expectedStep.cacheID {
@@ -252,7 +254,7 @@ func TestBuildxQuickRun_ValidFile(t *testing.T) {
 		t.Errorf("Expected %s as the taskName, but got %s", expectedTaskName, task.TaskName)
 	}
 
-	if runtime.GOOS == linuxOS {
+	if runtime.GOOS == util.LinuxOS {
 		for i, step := range task.Steps {
 			expectedStep := expectedSteps[i]
 			if step.ID != expectedStep.stepID || step.DefaultBuildCacheTag != expectedStep.cacheID {

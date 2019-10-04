@@ -18,7 +18,6 @@ import (
 const (
 	// ImmediateExecutionToken defines the when dependency to indicate a step should execute immediately.
 	ImmediateExecutionToken = "-"
-	windowsOS               = "windows"
 	enabled                 = "enabled"
 	disabled                = "disabled"
 )
@@ -218,7 +217,7 @@ func (s *Step) IsPushStep() bool {
 
 // UpdateBuildStepWithDefaults updates a build step with hyperv isolation on Windows.
 func (s *Step) UpdateBuildStepWithDefaults() {
-	if s.IsBuildStep() && runtime.GOOS == windowsOS && !strings.Contains(s.Build, "--isolation") {
+	if s.IsBuildStep() && runtime.GOOS == util.WindowsOS && !strings.Contains(s.Build, "--isolation") {
 		s.Build = fmt.Sprintf("--isolation hyperv %s", s.Build)
 	}
 }

@@ -24,10 +24,6 @@ var (
 	dependenciesRE = regexp.MustCompile(`(\[{"image.*?\])$`)
 )
 
-const (
-	windowsOS = "windows"
-)
-
 // getDockerRunArgs populates the args for running a Docker container.
 func (b *Builder) getDockerRunArgs(
 	volName string,
@@ -49,7 +45,7 @@ func (b *Builder) getDockerRunArgs(
 	var sb strings.Builder
 	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
 	// so we don't have to write our own argv parser for exec.Command.
-	if runtime.GOOS == windowsOS {
+	if runtime.GOOS == util.WindowsOS {
 		args = []string{"powershell.exe", "-Command"}
 	} else {
 		args = []string{"/bin/sh", "-c"}
@@ -115,7 +111,7 @@ func (b *Builder) getDockerRunArgsForStep(
 	cmd string) []string {
 	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
 	// so we don't have to write our own argv parser for exec.Command.
-	if runtime.GOOS == windowsOS && step.Isolation == "" && !step.IsBuildStep() {
+	if runtime.GOOS == util.WindowsOS && step.Isolation == "" && !step.IsBuildStep() {
 		// Use hyperv isolation for non-build steps.
 		// Use default isolation for build step to improve performance. It assumes the docker-cli image is compatible with the host os.
 		step.Isolation = "hyperv"
