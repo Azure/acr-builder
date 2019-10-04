@@ -117,6 +117,10 @@ var Command = cli.Command{
 			Name:  "name",
 			Usage: "the name of the task",
 		},
+		cli.BoolFlag{
+			Name:  "adhoc",
+			Usage: "run this task adhoc without any modifications to workDir",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		var (
@@ -129,6 +133,7 @@ var Command = cli.Command{
 			creds                   = context.StringSlice("credential")
 			dryRun                  = context.Bool("dry-run")
 			debug                   = context.Bool("debug")
+			adhoc                   = context.Bool("adhoc")
 
 			// Rendering options
 			values        = context.String("values")
@@ -154,7 +159,7 @@ var Command = cli.Command{
 		pm := procmanager.NewProcManager(dryRun)
 
 		if homevol == "" {
-			if !dryRun {
+			if !debug && !adhoc && !dryRun {
 				homevol = fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
 				v := volume.NewVolume(homevol, pm)
 				if msg, err := v.Create(ctx); err != nil {
@@ -249,6 +254,7 @@ var Command = cli.Command{
 			Envs:              defaultEnvs,
 			Credentials:       credentials,
 			TaskName:          taskName,
+			Adhoc:             adhoc,
 		})
 		if errUnmarshal != nil {
 			return errors.Wrap(errUnmarshal, "failed to unmarshal task before running")

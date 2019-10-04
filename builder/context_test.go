@@ -79,7 +79,7 @@ func TestGetImageDependencies(t *testing.T) {
 
 func TestGetBuildDockerRunArgs(t *testing.T) {
 	builder := &Builder{}
-	actualCmds := builder.getDockerRunArgsForStep("volName", "stepWorkDir", &graph.Step{ID: "id", Build: "-f Dockerfile .", Envs: []string{"foo=bar", "HOME=qux"}}, "", "docker build -f Dockerfile .")
+	actualCmds := builder.getDockerRunArgsForStep("volName", "stepWorkDir", &graph.Step{ID: "id", Build: "-f Dockerfile .", Envs: []string{"foo=bar", "HOME=qux"}}, "", "docker build -f Dockerfile .", false)
 
 	var expectedCmds []string
 
@@ -104,7 +104,7 @@ func TestGetBuildDockerRunArgs(t *testing.T) {
 
 func TestGetNonBuildDockerRunArgs(t *testing.T) {
 	builder := &Builder{}
-	actualCmds := builder.getDockerRunArgsForStep("volName", "stepWorkDir", &graph.Step{ID: "id", Envs: []string{"foo=bar"}}, "", "hello-world")
+	actualCmds := builder.getDockerRunArgsForStep("volName", "stepWorkDir", &graph.Step{ID: "id", Envs: []string{"foo=bar"}}, "", "hello-world", false)
 
 	var expectedCmds []string
 
@@ -175,7 +175,9 @@ func TestGetScanArgs(t *testing.T) {
 				test.tags,
 				test.buildArgs,
 				test.target,
-				test.context),
+				test.context,
+				false,
+				false),
 			" ")
 		if test.expected != actual {
 			t.Fatalf("Expected\n%s\nbut got\n%s", test.expected, actual)

@@ -92,6 +92,7 @@ type Step struct {
 	Tags                 []string
 	BuildArgs            []string
 	DefaultBuildCacheTag string
+	Adhoc                bool
 }
 
 // Validate validates the step and returns an error if the Step has problems.

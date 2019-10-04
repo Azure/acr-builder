@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"os/user"
 	"path"
 	"regexp"
 	"runtime"
@@ -44,7 +46,9 @@ func (b *Builder) getDockerRunArgs(
 	isolation string,
 	entrypoint string,
 	containerName string,
-	cmd string) []string {
+	cmd string,
+	adhoc bool,
+	debug bool) []string {
 	var args []string
 	var sb strings.Builder
 	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
@@ -84,9 +88,22 @@ func (b *Builder) getDockerRunArgs(
 		sb.WriteString(" --entrypoint " + entrypoint)
 	}
 	sb.WriteString(" --name " + containerName)
-	sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
+
+	if debug {
+		// pass in your local dir to container
+		volName = getCWD()
+		sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
+	} else if !adhoc {
+		sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
+	}
 	sb.WriteString(" --volume " + util.DockerSocketVolumeMapping)
-	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
+
+	if debug {
+		localHomeDir := getHomeDir()
+		sb.WriteString(" --volume " + localHomeDir + ":" + homeWorkDir)
+	} else {
+		sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
+	}
 	sb.WriteString(" --env " + homeEnv)
 
 	// User environment variables come after any defaults.
@@ -97,7 +114,9 @@ func (b *Builder) getDockerRunArgs(
 		sb.WriteString(" --env " + env)
 	}
 
-	if !disableWorkDirOverride {
+	if debug {
+		sb.WriteString(" --workdir " + normalizeWorkDir(containerWorkspaceDir))
+	} else if !adhoc && !disableWorkDirOverride {
 		sb.WriteString(" --workdir " + normalizeWorkDir(workDir))
 	}
 	sb.WriteString(" " + cmd)
@@ -112,7 +131,8 @@ func (b *Builder) getDockerRunArgsForStep(
 	stepWorkDir string,
 	step *graph.Step,
 	entrypoint string,
-	cmd string) []string {
+	cmd string,
+	adhoc bool) []string {
 	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
 	// so we don't have to write our own argv parser for exec.Command.
 	if runtime.GOOS == windowsOS && step.Isolation == "" && !step.IsBuildStep() {
@@ -137,7 +157,8 @@ func (b *Builder) getDockerRunArgsForStep(
 		entrypoint,
 		step.ID,
 		cmd,
-	)
+		adhoc,
+		b.debug)
 }
 
 func (b *Builder) scrapeDependencies(
@@ -149,7 +170,9 @@ func (b *Builder) scrapeDependencies(
 	sourceContext string,
 	tags []string,
 	buildArgs []string,
-	target string) ([]*image.Dependencies, error) {
+	target string,
+	adhoc bool,
+	debug bool) ([]*image.Dependencies, error) {
 	containerName := fmt.Sprintf("acb_dep_scanner_%s", uuid.New())
 
 	args := getScanArgs(
@@ -162,7 +185,9 @@ func (b *Builder) scrapeDependencies(
 		tags,
 		buildArgs,
 		target,
-		sourceContext)
+		sourceContext,
+		adhoc,
+		debug)
 
 	if b.debug {
 		log.Printf("Scan args: %v\n", args)
@@ -189,24 +214,38 @@ func getScanArgs(
 	tags []string,
 	buildArgs []string,
 	target string,
-	sourceContext string) []string {
+	sourceContext string,
+	adhoc bool,
+	debug bool) []string {
 	args := []string{
 		"docker",
 		"run",
 		"--rm",
 		"--name", containerName,
-		"--volume", volName + ":" + containerWorkspaceDir,
-		"--workdir", normalizeWorkDir(stepWorkDir),
-
-		// Mount home
-		"--volume", homeVol + ":" + homeWorkDir,
-		"--env", homeEnv,
-
-		scannerImageName,
-		"scan",
-		"-f", dockerfile,
-		"--destination", outputDir,
 	}
+
+	if debug {
+		// pass in your local dir to container
+		volName = getCWD()
+		args = append(args, "--volume", volName+":"+containerWorkspaceDir)
+		args = append(args, "--workdir", normalizeWorkDir(stepWorkDir))
+	} else if !adhoc {
+		args = append(args, "--volume", volName+":"+containerWorkspaceDir)
+		args = append(args, "--workdir", normalizeWorkDir(stepWorkDir))
+	}
+
+	// Mount home
+	if debug {
+		localHomeDir := getHomeDir()
+		args = append(args, "--volume", localHomeDir+":"+homeWorkDir)
+	} else {
+		args = append(args, "--volume", homeVol+":"+homeWorkDir)
+	}
+	args = append(args, "--env", homeEnv)
+	args = append(args, scannerImageName)
+	args = append(args, "scan")
+	args = append(args, "-f", dockerfile)
+	args = append(args, "--destination", outputDir)
 
 	for _, tag := range tags {
 		args = append(args, "-t", tag)
@@ -249,4 +288,20 @@ func normalizeWorkDir(workDir string) string {
 	}
 
 	return path.Clean(path.Join(containerWorkspaceDir, workDir))
+}
+
+func getCWD() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return dir
+}
+
+func getHomeDir() string {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return usr.HomeDir
 }
