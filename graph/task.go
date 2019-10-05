@@ -28,8 +28,6 @@ const (
 	// currentTaskVersion is the most recent Task version
 	currentTaskVersion = "v1.0.0"
 
-	linuxOS = "linux"
-
 	noTaskNamePlaceholder = "quickrun"
 )
 
@@ -259,7 +257,7 @@ func (t *Task) initialize(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if runtime.GOOS == windowsOS {
+		if runtime.GOOS == util.WindowsOS {
 			defaultNetwork.Driver = "nat"
 		}
 		t.Networks = append(t.Networks, defaultNetwork)
@@ -315,7 +313,7 @@ func (t *Task) initialize(ctx context.Context) error {
 			s.BuildArgs = util.ParseBuildArgs(s.Build)
 
 			if s.UseBuildCacheForBuildStep() {
-				if runtime.GOOS == linuxOS {
+				if runtime.GOOS == util.LinuxOS {
 					if buildStepWithBuildCache, err := s.GetCmdWithCacheFlags(t.TaskName); err != nil {
 						log.Printf("error creating build cache command %v\n", err)
 					} else {
