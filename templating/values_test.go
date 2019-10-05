@@ -9,6 +9,8 @@ import (
 	"testing"
 	"text/template"
 	"time"
+
+	"github.com/Azure/acr-builder/util"
 )
 
 const (
@@ -130,7 +132,7 @@ func TestOverrideValuesWithBuildInfo(t *testing.T) {
 	expectedRegistryName := "foo"
 	expectedGitTag := "some git tag"
 	expectedSharedVolume := "acb_home_vol_12345"
-	expectedOS := "linux"
+	expectedOS := util.LinuxOS
 	expectedOSVersion := "1903"
 	expectedArchitecture := "amd64"
 	expectedTaskName := "taskFoo"

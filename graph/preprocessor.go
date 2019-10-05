@@ -92,7 +92,7 @@ func (alias *Alias) loadExternalAlias() error {
 // Loads in all global aliases switching definition based on os
 func (alias *Alias) loadGlobalAlias() {
 	//Identify defaults location.
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == util.WindowsOS {
 		readAliasFromBytes([]byte(globalDefaultYamlWindows), alias)
 	} else { // Looking at Linux
 		readAliasFromBytes([]byte(globalDefaultYamlLinux), alias)

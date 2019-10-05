@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/Azure/acr-builder/util"
 )
 
 const (
@@ -128,7 +130,7 @@ func TestDecodeTemplate_Invalid(t *testing.T) {
 }
 
 func adjustCRInExpectedStringOnWindows(expectedStr string) string {
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS == util.WindowsOS {
 		return strings.Replace(expectedStr, "\n", "\r\n", -1)
 	}
 	return expectedStr

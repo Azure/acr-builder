@@ -11,6 +11,7 @@ import (
 
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/image"
+	"github.com/Azure/acr-builder/util"
 )
 
 func TestGetImageDependencies(t *testing.T) {
@@ -83,7 +84,7 @@ func TestGetBuildDockerRunArgs(t *testing.T) {
 
 	var expectedCmds []string
 
-	if runtime.GOOS == windowsOS {
+	if runtime.GOOS == util.WindowsOS {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",
@@ -108,7 +109,7 @@ func TestGetNonBuildDockerRunArgs(t *testing.T) {
 
 	var expectedCmds []string
 
-	if runtime.GOOS == windowsOS {
+	if runtime.GOOS == util.WindowsOS {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",

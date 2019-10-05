@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -149,7 +150,12 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	var deps []*image.Dependencies
 	for _, step := range task.Steps {
 		log.Printf("Step ID: %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
-
+		// currently we have a limitation where we cannot fetch the digest of the dependencies
+		// because we build the image using buildx, but query the digest using docker.
+		// https://github.com/Azure/acr-builder/issues/522
+		if step.UseBuildCacheForBuildStep() && runtime.GOOS == util.LinuxOS {
+			continue
+		}
 		if len(step.ImageDependencies) > 0 {
 			log.Printf("Populating digests for step ID: %s...\n", step.ID)
 			timeout := time.Duration(digestsTimeoutInSec) * time.Second
