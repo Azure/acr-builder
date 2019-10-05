@@ -66,7 +66,6 @@ type Task struct {
 	Dag                      *Dag
 	IsBuildTask              bool // Used to skip the default network creation for build.
 	InitBuildkitContainer    bool // Used to initialize buildkit container if a build step is using build cache.
-	Adhoc                    bool // if true, dont add any extra setup volumes, etc.
 }
 
 // TaskOptions are used to configure a new Task
@@ -91,9 +90,6 @@ type TaskOptions struct {
 
 	// GlobalAliases keeps track of all the Task native global aliases
 	GlobalAliases []byte
-
-	// If true, do not modify any workDir for this task
-	Adhoc bool
 }
 
 // UnmarshalTaskFromString unmarshals a Task from a raw string.
@@ -141,7 +137,6 @@ func (t *Task) AddTaskDefaults(ctx context.Context, opts *TaskOptions) error {
 		t.Networks = append(t.Networks, externalNetwork)
 	}
 
-	t.Adhoc = opts.Adhoc
 	err = t.initialize(ctx)
 	return err
 }
@@ -335,7 +330,6 @@ func (t *Task) initialize(ctx context.Context) error {
 		} else if s.IsPushStep() {
 			s.Push = getNormalizedDockerImageNames(s.Push, t.RegistryName)
 		}
-		s.Adhoc = t.Adhoc
 	}
 	var err error
 

@@ -101,7 +101,6 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			"",
 			buildkitdContainerName,
 			buildxImg+" create --use",
-			task.Adhoc,
 			b.debug,
 		)
 		if b.debug {
@@ -266,7 +265,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		timeout := time.Duration(scrapeTimeoutInSec) * time.Second
 		scrapeCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		deps, err := b.scrapeDependencies(scrapeCtx, volName, step.WorkingDirectory, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs, target, step.Adhoc, b.debug)
+		deps, err := b.scrapeDependencies(scrapeCtx, volName, step.WorkingDirectory, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs, target, b.debug)
 		if err != nil {
 			return errors.Wrap(err, "failed to scan dependencies")
 		}
@@ -290,9 +289,9 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		step.UpdateBuildStepWithDefaults()
 
 		if step.UseBuildCacheForBuildStep() {
-			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", buildxImg+" build "+step.Build, step.Adhoc)
+			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", buildxImg+" build "+step.Build)
 		} else {
-			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", dockerImg+" build "+step.Build, step.Adhoc)
+			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", dockerImg+" build "+step.Build)
 		}
 	} else if step.IsPushStep() {
 		timeout := time.Duration(step.Timeout) * time.Second
@@ -300,7 +299,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		defer cancel()
 		return b.pushWithRetries(pushCtx, step.Push)
 	} else {
-		args = b.getDockerRunArgsForStep(b.workspaceDir, step.WorkingDirectory, step, step.EntryPoint, step.Cmd, step.Adhoc)
+		args = b.getDockerRunArgsForStep(b.workspaceDir, step.WorkingDirectory, step, step.EntryPoint, step.Cmd)
 	}
 
 	if b.debug {

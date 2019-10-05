@@ -47,7 +47,6 @@ func (b *Builder) getDockerRunArgs(
 	entrypoint string,
 	containerName string,
 	cmd string,
-	adhoc bool,
 	debug bool) []string {
 	var args []string
 	var sb strings.Builder
@@ -92,15 +91,12 @@ func (b *Builder) getDockerRunArgs(
 	if debug {
 		// pass in your local dir to container
 		volName = getCWD()
-		sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
-	} else if !adhoc {
-		sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
 	}
+	sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
 	sb.WriteString(" --volume " + util.DockerSocketVolumeMapping)
 
 	if debug {
-		localHomeDir := getHomeDir()
-		sb.WriteString(" --volume " + localHomeDir + ":" + homeWorkDir)
+		sb.WriteString(" --volume " + getHomeDir() + ":" + homeWorkDir)
 	} else {
 		sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
 	}
@@ -116,7 +112,7 @@ func (b *Builder) getDockerRunArgs(
 
 	if debug {
 		sb.WriteString(" --workdir " + normalizeWorkDir(containerWorkspaceDir))
-	} else if !adhoc && !disableWorkDirOverride {
+	} else if !disableWorkDirOverride {
 		sb.WriteString(" --workdir " + normalizeWorkDir(workDir))
 	}
 	sb.WriteString(" " + cmd)
@@ -131,8 +127,7 @@ func (b *Builder) getDockerRunArgsForStep(
 	stepWorkDir string,
 	step *graph.Step,
 	entrypoint string,
-	cmd string,
-	adhoc bool) []string {
+	cmd string) []string {
 	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
 	// so we don't have to write our own argv parser for exec.Command.
 	if runtime.GOOS == windowsOS && step.Isolation == "" && !step.IsBuildStep() {
@@ -157,7 +152,6 @@ func (b *Builder) getDockerRunArgsForStep(
 		entrypoint,
 		step.ID,
 		cmd,
-		adhoc,
 		b.debug)
 }
 
@@ -171,7 +165,6 @@ func (b *Builder) scrapeDependencies(
 	tags []string,
 	buildArgs []string,
 	target string,
-	adhoc bool,
 	debug bool) ([]*image.Dependencies, error) {
 	containerName := fmt.Sprintf("acb_dep_scanner_%s", uuid.New())
 
@@ -186,7 +179,6 @@ func (b *Builder) scrapeDependencies(
 		buildArgs,
 		target,
 		sourceContext,
-		adhoc,
 		debug)
 
 	if b.debug {
@@ -215,7 +207,6 @@ func getScanArgs(
 	buildArgs []string,
 	target string,
 	sourceContext string,
-	adhoc bool,
 	debug bool) []string {
 	args := []string{
 		"docker",
@@ -227,12 +218,9 @@ func getScanArgs(
 	if debug {
 		// pass in your local dir to container
 		volName = getCWD()
-		args = append(args, "--volume", volName+":"+containerWorkspaceDir)
-		args = append(args, "--workdir", normalizeWorkDir(stepWorkDir))
-	} else if !adhoc {
-		args = append(args, "--volume", volName+":"+containerWorkspaceDir)
-		args = append(args, "--workdir", normalizeWorkDir(stepWorkDir))
 	}
+	args = append(args, "--volume", volName+":"+containerWorkspaceDir)
+	args = append(args, "--workdir", normalizeWorkDir(stepWorkDir))
 
 	// Mount home
 	if debug {
