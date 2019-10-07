@@ -82,6 +82,9 @@ func (b *Builder) getDockerRunArgs(
 	sb.WriteString(" --name " + containerName)
 	sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
 	sb.WriteString(" --volume " + util.DockerSocketVolumeMapping)
+	if runtime.GOOS == util.LinuxOS {
+		sb.WriteString(" --volume " + util.ContainerdVolumeMapping)
+	}
 	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
 	sb.WriteString(" --env " + homeEnv)
 

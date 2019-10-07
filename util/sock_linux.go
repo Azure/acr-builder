@@ -6,4 +6,7 @@ package util
 const (
 	// DockerSocketVolumeMapping returns a volume mapping to the Docker socket.
 	DockerSocketVolumeMapping = "/var/run/docker.sock:/var/run/docker.sock"
+
+	// ContainerdVolumeMapping returns a volume mapping to Containerd.
+	ContainerdVolumeMapping = "/run/containerd:/run/containerd"
 )

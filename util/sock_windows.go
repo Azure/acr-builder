@@ -6,4 +6,7 @@ package util
 const (
 	// DockerSocketVolumeMapping returns a volume mapping to the Docker named pipe.
 	DockerSocketVolumeMapping = "\\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine"
+
+	// ContainerdVolumeMapping returns a volume mapping to Containerd.
+	ContainerdVolumeMapping = ""
 )

@@ -94,7 +94,7 @@ func TestGetBuildDockerRunArgs(t *testing.T) {
 		expectedCmds = []string{
 			"/bin/sh",
 			"-c",
-			"docker run --rm --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --env foo=bar --env HOME=qux --workdir /workspace/stepWorkDir docker build -f Dockerfile .",
+			"docker run --rm --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume /run/containerd:/run/containerd --volume home:/acb/home --env HOME=/acb/home --env foo=bar --env HOME=qux --workdir /workspace/stepWorkDir docker build -f Dockerfile .",
 		}
 	}
 
@@ -119,7 +119,7 @@ func TestGetNonBuildDockerRunArgs(t *testing.T) {
 		expectedCmds = []string{
 			"/bin/sh",
 			"-c",
-			"docker run --rm --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --env foo=bar --workdir /workspace/stepWorkDir hello-world",
+			"docker run --rm --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume /run/containerd:/run/containerd --volume home:/acb/home --env HOME=/acb/home --env foo=bar --workdir /workspace/stepWorkDir hello-world",
 		}
 	}
 
