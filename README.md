@@ -90,3 +90,34 @@ $ acb render -f acb.yaml --values values.yaml
 ```
 
 If your template uses `.Run.ID` or other `.Run` variables, refer to the full list of parameters using `acb render --help`.
+
+## F5 experience on VSCode
+
+You can install `delve`, and add something like this to your `.vscode/launch.json` file - and hit f5. The binary executes from under `./cmd/acb`, so you can put any Task files that you want to debug.
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceRoot}/cmd/acb",
+            "env": {},
+            "args": [
+                "exec",
+                "-f",
+                "./test.acb.yml",
+                ".",
+                "--id",
+                "blah",
+                "--registry",
+                "sam.azurecr.io",
+                "--debug"
+            ]
+        }
+    ]
+}
+```
