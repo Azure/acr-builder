@@ -226,7 +226,7 @@ var Command = cli.Command{
 			processedTask, _alias, aliasErr := graph.SearchReplaceAlias(template.GetData(), aliasData, taskData)
 			alias = _alias
 			if aliasErr != nil {
-				return errors.Wrap(renderAliasErr, "unable to search/replace aliases in task")
+				return errors.Wrap(aliasErr, "unable to search/replace aliases in task")
 			}
 			if ctx.Value("debug").(bool) {
 				log.Printf("Processed task before rendering data:\n%s", processedTask)
