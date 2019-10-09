@@ -386,6 +386,7 @@ func TestGetCmdForBuildCache(t *testing.T) {
 	tests := []struct {
 		s        *Step
 		taskName string
+		registry string
 		result   string
 		ok       bool
 	}{
@@ -396,16 +397,18 @@ func TestGetCmdForBuildCache(t *testing.T) {
 			},
 			"",
 			"",
+			"",
 			false,
 		},
 		{
 			&Step{
-				Tags:  []string{"a"},
+				Tags:  []string{"abcd"},
 				Cache: "enabled",
 			},
 			"",
-			"",
-			false,
+			"sam.azurecr.io",
+			"sam.azurecr.io/abcd",
+			true,
 		},
 		{
 			&Step{
@@ -414,6 +417,7 @@ func TestGetCmdForBuildCache(t *testing.T) {
 				Cache: "enabled",
 			},
 			"fooTask",
+			"",
 			"test.com/repo:cache_fooTask_step0",
 			true,
 		},
@@ -424,6 +428,7 @@ func TestGetCmdForBuildCache(t *testing.T) {
 				Cache: "enAbled",
 			},
 			noTaskNamePlaceholder,
+			"",
 			"test.com/repo:cache_" + noTaskNamePlaceholder + "_step_acb0",
 			true,
 		},
@@ -435,6 +440,7 @@ func TestGetCmdForBuildCache(t *testing.T) {
 			},
 			"task_myrandomlylongIDlaskcnlkascnlkanclkansclknaslkcnalkscnlaknsclkalknaslkncalscnlakscnlkascnlkascnlksn",
 			"",
+			"",
 			false,
 		},
 		{
@@ -444,6 +450,7 @@ func TestGetCmdForBuildCache(t *testing.T) {
 				Cache: "enabled",
 			},
 			"foo",
+			"",
 			"test:5000/repo:cache_foo_a_b_c",
 			true,
 		},
@@ -454,6 +461,7 @@ func TestGetCmdForBuildCache(t *testing.T) {
 				Cache: "enabled",
 			},
 			"myTask",
+			"",
 			"foo/foo_bar.com:cache_myTask_step_acb0",
 			true,
 		},
@@ -464,13 +472,47 @@ func TestGetCmdForBuildCache(t *testing.T) {
 				Cache: "enabled",
 			},
 			noTaskNamePlaceholder,
+			"",
 			"sub-dom1.foo.com/bar/baz/quux:cache_" + noTaskNamePlaceholder + "_1",
+			true,
+		},
+		{
+			&Step{
+				ID:    "1",
+				Tags:  []string{"sub-dom1.foo.com/bar/baz/quux"},
+				Cache: "enabled",
+			},
+			noTaskNamePlaceholder,
+			"",
+			"sub-dom1.foo.com/bar/baz/quux:cache_" + noTaskNamePlaceholder + "_1",
+			true,
+		},
+		{
+			&Step{
+				ID:    "1",
+				Tags:  []string{"a", "b", "c", "d"},
+				Cache: "enabled",
+			},
+			noTaskNamePlaceholder,
+			"sam.azurecr.io",
+			"sam.azurecr.io/a:cache_" + noTaskNamePlaceholder + "_1",
+			true,
+		},
+		{
+			&Step{
+				ID:    "1",
+				Tags:  []string{"a", "sam.azurecr.io/foo", "c", "d"},
+				Cache: "enabled",
+			},
+			noTaskNamePlaceholder,
+			"sam.azurecr.io",
+			"sam.azurecr.io/foo:cache_" + noTaskNamePlaceholder + "_1",
 			true,
 		},
 	}
 
 	for _, test := range tests {
-		actual, err := test.s.GetCmdWithCacheFlags(test.taskName)
+		actual, err := test.s.GetCmdWithCacheFlags(test.taskName, "sam.azurecr.io")
 
 		if test.ok {
 			if err != nil {
