@@ -249,6 +249,7 @@ var Command = cli.Command{
 			Envs:              defaultEnvs,
 			Credentials:       credentials,
 			TaskName:          taskName,
+			Registry:          registry,
 		})
 		if errUnmarshal != nil {
 			return errors.Wrap(errUnmarshal, "failed to unmarshal task before running")

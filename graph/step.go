@@ -233,39 +233,62 @@ func GetBuildCacheImageTag(taskName, stepID string) string {
 }
 
 // GetCmdWithCacheFlags adds buildx cache parameters to the cmd.
-func (s *Step) GetCmdWithCacheFlags(taskName string) (string, error) {
-	result := ""
-
-	if len(s.Tags) == 0 {
-		return result, errors.New("at least one tag is required to use build cache's cache registry")
-	}
+func (s *Step) GetCmdWithCacheFlags(taskName, registry string) (string, error) {
+	var domain, path, firstTagPath string
+	var err error
 
 	if strings.ToLower(s.Cache) != enabled {
-		return result, errors.New("cache needs to be set to 'enabled' to use build cache")
+		return "", errors.New("cache needs to be set to 'enabled' to use build cache")
+	}
+	if len(s.Tags) == 0 {
+		return s.Build, nil
 	}
 
-	// grab the repo name from the first Image Tag.
-	buildImg := s.Tags[0]
-	repo, err := reference.Parse(buildImg)
-	if err != nil {
-		return result, errors.Wrap(err, "failed to parse the image name")
+	for idx, tag := range s.Tags {
+		domain, path, err = getDomainPath(tag)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to parse the tag into a domain and path")
+		}
+		if idx == 0 {
+			firstTagPath = path
+		}
+		if domain != "" {
+			break
+		}
 	}
-	named, ok := repo.(reference.Named)
-	if !ok {
-		return result, errors.New("failed to extract the name from registry url")
-	}
-	//  trim out any digests and tags
-	named = reference.TrimNamed(named)
-	domain, _ := reference.SplitHostname(named)
+
 	if domain == "" {
-		return result, errors.New("domain for the registry is required to push build cache")
+		domain = registry
+		path = firstTagPath
 	}
 
 	s.DefaultBuildCacheTag = GetBuildCacheImageTag(taskName, s.ID)
-	cacheImage, err := reference.WithTag(named, s.DefaultBuildCacheTag)
+	return addBuildCacheOptsToCmd(domain, path, s.DefaultBuildCacheTag, s.Build)
+}
+
+// getDomainPath gets the domain and path for an image repository
+func getDomainPath(s string) (string, string, error) {
+	repo, err := reference.Parse(s)
 	if err != nil {
-		return result, errors.Wrap(err, "failed to attach cache ID tag to the repo for build cache")
+		return "", "", errors.Wrap(err, "failed to parse the image name")
 	}
-	result = fmt.Sprintf("--load --cache-to=type=registry,ref=%s,mode=max --cache-from=type=registry,ref=%s %s", cacheImage.String(), cacheImage.String(), s.Build)
-	return result, nil
+	named, ok := repo.(reference.Named)
+	if !ok {
+		return "", "", errors.New("failed to extract the name from registry url")
+	}
+	d, p := reference.SplitHostname(reference.TrimNamed(named))
+	return d, p, nil
+}
+
+// addBuildCacheOptsToCmd appends the build cache options to the original Build command
+func addBuildCacheOptsToCmd(domain, path, tag, originalBuildCmd string) (string, error) {
+	named, err := reference.WithName(domain + "/" + path)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse reference to be used for cache image")
+	}
+	cacheImage, err := reference.WithTag(named, tag)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to attach cache ID tag to the repo for build cache")
+	}
+	return fmt.Sprintf("--load --cache-to=type=registry,ref=%s,mode=max --cache-from=type=registry,ref=%s %s", cacheImage.String(), cacheImage.String(), originalBuildCmd), nil
 }

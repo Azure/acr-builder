@@ -58,6 +58,7 @@ type Task struct {
 	WorkingDirectory         string               `yaml:"workingDirectory,omitempty"`
 	Version                  string               `yaml:"version,omitempty"`
 	RegistryName             string
+	Registry                 string
 	TaskName                 string // Used to form the build cache image tag.
 	Credentials              []*RegistryCredential
 	RegistryLoginCredentials RegistryLoginCredentials
@@ -82,6 +83,9 @@ type TaskOptions struct {
 
 	// TaskName is the name of the Task
 	TaskName string
+
+	// Registry is the login server for Task
+	Registry string
 
 	// DoPreprocessing is a property to decide whether we use Alias
 	DoPreprocessing bool
@@ -123,6 +127,8 @@ func (t *Task) AddTaskDefaults(ctx context.Context, opts *TaskOptions) error {
 	} else {
 		t.TaskName = noTaskNamePlaceholder
 	}
+
+	t.Registry = opts.Registry
 
 	// External network parsed in from CLI will be set as default network, it will be used for any step if no network provide for them
 	// The external network is append at the end of the list of networks, later we will do reverse iteration to get this network
@@ -314,7 +320,7 @@ func (t *Task) initialize(ctx context.Context) error {
 
 			if s.UseBuildCacheForBuildStep() {
 				if runtime.GOOS == util.LinuxOS {
-					if buildStepWithBuildCache, err := s.GetCmdWithCacheFlags(t.TaskName); err != nil {
+					if buildStepWithBuildCache, err := s.GetCmdWithCacheFlags(t.TaskName, t.Registry); err != nil {
 						log.Printf("error creating build cache command %v\n", err)
 					} else {
 						// update the Build cmd with buildx cache flags
