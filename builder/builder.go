@@ -46,34 +46,34 @@ func NewBuilder(pm *procmanager.ProcManager, debug bool, workspaceDir string) *B
 func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	for _, network := range task.Networks {
 		if network.SkipCreation {
-			log.Printf("Skip creating network: %s\n", network.Name)
+			// log.Printf("Skip creating network: %s\n", network.Name)
 			continue
 		}
-		log.Printf("Creating Docker network: %s, driver: '%s'\n", network.Name, network.Driver)
+		// log.Printf("Creating Docker network: %s, driver: '%s'\n", network.Name, network.Driver)
 		if msg, err := network.Create(ctx, b.procManager); err != nil {
 			return fmt.Errorf("failed to create network: %s, err: %v, msg: %s", network.Name, err, msg)
 		}
-		log.Printf("Successfully set up Docker network: %s\n", network.Name)
+		// log.Printf("Successfully set up Docker network: %s\n", network.Name)
 	}
 
-	log.Println("Setting up Docker configuration...")
+	// log.Println("Setting up Docker configuration...")
 	timeout := time.Duration(configTimeoutInSec) * time.Second
 	configCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	if err := b.setupConfig(configCtx); err != nil {
 		return err
 	}
-	log.Println("Successfully set up Docker configuration")
+	// log.Println("Successfully set up Docker configuration")
 	if task.UsingRegistryCreds() {
 		timeout := time.Duration(loginTimeoutInSec) * time.Second
 		for registry, cred := range task.RegistryLoginCredentials {
 			loginCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
-			log.Printf("Logging in to registry: %s\n", registry)
+			// log.Printf("Logging in to registry: %s\n", registry)
 			if err := b.dockerLoginWithRetries(loginCtx, registry, cred.Username.ResolvedValue, cred.Password.ResolvedValue, 0); err != nil {
 				return err
 			}
-			log.Printf("Successfully logged into %s\n", registry)
+			// log.Printf("Successfully logged into %s\n", registry)
 		}
 	}
 
@@ -238,7 +238,7 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 }
 
 func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
-	log.Printf("Executing step ID: %s. Timeout(sec): %d, Working directory: '%s', Network: '%s'\n", step.ID, step.Timeout, step.WorkingDirectory, step.Network)
+	// log.Printf("Executing step ID: %s. Timeout(sec): %d, Working directory: '%s', Network: '%s'\n", step.ID, step.Timeout, step.WorkingDirectory, step.Network)
 	if step.StartDelay > 0 {
 		log.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
 		time.Sleep(time.Duration(step.StartDelay) * time.Second)
@@ -266,7 +266,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		// Print out a warning message if a remote context doesn't appear to be valid, i.e. doesn't end with .git.
 		validateDockerContext(dockerContext)
 
-		log.Println("Scanning for dependencies...")
+		// log.Println("Scanning for dependencies...")
 		timeout := time.Duration(scrapeTimeoutInSec) * time.Second
 		scrapeCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
@@ -274,7 +274,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to scan dependencies")
 		}
-		log.Println("Successfully scanned dependencies")
+		// log.Println("Successfully scanned dependencies")
 		step.ImageDependencies = deps
 
 		workingDirectory := step.WorkingDirectory

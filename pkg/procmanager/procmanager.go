@@ -73,7 +73,7 @@ func (pm *ProcManager) RunWithRetries(
 	attempt := 0
 	var err error
 	for attempt <= retries {
-		log.Printf("Launching container with name: %s\n", containerName)
+		// log.Printf("Launching container with name: %s\n", containerName)
 		if err = pm.Run(ctx, args, stdIn, stdOut, stdErr, cmdDir); err == nil {
 			log.Printf("Successfully executed container: %s\n", containerName)
 			break
