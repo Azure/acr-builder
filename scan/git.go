@@ -71,6 +71,12 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 		}
 	}()
 
+	// Enable credential cache
+	err = enableCredentialCache(root)
+	if err != nil {
+		return "", err
+	}
+
 	var out []byte
 	if out, err = gitWithinDir(root, "init"); err != nil {
 		return "", errors.Wrapf(err, "failed to init repo at %s: %s", root, out)
@@ -109,6 +115,18 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 	}
 
 	return checkoutDir, nil
+}
+
+func enableCredentialCache(root string) error {
+	cmd := exec.Command("git", "config", "--global", "credential.helper", "cache")
+	cmd.Dir = root
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.Wrapf(err, "error executing 'git config --global credential.helper cache': %s", output)
+	}
+
+	return nil
 }
 
 func gitLfs(root string) error {
