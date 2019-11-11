@@ -95,6 +95,9 @@ RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	Write-Host 'Expanding ...'; \
 	Expand-Archive -Path docker.zip -DestinationPath C:\unzip\.; \
 	\
+	Write-Host 'Removing dockerd.exe ...'; \
+	Remove-Item C:\unzip\docker\dockerd.exe -Force; \
+	\
 	Write-Host 'Complete.';
 
 # Build the acr-builder
@@ -109,7 +112,7 @@ RUN Write-Host ('Running build'); \
 # setup the runtime environment
 FROM base as runtime
 ARG ACB_BASEIMAGE=mcr.microsoft.com/windows/servercore:1903
-COPY --from=dockercli C:/unzip/docker/docker.exe C:/docker/docker.exe
+COPY --from=dockercli C:/unzip/docker/ C:/docker/
 COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe C:/acr-builder/acb.exe
 ENV ACB_CONFIGIMAGENAME=$ACB_BASEIMAGE
 

@@ -67,11 +67,14 @@ RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	Write-Host 'Expanding ...'; \
 	Expand-Archive -Path docker.zip -DestinationPath C:\unzip\.; \
 	\
+	Write-Host 'Removing dockerd.exe ...'; \
+	Remove-Item C:\unzip\docker\dockerd.exe -Force; \
+	\
 	Write-Host 'Complete.';
 
 # setup the runtime environment
 FROM base as runtime
-COPY --from=dockercli C:/unzip/docker/docker.exe C:/docker/docker.exe
+COPY --from=dockercli C:/unzip/docker/ C:/docker/
 RUN setx /M PATH $('C:\docker;{0}' -f $env:PATH);
 ENTRYPOINT [ "docker.exe" ]
 CMD [ "--help" ]
