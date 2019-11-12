@@ -66,7 +66,8 @@ RUN $newPath = ('{0}\bin;C:\go\bin;{1}' -f $env:GOPATH, $env:PATH); \
 # 1. The go lang for 1803 tag is not available.
 # 2. The image pulls 2.11.1 version of MinGit which has an issue with git submodules command. https://github.com/git-for-windows/git/issues/1007#issuecomment-384281260
 
-ENV GOLANG_VERSION 1.13.4
+# The latest golang (1.13.3+) has a blocking issue (https://github.com/golang/go/issues/35447) on windows 
+ENV GOLANG_VERSION 1.13.2
 
 RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSION); \
 	Write-Host ('Downloading {0} ...' -f $url); \
@@ -83,17 +84,24 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 	\
 	Write-Host 'Complete.';
 
-# Build the docker executable
-FROM builder as dockercli
-ARG DOCKER_CLI_LKG_COMMIT=c98c4080a323fb0e4fdf7429d8af4e2e946d09b5
-WORKDIR \\gopath\\src\\github.com\\docker\\cli
-RUN git clone https://github.com/docker/cli.git \gopath\src\github.com\docker\cli; \
-	git checkout $env:DOCKER_CLI_LKG_COMMIT; \
-	scripts\\make.ps1 -Binary -ForceBuildAll
+# Download the docker executable
+FROM base as dockercli
+ARG DOCKER_VERSION=19-03-4
+ENV DOCKER_DOWNLOAD_URL https://dockermsft.blob.core.windows.net/dockercontainer/docker-${DOCKER_VERSION}.zip
+RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
+	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
+	Invoke-WebRequest -Uri $env:DOCKER_DOWNLOAD_URL -OutFile 'docker.zip'; \
+	\
+	Write-Host 'Expanding ...'; \
+	Expand-Archive -Path docker.zip -DestinationPath C:\unzip\.; \
+	\
+	Write-Host 'Removing dockerd.exe ...'; \
+	Remove-Item C:\unzip\docker\dockerd.exe -Force; \
+	\
+	Write-Host 'Complete.';
 
 # Build the acr-builder
 FROM builder as acb
-COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
 RUN Write-Host ('Running build'); \
@@ -104,11 +112,11 @@ RUN Write-Host ('Running build'); \
 # setup the runtime environment
 FROM base as runtime
 ARG ACB_BASEIMAGE=mcr.microsoft.com/windows/servercore:1903
-COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
-COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe c:/acr-builder/acb.exe
+COPY --from=dockercli C:/unzip/docker/ C:/docker/
+COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe C:/acr-builder/acb.exe
 ENV ACB_CONFIGIMAGENAME=$ACB_BASEIMAGE
 
-RUN setx /M PATH $('c:\acr-builder;c:\docker;{0}' -f $env:PATH);
+RUN setx /M PATH $('C:\acr-builder;C:\docker;{0}' -f $env:PATH);
 
 ENTRYPOINT [ "acb.exe" ]
 CMD [ "--help" ]

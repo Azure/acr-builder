@@ -56,48 +56,25 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_LFS_DOWNLOAD_URL); \
 	\
 	Write-Host 'Complete.';
 
-FROM base as builder
-# ideally, this would be C:\go to match Linux a bit closer, but C:\go is the recommended install path for Go itself on Windows
-ENV GOPATH C:\\gopath
-
-# PATH isn't actually set in the Docker image, so we have to set it from within the container
-RUN $newPath = ('{0}\bin;C:\go\bin;{1}' -f $env:GOPATH, $env:PATH); \
-	Write-Host ('Updating PATH: {0}' -f $newPath); \
-	[Environment]::SetEnvironmentVariable('PATH', $newPath, [EnvironmentVariableTarget]::Machine);
-
-# install go lang
-# ideally we should be able to use FROM golang:windowsservercore-1803. This is not done due to two reasons
-# 1. The go lang for 1803 tag is not available.
-# 2. The image pulls 2.11.1 version of MinGit which has an issue with git submodules command. https://github.com/git-for-windows/git/issues/1007#issuecomment-384281260
-
-ENV GOLANG_VERSION 1.13.4
-
-RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSION); \
-	Write-Host ('Downloading {0} ...' -f $url); \
-	Invoke-WebRequest -Uri $url -OutFile 'go.zip'; \
+# Download the docker executable
+FROM base as dockercli
+ARG DOCKER_VERSION=19-03-4
+ENV DOCKER_DOWNLOAD_URL https://dockermsft.blob.core.windows.net/dockercontainer/docker-${DOCKER_VERSION}.zip
+RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
+	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
+	Invoke-WebRequest -Uri $env:DOCKER_DOWNLOAD_URL -OutFile 'docker.zip'; \
 	\
 	Write-Host 'Expanding ...'; \
-	Expand-Archive go.zip -DestinationPath C:\; \
+	Expand-Archive -Path docker.zip -DestinationPath C:\unzip\.; \
 	\
-	Write-Host 'Verifying install ("go version") ...'; \
-	go version; \
-	\
-	Write-Host 'Removing ...'; \
-	Remove-Item go.zip -Force; \
+	Write-Host 'Removing dockerd.exe ...'; \
+	Remove-Item C:\unzip\docker\dockerd.exe -Force; \
 	\
 	Write-Host 'Complete.';
 
-# Build the docker executable
-FROM builder as dockercli
-ARG DOCKER_CLI_LKG_COMMIT=c98c4080a323fb0e4fdf7429d8af4e2e946d09b5
-WORKDIR \\gopath\\src\\github.com\\docker\\cli
-RUN git clone https://github.com/docker/cli.git \gopath\src\github.com\docker\cli; \
-    git checkout $env:DOCKER_CLI_LKG_COMMIT; \
-    scripts\\make.ps1 -Binary -ForceBuildAll
-
 # setup the runtime environment
 FROM base as runtime
-COPY --from=dockercli /gopath/src/github.com/docker/cli/build/docker.exe c:/docker/docker.exe
-RUN setx /M PATH $('c:\docker;{0}' -f $env:PATH);
+COPY --from=dockercli C:/unzip/docker/ C:/docker/
+RUN setx /M PATH $('C:\docker;{0}' -f $env:PATH);
 ENTRYPOINT [ "docker.exe" ]
 CMD [ "--help" ]
