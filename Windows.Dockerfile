@@ -1,4 +1,4 @@
-ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:1903
+ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:1909
 FROM $WINDOWS_IMAGE as base
 
 # set the default shell as powershell.
