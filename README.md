@@ -90,3 +90,83 @@ $ acb render -f acb.yaml --values values.yaml
 ```
 
 If your template uses `.Run.ID` or other `.Run` variables, refer to the full list of parameters using `acb render --help`.
+
+
+## F5 experience on VSCode
+
+You can install `delve`, and add something like this to your `.vscode/launch.json` file - and hit f5. The binary executes from under `./cmd/acb`, so you can put any Task files that you want to debug.
+
+First, you'd have to run a few commands:
+
+### Create a source volume for your workspace (i.e. your context, Dockerfiles, Task yaml files)
+```sh
+sudo docker volume create source
+sudo docker volume inspect source
+[
+    {
+        "CreatedAt": "0001-01-01T00:00:00Z",
+        "Driver": "local",
+        "Labels": {},
+        "Mountpoint": "/var/lib/docker/volumes/source/_data",
+        "Name": "source",
+        "Options": {},
+        "Scope": "local"
+    }
+]
+sudo rm -rf /var/lib/docker/volumes/source/_data
+sudo ln -s $(pwd) /var/lib/docker/volumes/source/_data
+```
+
+Now, you can add your Dockerfiles or Task files to `cmd/acb/` folder.
+
+If your testing Task file contains pulling/pushing stuff off a private repository, then you will have to do the following step. Make sure you are logged in to the repo using `docker login`.
+If you don't need that, you can skip the following step.
+
+### Create a home volume for Docker to find your registry credentials.
+```sh
+sudo docker volume create home
+sudo docker volume inspect home
+[
+    {
+        "CreatedAt": "0001-01-01T00:00:00Z",
+        "Driver": "local",
+        "Labels": {},
+        "Mountpoint": "/var/lib/docker/volumes/home/_data",
+        "Name": "home",
+        "Options": {},
+        "Scope": "local"
+    }
+]
+sudo rm -rf /var/lib/docker/volumes/home/_data
+sudo ln -s $(HOME)/.docker /var/lib/docker/volumes/home/_data
+```
+
+### Create `launch.json` file in your `.vscode` folder:
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceRoot}/cmd/acb",
+            "env": {},
+            "args": [
+               "exec",
+               "--homevol",
+               "source",
+               "-f",
+               "./test.acb.yml",
+               ".",
+                "--id",
+                "blah",
+                "--registry",
+                "samashah.azurecr.io"
+            ]
+        }
+    ]
+}
+```
