@@ -224,7 +224,6 @@ func renderAndResolveSecrets(
 	opts *BaseRenderOptions,
 	sourceValues Values) (Values, error) {
 	result := Values{}
-
 	// Cheap optimization to skip the secrets merging if the yaml definition file doesn't contain "secrets" string in it. Note that the task can
 	// have the string secrets but may not essentially the secrets section.
 	if !strings.Contains(string(template.Data), "secrets") {
