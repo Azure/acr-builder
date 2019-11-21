@@ -314,7 +314,7 @@ func createBuildTask(
 	// Create the template
 	template := templating.NewTemplate("build", []byte(runCmd))
 
-	rendered, err := templating.LoadAndRenderSteps(ctx, template, renderOpts)
+	rendered, err := templating.LoadAndRenderBuildSteps(ctx, template, renderOpts)
 	if err != nil {
 		return nil, err
 	}
