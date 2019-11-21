@@ -154,6 +154,10 @@ func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRende
 	if err != nil {
 		return "", fmt.Errorf("error while loading exec steps: %v", err)
 	}
+	// return empty rendered string for an empty template.
+	if mergedVals == nil {
+		return "", nil
+	}
 
 	engine := NewEngine()
 	// we will pass nil for the secret resolve override so as to use the default resolve function.
@@ -178,7 +182,7 @@ func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRende
 
 // LoadSteps loads a template file and overrides values with build info
 func LoadSteps(template *Template, opts *BaseRenderOptions) (Values, error) {
-	// return empty rendered string for an empty template.
+	// return empty values list for an empty template.
 	if len(template.GetData()) == 0 {
 		return nil, nil
 	}
@@ -224,7 +228,7 @@ func renderAndResolveSecrets(
 	opts *BaseRenderOptions,
 	sourceValues Values) (Values, error) {
 	result := Values{}
-	// Cheap optimization to skip the secrets merging if the yaml definition file doesn't contain "secrets" string in it. Note that the task can
+	// Cheap optimization to skip the secrets merging if the task definition file doesn't contain "secrets" string in it. Note that the task can
 	// have the string secrets but may not essentially the secrets section.
 	if !strings.Contains(string(template.Data), "secrets") {
 		return result, nil
