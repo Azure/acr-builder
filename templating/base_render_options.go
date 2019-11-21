@@ -149,7 +149,7 @@ func LoadAndRenderBuildSteps(ctx context.Context, template *Template, opts *Base
 // LoadAndRenderSteps loads a template file for exec and renders it according to an optional values file, --set values,
 // and base render options.
 func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRenderOptions) (string, error) {
-    // load steps and override values
+	// load steps and override values
 	mergedVals, err := LoadSteps(template, opts)
 	if err != nil {
 		return "", fmt.Errorf("error while loading exec steps: %v", err)
