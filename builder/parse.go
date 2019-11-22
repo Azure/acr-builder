@@ -6,6 +6,8 @@ package builder
 import (
 	"regexp"
 	"strings"
+
+	"github.com/Azure/acr-builder/util"
 )
 
 var httpPrefix = regexp.MustCompile("^https?://")
@@ -28,12 +30,13 @@ func parseDockerBuildCmd(cmd string) (dockerfile string, target string, context 
 	for i := 0; i < len(fields); i++ {
 		v := fields[i]
 
+		// trim quotes on all docker build command args
 		if prev == "-f" || prev == "--file" {
-			dockerfile = v
+			dockerfile = util.TrimQuotes(v)
 		} else if prev == "--target" {
-			target = v
+			target = util.TrimQuotes(v)
 		} else if !strings.HasPrefix(prev, "-") && !strings.HasPrefix(v, "-") {
-			context = v
+			context = util.TrimQuotes(v)
 		}
 
 		prev = v

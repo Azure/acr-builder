@@ -123,6 +123,9 @@ If your testing Task file contains pulling/pushing stuff off a private repositor
 If you don't need that, you can skip the following step.
 
 ### Create a home volume for Docker to find your registry credentials.
+
+From the `cmd/acb/` folder run
+
 ```sh
 sudo docker volume create home
 sudo docker volume inspect home
@@ -170,3 +173,5 @@ sudo ln -s $(HOME)/.docker /var/lib/docker/volumes/home/_data
     ]
 }
 ```
+
+Press F5.
