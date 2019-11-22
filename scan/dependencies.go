@@ -127,7 +127,7 @@ func NormalizeImageTag(img string) string {
 
 // NewImageReference parses a path of a image and creates a ImageReference object
 func NewImageReference(imagePath string) (*image.Reference, error) {
-	ref, err := reference.Parse(imagePath)
+	ref, err := reference.Parse(util.TrimQuotes(imagePath))
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to parse image reference, ensure tags have a valid format: %s", imagePath)
 	}
