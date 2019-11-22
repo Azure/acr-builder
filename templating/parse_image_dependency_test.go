@@ -10,6 +10,7 @@ import (
 	"github.com/docker/distribution/reference"
 )
 
+// TestParseImageDependency validates that we can handle quotes in the Dockerfile FROM cmd directive.
 func TestParseImageDependency(t *testing.T) {
 	tests := []struct {
 		s string
