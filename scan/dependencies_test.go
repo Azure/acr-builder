@@ -130,31 +130,6 @@ func TestResolveDockerfileDependencies_WithTarget(t *testing.T) {
 	}
 }
 
-func TestRemoveSurroundingQuotes(t *testing.T) {
-	tests := []struct {
-		in       string
-		expected string
-	}{
-		{`"hello""world"`, `hello""world`},
-		{`"""hello"""`, `hello`},
-		{`"hello""world"`, `hello""world`},
-		{`"`, ``},
-		{`"""""`, ``},
-		{`"hello`, `hello`},
-		{`hello"`, `hello`},
-		{`hello`, `hello`},
-		{`hel"lo`, `hel"lo`},
-		{`''hello''`, `hello`},
-		{`''he'llo'''`, `he'llo`},
-	}
-
-	for _, test := range tests {
-		if actual := removeSurroundingQuotes(test.in); actual != test.expected {
-			t.Errorf("expected %s but got %s", test.expected, actual)
-		}
-	}
-}
-
 func TestCreateDockerfilePath(t *testing.T) {
 	tests := []struct {
 		context    string

@@ -276,13 +276,7 @@ func parseAssignment(in string) (name string, value string, err error) {
 		return "", "", fmt.Errorf("%s cannot be split into 2 tokens with '='", in)
 	}
 
-	return values[0], removeSurroundingQuotes(values[1]), nil
-}
-
-// removeSurroundingQuotes trims double quotes, then single quotes.
-func removeSurroundingQuotes(s string) string {
-	s = strings.Trim(s, `"`)
-	return strings.Trim(s, `'`)
+	return values[0], util.TrimQuotes(values[1]), nil
 }
 
 // createDockerfilePath determines where we should look for the dockerfile depending on the
