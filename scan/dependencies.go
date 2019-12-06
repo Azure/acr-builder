@@ -127,7 +127,7 @@ func NormalizeImageTag(img string) string {
 
 // NewImageReference parses a path of a image and creates a ImageReference object
 func NewImageReference(imagePath string) (*image.Reference, error) {
-	ref, err := reference.Parse(util.TrimQuotes(imagePath))
+	ref, err := reference.Parse(imagePath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to parse image reference, ensure tags have a valid format: %s", imagePath)
 	}
@@ -196,7 +196,8 @@ SCAN: // label for the scan loop
 				if len(tokens) < 2 {
 					return "", nil, fmt.Errorf("unable to understand line %s", line)
 				}
-				var imageToken = os.Expand(tokens[1], func(key string) string {
+				// trim surrounds single and double quotes from the image reference
+				var imageToken = os.Expand(util.TrimQuotes(tokens[1]), func(key string) string {
 					return context[key]
 				})
 				var found bool
