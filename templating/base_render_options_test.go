@@ -139,6 +139,7 @@ func TestLoadAndRenderSteps(t *testing.T) {
 
 func TestLoadAndRenderBuildSteps(t *testing.T) {
 	opts := &BaseRenderOptions{
+		ValuesFile: "",
 	}
 	tests := []struct {
 		buildFile string
