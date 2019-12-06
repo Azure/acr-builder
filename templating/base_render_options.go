@@ -127,7 +127,7 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 // and base render options.
 func LoadAndRenderBuildSteps(ctx context.Context, template *Template, opts *BaseRenderOptions) (string, error) {
 	// load steps and override values
-	mergedVals, err := LoadSteps(template, opts)
+	mergedVals, err := loadSteps(template, opts)
 	if err != nil {
 		return "", fmt.Errorf("error while loading build steps: %v", err)
 	}
@@ -150,7 +150,7 @@ func LoadAndRenderBuildSteps(ctx context.Context, template *Template, opts *Base
 // and base render options.
 func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRenderOptions) (string, error) {
 	// load steps and override values
-	mergedVals, err := LoadSteps(template, opts)
+	mergedVals, err := loadSteps(template, opts)
 	if err != nil {
 		return "", fmt.Errorf("error while loading exec steps: %v", err)
 	}
@@ -180,8 +180,8 @@ func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRende
 	return rendered, nil
 }
 
-// LoadSteps loads a template file and overrides values with build info
-func LoadSteps(template *Template, opts *BaseRenderOptions) (Values, error) {
+// loadSteps loads a template file and overrides values with build info
+func loadSteps(template *Template, opts *BaseRenderOptions) (Values, error) {
 	// return empty values list for an empty template.
 	if len(template.GetData()) == 0 {
 		return nil, nil

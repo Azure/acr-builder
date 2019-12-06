@@ -137,6 +137,39 @@ func TestLoadAndRenderSteps(t *testing.T) {
 	}
 }
 
+func TestLoadAndRenderBuildSteps(t *testing.T) {
+	opts := &BaseRenderOptions{
+	}
+	tests := []struct {
+		buildFile string
+		expected string
+	}{
+		{
+			"testdata/caching/Dockerfile-test",
+			`FROM node:9-alpine
+
+ENV NODE_VERSION 9.11.1a`,
+		},
+	}
+
+	for _, test := range tests {
+		var template *Template
+		template, err := LoadTemplate(test.buildFile)
+		if err != nil {
+			t.Fatalf("Unexpected err: %v", err)
+		}
+
+		actual, err := LoadAndRenderBuildSteps(context.Background(), template, opts)
+		if err != nil {
+			t.Fatalf("Unexpected err: %v", err)
+		}
+		expected := adjustCRInExpectedStringOnWindows(test.expected)
+		if actual != expected {
+			t.Errorf("Expected \n%s\n but got \n%s\n", expected, actual)
+		}
+	}
+}
+
 func TestShellQuote(t *testing.T) {
 	tests := []struct {
 		original string
