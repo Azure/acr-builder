@@ -143,7 +143,7 @@ func TestLoadAndRenderBuildSteps(t *testing.T) {
 	}
 	tests := []struct {
 		buildFile string
-		expected string
+		expected  string
 	}{
 		{
 			"testdata/caching/Dockerfile-test",
