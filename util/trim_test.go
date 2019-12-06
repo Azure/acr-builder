@@ -10,10 +10,16 @@ func TestTrimQuotes(t *testing.T) {
 		s        string
 		expected string
 	}{
+		{`Dockerfile'`, `Dockerfile`},
+		{`"Dockerfile'`, `Dockerfile`},
+		{`'"Dockerfile'"`, `Dockerfile`},
+		{`"'"Dockerfile''"`, `Dockerfile`},
+		{`'"'"Dockerfile''"'`, `Dockerfile`},
+		{`Dockerfile''"'`, `Dockerfile`},
 		{`Dockerfile`, `Dockerfile`},
 		{`"Dockerfile"`, `Dockerfile`},
 		{`'Dockerfile'`, `Dockerfile`},
-		{`'Dockerfile"`, `Dockerfile"`},
+		{`'Dockerfile"`, `Dockerfile`},
 		{`'Dockerfile '`, `Dockerfile `},
 		{`'   Dockerfile '`, `   Dockerfile `},
 	}
