@@ -196,7 +196,8 @@ SCAN: // label for the scan loop
 				if len(tokens) < 2 {
 					return "", nil, fmt.Errorf("unable to understand line %s", line)
 				}
-				var imageToken = os.Expand(tokens[1], func(key string) string {
+				// trim surrounds single and double quotes from the image reference
+				var imageToken = os.Expand(util.TrimQuotes(tokens[1]), func(key string) string {
 					return context[key]
 				})
 				var found bool
@@ -276,13 +277,7 @@ func parseAssignment(in string) (name string, value string, err error) {
 		return "", "", fmt.Errorf("%s cannot be split into 2 tokens with '='", in)
 	}
 
-	return values[0], removeSurroundingQuotes(values[1]), nil
-}
-
-// removeSurroundingQuotes trims double quotes, then single quotes.
-func removeSurroundingQuotes(s string) string {
-	s = strings.Trim(s, `"`)
-	return strings.Trim(s, `'`)
+	return values[0], util.TrimQuotes(values[1]), nil
 }
 
 // createDockerfilePath determines where we should look for the dockerfile depending on the
