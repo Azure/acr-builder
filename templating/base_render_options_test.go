@@ -142,29 +142,25 @@ func TestLoadAndRenderBuildSteps(t *testing.T) {
 		ValuesFile: "",
 	}
 	tests := []struct {
-		buildFile string
-		expected  string
+		runCmd string
 	}{
 		{
-			"testdata/caching/Dockerfile-test",
-			`FROM node:9-alpine
-
-ENV NODE_VERSION 9.11.1a`,
+			"--pull --label a=b --no-cache -f Dockerfile --bug-arg c=d -t mytag:latest --platform linux/amd64 /workspace",
 		},
 	}
 
 	for _, test := range tests {
-		var template *Template
-		template, err := LoadTemplate(test.buildFile)
-		if err != nil {
-			t.Fatalf("Unexpected err: %v", err)
-		}
+
+		// Create the template
+		template := NewTemplate("build", []byte(test.runCmd))
 
 		actual, err := LoadAndRenderBuildSteps(context.Background(), template, opts)
 		if err != nil {
 			t.Fatalf("Unexpected err: %v", err)
 		}
-		expected := adjustCRInExpectedStringOnWindows(test.expected)
+
+		expected := adjustCRInExpectedStringOnWindows(test.runCmd)
+		// Build does not need to render. Just check that the run commands were loaded.
 		if actual != expected {
 			t.Errorf("Expected \n%s\n but got \n%s\n", expected, actual)
 		}
