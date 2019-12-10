@@ -140,12 +140,15 @@ func TestLoadAndRenderSteps(t *testing.T) {
 func TestLoadAndRenderBuildSteps(t *testing.T) {
 	opts := &BaseRenderOptions{
 		ValuesFile: "",
+		ID:         "testid",
 	}
 	tests := []struct {
-		runCmd string
+		runCmd               string
+		expectedRenderedStep string
 	}{
 		{
-			"--pull --label a=b --no-cache -f Dockerfile --bug-arg c=d -t mytag:latest --platform linux/amd64 /workspace",
+			"--pull --label a=b --no-cache -f Dockerfile --bug-arg c=d -t secretstore:{{.Run.ID}} --platform linux/amd64 /workspace",
+			"--pull --label a=b --no-cache -f Dockerfile --bug-arg c=d -t secretstore:testid --platform linux/amd64 /workspace",
 		},
 	}
 
@@ -159,10 +162,9 @@ func TestLoadAndRenderBuildSteps(t *testing.T) {
 			t.Fatalf("Unexpected err: %v", err)
 		}
 
-		expected := adjustCRInExpectedStringOnWindows(test.runCmd)
 		// Build does not need to render. Just check that the run commands were loaded.
-		if actual != expected {
-			t.Errorf("Expected \n%s\n but got \n%s\n", expected, actual)
+		if actual != test.expectedRenderedStep {
+			t.Errorf("Expected \n%s\n but got \n%s\n", test.expectedRenderedStep, actual)
 		}
 	}
 }
