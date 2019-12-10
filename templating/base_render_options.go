@@ -123,41 +123,40 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 	return base, nil
 }
 
-// LoadAndRenderSteps loads a template file and renders it according to an optional values file, --set values,
+// LoadAndRenderBuildSteps loads a template file for build and renders it according to an optional values file, --set values,
+// and base render options.
+func LoadAndRenderBuildSteps(ctx context.Context, template *Template, opts *BaseRenderOptions) (string, error) {
+	// load steps and override values
+	mergedVals, err := loadSteps(template, opts)
+	if err != nil {
+		return "", fmt.Errorf("error while loading build steps: %v", err)
+	}
+
+	engine := NewEngine()
+
+	rendered, err := engine.Render(template, mergedVals)
+	if err != nil {
+		return "", fmt.Errorf("error while rendering templates: %v", err)
+	}
+
+	if rendered == "" {
+		return "", errors.New("rendered template was empty")
+	}
+
+	return rendered, nil
+}
+
+// LoadAndRenderSteps loads a template file for exec and renders it according to an optional values file, --set values,
 // and base render options.
 func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRenderOptions) (string, error) {
-	// return empty rendered string for an empty template.
-	if len(template.GetData()) == 0 {
-		return "", nil
-	}
-
-	var err error
-
-	config := &Config{}
-	if opts.ValuesFile != "" {
-		if config, err = LoadConfig(opts.ValuesFile); err != nil {
-			return "", err
-		}
-	} else if opts.Base64EncodedValuesFile != "" {
-		if config, err = DecodeConfig(opts.Base64EncodedValuesFile); err != nil {
-			return "", err
-		}
-	}
-
-	setConfig := &Config{}
-	if len(opts.TemplateValues) > 0 {
-		var rawVals string
-		rawVals, err = parseValues(opts.TemplateValues)
-		if err != nil {
-			return "", err
-		}
-
-		setConfig = &Config{RawValue: rawVals, Values: map[string]*Value{}}
-	}
-
-	mergedVals, err := OverrideValuesWithBuildInfo(config, setConfig, opts)
+	// load steps and override values
+	mergedVals, err := loadSteps(template, opts)
 	if err != nil {
-		return "", fmt.Errorf("failed to override values: %v", err)
+		return "", fmt.Errorf("error while loading exec steps: %v", err)
+	}
+	// return empty rendered string for an empty template.
+	if mergedVals == nil {
+		return "", nil
 	}
 
 	engine := NewEngine()
@@ -181,6 +180,45 @@ func LoadAndRenderSteps(ctx context.Context, template *Template, opts *BaseRende
 	return rendered, nil
 }
 
+// loadSteps loads a template file and overrides values with build info
+func loadSteps(template *Template, opts *BaseRenderOptions) (Values, error) {
+	// return empty values list for an empty template.
+	if len(template.GetData()) == 0 {
+		return nil, nil
+	}
+
+	var err error
+
+	config := &Config{}
+	if opts.ValuesFile != "" {
+		if config, err = LoadConfig(opts.ValuesFile); err != nil {
+			return nil, err
+		}
+	} else if opts.Base64EncodedValuesFile != "" {
+		if config, err = DecodeConfig(opts.Base64EncodedValuesFile); err != nil {
+			return nil, err
+		}
+	}
+
+	setConfig := &Config{}
+	if len(opts.TemplateValues) > 0 {
+		var rawVals string
+		rawVals, err = parseValues(opts.TemplateValues)
+		if err != nil {
+			return nil, err
+		}
+
+		setConfig = &Config{RawValue: rawVals, Values: map[string]*Value{}}
+	}
+
+	mergedVals, err := OverrideValuesWithBuildInfo(config, setConfig, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to override values: %v", err)
+	}
+
+	return mergedVals, nil
+}
+
 // renderAndResolveSecrets parses the secrets in the template, resolves them using vault providers and returns the resolved secret values.
 func renderAndResolveSecrets(
 	ctx context.Context,
@@ -190,7 +228,7 @@ func renderAndResolveSecrets(
 	opts *BaseRenderOptions,
 	sourceValues Values) (Values, error) {
 	result := Values{}
-	// Cheap optimization to skip the secrets merging if it doesn't contain "secrets" string in it. Note that the task can
+	// Cheap optimization to skip the secrets merging if the task definition file doesn't contain "secrets" string in it. Note that the task can
 	// have the string secrets but may not essentially the secrets section.
 	if !strings.Contains(string(template.Data), "secrets") {
 		return result, nil

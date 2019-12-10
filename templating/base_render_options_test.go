@@ -137,6 +137,38 @@ func TestLoadAndRenderSteps(t *testing.T) {
 	}
 }
 
+func TestLoadAndRenderBuildSteps(t *testing.T) {
+	opts := &BaseRenderOptions{
+		ValuesFile: "",
+		ID:         "testid",
+	}
+	tests := []struct {
+		runCmd               string
+		expectedRenderedStep string
+	}{
+		{
+			"--pull --label a=b --no-cache -f Dockerfile --bug-arg c=d -t secretstore:{{.Run.ID}} --platform linux/amd64 /workspace",
+			"--pull --label a=b --no-cache -f Dockerfile --bug-arg c=d -t secretstore:testid --platform linux/amd64 /workspace",
+		},
+	}
+
+	for _, test := range tests {
+
+		// Create the template
+		template := NewTemplate("build", []byte(test.runCmd))
+
+		actual, err := LoadAndRenderBuildSteps(context.Background(), template, opts)
+		if err != nil {
+			t.Fatalf("Unexpected err: %v", err)
+		}
+
+		// Build does not need to render. Just check that the run commands were loaded.
+		if actual != test.expectedRenderedStep {
+			t.Errorf("Expected \n%s\n but got \n%s\n", test.expectedRenderedStep, actual)
+		}
+	}
+}
+
 func TestShellQuote(t *testing.T) {
 	tests := []struct {
 		original string
