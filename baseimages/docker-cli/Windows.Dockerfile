@@ -58,7 +58,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_LFS_DOWNLOAD_URL); \
 
 # Download the docker executable
 FROM base as dockercli
-ARG DOCKER_VERSION=19-03-4
+ARG DOCKER_VERSION=19-03-5
 ENV DOCKER_DOWNLOAD_URL https://dockermsft.blob.core.windows.net/dockercontainer/docker-${DOCKER_VERSION}.zip
 RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \

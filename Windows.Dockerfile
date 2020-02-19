@@ -66,8 +66,7 @@ RUN $newPath = ('{0}\bin;C:\go\bin;{1}' -f $env:GOPATH, $env:PATH); \
 # 1. The go lang for 1803 tag is not available.
 # 2. The image pulls 2.11.1 version of MinGit which has an issue with git submodules command. https://github.com/git-for-windows/git/issues/1007#issuecomment-384281260
 
-# The latest golang (1.13.3+) has a blocking issue (https://github.com/golang/go/issues/35447) on windows 
-ENV GOLANG_VERSION 1.13.2
+ENV GOLANG_VERSION 1.13.8
 
 RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSION); \
 	Write-Host ('Downloading {0} ...' -f $url); \
@@ -86,7 +85,7 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 
 # Download the docker executable
 FROM base as dockercli
-ARG DOCKER_VERSION=19-03-4
+ARG DOCKER_VERSION=19-03-5
 ENV DOCKER_DOWNLOAD_URL https://dockermsft.blob.core.windows.net/dockercontainer/docker-${DOCKER_VERSION}.zip
 RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
