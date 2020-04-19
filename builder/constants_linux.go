@@ -10,7 +10,7 @@ const (
 	// containerWorkspaceDir is the default working directory for a container.
 	containerWorkspaceDir = "/workspace"
 
-	configImageName = "ubuntu"
+	configImageName = "bash"
 )
 
 var homeEnv = "HOME=" + homeWorkDir
