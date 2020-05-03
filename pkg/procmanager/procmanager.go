@@ -4,12 +4,14 @@
 package procmanager
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -42,13 +44,14 @@ func (pm *ProcManager) RunRepeatWithRetries(
 	stdErr io.Writer,
 	cmdDir string,
 	retries int,
+	retryOnErrors []string,
 	retryDelay int,
 	containerName string,
 	repeat int,
 	ignoreErrors bool) error {
 	var aggErrors util.Errors
 	for i := 0; i <= repeat; i++ {
-		innerErr := pm.RunWithRetries(ctx, args, stdIn, stdOut, stdErr, cmdDir, retries, retryDelay, containerName)
+		innerErr := pm.RunWithRetries(ctx, args, stdIn, stdOut, stdErr, cmdDir, retries, retryOnErrors, retryDelay, containerName)
 		if innerErr != nil {
 			aggErrors = append(aggErrors, innerErr)
 		}
@@ -68,23 +71,41 @@ func (pm *ProcManager) RunWithRetries(
 	stdErr io.Writer,
 	cmdDir string,
 	retries int,
+	retryOnErrors []string,
 	retryDelay int,
 	containerName string) error {
 	attempt := 0
 	var err error
 	for attempt <= retries {
 		log.Printf("Launching container with name: %s\n", containerName)
-		if err = pm.Run(ctx, args, stdIn, stdOut, stdErr, cmdDir); err == nil {
+
+		var stdOutBuf, stdErrBuf bytes.Buffer
+		var stdOutWriter, stdErrWriter io.Writer
+
+		needToCheckError := len(retryOnErrors) > 0
+
+		if needToCheckError {
+			stdOutWriter = io.MultiWriter(&stdOutBuf, stdOut)
+			stdErrWriter = io.MultiWriter(&stdErrBuf, stdErr)
+		} else {
+			stdOutWriter = stdOut
+			stdErrWriter = stdErr
+		}
+
+		if err = pm.Run(ctx, args, stdIn, stdOutWriter, stdErrWriter, cmdDir); err == nil {
 			log.Printf("Successfully executed container: %s\n", containerName)
 			break
 		} else {
 			attempt++
 			if attempt <= retries {
-				log.Printf("Container failed during run: %s, waiting %d seconds before retrying...\n", containerName, retryDelay)
-				time.Sleep(time.Duration(retryDelay) * time.Second)
-			} else {
-				log.Printf("Container failed during run: %s. No retries remaining.\n", containerName)
+				if !needToCheckError || containsAnyError(retryOnErrors, &stdOutBuf, &stdErrBuf) {
+					log.Printf("Container failed during run: %s, waiting %d seconds before retrying...\n", containerName, retryDelay)
+					time.Sleep(time.Duration(retryDelay) * time.Second)
+					continue
+				}
 			}
+
+			log.Printf("Container failed during run: %s. No retries remaining.\n", containerName)
 		}
 	}
 	return err
@@ -170,4 +191,17 @@ func (pm *ProcManager) Stop() util.Errors {
 		delete(pm.processes, pid)
 	}
 	return errs
+}
+
+func containsAnyError(errors []string, stdOutBuf, stdErrBuf *bytes.Buffer) bool {
+	stdOut := stdOutBuf.String()
+	stdErr := stdErrBuf.String()
+
+	for _, error := range errors {
+		if strings.LastIndex(stdOut, error) >= 0 || strings.LastIndex(stdErr, error) >= 0 {
+			return true
+		}
+	}
+
+	return false
 }

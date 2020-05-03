@@ -57,6 +57,7 @@ type Step struct {
 	User                string   `yaml:"user"`
 	Network             string   `yaml:"network"`
 	Isolation           string   `yaml:"isolation"`
+	CPUS                string   `yaml:"cpus"`
 	Cache               string   `yaml:"cache"`
 	Push                []string `yaml:"push"`
 	Envs                []string `yaml:"env"`
@@ -69,7 +70,8 @@ type Step struct {
 	StartDelay          int      `yaml:"startDelay"`
 	RetryDelayInSeconds int      `yaml:"retryDelay"`
 	// Retries specifies how many times a Step will be retried if it fails after its initial execution.
-	Retries int `yaml:"retries"`
+	Retries       int      `yaml:"retries"`
+	RetryOnErrors []string `yaml:"retryOnErrors"`
 	// Repeat specifies how many times a Step will be repeated after its initial execution.
 	Repeat                          int  `yaml:"repeat"`
 	Keep                            bool `yaml:"keep"`
@@ -218,7 +220,7 @@ func (s *Step) IsPushStep() bool {
 // UpdateBuildStepWithDefaults updates a build step with hyperv isolation on Windows.
 func (s *Step) UpdateBuildStepWithDefaults() {
 	if s.IsBuildStep() && runtime.GOOS == util.WindowsOS && !strings.Contains(s.Build, "--isolation") {
-		s.Build = fmt.Sprintf("--isolation hyperv %s", s.Build)
+		s.Build = fmt.Sprintf("--isolation hyperv %s -m 2GB", s.Build)
 	}
 }
 
