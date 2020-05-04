@@ -88,7 +88,7 @@ func TestGetBuildDockerRunArgs(t *testing.T) {
 		expectedCmds = []string{
 			"powershell.exe",
 			"-Command",
-			"docker run --rm --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --env foo=bar --env HOME=qux --workdir c:\\workspace/stepWorkDir docker build -f Dockerfile .",
+			"docker run --rm --cpus 1 --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --env foo=bar --env HOME=qux --workdir c:\\workspace/stepWorkDir docker build -f Dockerfile .",
 		}
 	} else {
 		expectedCmds = []string{
