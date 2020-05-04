@@ -106,6 +106,7 @@ func (pm *ProcManager) RunWithRetries(
 			}
 
 			log.Printf("Container failed during run: %s. No retries remaining.\n", containerName)
+			break
 		}
 	}
 	return err
