@@ -336,13 +336,6 @@ func createBuildTask(
 		Tags:    tags,
 	}
 
-	// For windows build, retry on "(0xc0370109)" error
-	if runtime.GOOS == util.WindowsOS {
-		buildStep.Retries = 3
-		buildStep.RetryOnErrors = []string{"(0xc0370109)"}
-		buildStep.RetryDelayInSeconds = 5
-	}
-
 	steps := []*graph.Step{buildStep}
 
 	if push {
