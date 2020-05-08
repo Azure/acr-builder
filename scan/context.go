@@ -100,7 +100,8 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 	buf := bufio.NewReader(r)
 	var magic []byte
 
-	magic, err = buf.Peek(archiveHeaderSize)
+	// note: (sam) read 2048 magic bytes to accomodate Extended Pax headers.
+	magic, err = buf.Peek(archiveHeaderSize * 4)
 	if err != nil && err != io.EOF {
 		return errors.Wrap(err, "failed to peek context header")
 	}
