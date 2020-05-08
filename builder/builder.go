@@ -100,6 +100,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			"",
 			"",
 			"",
+			"",
 			buildkitdContainerName,
 			buildxImg+" create --use",
 		)
@@ -119,6 +120,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			os.Stderr,
 			"",
 			buildkitdContainerInitRetries,
+			nil,
 			buildkitdContainerInitRetryDelay,
 			buildkitdContainerName,
 			buildkitdContainerInitRepeat,
@@ -323,6 +325,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		os.Stderr,
 		"",
 		step.Retries,
+		step.RetryOnErrors,
 		step.RetryDelayInSeconds,
 		step.ID,
 		step.Repeat,

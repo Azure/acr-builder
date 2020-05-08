@@ -38,6 +38,7 @@ func (b *Builder) getDockerRunArgs(
 	user string,
 	network string,
 	isolation string,
+	cpus string,
 	entrypoint string,
 	containerName string,
 	cmd string) []string {
@@ -75,6 +76,9 @@ func (b *Builder) getDockerRunArgs(
 	}
 	if isolation != "" {
 		sb.WriteString(" --isolation " + isolation)
+	}
+	if cpus != "" {
+		sb.WriteString(" --cpus " + cpus)
 	}
 	if entrypoint != "" {
 		sb.WriteString(" --entrypoint " + entrypoint)
@@ -117,6 +121,11 @@ func (b *Builder) getDockerRunArgsForStep(
 		step.Isolation = "hyperv"
 	}
 
+	if runtime.GOOS == util.WindowsOS && step.IsBuildStep() {
+		// Limit build command container cpu to 1
+		step.CPUS = "1"
+	}
+
 	return b.getDockerRunArgs(
 		volName,
 		stepWorkDir,
@@ -130,6 +139,7 @@ func (b *Builder) getDockerRunArgsForStep(
 		step.User,
 		step.Network,
 		step.Isolation,
+		step.CPUS,
 		entrypoint,
 		step.ID,
 		cmd,
