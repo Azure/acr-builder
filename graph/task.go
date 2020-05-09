@@ -332,7 +332,7 @@ func (t *Task) initialize(ctx context.Context) error {
 				}
 			}
 		} else if s.IsPushStep() {
-			s.Push = getNormalizedDockerImageNames(s.Push, t.RegistryName)
+			s.Push = getNormalizedDockerImageNames(s.Push)
 		}
 	}
 	var err error
@@ -352,7 +352,7 @@ func (t *Task) UsingRegistryCreds() bool {
 
 // getNormalizedDockerImageNames normalizes the list of docker images
 // and removes any duplicates.
-func getNormalizedDockerImageNames(dockerImages []string, registry string) []string {
+func getNormalizedDockerImageNames(dockerImages []string) []string {
 	if len(dockerImages) == 0 {
 		return dockerImages
 	}
@@ -361,7 +361,6 @@ func getNormalizedDockerImageNames(dockerImages []string, registry string) []str
 	normalizedDockerImages := []string{}
 	for _, dockerImage := range dockerImages {
 		d := scan.NormalizeImageTag(dockerImage)
-		d = util.PrefixRegistryToImageName(registry, d)
 		if dict[d] {
 			continue
 		}

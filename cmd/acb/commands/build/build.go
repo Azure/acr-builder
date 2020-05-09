@@ -324,9 +324,20 @@ func createBuildTask(
 		log.Println(rendered)
 	}
 
+	var credentials []*graph.RegistryCredential
+	allKnownRegistries := []string{registry}
+	for _, credString := range creds {
+		cred, err := graph.CreateRegistryCredentialFromString(credString)
+		if err != nil {
+			return nil, err
+		}
+		credentials = append(credentials, cred)
+		allKnownRegistries = append(allKnownRegistries, cred.Registry)
+	}
+
 	// After the template has rendered, we have to parse the tags again
 	// so we can properly set the build/push tags.
-	rendered, prefixedTags := util.PrefixTags(rendered, registry)
+	rendered, prefixedTags := util.PrefixTags(rendered, registry, allKnownRegistries)
 	tags = prefixedTags
 
 	buildStep := &graph.Step{
@@ -347,15 +358,6 @@ func createBuildTask(
 		}
 
 		steps = append(steps, pushStep)
-	}
-
-	var credentials []*graph.RegistryCredential
-	for _, credString := range creds {
-		cred, err := graph.CreateRegistryCredentialFromString(credString)
-		if err != nil {
-			return nil, err
-		}
-		credentials = append(credentials, cred)
 	}
 
 	return graph.NewTask(ctx, steps, []*secretmgmt.Secret{}, registry, credentials, true, workingDirectory, "")
