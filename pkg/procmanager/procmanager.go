@@ -130,7 +130,7 @@ func (pm *ProcManager) Run(
 		return nil
 	}
 
-	cmd := exec.Command(args[0], args[1:]...)
+	cmd := exec.Command(args[0], args[1:]...) //#nosec G204
 	if cmdDir != "" {
 		cmd.Dir = cmdDir
 	}
