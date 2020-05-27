@@ -150,7 +150,7 @@ var Command = cli.Command{
 			taskFile = defaultTaskFile
 		}
 
-		ctx := gocontext.WithValue(gocontext.Background(), "debug", debug)
+		ctx := gocontext.Background()
 		pm := procmanager.NewProcManager(dryRun)
 
 		if homevol == "" {
@@ -228,7 +228,7 @@ var Command = cli.Command{
 			if aliasErr != nil {
 				return errors.Wrap(aliasErr, "unable to search/replace aliases in task")
 			}
-			if ctx.Value("debug").(bool) {
+			if debug {
 				log.Printf("Processed task before rendering data:\n%s", processedTask)
 			}
 			// update the template.Data
@@ -239,7 +239,7 @@ var Command = cli.Command{
 		if err != nil {
 			return errors.Wrap(err, "unable to render task")
 		}
-		if ctx.Value("debug").(bool) {
+		if debug {
 			log.Printf("Rendered template:\n%s", rendered)
 		}
 
