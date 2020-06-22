@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/Azure/acr-builder/pkg/volume"
 	"github.com/Azure/acr-builder/scan"
 	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/util"
@@ -50,13 +51,14 @@ type RegistryLoginCredentials map[string]*ResolvedRegistryCred
 
 // Task represents a task execution.
 type Task struct {
-	Steps                    []*Step              `yaml:"steps"`
-	StepTimeout              int                  `yaml:"stepTimeout,omitempty"`
-	Secrets                  []*secretmgmt.Secret `yaml:"secrets,omitempty"`
-	Networks                 []*Network           `yaml:"networks,omitempty"`
-	Envs                     []string             `yaml:"env,omitempty"`
-	WorkingDirectory         string               `yaml:"workingDirectory,omitempty"`
-	Version                  string               `yaml:"version,omitempty"`
+	Steps                    []*Step               `yaml:"steps"`
+	StepTimeout              int                   `yaml:"stepTimeout,omitempty"`
+	Secrets                  []*secretmgmt.Secret  `yaml:"secrets,omitempty"`
+	Networks                 []*Network            `yaml:"networks,omitempty"`
+	VolumeMounts             []*volume.VolumeMount `yaml:"volumes,omitempty"`
+	Envs                     []string              `yaml:"env,omitempty"`
+	WorkingDirectory         string                `yaml:"workingDirectory,omitempty"`
+	Version                  string                `yaml:"version,omitempty"`
 	RegistryName             string
 	Registry                 string
 	TaskName                 string // Used to form the build cache image tag.
@@ -198,6 +200,17 @@ func (t *Task) Validate() error {
 		}
 
 		idMap[secret.ID] = struct{}{}
+	}
+
+	//Validate Volumes if exists
+	if err := ValidateVolumeMounts(t.VolumeMounts); err != nil {
+		return err
+	}
+	//Validate that mounts reference a volume that exists
+	for _, s := range t.Steps {
+		if err := s.ValidateMountVolumeNames(t.VolumeMounts); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -478,4 +491,22 @@ func ResolveCustomRegistryCredentials(ctx context.Context, credentials []*Regist
 	}
 
 	return resolvedCreds, nil
+}
+
+//ValidateVolumeMounts checks each volume is well formed and each container path is unique
+func ValidateVolumeMounts(volMounts []*volume.VolumeMount) error {
+	duplicate := make(map[string]struct{}, len(volMounts))
+	for _, v := range volMounts {
+		// call v.Validate() for each mount
+		if err := v.Validate(); err != nil {
+			return err
+		}
+		// make sure each volume name provided is unique
+		if _, exists := duplicate[v.Name]; exists {
+			return errors.New("volume with duplicate name found")
+		}
+
+		duplicate[v.Name] = struct{}{}
+	}
+	return nil
 }

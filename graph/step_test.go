@@ -5,6 +5,8 @@ package graph
 import (
 	"strings"
 	"testing"
+
+	"github.com/Azure/acr-builder/pkg/volume"
 )
 
 func TestValidate(t *testing.T) {
@@ -110,10 +112,141 @@ func TestValidate(t *testing.T) {
 			},
 			true,
 		},
+		{
+			&Step{
+				ID:    "a",
+				Build: "b",
+				Mounts: []*volume.Mount{
+					&volume.Mount{
+						Name:      "c",
+						MountPath: "/run/test",
+					},
+				},
+			},
+			true,
+		},
+		{
+			&Step{
+				ID:  "a",
+				Cmd: "b",
+				Mounts: []*volume.Mount{
+					&volume.Mount{
+						Name:      "c",
+						MountPath: "/run/test",
+					},
+				},
+			},
+			false,
+		},
+		{
+			&Step{
+				ID:  "a",
+				Cmd: "b",
+				Mounts: []*volume.Mount{
+					&volume.Mount{
+						Name:      "c",
+						MountPath: "/run/test",
+					},
+					&volume.Mount{
+						Name:      "d",
+						MountPath: "/run/test",
+					},
+				},
+			},
+			true,
+		},
+		{
+			&Step{
+				ID:  "a",
+				Cmd: "b",
+				Mounts: []*volume.Mount{
+					&volume.Mount{
+						Name:      "c",
+						MountPath: "/run/test",
+					},
+					&volume.Mount{
+						Name:      "d",
+						MountPath: "/run/test2",
+					},
+				},
+			},
+			false,
+		},
+		{
+			&Step{
+				ID:  "a",
+				Cmd: "b",
+				Mounts: []*volume.Mount{
+					&volume.Mount{
+						Name:      "d",
+						MountPath: "/run/test2",
+					},
+					&volume.Mount{
+						Name:      "d",
+						MountPath: "/run/test",
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for _, test := range tests {
 		err := test.step.Validate()
+		if test.shouldError && err == nil {
+			t.Fatalf("Expected step: %v to error but it didn't", test.step)
+		}
+		if !test.shouldError && err != nil {
+			t.Fatalf("step: %v shouldn't have errored, but it did; err: %v", test.step, err)
+		}
+	}
+}
+
+func TestValidateMountVolumeNames(t *testing.T) {
+	volumes := []*volume.VolumeMount{
+		&volume.VolumeMount{
+			Name: "vol1",
+			Values: []map[string]string{
+				{
+					"a": "this is a test",
+				},
+			},
+		},
+	}
+	tests := []struct {
+		step        *Step
+		shouldError bool
+	}{
+		{
+			&Step{
+				ID:  "a",
+				Cmd: "b",
+				Mounts: []*volume.Mount{
+					&volume.Mount{
+						Name:      "vol1",
+						MountPath: "/run/test2",
+					},
+				},
+			},
+			false,
+		},
+		{
+			&Step{
+				ID:  "a",
+				Cmd: "b",
+				Mounts: []*volume.Mount{
+					&volume.Mount{
+						Name:      "vol2",
+						MountPath: "/run/test2",
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		err := test.step.ValidateMountVolumeNames(volumes)
 		if test.shouldError && err == nil {
 			t.Fatalf("Expected step: %v to error but it didn't", test.step)
 		}
@@ -332,6 +465,40 @@ func TestHasNoWhen(t *testing.T) {
 	}
 }
 
+func TestHasMounts(t *testing.T) {
+	tests := []struct {
+		s        *Step
+		expected bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&Step{
+				Mounts: []*volume.Mount{},
+			},
+			false,
+		},
+		{
+			&Step{
+				Mounts: []*volume.Mount{
+					&volume.Mount{
+						Name:      "a",
+						MountPath: "/run/test",
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		if actual := test.s.HasMounts(); actual != test.expected {
+			t.Errorf("Expected %v but got %v", test.expected, actual)
+		}
+	}
+}
 func TestUseBuildCache(t *testing.T) {
 	tests := []struct {
 		s        *Step

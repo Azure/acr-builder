@@ -5,9 +5,11 @@ package templating
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 	"strings"
 	"text/template"
 
@@ -28,9 +30,20 @@ func NewEngine() *Engine {
 	}
 }
 
+// Base64Encode Overrides the function b64enc in Sprig to provide nil behavior
+func Base64Encode(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString([]byte(reflect.ValueOf(v).String()))
+}
+
 // FuncMap returns a FuncMap representing all of the functionality of the engine.
 func FuncMap() template.FuncMap {
-	return sprig.TxtFuncMap()
+	//We are overriding the b64enc function with custom implementation
+	modMap := sprig.TxtFuncMap()
+	modMap["b64enc"] = Base64Encode
+	return modMap
 }
 
 // Render renders a template.

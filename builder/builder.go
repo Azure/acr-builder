@@ -6,6 +6,7 @@ package builder
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -17,6 +18,7 @@ import (
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/pkg/procmanager"
+	"github.com/Azure/acr-builder/pkg/volume"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 )
@@ -87,6 +89,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		log.Println("Task will use build cache, initializing buildkitd container")
 		// --workdir = /workspace
 		args := b.getDockerRunArgs(
+			make(map[string]string),
 			b.workspaceDir,
 			"",
 			false,
@@ -127,6 +130,18 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			false)
 		if err != nil {
 			log.Printf("buildx create --use failed with error: '%v'", err)
+		}
+	}
+
+	//For each volume:
+	for _, volMount := range task.VolumeMounts {
+		// 1. take the values and dump into a file
+		if err := b.createFilesForVolume(ctx, volMount); err != nil {
+			return err
+		}
+		// 2. create a dummy data container which makes new volume and puts file in it
+		if err := b.populateVolumeWithFiles(ctx, volMount); err != nil {
+			return err
 		}
 	}
 
@@ -442,4 +457,79 @@ func parseImageNameFromArgs(cmdArgs string) string {
 		return cmdArgs
 	}
 	return cmdArgs[:idx]
+}
+
+func (b *Builder) createFilesForVolume(ctx context.Context, volMount *volume.VolumeMount) error {
+	var args []string
+	var sb strings.Builder
+	if runtime.GOOS == util.WindowsOS {
+		args = []string{"powershell.exe", "-Command"}
+		sb.WriteString("mkdir " + volMount.Name)
+		log.Println("making directory " + volMount.Name)
+	} else {
+		args = []string{"/bin/sh", "-c"}
+		sb.WriteString("mkdir " + volMount.Name + " && ")
+	}
+	for _, values := range volMount.Values {
+		for k, v := range values {
+			val := v
+			decoded, err := base64.StdEncoding.DecodeString(val)
+			if err != nil {
+				return errors.New("failed to decode Base64 value. please make sure value provided is Base64 encoded")
+			}
+			val = string(decoded)
+			log.Println("decoded value " + val + " into string")
+			if runtime.GOOS == util.WindowsOS {
+				sb.WriteString("; Add-Content -Path ")
+				sb.WriteString(volMount.Name + "/" + k)
+				sb.WriteString(" -Value @\"\n")
+				sb.WriteString(val)
+				sb.WriteString("\n\"@")
+			} else {
+				sb.WriteString("cat >> ")
+				sb.WriteString(volMount.Name + "/" + k)
+				sb.WriteString(" <<EOL\n")
+				sb.WriteString(val)
+				sb.WriteString("\nEOL\n")
+			}
+		}
+	}
+	args = append(args, sb.String())
+	var buf bytes.Buffer
+	if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+		return errors.Wrapf(err, "failed to write value, %s", buf.String())
+	}
+	log.Println("buffer: ", buf.String())
+	log.Println("Created new file(s) for volume: ", volMount.Name)
+	return nil
+}
+
+func (b *Builder) populateVolumeWithFiles(ctx context.Context, volMount *volume.VolumeMount) error {
+	var dataContainerArgs []string
+	var dataSB strings.Builder
+	if runtime.GOOS == util.WindowsOS {
+		dataContainerArgs = []string{"powershell.exe", "-Command"}
+		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + "\\" + volMount.Name + ":c:\\source -v ")
+		dataSB.WriteString(volMount.Name + ":c:\\dest -w /source ")
+		dataSB.WriteString("mcr.microsoft.com/windows/nanoserver:2004 cmd.exe /c copy c:\\source c:\\dest")
+	} else {
+		dataContainerArgs = []string{"/bin/sh", "-c"}
+		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":/source -v ")
+		dataSB.WriteString(volMount.Name + ":/dest -w /source alpine cp ")
+		for _, values := range volMount.Values {
+			for k := range values {
+				dataSB.WriteString(volMount.Name + "/" + k)
+				dataSB.WriteString(" ")
+			}
+		}
+		dataSB.WriteString("/dest")
+	}
+	dataContainerArgs = append(dataContainerArgs, dataSB.String())
+	var buf bytes.Buffer
+	if err := b.procManager.Run(ctx, dataContainerArgs, nil, &buf, &buf, ""); err != nil {
+		return errors.Wrapf(err, "failed to populate container, %s", buf.String())
+	}
+	log.Println("buffer: ", buf.String())
+	log.Println("Populated files for volume: ", volMount.Name)
+	return nil
 }

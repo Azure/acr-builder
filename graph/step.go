@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/pkg/image"
+	"github.com/Azure/acr-builder/pkg/volume"
 	"github.com/Azure/acr-builder/util"
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
@@ -31,6 +32,7 @@ var (
 	errInvalidRetries    = errors.New("step must specify retries >= 0")
 	errInvalidRepeat     = errors.New("step must specify repeat >= 0")
 	errInvalidCacheValue = errors.New("invalid value for cache property. Valid values are 'enabled', 'disabled'")
+	errInvalidMountsUse  = errors.New("invalid use of Mounts. Mounts must have unique container paths and used for CMD steps")
 )
 
 type chanBool chan bool
@@ -49,26 +51,27 @@ func (c chanBool) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // Step is a step in the execution task.
 type Step struct {
-	ID                  string   `yaml:"id"`
-	Cmd                 string   `yaml:"cmd"`
-	Build               string   `yaml:"build"`
-	WorkingDirectory    string   `yaml:"workingDirectory"`
-	EntryPoint          string   `yaml:"entryPoint"`
-	User                string   `yaml:"user"`
-	Network             string   `yaml:"network"`
-	Isolation           string   `yaml:"isolation"`
-	CPUS                string   `yaml:"cpus"`
-	Cache               string   `yaml:"cache"`
-	Push                []string `yaml:"push"`
-	Envs                []string `yaml:"env"`
-	Expose              []string `yaml:"expose"`
-	Ports               []string `yaml:"ports"`
-	When                []string `yaml:"when"`
-	ExitedWith          []int    `yaml:"exitedWith"`
-	ExitedWithout       []int    `yaml:"exitedWithout"`
-	Timeout             int      `yaml:"timeout"`
-	StartDelay          int      `yaml:"startDelay"`
-	RetryDelayInSeconds int      `yaml:"retryDelay"`
+	ID                  string          `yaml:"id"`
+	Cmd                 string          `yaml:"cmd"`
+	Build               string          `yaml:"build"`
+	WorkingDirectory    string          `yaml:"workingDirectory"`
+	EntryPoint          string          `yaml:"entryPoint"`
+	User                string          `yaml:"user"`
+	Network             string          `yaml:"network"`
+	Isolation           string          `yaml:"isolation"`
+	CPUS                string          `yaml:"cpus"`
+	Cache               string          `yaml:"cache"`
+	Mounts              []*volume.Mount `yaml:"volumeMounts"`
+	Push                []string        `yaml:"push"`
+	Envs                []string        `yaml:"env"`
+	Expose              []string        `yaml:"expose"`
+	Ports               []string        `yaml:"ports"`
+	When                []string        `yaml:"when"`
+	ExitedWith          []int           `yaml:"exitedWith"`
+	ExitedWithout       []int           `yaml:"exitedWithout"`
+	Timeout             int             `yaml:"timeout"`
+	StartDelay          int             `yaml:"startDelay"`
+	RetryDelayInSeconds int             `yaml:"retryDelay"`
 	// Retries specifies how many times a Step will be retried if it fails after its initial execution.
 	Retries       int      `yaml:"retries"`
 	RetryOnErrors []string `yaml:"retryOnErrors"`
@@ -118,6 +121,15 @@ func (s *Step) Validate() error {
 	if !s.IsCmdStep() && !s.IsBuildStep() && !s.IsPushStep() {
 		return errMissingProps
 	}
+	if s.HasMounts() {
+		if !s.IsCmdStep() {
+			return errInvalidMountsUse
+		}
+		valMounts := ValidateMounts(s.Mounts)
+		if valMounts != nil {
+			return valMounts
+		}
+	}
 	for _, dep := range s.When {
 		if dep == ImmediateExecutionToken && len(s.When) > 1 {
 			return errInvalidDeps
@@ -131,6 +143,39 @@ func (s *Step) Validate() error {
 		return errInvalidCacheValue
 	}
 
+	return nil
+}
+
+//ValidateMounts checks each mount is well formed and each container file path is unique
+func ValidateMounts(mounts []*volume.Mount) error {
+	duplicate := make(map[string]struct{}, len(mounts))
+	for _, m := range mounts {
+		// call m.Validate() for each mount
+		if err := m.Validate(); err != nil {
+			return err
+		}
+		// make sure each container file path provided is unique
+		if _, exists := duplicate[m.MountPath]; exists {
+			return errors.New("mount with duplicate container file path found")
+		}
+
+		duplicate[m.MountPath] = struct{}{}
+	}
+	return nil
+}
+
+//ValidateMountVolumeNames checks mount name matches a listed volume
+func (s *Step) ValidateMountVolumeNames(vols []*volume.VolumeMount) error {
+	//for each mount in the step, check to see that there exists a matching
+	nameMap := make(map[string]struct{}, len(vols))
+	for _, v := range vols {
+		nameMap[v.Name] = struct{}{}
+	}
+	for _, m := range s.Mounts {
+		if _, exists := nameMap[m.Name]; !exists {
+			return errors.New("provided mount name does not correspond to a volume")
+		}
+	}
 	return nil
 }
 
@@ -191,6 +236,14 @@ func (s *Step) HasNoWhen() bool {
 		return true
 	}
 	return len(s.When) == 0
+}
+
+// HasMounts returns true if the Step has at least 1 mount listed, false otherwise
+func (s *Step) HasMounts() bool {
+	if s == nil {
+		return false
+	}
+	return len(s.Mounts) > 0
 }
 
 // IsCmdStep returns true if the Step is a command step, false otherwise.

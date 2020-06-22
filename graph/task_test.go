@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/Azure/acr-builder/pkg/volume"
 	"github.com/Azure/acr-builder/secretmgmt"
 )
 
@@ -307,6 +308,47 @@ func TestValidateTaskVersion(t *testing.T) {
 			t.Errorf("unexpected error: %v", err)
 		} else if err == nil && test.shouldError {
 			t.Errorf("expected an error for version %q", test.version)
+		}
+	}
+}
+
+func TestValidateVolumeMounts(t *testing.T) {
+	tests := []struct {
+		task        *Task
+		shouldError bool
+	}{
+		{
+			&Task{
+				VolumeMounts: []*volume.VolumeMount{
+					&volume.VolumeMount{
+						Name: "a",
+						Values: []map[string]string{
+							{
+								"a": "this is a test",
+							},
+						},
+					},
+					&volume.VolumeMount{
+						Name: "a",
+						Values: []map[string]string{
+							{
+								"a": "this is a test",
+							},
+						},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		err := test.task.Validate()
+		if test.shouldError && err == nil {
+			t.Fatalf("Expected task: %v to error but it didn't", test.task)
+		}
+		if !test.shouldError && err != nil {
+			t.Fatalf("task: %v shouldn't have errored, but it did; err: %v", test.task, err)
 		}
 	}
 }

@@ -1,0 +1,16 @@
+# This template demonstrates mounting a custom volume into a container at a CMD step
+secrets:
+  - id: mysecret
+    keyvault: https://aksinghalkv.vault.azure.net/secrets/SampleMultilineSecret2/927be1d024f54b6d979a6788b0e1e5e9
+  
+volumes:
+  - name: mysecrets
+    values:
+      - mysecret1.txt: {{.Secrets.mysecret | b64enc}}
+      - mysecret2.txt: {{"this is a non encoded string" | b64enc}}
+        
+steps:
+- cmd: bash cat /run/test/mysecret1.txt /run/test/mysecret2.txt
+  volumeMounts:
+    - name: mysecrets
+      mountPath: /run/test
