@@ -117,7 +117,7 @@ func TestValidate(t *testing.T) {
 				ID:    "a",
 				Build: "b",
 				Mounts: []*volume.Mount{
-					&volume.Mount{
+					{
 						Name:      "c",
 						MountPath: "/run/test",
 					},
@@ -130,7 +130,7 @@ func TestValidate(t *testing.T) {
 				ID:  "a",
 				Cmd: "b",
 				Mounts: []*volume.Mount{
-					&volume.Mount{
+					{
 						Name:      "c",
 						MountPath: "/run/test",
 					},
@@ -143,11 +143,11 @@ func TestValidate(t *testing.T) {
 				ID:  "a",
 				Cmd: "b",
 				Mounts: []*volume.Mount{
-					&volume.Mount{
+					{
 						Name:      "c",
 						MountPath: "/run/test",
 					},
-					&volume.Mount{
+					{
 						Name:      "d",
 						MountPath: "/run/test",
 					},
@@ -160,11 +160,11 @@ func TestValidate(t *testing.T) {
 				ID:  "a",
 				Cmd: "b",
 				Mounts: []*volume.Mount{
-					&volume.Mount{
+					{
 						Name:      "c",
 						MountPath: "/run/test",
 					},
-					&volume.Mount{
+					{
 						Name:      "d",
 						MountPath: "/run/test2",
 					},
@@ -177,11 +177,11 @@ func TestValidate(t *testing.T) {
 				ID:  "a",
 				Cmd: "b",
 				Mounts: []*volume.Mount{
-					&volume.Mount{
+					{
 						Name:      "d",
 						MountPath: "/run/test2",
 					},
-					&volume.Mount{
+					{
 						Name:      "d",
 						MountPath: "/run/test",
 					},
@@ -204,7 +204,7 @@ func TestValidate(t *testing.T) {
 
 func TestValidateMountVolumeNames(t *testing.T) {
 	volumes := []*volume.VolumeMount{
-		&volume.VolumeMount{
+		{
 			Name: "vol1",
 			Values: []map[string]string{
 				{
@@ -222,7 +222,7 @@ func TestValidateMountVolumeNames(t *testing.T) {
 				ID:  "a",
 				Cmd: "b",
 				Mounts: []*volume.Mount{
-					&volume.Mount{
+					{
 						Name:      "vol1",
 						MountPath: "/run/test2",
 					},
@@ -235,7 +235,7 @@ func TestValidateMountVolumeNames(t *testing.T) {
 				ID:  "a",
 				Cmd: "b",
 				Mounts: []*volume.Mount{
-					&volume.Mount{
+					{
 						Name:      "vol2",
 						MountPath: "/run/test2",
 					},
@@ -483,7 +483,7 @@ func TestHasMounts(t *testing.T) {
 		{
 			&Step{
 				Mounts: []*volume.Mount{
-					&volume.Mount{
+					{
 						Name:      "a",
 						MountPath: "/run/test",
 					},

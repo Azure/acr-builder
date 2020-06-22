@@ -320,7 +320,7 @@ func TestValidateVolumeMounts(t *testing.T) {
 		{
 			&Task{
 				VolumeMounts: []*volume.VolumeMount{
-					&volume.VolumeMount{
+					{
 						Name: "a",
 						Values: []map[string]string{
 							{
@@ -328,7 +328,7 @@ func TestValidateVolumeMounts(t *testing.T) {
 							},
 						},
 					},
-					&volume.VolumeMount{
+					{
 						Name: "a",
 						Values: []map[string]string{
 							{
