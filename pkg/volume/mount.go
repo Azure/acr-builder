@@ -19,7 +19,7 @@ func (m *Mount) Validate() error {
 		return nil
 	}
 	if m.Name == "" || m.MountPath == "" {
-		return errors.New("mount name or container file path is empty")
+		return errors.New("mount name or mount path is empty")
 	}
 	return nil
 }

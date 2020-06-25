@@ -1,0 +1,20 @@
+# This template demonstrates mounting custom volumes into a container for multi-step task
+volumes:
+  - name: secret1
+    secret:
+      - mysecret1: {{"-----SECRET VALUE 1------" | b64enc}}
+  - name: secret2
+    secret:
+      - mysecret2: {{"-----SECRET VALUE 2------" | b64enc}}
+          
+steps:
+  - cmd: bash cat /run/test/mysecret2
+    volumeMounts:
+      - name: secret1
+        mountPath: /run/test
+  - cmd: bash cat /run/test2/mysecret2 /run/test/mysecret1
+    volumeMounts:
+      - name: secret2
+        mountPath: /run/test2
+      - name: secret1
+        mountPath: /run/test
