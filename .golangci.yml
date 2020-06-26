@@ -29,6 +29,3 @@ issues:
     - text: "Potential HTTP request made with variable url"
       linters:
         - gosec
-    - text: "type name will be used as volume.VolumeMount by other packages, and that stutters; consider calling this Mount"
-      linters:
-        - golint

@@ -203,7 +203,7 @@ func TestValidate(t *testing.T) {
 }
 
 func TestValidateMountVolumeNames(t *testing.T) {
-	volumes := []*volume.VolumeMount{
+	volumes := []*volume.Volume{
 		{
 			Name: "vol1",
 			Values: []map[string]string{

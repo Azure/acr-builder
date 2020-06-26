@@ -135,7 +135,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	}
 
 	//For each volume:
-	for _, volMount := range task.VolumeMounts {
+	for _, volMount := range task.Volumes {
 		// 1. take the values and dump into a file
 		if err := b.createFilesForVolume(ctx, volMount); err != nil {
 			return err
@@ -460,7 +460,7 @@ func parseImageNameFromArgs(cmdArgs string) string {
 	return cmdArgs[:idx]
 }
 
-func (b *Builder) createFilesForVolume(ctx context.Context, volMount *volume.VolumeMount) error {
+func (b *Builder) createFilesForVolume(ctx context.Context, volMount *volume.Volume) error {
 	var args []string
 	var sb strings.Builder
 	if runtime.GOOS == util.WindowsOS {
@@ -504,14 +504,14 @@ func (b *Builder) createFilesForVolume(ctx context.Context, volMount *volume.Vol
 	return nil
 }
 
-func (b *Builder) populateVolumeWithFiles(ctx context.Context, volMount *volume.VolumeMount) error {
+func (b *Builder) populateVolumeWithFiles(ctx context.Context, volMount *volume.Volume) error {
 	var dataContainerArgs []string
 	var dataSB strings.Builder
 	if runtime.GOOS == util.WindowsOS {
 		dataContainerArgs = []string{"powershell.exe", "-Command"}
-		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + "\\" + volMount.Name + ":c:\\source -v ")
+		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":c:\\source -v ")
 		dataSB.WriteString(volMount.Name + ":c:\\dest -w /source ")
-		dataSB.WriteString(nanoServerImageName + " cmd.exe /c copy c:\\source c:\\dest")
+		dataSB.WriteString(nanoServerImageName + " cmd.exe /c copy c:\\source\\" + volMount.Name + " c:\\dest")
 	} else {
 		dataContainerArgs = []string{"/bin/sh", "-c"}
 		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":/source -v ")

@@ -197,8 +197,8 @@ var Command = cli.Command{
 
 		if homevol == "" {
 			if !dryRun {
-				homevol = fmt.Sprintf("%s%s", volume.VolumePrefix, uuid.New())
-				v := volume.NewVolume(homevol, pm)
+				homevol = fmt.Sprintf("%s%s", volume.DockerVolumeHelperPrefix, uuid.New())
+				v := volume.NewDockerVolumeHelper(homevol, pm)
 				if msg, err := v.Create(ctx); err != nil {
 					return fmt.Errorf("failed to create volume. Msg: %s, Err: %v", msg, err)
 				}

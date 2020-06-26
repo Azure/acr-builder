@@ -165,7 +165,7 @@ func ValidateMounts(mounts []*volume.Mount) error {
 }
 
 //ValidateMountVolumeNames checks mount name matches a listed volume
-func (s *Step) ValidateMountVolumeNames(vols []*volume.VolumeMount) error {
+func (s *Step) ValidateMountVolumeNames(vols []*volume.Volume) error {
 	//for each mount in the step, check to see that there exists a matching
 	nameMap := make(map[string]struct{}, len(vols))
 	for _, v := range vols {

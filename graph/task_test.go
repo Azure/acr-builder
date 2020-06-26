@@ -312,14 +312,14 @@ func TestValidateTaskVersion(t *testing.T) {
 	}
 }
 
-func TestValidateVolumeMounts(t *testing.T) {
+func TestValidateVolumes(t *testing.T) {
 	tests := []struct {
 		task        *Task
 		shouldError bool
 	}{
 		{
 			&Task{
-				VolumeMounts: []*volume.VolumeMount{
+				Volumes: []*volume.Volume{
 					{
 						Name: "a",
 						Values: []map[string]string{

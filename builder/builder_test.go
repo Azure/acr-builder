@@ -93,11 +93,11 @@ func TestCreateFilesForVolume(t *testing.T) {
 	pm := procmanager.NewProcManager(false)
 	builder := NewBuilder(pm, false, "")
 	tests := []struct {
-		volumemount *volume.VolumeMount
+		volumemount *volume.Volume
 		shouldError bool
 	}{
 		{
-			&volume.VolumeMount{
+			&volume.Volume{
 				Name: "a",
 				Values: []map[string]string{
 					{
@@ -108,7 +108,7 @@ func TestCreateFilesForVolume(t *testing.T) {
 			false,
 		},
 		{
-			&volume.VolumeMount{
+			&volume.Volume{
 				Name: "a",
 				Values: []map[string]string{
 					{
