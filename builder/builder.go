@@ -471,7 +471,7 @@ func (b *Builder) createFilesForVolume(ctx context.Context, volMount *volume.Vol
 		args = []string{"/bin/sh", "-c"}
 		sb.WriteString("mkdir " + volMount.Name + " && ")
 	}
-	for _, values := range volMount.Values {
+	for _, values := range volMount.Source.Secret {
 		for k, v := range values {
 			val := v
 			decoded, err := base64.StdEncoding.DecodeString(val)
@@ -516,7 +516,7 @@ func (b *Builder) populateVolumeWithFiles(ctx context.Context, volMount *volume.
 		dataContainerArgs = []string{"/bin/sh", "-c"}
 		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":/source -v ")
 		dataSB.WriteString(volMount.Name + ":/dest -w /source alpine cp ")
-		for _, values := range volMount.Values {
+		for _, values := range volMount.Source.Secret {
 			for k := range values {
 				dataSB.WriteString(volMount.Name + "/" + k)
 				dataSB.WriteString(" ")

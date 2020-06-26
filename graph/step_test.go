@@ -206,9 +206,11 @@ func TestValidateMountVolumeNames(t *testing.T) {
 	volumes := []*volume.Volume{
 		{
 			Name: "vol1",
-			Values: []map[string]string{
-				{
-					"a": "this is a test",
+			Source: volume.Source{
+				Secret: []map[string]string{
+					{
+						"b": "this is a test",
+					},
 				},
 			},
 		},

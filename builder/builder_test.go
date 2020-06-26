@@ -99,9 +99,11 @@ func TestCreateFilesForVolume(t *testing.T) {
 		{
 			&volume.Volume{
 				Name: "a",
-				Values: []map[string]string{
-					{
-						"b.txt": "dGhpcyBpcyBhIHRlc3Q=",
+				Source: volume.Source{
+					Secret: []map[string]string{
+						{
+							"b.txt": "dGhpcyBpcyBhIHRlc3Q=",
+						},
 					},
 				},
 			},
@@ -110,9 +112,11 @@ func TestCreateFilesForVolume(t *testing.T) {
 		{
 			&volume.Volume{
 				Name: "a",
-				Values: []map[string]string{
-					{
-						"b.txt": "this is a test",
+				Source: volume.Source{
+					Secret: []map[string]string{
+						{
+							"b.txt": "this is a test",
+						},
 					},
 				},
 			},

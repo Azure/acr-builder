@@ -8,13 +8,13 @@ volumes:
       - mysecret2: {{"-----SECRET VALUE 2------" | b64enc}}
           
 steps:
-  - cmd: bash cat /run/test/mysecret2
+  - cmd: bash cat /run/test/mysecret1
     volumeMounts:
       - name: secret1
         mountPath: /run/test
-  - cmd: bash cat /run/test2/mysecret2 /run/test/mysecret1
+  - cmd: bash cat /run/test/mysecret1 /run/test2/mysecret2
     volumeMounts:
+      - name: secret1
+        mountPath: /run/test
       - name: secret2
         mountPath: /run/test2
-      - name: secret1
-        mountPath: /run/test
