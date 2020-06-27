@@ -134,9 +134,9 @@ func TestCreateFilesForVolume(t *testing.T) {
 		if !test.shouldError {
 			var args []string
 			if runtime.GOOS == util.WindowsOS {
-				args = []string{"powershell.exe", "-Command", "rm " + test.volumemount.Name + " -r -fo"}
+				args = []string{"powershell.exe", "-Command", "rm volumeSources -r -fo"}
 			} else {
-				args = []string{"/bin/sh", "-c", "rm -rf " + test.volumemount.Name}
+				args = []string{"/bin/sh", "-c", "rm -rf volumeSources"}
 			}
 			if err := pm.Run(context.Background(), args, nil, nil, nil, ""); err != nil {
 				t.Fatalf("Unexpected err while deleting directory: %v", err)
