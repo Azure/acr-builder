@@ -12,14 +12,16 @@ import (
 type Source struct {
 	// Secret represents a secret that should populate this volume.
 	Secret []map[string]string `yaml:"secret,omitempty"`
-
 	// add more sources here ...
 }
 
-//Validate checks whether Source is well formed
+// Validate checks whether Source is well formed
 func (s *Source) Validate() error {
 	if s == nil {
 		return nil
+	}
+	if s.Secret == nil {
+		return errors.New("currently only support for source type secret")
 	}
 	if len(s.Secret) <= 0 {
 		return errors.New("secret is empty")

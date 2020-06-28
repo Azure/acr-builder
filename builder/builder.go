@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	dockerImg = "docker"
-	buildxImg = "buildx"
+	dockerImg           = "docker"
+	buildxImg           = "buildx"
+	nanoServerImageName = "mcr.microsoft.com/windows/nanoserver:2004"
 )
 
 // Builder builds images.
@@ -133,10 +134,9 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		}
 	}
 
-	//For each volume:
 	for _, volMount := range task.Volumes {
-		// take the values and dump into a file
-		if err := b.createFilesForVolume(ctx, volMount); err != nil {
+		// create and populate volume for specified source
+		if err := b.prepareVolumeSource(ctx, volMount); err != nil {
 			return err
 		}
 	}
@@ -455,16 +455,30 @@ func parseImageNameFromArgs(cmdArgs string) string {
 	return cmdArgs[:idx]
 }
 
-func (b *Builder) createFilesForVolume(ctx context.Context, volMount *volume.Volume) error {
+// prepareVolumeSource creates and populates the host file and volume for the specified source type
+func (b *Builder) prepareVolumeSource(ctx context.Context, volMount *volume.Volume) error {
+	switch {
+	case volMount.Source.Secret != nil:
+		if err := b.createSecretFiles(ctx, volMount); err != nil {
+			return err
+		}
+		return b.populateSecretVolume(ctx, volMount)
+	default:
+		return errors.New("source type not supported yet")
+	}
+}
+
+// createSecretFiles creates necessary files for source type Secret
+func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume) error {
 	var args []string
 	var sb strings.Builder
 	if runtime.GOOS == util.WindowsOS {
 		args = []string{"powershell.exe", "-Command"}
-		sb.WriteString("md c:\\volumeSources\\" + volMount.Name)
+		sb.WriteString("mkdir " + volMount.Name)
 		log.Println("making directory " + volMount.Name)
 	} else {
 		args = []string{"/bin/sh", "-c"}
-		sb.WriteString("mkdir -p volumeSources/" + volMount.Name + " && ")
+		sb.WriteString("mkdir " + volMount.Name + " && ")
 	}
 	for _, values := range volMount.Source.Secret {
 		for k, v := range values {
@@ -476,13 +490,13 @@ func (b *Builder) createFilesForVolume(ctx context.Context, volMount *volume.Vol
 			val = string(decoded)
 			if runtime.GOOS == util.WindowsOS {
 				sb.WriteString("; Add-Content -Path ")
-				sb.WriteString("volumeSources\\" + volMount.Name + "\\" + k)
+				sb.WriteString(volMount.Name + "/" + k)
 				sb.WriteString(" -Value @\"\n")
 				sb.WriteString(val)
 				sb.WriteString("\n\"@")
 			} else {
 				sb.WriteString("cat >> ")
-				sb.WriteString("volumeSources/" + volMount.Name + "/" + k)
+				sb.WriteString(volMount.Name + "/" + k)
 				sb.WriteString(" <<EOL\n")
 				sb.WriteString(val)
 				sb.WriteString("\nEOL\n")
@@ -496,5 +510,36 @@ func (b *Builder) createFilesForVolume(ctx context.Context, volMount *volume.Vol
 	}
 	log.Println("buffer: ", buf.String())
 	log.Println("Created new file(s) for volume: ", volMount.Name)
+	return nil
+}
+
+// populateSecretVolume mounts all files of type source Secret generated into a volume
+func (b *Builder) populateSecretVolume(ctx context.Context, volMount *volume.Volume) error {
+	var dataContainerArgs []string
+	var dataSB strings.Builder
+	if runtime.GOOS == util.WindowsOS {
+		dataContainerArgs = []string{"powershell.exe", "-Command"}
+		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":c:\\source -v ")
+		dataSB.WriteString(volMount.Name + ":c:\\dest -w c:\\source ")
+		dataSB.WriteString(nanoServerImageName + " cmd.exe /c copy c:\\source\\" + volMount.Name + " c:\\dest")
+	} else {
+		dataContainerArgs = []string{"/bin/sh", "-c"}
+		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":/source -v ")
+		dataSB.WriteString(volMount.Name + ":/dest -w /source alpine cp ")
+		for _, values := range volMount.Source.Secret {
+			for k := range values {
+				dataSB.WriteString(volMount.Name + "/" + k)
+				dataSB.WriteString(" ")
+			}
+		}
+		dataSB.WriteString("/dest")
+	}
+	dataContainerArgs = append(dataContainerArgs, dataSB.String())
+	var buf bytes.Buffer
+	if err := b.procManager.Run(ctx, dataContainerArgs, nil, &buf, &buf, ""); err != nil {
+		return errors.Wrapf(err, "failed to populate container, %s", buf.String())
+	}
+	log.Println("buffer: ", buf.String())
+	log.Println("Populated files for volume: ", volMount.Name)
 	return nil
 }

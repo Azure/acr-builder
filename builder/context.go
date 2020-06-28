@@ -90,7 +90,7 @@ func (b *Builder) getDockerRunArgs(
 	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
 	if len(volMounts) > 0 {
 		for key, val := range volMounts {
-			sb.WriteString(" --volume " + "volumeSources/" + key + ":" + val)
+			sb.WriteString(" --volume " + key + ":" + val + ":ro")
 		}
 	}
 	sb.WriteString(" --env " + homeEnv)

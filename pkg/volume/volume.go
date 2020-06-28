@@ -15,7 +15,7 @@ type Volume struct {
 	Source Source `yaml:",inline"`
 }
 
-//Validate checks whether Volume is well formed
+// Validate checks whether Volume is well formed
 func (v *Volume) Validate() error {
 	if v == nil {
 		return nil
@@ -23,12 +23,12 @@ func (v *Volume) Validate() error {
 	if v.Name == "" {
 		return errors.New("volume name is empty")
 	}
-	if v.Source.Secret == nil {
-		return errors.New("only type Source type Secret supported")
-	}
 	var IsCorrectVolumeName = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`).MatchString
 	if !IsCorrectVolumeName(v.Name) {
 		return errors.New("volume name is not well formed. Only use alphanumeric and - _")
+	}
+	if err := v.Source.Validate(); err != nil {
+		return err
 	}
 	return nil
 }
