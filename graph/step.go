@@ -146,7 +146,7 @@ func (s *Step) Validate() error {
 	return nil
 }
 
-//ValidateMounts checks each mount is well formed and each container file path is unique
+// ValidateMounts checks each mount is well formed and each container file path is unique
 func ValidateMounts(mounts []*volume.Mount) error {
 	duplicate := make(map[string]struct{}, len(mounts))
 	for _, m := range mounts {
@@ -164,9 +164,9 @@ func ValidateMounts(mounts []*volume.Mount) error {
 	return nil
 }
 
-//ValidateMountVolumeNames checks mount name matches a listed volume
+// ValidateMountVolumeNames checks mount name matches a listed volume
 func (s *Step) ValidateMountVolumeNames(vols []*volume.Volume) error {
-	//for each mount in the step, check to see that there exists a matching
+	// for each mount in the step, check to see that there is a matching volume
 	nameMap := make(map[string]struct{}, len(vols))
 	for _, v := range vols {
 		nameMap[v.Name] = struct{}{}
