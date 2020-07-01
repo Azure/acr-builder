@@ -18,36 +18,46 @@ func TestSourceValidate(t *testing.T) {
 		},
 		{
 			&Source{
-				Secret: []map[string]string{
-					{
-						"a": "this is a test",
-					},
+				Secret: map[string]string{
+					"a": "this is a test",
 				},
 			},
 			false,
 		},
 		{
 			&Source{
-				Secret: []map[string]string{},
+				Secret: map[string]string{},
 			},
 			true,
 		},
 		{
 			&Source{
-				Secret: []map[string]string{
-					{
-						"": "this is a test",
-					},
+				Secret: map[string]string{
+					"": "this is a test",
 				},
 			},
 			true,
 		},
 		{
 			&Source{
-				Secret: []map[string]string{
-					{
-						"a": "",
-					},
+				Secret: map[string]string{
+					"a": "",
+				},
+			},
+			false,
+		},
+		{
+			&Source{
+				Secret: map[string]string{
+					"/test/a": "this is a test",
+				},
+			},
+			true,
+		},
+		{
+			&Source{
+				Secret: map[string]string{
+					"My-test_123.txt": "",
 				},
 			},
 			false,

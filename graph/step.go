@@ -173,7 +173,7 @@ func (s *Step) ValidateMountVolumeNames(vols []*volume.Volume) error {
 	}
 	for _, m := range s.Mounts {
 		if _, exists := nameMap[m.Name]; !exists {
-			return errors.New("provided mount name does not correspond to a volume")
+			return errors.New("mount name, " + m.Name + ", does not correspond to a volume")
 		}
 	}
 	return nil

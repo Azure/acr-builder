@@ -20,10 +20,8 @@ func TestVolumeValidate(t *testing.T) {
 			&Volume{
 				Name: "",
 				Source: Source{
-					Secret: []map[string]string{
-						{
-							"a": "this is a test",
-						},
+					Secret: map[string]string{
+						"a": "this is a test",
 					},
 				},
 			},
@@ -33,10 +31,8 @@ func TestVolumeValidate(t *testing.T) {
 			&Volume{
 				Name: "a",
 				Source: Source{
-					Secret: []map[string]string{
-						{
-							"b": "this is a test",
-						},
+					Secret: map[string]string{
+						"b": "this is a test",
 					},
 				},
 			},
@@ -46,10 +42,8 @@ func TestVolumeValidate(t *testing.T) {
 			&Volume{
 				Name: "test123-_",
 				Source: Source{
-					Secret: []map[string]string{
-						{
-							"b": "this is a test",
-						},
+					Secret: map[string]string{
+						"b": "this is a test",
 					},
 				},
 			},
@@ -59,10 +53,8 @@ func TestVolumeValidate(t *testing.T) {
 			&Volume{
 				Name: "test/.",
 				Source: Source{
-					Secret: []map[string]string{
-						{
-							"b": "this is a test",
-						},
+					Secret: map[string]string{
+						"b": "this is a test",
 					},
 				},
 			},

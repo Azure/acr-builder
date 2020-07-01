@@ -323,20 +323,16 @@ func TestValidateVolumes(t *testing.T) {
 					{
 						Name: "a",
 						Source: volume.Source{
-							Secret: []map[string]string{
-								{
-									"b": "this is a test",
-								},
+							Secret: map[string]string{
+								"b": "this is a test",
 							},
 						},
 					},
 					{
 						Name: "a",
 						Source: volume.Source{
-							Secret: []map[string]string{
-								{
-									"b": "this is a test",
-								},
+							Secret: map[string]string{
+								"b": "this is a test",
 							},
 						},
 					},

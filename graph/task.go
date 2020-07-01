@@ -202,11 +202,11 @@ func (t *Task) Validate() error {
 		idMap[secret.ID] = struct{}{}
 	}
 
-	//Validate Volumes if exists
+	// Validate Volumes if exists
 	if err := ValidateVolumes(t.Volumes); err != nil {
 		return err
 	}
-	//Validate that mounts reference a volume that exists
+	// Validate that mounts reference a volume that exists
 	for _, s := range t.Steps {
 		if err := s.ValidateMountVolumeNames(t.Volumes); err != nil {
 			return err
@@ -493,7 +493,7 @@ func ResolveCustomRegistryCredentials(ctx context.Context, credentials []*Regist
 	return resolvedCreds, nil
 }
 
-//ValidateVolumes checks each volume is well formed and each container path is unique
+// ValidateVolumes checks each volume is well formed and each container path is unique
 func ValidateVolumes(volMounts []*volume.Volume) error {
 	duplicate := make(map[string]struct{}, len(volMounts))
 	for _, v := range volMounts {

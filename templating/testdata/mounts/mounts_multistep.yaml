@@ -2,10 +2,10 @@
 volumes:
   - name: secret1
     secret:
-      - mysecret1: {{"-----SECRET VALUE 1------" | b64enc}}
+      mysecret1: {{"-----SECRET VALUE 1------" | b64enc}}
   - name: secret2
     secret:
-      - mysecret2: {{"-----SECRET VALUE 2------" | b64enc}}
+      mysecret2: {{"-----SECRET VALUE 2------" | b64enc}}
           
 steps:
   - cmd: bash cat /run/test/mysecret1

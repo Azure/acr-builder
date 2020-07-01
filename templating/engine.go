@@ -40,7 +40,7 @@ func Base64Encode(v interface{}) string {
 
 // FuncMap returns a FuncMap representing all of the functionality of the engine.
 func FuncMap() template.FuncMap {
-	//We are overriding the b64enc function with custom implementation
+	// We are overriding the b64enc function with custom implementation
 	modMap := sprig.TxtFuncMap()
 	modMap["b64enc"] = Base64Encode
 	return modMap

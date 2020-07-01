@@ -4,6 +4,8 @@
 package volume
 
 import (
+	"regexp"
+
 	"github.com/pkg/errors"
 )
 
@@ -11,7 +13,7 @@ import (
 // Only one of its members may be specified.
 type Source struct {
 	// Secret represents a secret that should populate this volume.
-	Secret []map[string]string `yaml:"secret,omitempty"`
+	Secret map[string]string `yaml:"secret,omitempty"`
 	// add more sources here ...
 }
 
@@ -26,16 +28,13 @@ func (s *Source) Validate() error {
 	if len(s.Secret) <= 0 {
 		return errors.New("secret is empty")
 	}
-	for _, values := range s.Secret {
-		if values != nil {
-			if len(values) > 1 {
-				return errors.New("each new <secret_name:value> mapping must start as a new element of list")
-			}
-			for k := range values {
-				if k == "" {
-					return errors.New("secret name provided for value is empty")
-				}
-			}
+	var IsCorrectSecretFileName = regexp.MustCompile(`^[a-zA-Z0-9-_.]+$`).MatchString
+	for key := range s.Secret {
+		if key == "" {
+			return errors.New("secret name provided for value is empty")
+		}
+		if !IsCorrectSecretFileName(key) {
+			return errors.New("file name, " + key + ", is not well formed. Only use alphanumeric and - _ .")
 		}
 	}
 	return nil

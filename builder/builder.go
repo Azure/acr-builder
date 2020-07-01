@@ -24,9 +24,8 @@ import (
 )
 
 const (
-	dockerImg           = "docker"
-	buildxImg           = "buildx"
-	nanoServerImageName = "mcr.microsoft.com/windows/nanoserver:2004"
+	dockerImg = "docker"
+	buildxImg = "buildx"
 )
 
 // Builder builds images.
@@ -464,7 +463,7 @@ func (b *Builder) prepareVolumeSource(ctx context.Context, volMount *volume.Volu
 		}
 		return b.populateSecretVolume(ctx, volMount)
 	default:
-		return errors.New("source type not supported yet")
+		return errors.New("volume source type not supported yet")
 	}
 }
 
@@ -480,27 +479,25 @@ func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume
 		args = []string{"/bin/sh", "-c"}
 		sb.WriteString("mkdir " + volMount.Name + " && ")
 	}
-	for _, values := range volMount.Source.Secret {
-		for k, v := range values {
-			val := v
-			decoded, err := base64.StdEncoding.DecodeString(val)
-			if err != nil {
-				return errors.New("failed to decode Base64 value. please make sure value provided is Base64 encoded")
-			}
-			val = string(decoded)
-			if runtime.GOOS == util.WindowsOS {
-				sb.WriteString("; Add-Content -Path ")
-				sb.WriteString(volMount.Name + "/" + k)
-				sb.WriteString(" -Value @\"\n")
-				sb.WriteString(val)
-				sb.WriteString("\n\"@")
-			} else {
-				sb.WriteString("cat >> ")
-				sb.WriteString(volMount.Name + "/" + k)
-				sb.WriteString(" <<EOL\n")
-				sb.WriteString(val)
-				sb.WriteString("\nEOL\n")
-			}
+	for k, v := range volMount.Source.Secret {
+		val := v
+		decoded, err := base64.StdEncoding.DecodeString(val)
+		if err != nil {
+			return errors.New("failed to decode Base64 value. please make sure value provided is Base64 encoded")
+		}
+		val = string(decoded)
+		if runtime.GOOS == util.WindowsOS {
+			sb.WriteString("; Add-Content -Path ")
+			sb.WriteString(volMount.Name + "/" + k)
+			sb.WriteString(" -Value @\"\n")
+			sb.WriteString(val)
+			sb.WriteString("\n\"@")
+		} else {
+			sb.WriteString("cat >> ")
+			sb.WriteString(volMount.Name + "/" + k)
+			sb.WriteString(" <<EOL\n")
+			sb.WriteString(val)
+			sb.WriteString("\nEOL\n")
 		}
 	}
 	args = append(args, sb.String())
@@ -521,16 +518,14 @@ func (b *Builder) populateSecretVolume(ctx context.Context, volMount *volume.Vol
 		dataContainerArgs = []string{"powershell.exe", "-Command"}
 		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":c:\\source -v ")
 		dataSB.WriteString(volMount.Name + ":c:\\dest -w c:\\source ")
-		dataSB.WriteString(nanoServerImageName + " cmd.exe /c copy c:\\source\\" + volMount.Name + " c:\\dest")
+		dataSB.WriteString(configImageName + " cmd.exe /c copy c:\\source\\" + volMount.Name + " c:\\dest")
 	} else {
 		dataContainerArgs = []string{"/bin/sh", "-c"}
 		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":/source -v ")
-		dataSB.WriteString(volMount.Name + ":/dest -w /source alpine cp ")
-		for _, values := range volMount.Source.Secret {
-			for k := range values {
-				dataSB.WriteString(volMount.Name + "/" + k)
-				dataSB.WriteString(" ")
-			}
+		dataSB.WriteString(volMount.Name + ":/dest -w /source " + configImageName + " cp ")
+		for k := range volMount.Source.Secret {
+			dataSB.WriteString(volMount.Name + "/" + k)
+			dataSB.WriteString(" ")
 		}
 		dataSB.WriteString("/dest")
 	}
