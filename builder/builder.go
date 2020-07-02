@@ -461,7 +461,11 @@ func (b *Builder) prepareVolumeSource(ctx context.Context, volMount *volume.Volu
 		if err := b.createSecretFiles(ctx, volMount); err != nil {
 			return err
 		}
-		return b.populateSecretVolume(ctx, volMount)
+		if err := b.populateSecretVolume(ctx, volMount); err != nil {
+			return err
+		}
+		log.Println("Volume source " + volMount.Name + " successfully created")
+		return nil
 	default:
 		return errors.New("volume source type not supported yet")
 	}
@@ -471,14 +475,8 @@ func (b *Builder) prepareVolumeSource(ctx context.Context, volMount *volume.Volu
 func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume) error {
 	var args []string
 	var sb strings.Builder
-	if runtime.GOOS == util.WindowsOS {
-		args = []string{"powershell.exe", "-Command"}
-		sb.WriteString("mkdir " + volMount.Name)
-		log.Println("making directory " + volMount.Name)
-	} else {
-		args = []string{"/bin/sh", "-c"}
-		sb.WriteString("mkdir " + volMount.Name + " && ")
-	}
+	args = getShell()
+	sb.WriteString("mkdir " + volMount.Name)
 	for k, v := range volMount.Source.Secret {
 		val := v
 		decoded, err := base64.StdEncoding.DecodeString(val)
@@ -493,7 +491,7 @@ func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume
 			sb.WriteString(val)
 			sb.WriteString("\n\"@")
 		} else {
-			sb.WriteString("cat >> ")
+			sb.WriteString(" && cat >> ")
 			sb.WriteString(volMount.Name + "/" + k)
 			sb.WriteString(" <<EOL\n")
 			sb.WriteString(val)
@@ -505,8 +503,6 @@ func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume
 	if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
 		return errors.Wrapf(err, "failed to write value, %s", buf.String())
 	}
-	log.Println("buffer: ", buf.String())
-	log.Println("Created new file(s) for volume: ", volMount.Name)
 	return nil
 }
 
@@ -514,13 +510,12 @@ func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume
 func (b *Builder) populateSecretVolume(ctx context.Context, volMount *volume.Volume) error {
 	var dataContainerArgs []string
 	var dataSB strings.Builder
+	dataContainerArgs = getShell()
 	if runtime.GOOS == util.WindowsOS {
-		dataContainerArgs = []string{"powershell.exe", "-Command"}
 		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":c:\\source -v ")
 		dataSB.WriteString(volMount.Name + ":c:\\dest -w c:\\source ")
 		dataSB.WriteString(configImageName + " cmd.exe /c copy c:\\source\\" + volMount.Name + " c:\\dest")
 	} else {
-		dataContainerArgs = []string{"/bin/sh", "-c"}
 		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":/source -v ")
 		dataSB.WriteString(volMount.Name + ":/dest -w /source " + configImageName + " cp ")
 		for k := range volMount.Source.Secret {
@@ -534,7 +529,5 @@ func (b *Builder) populateSecretVolume(ctx context.Context, volMount *volume.Vol
 	if err := b.procManager.Run(ctx, dataContainerArgs, nil, &buf, &buf, ""); err != nil {
 		return errors.Wrapf(err, "failed to populate container, %s", buf.String())
 	}
-	log.Println("buffer: ", buf.String())
-	log.Println("Populated files for volume: ", volMount.Name)
 	return nil
 }
