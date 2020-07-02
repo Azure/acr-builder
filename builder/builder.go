@@ -6,6 +6,7 @@ package builder
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -17,6 +18,7 @@ import (
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/pkg/procmanager"
+	"github.com/Azure/acr-builder/pkg/volume"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
 )
@@ -87,6 +89,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		log.Println("Task will use build cache, initializing buildkitd container")
 		// --workdir = /workspace
 		args := b.getDockerRunArgs(
+			make(map[string]string),
 			b.workspaceDir,
 			"",
 			false,
@@ -127,6 +130,13 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			false)
 		if err != nil {
 			log.Printf("buildx create --use failed with error: '%v'", err)
+		}
+	}
+
+	for _, volMount := range task.Volumes {
+		// create and populate volume for specified source
+		if err := b.prepareVolumeSource(ctx, volMount); err != nil {
+			return err
 		}
 	}
 
@@ -442,4 +452,82 @@ func parseImageNameFromArgs(cmdArgs string) string {
 		return cmdArgs
 	}
 	return cmdArgs[:idx]
+}
+
+// prepareVolumeSource creates and populates the host file and volume for the specified source type
+func (b *Builder) prepareVolumeSource(ctx context.Context, volMount *volume.Volume) error {
+	switch {
+	case volMount.Source.Secret != nil:
+		if err := b.createSecretFiles(ctx, volMount); err != nil {
+			return err
+		}
+		if err := b.populateSecretVolume(ctx, volMount); err != nil {
+			return err
+		}
+		log.Println("Volume source " + volMount.Name + " successfully created")
+		return nil
+	default:
+		return errors.New("volume source type not supported yet")
+	}
+}
+
+// createSecretFiles creates necessary files for source type Secret
+func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume) error {
+	var args []string
+	var sb strings.Builder
+	args = getShell()
+	sb.WriteString("mkdir " + volMount.Name)
+	for k, v := range volMount.Source.Secret {
+		val := v
+		decoded, err := base64.StdEncoding.DecodeString(val)
+		if err != nil {
+			return errors.New("failed to decode Base64 value. please make sure value provided is Base64 encoded")
+		}
+		val = string(decoded)
+		if runtime.GOOS == util.WindowsOS {
+			sb.WriteString("; Add-Content -Path ")
+			sb.WriteString(volMount.Name + "/" + k)
+			sb.WriteString(" -Value @\"\n")
+			sb.WriteString(val)
+			sb.WriteString("\n\"@")
+		} else {
+			sb.WriteString(" && cat >> ")
+			sb.WriteString(volMount.Name + "/" + k)
+			sb.WriteString(" <<EOL\n")
+			sb.WriteString(val)
+			sb.WriteString("\nEOL\n")
+		}
+	}
+	args = append(args, sb.String())
+	var buf bytes.Buffer
+	if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+		return errors.Wrapf(err, "failed to write value, %s", buf.String())
+	}
+	return nil
+}
+
+// populateSecretVolume mounts all files of type source Secret generated into a volume
+func (b *Builder) populateSecretVolume(ctx context.Context, volMount *volume.Volume) error {
+	var dataContainerArgs []string
+	var dataSB strings.Builder
+	dataContainerArgs = getShell()
+	if runtime.GOOS == util.WindowsOS {
+		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":c:\\source -v ")
+		dataSB.WriteString(volMount.Name + ":c:\\dest -w c:\\source ")
+		dataSB.WriteString(configImageName + " cmd.exe /c copy c:\\source\\" + volMount.Name + " c:\\dest")
+	} else {
+		dataSB.WriteString("docker run --rm -v " + b.workspaceDir + ":/source -v ")
+		dataSB.WriteString(volMount.Name + ":/dest -w /source " + configImageName + " cp ")
+		for k := range volMount.Source.Secret {
+			dataSB.WriteString(volMount.Name + "/" + k)
+			dataSB.WriteString(" ")
+		}
+		dataSB.WriteString("/dest")
+	}
+	dataContainerArgs = append(dataContainerArgs, dataSB.String())
+	var buf bytes.Buffer
+	if err := b.procManager.Run(ctx, dataContainerArgs, nil, &buf, &buf, ""); err != nil {
+		return errors.Wrapf(err, "failed to populate container, %s", buf.String())
+	}
+	return nil
 }

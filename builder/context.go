@@ -26,6 +26,7 @@ var (
 
 // getDockerRunArgs populates the args for running a Docker container.
 func (b *Builder) getDockerRunArgs(
+	volMounts map[string]string,
 	volName string,
 	workDir string,
 	disableWorkDirOverride bool,
@@ -87,6 +88,11 @@ func (b *Builder) getDockerRunArgs(
 	sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
 	sb.WriteString(" --volume " + util.DockerSocketVolumeMapping)
 	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
+	if len(volMounts) > 0 {
+		for key, val := range volMounts {
+			sb.WriteString(" --volume " + key + ":" + val)
+		}
+	}
 	sb.WriteString(" --env " + homeEnv)
 
 	// User environment variables come after any defaults.
@@ -126,7 +132,13 @@ func (b *Builder) getDockerRunArgsForStep(
 		step.CPUS = "1"
 	}
 
+	var volMounts = make(map[string]string)
+	for _, mount := range step.Mounts {
+		volMounts[mount.Name] = mount.MountPath
+	}
+
 	return b.getDockerRunArgs(
+		volMounts,
 		volName,
 		stepWorkDir,
 		step.DisableWorkingDirectoryOverride,

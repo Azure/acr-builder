@@ -4,9 +4,14 @@
 package builder
 
 import (
+	"context"
+	"runtime"
 	"testing"
 
 	"github.com/Azure/acr-builder/pkg/image"
+	"github.com/Azure/acr-builder/pkg/procmanager"
+	"github.com/Azure/acr-builder/pkg/volume"
+	"github.com/Azure/acr-builder/util"
 )
 
 var (
@@ -80,6 +85,58 @@ func TestParseImageNameFromArgs(t *testing.T) {
 	for _, test := range tests {
 		if actual := parseImageNameFromArgs(test.args); actual != test.expected {
 			t.Errorf("Expected %s but got %s", test.expected, actual)
+		}
+	}
+}
+
+func TestCreateFilesForVolume(t *testing.T) {
+	pm := procmanager.NewProcManager(false)
+	builder := NewBuilder(pm, false, "")
+	tests := []struct {
+		volumemount *volume.Volume
+		shouldError bool
+	}{
+		{
+			&volume.Volume{
+				Name: "a",
+				Source: volume.Source{
+					Secret: map[string]string{
+						"b.txt": "dGhpcyBpcyBhIHRlc3Q=",
+					},
+				},
+			},
+			false,
+		},
+		{
+			&volume.Volume{
+				Name: "a",
+				Source: volume.Source{
+					Secret: map[string]string{
+						"b.txt": "this is a test",
+					},
+				},
+			},
+			true,
+		},
+	}
+	for _, test := range tests {
+		err := builder.createSecretFiles(context.Background(), test.volumemount)
+		if test.shouldError && err == nil {
+			t.Fatalf("Expected file creation of volume mount: %v to error but it didn't", test.volumemount)
+		}
+		if !test.shouldError && err != nil {
+			t.Fatalf("File creation of volume mount: %v shouldn't have errored, but it did; err: %v", test.volumemount, err)
+		}
+		if !test.shouldError {
+			var args []string
+			if runtime.GOOS == util.WindowsOS {
+				args = []string{"powershell.exe", "-Command", "rm " + test.volumemount.Name + " -r -fo"}
+			} else {
+				args = []string{"/bin/sh", "-c", "rm -rf " + test.volumemount.Name}
+			}
+			if err := pm.Run(context.Background(), args, nil, nil, nil, ""); err != nil {
+				t.Fatalf("Unexpected err while deleting directory: %v", err)
+			}
 		}
 	}
 }

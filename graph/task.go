@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/Azure/acr-builder/pkg/volume"
 	"github.com/Azure/acr-builder/scan"
 	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/util"
@@ -54,6 +55,7 @@ type Task struct {
 	StepTimeout              int                  `yaml:"stepTimeout,omitempty"`
 	Secrets                  []*secretmgmt.Secret `yaml:"secrets,omitempty"`
 	Networks                 []*Network           `yaml:"networks,omitempty"`
+	Volumes                  []*volume.Volume     `yaml:"volumes,omitempty"`
 	Envs                     []string             `yaml:"env,omitempty"`
 	WorkingDirectory         string               `yaml:"workingDirectory,omitempty"`
 	Version                  string               `yaml:"version,omitempty"`
@@ -198,6 +200,17 @@ func (t *Task) Validate() error {
 		}
 
 		idMap[secret.ID] = struct{}{}
+	}
+
+	// Validate Volumes if exists
+	if err := ValidateVolumes(t.Volumes); err != nil {
+		return err
+	}
+	// Validate that mounts reference a volume that exists
+	for _, s := range t.Steps {
+		if err := s.ValidateMountVolumeNames(t.Volumes); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -478,4 +491,22 @@ func ResolveCustomRegistryCredentials(ctx context.Context, credentials []*Regist
 	}
 
 	return resolvedCreds, nil
+}
+
+// ValidateVolumes checks each volume is well formed and each container path is unique
+func ValidateVolumes(volMounts []*volume.Volume) error {
+	duplicate := make(map[string]struct{}, len(volMounts))
+	for _, v := range volMounts {
+		// call v.Validate() for each mount
+		if err := v.Validate(); err != nil {
+			return err
+		}
+		// make sure each volume name provided is unique
+		if _, exists := duplicate[v.Name]; exists {
+			return errors.New("volume with duplicate name found")
+		}
+
+		duplicate[v.Name] = struct{}{}
+	}
+	return nil
 }

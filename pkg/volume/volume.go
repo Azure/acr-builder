@@ -4,49 +4,31 @@
 package volume
 
 import (
-	"bytes"
-	"context"
+	"regexp"
 
-	"github.com/Azure/acr-builder/pkg/procmanager"
+	"github.com/pkg/errors"
 )
 
-const (
-	// VolumePrefix is a prefix for volumes.
-	VolumePrefix = "acb_vol_"
-)
-
-// Volume describes a Docker volume.
+// Volume describes a Docker bind mounted volume.
 type Volume struct {
-	Name        string
-	procManager *procmanager.ProcManager
+	Name   string `yaml:"name"`
+	Source Source `yaml:",inline"`
 }
 
-// NewVolume creates a new Volume.
-func NewVolume(name string, pm *procmanager.ProcManager) *Volume {
-	return &Volume{
-		Name:        name,
-		procManager: pm,
+// Validate checks whether Volume is well formed
+func (v *Volume) Validate() error {
+	if v == nil {
+		return nil
 	}
-}
-
-// Create creates a Docker volume representing the Volume.
-func (v *Volume) Create(ctx context.Context) (string, error) {
-	var buf bytes.Buffer
-	err := v.procManager.Run(ctx, v.getDockerCreateArgs(), nil, &buf, &buf, "")
-	return buf.String(), err
-}
-
-// Delete deletes the associated Docker volume.
-func (v *Volume) Delete(ctx context.Context) (string, error) {
-	var buf bytes.Buffer
-	err := v.procManager.Run(ctx, v.getDockerRmArgs(), nil, &buf, &buf, "")
-	return buf.String(), err
-}
-
-func (v *Volume) getDockerCreateArgs() []string {
-	return []string{"docker", "volume", "create", "--name", v.Name}
-}
-
-func (v *Volume) getDockerRmArgs() []string {
-	return []string{"docker", "volume", "rm", v.Name}
+	if v.Name == "" {
+		return errors.New("volume name is empty")
+	}
+	var IsCorrectVolumeName = regexp.MustCompile(`^[a-zA-Z0-9-_]+$`).MatchString
+	if !IsCorrectVolumeName(v.Name) {
+		return errors.New("volume name is not well formed. Only use alphanumeric and - _")
+	}
+	if err := v.Source.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
