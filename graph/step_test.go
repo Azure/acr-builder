@@ -114,6 +114,21 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			&Step{
+				ID: "a",
+				Push: []string{
+					"b",
+				},
+				Mounts: []*volume.Mount{
+					{
+						Name:      "c",
+						MountPath: "/run/test",
+					},
+				},
+			},
+			true,
+		},
+		{
+			&Step{
 				ID:    "a",
 				Build: "b",
 				Mounts: []*volume.Mount{
@@ -123,7 +138,7 @@ func TestValidate(t *testing.T) {
 					},
 				},
 			},
-			true,
+			false,
 		},
 		{
 			&Step{
