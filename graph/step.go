@@ -32,7 +32,7 @@ var (
 	errInvalidRetries    = errors.New("step must specify retries >= 0")
 	errInvalidRepeat     = errors.New("step must specify repeat >= 0")
 	errInvalidCacheValue = errors.New("invalid value for cache property. Valid values are 'enabled', 'disabled'")
-	errInvalidMountsUse  = errors.New("invalid use of Mounts. Mounts must have unique container paths and used for CMD steps")
+	errInvalidMountsUse  = errors.New("invalid use of Mounts. Mounts must have unique container paths and only used for cmd or build steps")
 )
 
 type chanBool chan bool
@@ -122,7 +122,7 @@ func (s *Step) Validate() error {
 		return errMissingProps
 	}
 	if s.HasMounts() {
-		if !s.IsCmdStep() {
+		if !s.IsCmdStep() && !s.IsBuildStep() {
 			return errInvalidMountsUse
 		}
 		valMounts := ValidateMounts(s.Mounts)

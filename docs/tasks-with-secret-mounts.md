@@ -110,8 +110,9 @@ steps:
 
 #### volumeMount
 
-The volume mount object specifies a volume to mount at a CMD step. The volume mount object has the following properties.
+The volume mount object specifies a volume to mount at a cmd or build step. The volume mount object has the following properties.
 
 | Property | Type   | Optional | Description | Default Value |
 | :------- | :--:   | :------: | :---------: | ------------: |
 | name     | string | no       | The volume name to mount. Must exactly match name from volumes property | None |
+| mountPath| string | no       | The absolute path path to mount file in the container| None |
