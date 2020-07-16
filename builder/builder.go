@@ -228,7 +228,7 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 	degree := child.GetDegree()
 	if degree == 0 {
 		step := child.Value
-		err := b.runStep(ctx, step)
+		err := b.runStep(ctx, step, task.Credentials)
 		if err != nil && step.IgnoreErrors {
 			log.Printf("Step ID: %s encountered an error: %v, but is set to ignore errors. Continuing...\n", step.ID, err)
 			step.StepStatus = graph.Successful
@@ -249,7 +249,7 @@ func (b *Builder) processVertex(ctx context.Context, task *graph.Task, parent *g
 	}
 }
 
-func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
+func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*graph.RegistryCredential) error {
 	log.Printf("Executing step ID: %s. Timeout(sec): %d, Working directory: '%s', Network: '%s'\n", step.ID, step.Timeout, step.WorkingDirectory, step.Network)
 	if step.StartDelay > 0 {
 		log.Printf("Waiting %d seconds before executing step ID: %s\n", step.StartDelay, step.ID)
@@ -282,7 +282,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step) error {
 		timeout := time.Duration(scrapeTimeoutInSec) * time.Second
 		scrapeCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
-		deps, err := b.scrapeDependencies(scrapeCtx, volName, step.WorkingDirectory, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs, target)
+		deps, err := b.scrapeDependencies(scrapeCtx, volName, step.WorkingDirectory, step.ID, dockerfile, dockerContext, step.Tags, step.BuildArgs, target, credentials)
 		if err != nil {
 			return errors.Wrap(err, "failed to scan dependencies")
 		}

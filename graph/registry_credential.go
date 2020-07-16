@@ -141,3 +141,13 @@ func (s *RegistryCredential) Equals(t *RegistryCredential) bool {
 		s.Identity == t.Identity &&
 		s.AadResourceID == t.AadResourceID
 }
+
+// String serializes the RegistryCredential
+func (s *RegistryCredential) String() (string, error) {
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to marshal registry credential")
+	}
+
+	return string(bytes), nil
+}

@@ -176,7 +176,8 @@ func TestGetScanArgs(t *testing.T) {
 				test.tags,
 				test.buildArgs,
 				test.target,
-				test.context),
+				test.context,
+				[]*graph.RegistryCredential{}),
 			" ")
 		if test.expected != actual {
 			t.Fatalf("Expected\n%s\nbut got\n%s", test.expected, actual)

@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/scan"
 	"github.com/pkg/errors"
@@ -57,6 +58,10 @@ var Command = cli.Command{
 			Usage: "maximum execution time in seconds",
 			Value: 60,
 		},
+		cli.StringSliceFlag{
+			Name:  "credential",
+			Usage: "login credentials for custom registry",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		var (
@@ -69,6 +74,7 @@ var Command = cli.Command{
 			buildArgs   = context.StringSlice("build-arg")
 			target      = context.String("target")
 			timeout     = time.Duration(context.Int64("timeout")) * time.Second
+			creds       = context.StringSlice("credential")
 		)
 
 		if downloadCtx == "" {
@@ -85,7 +91,18 @@ var Command = cli.Command{
 		}
 
 		pm := procmanager.NewProcManager(dryRun)
-		scanner, err := scan.NewScanner(pm, downloadCtx, dockerfile, destination, buildArgs, tags, target)
+
+		// Add all creds provided by the user in the --credential flag
+		credentials, err := graph.CreateRegistryCredentialFromList(creds)
+		if err != nil {
+			return err
+		}
+		registryLoginCredentials, err := graph.ResolveCustomRegistryCredentials(ctx, credentials)
+		if err != nil {
+			return err
+		}
+
+		scanner, err := scan.NewScanner(pm, downloadCtx, dockerfile, destination, buildArgs, tags, target, registryLoginCredentials)
 		if err != nil {
 			return err
 		}

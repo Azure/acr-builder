@@ -16,6 +16,9 @@ import (
 	"time"
 
 	"github.com/Azure/acr-builder/util"
+	"github.com/containerd/containerd/remotes/docker"
+	"github.com/deislabs/oras/pkg/content"
+	"github.com/deislabs/oras/pkg/oras"
 	dockerbuild "github.com/docker/cli/cli/command/image/build"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/progress"
@@ -45,9 +48,10 @@ func (s *Scanner) ObtainSourceCode(ctx context.Context, scContext string) (worki
 func (s *Scanner) getContext(ctx context.Context, scContext string) (workingDir string, err error) {
 	isSourceControlURL := util.IsSourceControlURL(scContext)
 	isURL := util.IsURL(scContext)
+	isRegistryArtifact := util.IsRegistryArtifact(scContext)
 
 	// If the context is remote, make the destination folder to clone or untar into.
-	if isSourceControlURL || isURL {
+	if isSourceControlURL || isURL || isRegistryArtifact {
 		if _, err := os.Stat(s.destinationFolder); os.IsNotExist(err) {
 			// Creates the destination folder if necessary, granting full permissions to the owner.
 			if innerErr := os.Mkdir(s.destinationFolder, 0700); innerErr != nil {
@@ -61,6 +65,9 @@ func (s *Scanner) getContext(ctx context.Context, scContext string) (workingDir 
 		return workingDir, err
 	} else if isURL {
 		err := s.getContextFromURL(scContext)
+		return s.destinationFolder, err
+	} else if isRegistryArtifact {
+		err := s.getContextFromRegistry(ctx, util.TrimArtifactPrefix(scContext))
 		return s.destinationFolder, err
 	}
 
@@ -111,6 +118,29 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 	}
 
 	return err
+}
+
+func (s *Scanner) getContextFromRegistry(ctx context.Context, registryArtifact string) (err error) {
+	resolver := docker.NewResolver(docker.ResolverOptions{
+		PlainHTTP: false,
+		Client:    http.DefaultClient,
+		Credentials: func(hostName string) (string, string, error) {
+			// TODO: Is this the right approach for non existent credentials?
+			if s.credentials[hostName] == nil {
+				return "", "", errors.New("no credential found for artifact host name " + hostName)
+			}
+			return s.credentials[hostName].Username.ResolvedValue, s.credentials[hostName].Password.ResolvedValue, nil
+		},
+	})
+	fileStore := content.NewFileStore(s.destinationFolder)
+	defer fileStore.Close()
+	fmt.Printf("Pulling from %s and saving to %s...\n", registryArtifact, s.destinationFolder)
+	desc, _, err := oras.Pull(ctx, resolver, registryArtifact, fileStore)
+	if err != nil {
+		return errors.Wrap(err, "failed to pull artifact from registry")
+	}
+	fmt.Printf("Pulled from %s with digest %s\n", registryArtifact, desc.Digest)
+	return nil
 }
 
 // getWithStatusError does an http.Get() and returns an error if the

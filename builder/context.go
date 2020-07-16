@@ -167,7 +167,8 @@ func (b *Builder) scrapeDependencies(
 	sourceContext string,
 	tags []string,
 	buildArgs []string,
-	target string) ([]*image.Dependencies, error) {
+	target string,
+	credentials []*graph.RegistryCredential) ([]*image.Dependencies, error) {
 	containerName := fmt.Sprintf("acb_dep_scanner_%s", uuid.New())
 
 	args := getScanArgs(
@@ -180,7 +181,8 @@ func (b *Builder) scrapeDependencies(
 		tags,
 		buildArgs,
 		target,
-		sourceContext)
+		sourceContext,
+		credentials)
 
 	if b.debug {
 		log.Printf("Scan args: %v\n", args)
@@ -207,7 +209,8 @@ func getScanArgs(
 	tags []string,
 	buildArgs []string,
 	target string,
-	sourceContext string) []string {
+	sourceContext string,
+	credentials []*graph.RegistryCredential) []string {
 	args := []string{
 		"docker",
 		"run",
@@ -232,6 +235,15 @@ func getScanArgs(
 
 	for _, buildArg := range buildArgs {
 		args = append(args, "--build-arg", buildArg)
+	}
+
+	for _, cred := range credentials {
+		if serializedCredential, err := cred.String(); err != nil {
+			// Log error here, but throw it from scanner
+			log.Panicf("Credential validation failed for Source registry credential, err: %+v", err)
+		} else {
+			args = append(args, "--credential", serializedCredential)
+		}
 	}
 
 	if len(target) > 0 {

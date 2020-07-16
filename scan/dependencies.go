@@ -69,7 +69,7 @@ func (s *Scanner) ScanForDependencies(context string, workingDir string, dockerf
 func (s *Scanner) NewImageDependencies(img string, runtime string, buildtimes []string) (*image.Dependencies, error) {
 	var dependencies *image.Dependencies
 	if len(img) > 0 {
-		imageReference, err := NewImageReference(NormalizeImageTag(img))
+		imageReference, err := NewImageReference(util.NormalizeImageTag(img))
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +83,7 @@ func (s *Scanner) NewImageDependencies(img string, runtime string, buildtimes []
 		}
 	}
 
-	runtimeDep, err := NewImageReference(NormalizeImageTag(runtime))
+	runtimeDep, err := NewImageReference(util.NormalizeImageTag(runtime))
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (s *Scanner) NewImageDependencies(img string, runtime string, buildtimes []
 
 	dict := map[string]bool{}
 	for _, buildtime := range buildtimes {
-		bt := NormalizeImageTag(buildtime)
+		bt := util.NormalizeImageTag(buildtime)
 
 		// If the image is prefixed with "library/", remove it for comparisons.
 		// "library/" will be added again during image reference generation.
@@ -114,15 +114,6 @@ func (s *Scanner) NewImageDependencies(img string, runtime string, buildtimes []
 		dependencies.Buildtime = append(dependencies.Buildtime, buildtimeDep)
 	}
 	return dependencies, nil
-}
-
-// NormalizeImageTag adds "latest" to the image if the specified image
-// has no tag and it's not referenced by digest.
-func NormalizeImageTag(img string) string {
-	if !strings.Contains(img, "@") && !strings.Contains(img, ":") {
-		return fmt.Sprintf("%s:latest", img)
-	}
-	return img
 }
 
 // NewImageReference parses a path of a image and creates a ImageReference object
