@@ -146,3 +146,19 @@ func TestIsLocalContext(t *testing.T) {
 		}
 	}
 }
+
+func TestIsRegistryArtifact(t *testing.T) {
+	tests := []struct {
+		artifact string
+		expected bool
+	}{
+		{"oci://myregistry.azurecr.io/hello-world", true},
+		{"myregistry.azurecr.io/hello-world", false},
+	}
+
+	for _, test := range tests {
+		if actual := IsRegistryArtifact(test.artifact); actual != test.expected {
+			t.Errorf("Expected %v for registry artifact: %s, but got %v", test.expected, test.artifact, actual)
+		}
+	}
+}

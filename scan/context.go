@@ -125,9 +125,9 @@ func (s *Scanner) getContextFromRegistry(ctx context.Context, registryArtifact s
 		PlainHTTP: false,
 		Client:    http.DefaultClient,
 		Credentials: func(hostName string) (string, string, error) {
-			// TODO: Is this the right approach for non existent credentials?
+			// If no matching credential found, attempt an anonymous pull
 			if s.credentials[hostName] == nil {
-				return "", "", errors.New("no credential found for artifact host name " + hostName)
+				return "", "", nil
 			}
 			return s.credentials[hostName].Username.ResolvedValue, s.credentials[hostName].Password.ResolvedValue, nil
 		},

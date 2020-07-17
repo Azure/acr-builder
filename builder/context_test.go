@@ -140,6 +140,7 @@ func TestGetScanArgs(t *testing.T) {
 		buildArgs             []string
 		target                string
 		context               string
+		creds                 []string
 		expected              string
 	}{
 		{
@@ -153,6 +154,7 @@ func TestGetScanArgs(t *testing.T) {
 			[]string{"arg1=a", "arg2=b"},
 			"build",
 			"someContext",
+			[]string{`{"registry":"foo.azurecr.io","username":"user","userNameProviderType":"opaque","password":"pw","passwordProviderType":"opaque"}`},
 			"docker run --rm " +
 				"--name containerName " +
 				"--volume volumeName" + ":workspaceDir " +
@@ -160,7 +162,9 @@ func TestGetScanArgs(t *testing.T) {
 				"--volume " + homeVol + ":" + homeWorkDir + " " +
 				"--env " + homeEnv + " " +
 				"acb scan -f Dockerfile --destination OutputDirectory " +
-				"-t tag1 -t tag2 --build-arg arg1=a --build-arg arg2=b --target build someContext",
+				"-t tag1 -t tag2 --build-arg arg1=a --build-arg arg2=b " +
+				"--credential {\"registry\":\"foo.azurecr.io\",\"username\":\"user\",\"userNameProviderType\":\"opaque\",\"password\":\"pw\",\"passwordProviderType\":\"opaque\"} " +
+				"--target build someContext",
 		},
 	}
 
@@ -177,7 +181,15 @@ func TestGetScanArgs(t *testing.T) {
 				test.buildArgs,
 				test.target,
 				test.context,
-				[]*graph.RegistryCredential{}),
+				[]*graph.RegistryCredential{
+					{
+						Registry:     "foo.azurecr.io",
+						Username:     "user",
+						UsernameType: "opaque",
+						Password:     "pw",
+						PasswordType: "opaque",
+					},
+				}),
 			" ")
 		if test.expected != actual {
 			t.Fatalf("Expected\n%s\nbut got\n%s", test.expected, actual)

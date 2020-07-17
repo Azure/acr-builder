@@ -30,3 +30,19 @@ func TestTrimQuotes(t *testing.T) {
 		}
 	}
 }
+
+func TestTrimArtifactPrefix(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected string
+	}{
+		{"oci://myregistry.azurecr.io/hello-world", "myregistry.azurecr.io/hello-world"},
+		{"myregistry.azurecr.io/hello-world", "myregistry.azurecr.io/hello-world"},
+	}
+
+	for _, test := range tests {
+		if actual := TrimArtifactPrefix(test.s); actual != test.expected {
+			t.Errorf("Expected %v but got %v", test.expected, actual)
+		}
+	}
+}
