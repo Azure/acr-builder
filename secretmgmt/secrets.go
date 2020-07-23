@@ -80,7 +80,7 @@ func (secretResolver *SecretResolver) ResolveSecrets(ctx context.Context, secret
 		for _, ch := range secretChannels {
 			select {
 			case <-ch.timeoutChan():
-				return errors.New("timeout in fetching secrets")
+				return errors.New("timeout in fetching secrets. please check permissions are valid")
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-ch.resolvedChan:
@@ -102,13 +102,13 @@ func resolveSecret(ctx context.Context, secret *Secret, errorChan chan error) {
 	if secret.IsKeyVaultSecret() {
 		secretConfig, err := vaults.NewAKVSecretConfig(secret.KeyVault, secret.MsiClientID)
 		if err != nil {
-			errorChan <- errors.Wrap(err, "failed to create key vault secret config")
+			errorChan <- err
 			return
 		}
 
 		secretValue, err := secretConfig.GetValue(ctx)
 		if err != nil {
-			errorChan <- errors.Wrap(err, "failed to fetch key vault secret")
+			errorChan <- err
 			return
 		}
 
@@ -118,7 +118,7 @@ func resolveSecret(ctx context.Context, secret *Secret, errorChan chan error) {
 	} else if secret.IsMsiSecret() {
 		secretValue, err := tokenutil.GetRegistryRefreshToken(secret.ID, secret.AadResourceID, secret.MsiClientID)
 		if err != nil {
-			errorChan <- errors.Wrap(err, "failed to fetch identity secret")
+			errorChan <- err
 			return
 		}
 		secret.ResolvedValue = secretValue

@@ -38,12 +38,12 @@ func (secretConfig *AKVSecretConfig) GetValue(ctx context.Context) (string, erro
 
 	keyClient, err := newKeyVaultClient(secretConfig.VaultURL, secretConfig.MSIClientID, secretConfig.AADResourceURL)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create azure key vault client")
+		return "", err
 	}
 
 	secretValue, err := keyClient.getSecret(ctx, secretConfig.SecretName, secretConfig.SecretVersion)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to fetch secret value from azure key vault client")
+		return "", err
 	}
 
 	return secretValue, nil
