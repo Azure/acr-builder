@@ -14,5 +14,8 @@ func TrimQuotes(s string) string {
 // TrimArtifactPrefix returns a slice of the string s, with leading
 // artifact prefix removed
 func TrimArtifactPrefix(s string) string {
-	return strings.TrimPrefix(s, "oci://")
+	if strings.HasPrefix(strings.ToLower(s), "oci://") && len(s) > 6 {
+		return s[6:]
+	}
+	return s
 }

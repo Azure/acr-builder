@@ -18,6 +18,7 @@ import (
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/util"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -171,7 +172,7 @@ func (b *Builder) scrapeDependencies(
 	credentials []*graph.RegistryCredential) ([]*image.Dependencies, error) {
 	containerName := fmt.Sprintf("acb_dep_scanner_%s", uuid.New())
 
-	args := getScanArgs(
+	args, censoredArgs, err := getScanArgs(
 		containerName,
 		volName,
 		containerWorkspaceDir,
@@ -184,12 +185,16 @@ func (b *Builder) scrapeDependencies(
 		sourceContext,
 		credentials)
 
+	if err != nil {
+		return nil, err
+	}
+
 	if b.debug {
-		log.Printf("Scan args: %v\n", args)
+		log.Printf("Scan args: %v\n", censoredArgs)
 	}
 
 	var buf bytes.Buffer
-	err := b.procManager.Run(ctx, args, nil, &buf, &buf, "")
+	err = b.procManager.Run(ctx, args, nil, &buf, &buf, "")
 	output := strings.TrimSpace(buf.String())
 	if err != nil {
 		log.Printf("Output from dependency scanning: %s\n", output)
@@ -210,7 +215,7 @@ func getScanArgs(
 	buildArgs []string,
 	target string,
 	sourceContext string,
-	credentials []*graph.RegistryCredential) []string {
+	credentials []*graph.RegistryCredential) ([]string, []string, error) {
 	args := []string{
 		"docker",
 		"run",
@@ -237,22 +242,27 @@ func getScanArgs(
 		args = append(args, "--build-arg", buildArg)
 	}
 
+	var censoredArgs = make([]string, len(args))
+	copy(censoredArgs, args)
+
 	for _, cred := range credentials {
-		if serializedCredential, err := cred.String(); err != nil {
-			// Log error here, but throw it from scanner
-			log.Panicf("Credential validation failed for Source registry credential, err: %+v", err)
-		} else {
-			args = append(args, "--credential", serializedCredential)
+		serializedCredential, err := cred.String()
+		if err != nil {
+			return nil, nil, errors.New("credential serialization failed for given registry credential")
 		}
+		censoredArgs = append(censoredArgs, "--credential", "***")
+		args = append(args, "--credential", serializedCredential)
 	}
 
 	if len(target) > 0 {
+		censoredArgs = append(censoredArgs, "--target", target)
 		args = append(args, "--target", target)
 	}
 
 	// Positional context must appear last
+	censoredArgs = append(censoredArgs, sourceContext)
 	args = append(args, sourceContext)
-	return args
+	return args, censoredArgs, nil
 }
 
 func getImageDependencies(s string) ([]*image.Dependencies, error) {

@@ -37,6 +37,8 @@ func TestTrimArtifactPrefix(t *testing.T) {
 		expected string
 	}{
 		{"oci://myregistry.azurecr.io/hello-world", "myregistry.azurecr.io/hello-world"},
+		{"OCI://myregistry.azurecr.io/hello-world", "myregistry.azurecr.io/hello-world"},
+		{"OCI://", "OCI://"},
 		{"myregistry.azurecr.io/hello-world", "myregistry.azurecr.io/hello-world"},
 	}
 

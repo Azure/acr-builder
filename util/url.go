@@ -53,7 +53,7 @@ func IsGitURL(s string) bool {
 
 // IsRegistryArtifact determines whether or not the specified string is a registry artifact
 func IsRegistryArtifact(s string) bool {
-	return strings.HasPrefix(s, "oci://")
+	return strings.HasPrefix(strings.ToLower(s), "oci://")
 }
 
 // IsURL determines whether or not the specified string is a URL.

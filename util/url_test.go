@@ -153,6 +153,7 @@ func TestIsRegistryArtifact(t *testing.T) {
 		expected bool
 	}{
 		{"oci://myregistry.azurecr.io/hello-world", true},
+		{"Oci://myregistry.azurecr.io/hello-world", true},
 		{"myregistry.azurecr.io/hello-world", false},
 	}
 
