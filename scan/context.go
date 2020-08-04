@@ -121,16 +121,18 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 }
 
 func (s *Scanner) getContextFromRegistry(ctx context.Context, registryArtifact string) (err error) {
+	authorizer := docker.NewAuthorizer(http.DefaultClient, func(hostName string) (string, string, error) {
+		// If no matching credential found, attempt an anonymous pull
+		if s.credentials[hostName] == nil {
+			return "", "", nil
+		}
+		return s.credentials[hostName].Username.ResolvedValue, s.credentials[hostName].Password.ResolvedValue, nil
+	})
 	resolver := docker.NewResolver(docker.ResolverOptions{
 		PlainHTTP: false,
-		Client:    http.DefaultClient,
-		Credentials: func(hostName string) (string, string, error) {
-			// If no matching credential found, attempt an anonymous pull
-			if s.credentials[hostName] == nil {
-				return "", "", nil
-			}
-			return s.credentials[hostName].Username.ResolvedValue, s.credentials[hostName].Password.ResolvedValue, nil
-		},
+		Hosts: docker.ConfigureDefaultRegistries(
+			docker.WithAuthorizer(authorizer),
+		),
 	})
 	fileStore := content.NewFileStore(s.destinationFolder)
 	defer fileStore.Close()

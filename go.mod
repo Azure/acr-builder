@@ -18,6 +18,8 @@ require (
 	github.com/docker/cli v0.0.0-20200130152716-5d0cf8839492
 	github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
 	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
+	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
+	github.com/gogo/googleapis v1.4.0 // indirect
 	github.com/google/uuid v0.0.0-20161128191214-064e2069ce9c
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/huandu/xstrings v1.2.0 // indirect
