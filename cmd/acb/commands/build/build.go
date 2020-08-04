@@ -25,7 +25,7 @@ import (
 
 const (
 	buildTimeoutInSec = 60 * 60 * 8 // 8 hours
-	pushTimeoutInSec  = 60 * 30     // 30 minutes
+	pushTimeoutInSec  = 60 * 60     // 1 hour
 )
 
 // Command executes a container build.
