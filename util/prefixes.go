@@ -42,3 +42,12 @@ func hasKnownRegistryPrefix(img string, allKnownRegistries []string) bool {
 
 	return false
 }
+
+// NormalizeImageTag adds "latest" to the image if the specified image
+// has no tag and it's not referenced by digest.
+func NormalizeImageTag(img string) string {
+	if !strings.Contains(img, "@") && !strings.Contains(img, ":") {
+		return fmt.Sprintf("%s:latest", img)
+	}
+	return img
+}

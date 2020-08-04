@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/Azure/acr-builder/pkg/volume"
-	"github.com/Azure/acr-builder/scan"
 	"github.com/Azure/acr-builder/secretmgmt"
 	"github.com/Azure/acr-builder/util"
 	"github.com/pkg/errors"
@@ -373,7 +372,7 @@ func getNormalizedDockerImageNames(dockerImages []string) []string {
 	dict := map[string]bool{}
 	normalizedDockerImages := []string{}
 	for _, dockerImage := range dockerImages {
-		d := scan.NormalizeImageTag(dockerImage)
+		d := util.NormalizeImageTag(dockerImage)
 		if dict[d] {
 			continue
 		}

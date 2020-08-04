@@ -10,8 +10,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/scan"
+	"github.com/Azure/acr-builder/util"
 	"github.com/urfave/cli"
 )
 
@@ -40,6 +42,10 @@ var Command = cli.Command{
 			Usage: "maximum execution time in seconds",
 			Value: 60,
 		},
+		cli.StringSliceFlag{
+			Name:  "credential",
+			Usage: "login credentials for custom registry",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		var (
@@ -47,17 +53,33 @@ var Command = cli.Command{
 			dryRun      = context.Bool("dry-run")
 			destination = context.String("destination")
 			timeout     = time.Duration(context.Int64("timeout")) * time.Second
+			creds       = context.StringSlice("credential")
 		)
 
 		if downloadCtx == "" {
 			return errors.New("download requires context to be provided, see download --help")
 		}
 
+		// Add all creds provided by the user in the --credential flag
+		credentials, err := graph.CreateRegistryCredentialFromList(creds)
+		if err != nil {
+			return err
+		}
+
 		ctx, cancel := gocontext.WithTimeout(gocontext.Background(), timeout)
 		defer cancel()
 
 		pm := procmanager.NewProcManager(dryRun)
-		scanner, err := scan.NewScanner(pm, downloadCtx, "", destination, nil, nil, "")
+
+		registryLoginCredentials := make(graph.RegistryLoginCredentials)
+		if util.IsRegistryArtifact(downloadCtx) {
+			registryLoginCredentials, err = graph.ResolveCustomRegistryCredentials(ctx, credentials)
+			if err != nil {
+				return err
+			}
+		}
+
+		scanner, err := scan.NewScanner(pm, downloadCtx, "", destination, nil, nil, "", registryLoginCredentials)
 		if err != nil {
 			return err
 		}

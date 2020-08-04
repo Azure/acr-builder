@@ -7,6 +7,7 @@ import (
 	"context"
 	"path/filepath"
 
+	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/pkg/errors"
@@ -21,10 +22,11 @@ type Scanner struct {
 	buildArgs         []string
 	tags              []string
 	target            string
+	credentials       graph.RegistryLoginCredentials
 }
 
 // NewScanner creates a new Scanner.
-func NewScanner(pm *procmanager.ProcManager, sourceContext string, dockerfile string, destination string, buildArgs []string, tags []string, target string) (*Scanner, error) {
+func NewScanner(pm *procmanager.ProcManager, sourceContext string, dockerfile string, destination string, buildArgs []string, tags []string, target string, creds graph.RegistryLoginCredentials) (*Scanner, error) {
 	// NOTE (bindu): vendor/github.com/docker/docker/pkg/idtools/idtools_unix.go#mkdirAs (L51-60) looks for "/" to determine the root folder.
 	// But if it is a relative path, the code will enter dead-loop. Ensure passing in the absolute path to workaround the bug.
 	var err error
@@ -42,6 +44,7 @@ func NewScanner(pm *procmanager.ProcManager, sourceContext string, dockerfile st
 		buildArgs:         buildArgs,
 		tags:              tags,
 		target:            target,
+		credentials:       creds,
 	}, nil
 }
 

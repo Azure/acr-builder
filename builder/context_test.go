@@ -140,6 +140,7 @@ func TestGetScanArgs(t *testing.T) {
 		buildArgs             []string
 		target                string
 		context               string
+		creds                 []string
 		expected              string
 	}{
 		{
@@ -153,6 +154,7 @@ func TestGetScanArgs(t *testing.T) {
 			[]string{"arg1=a", "arg2=b"},
 			"build",
 			"someContext",
+			[]string{`{"registry":"foo.azurecr.io","username":"user","userNameProviderType":"opaque","password":"pw","passwordProviderType":"opaque"}`},
 			"docker run --rm " +
 				"--name containerName " +
 				"--volume volumeName" + ":workspaceDir " +
@@ -160,24 +162,37 @@ func TestGetScanArgs(t *testing.T) {
 				"--volume " + homeVol + ":" + homeWorkDir + " " +
 				"--env " + homeEnv + " " +
 				"acb scan -f Dockerfile --destination OutputDirectory " +
-				"-t tag1 -t tag2 --build-arg arg1=a --build-arg arg2=b --target build someContext",
+				"-t tag1 -t tag2 --build-arg arg1=a --build-arg arg2=b " +
+				"--credential {\"registry\":\"foo.azurecr.io\",\"username\":\"user\",\"userNameProviderType\":\"opaque\",\"password\":\"pw\",\"passwordProviderType\":\"opaque\"} " +
+				"--target build someContext",
 		},
 	}
 
 	for _, test := range tests {
-		actual := strings.Join(
-			getScanArgs(
-				test.containerName,
-				test.volName,
-				test.containerWorkspaceDir,
-				test.stepWorkDir,
-				test.dockerfile,
-				test.outputDir,
-				test.tags,
-				test.buildArgs,
-				test.target,
-				test.context),
-			" ")
+		args, _, err := getScanArgs(
+			test.containerName,
+			test.volName,
+			test.containerWorkspaceDir,
+			test.stepWorkDir,
+			test.dockerfile,
+			test.outputDir,
+			test.tags,
+			test.buildArgs,
+			test.target,
+			test.context,
+			[]*graph.RegistryCredential{
+				{
+					Registry:     "foo.azurecr.io",
+					Username:     "user",
+					UsernameType: "opaque",
+					Password:     "pw",
+					PasswordType: "opaque",
+				},
+			})
+		if err != nil {
+			t.Fatal("Failed to serialize provided credentials")
+		}
+		actual := strings.Join(args, " ")
 		if test.expected != actual {
 			t.Fatalf("Expected\n%s\nbut got\n%s", test.expected, actual)
 		}

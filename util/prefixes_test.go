@@ -92,3 +92,29 @@ func TestPrefixTags(t *testing.T) {
 		}
 	}
 }
+
+func TestNormalizeImageTag(t *testing.T) {
+	tests := []struct {
+		img      string
+		expected string
+	}{
+		{
+			img:      "hello-world",
+			expected: "hello-world:latest",
+		},
+		{
+			img:      "hello-world:v1",
+			expected: "hello-world:v1",
+		},
+		{
+			img:      "hello-world@123456",
+			expected: "hello-world@123456",
+		},
+	}
+	for _, test := range tests {
+		actual := NormalizeImageTag(test.img)
+		if actual != test.expected {
+			t.Errorf("expected %s, got %s", test.expected, actual)
+		}
+	}
+}
