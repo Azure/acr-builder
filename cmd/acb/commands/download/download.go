@@ -13,6 +13,7 @@ import (
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/scan"
+	"github.com/Azure/acr-builder/util"
 	"github.com/urfave/cli"
 )
 
@@ -70,9 +71,12 @@ var Command = cli.Command{
 
 		pm := procmanager.NewProcManager(dryRun)
 
-		registryLoginCredentials, err := graph.ResolveCustomRegistryCredentials(ctx, credentials)
-		if err != nil {
-			return err
+		registryLoginCredentials := make(graph.RegistryLoginCredentials)
+		if util.IsRegistryArtifact(downloadCtx) {
+			registryLoginCredentials, err = graph.ResolveCustomRegistryCredentials(ctx, credentials)
+			if err != nil {
+				return err
+			}
 		}
 
 		scanner, err := scan.NewScanner(pm, downloadCtx, "", destination, nil, nil, "", registryLoginCredentials)
