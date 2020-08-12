@@ -492,7 +492,7 @@ func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume
 		if runtime.GOOS == util.WindowsOS {
 			sb.WriteString("Add-Content -Path ")
 			sb.WriteString(volMount.Name + "/" + k)
-			sb.WriteString(" -Value @\"\n")
+			sb.WriteString(" -Value @\"\r\n")
 			sb.WriteString(val)
 			sb.WriteString("\n\"@")
 		} else {
