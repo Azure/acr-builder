@@ -494,7 +494,7 @@ func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume
 			sb.WriteString(volMount.Name + "/" + k)
 			sb.WriteString(" -Value @\"\r\n")
 			sb.WriteString(val)
-			sb.WriteString("\n\"@")
+			sb.WriteString("\r\n\"@")
 		} else {
 			sb.WriteString("cat >> ")
 			sb.WriteString(volMount.Name + "/" + k)
