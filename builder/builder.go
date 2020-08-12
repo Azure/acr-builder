@@ -474,10 +474,15 @@ func (b *Builder) prepareVolumeSource(ctx context.Context, volMount *volume.Volu
 // createSecretFiles creates necessary files for source type Secret
 func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume) error {
 	var args []string
-	var sb strings.Builder
 	args = getShell()
-	sb.WriteString("mkdir " + volMount.Name)
+	args = append(args, "mkdir "+volMount.Name)
+	var buf bytes.Buffer
+	if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+		return errors.Wrapf(err, "failed to make directory, %s", buf.String())
+	}
 	for k, v := range volMount.Source.Secret {
+		var sb strings.Builder
+		args = getShell()
 		val := v
 		decoded, err := base64.StdEncoding.DecodeString(val)
 		if err != nil {
@@ -485,23 +490,23 @@ func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume
 		}
 		val = string(decoded)
 		if runtime.GOOS == util.WindowsOS {
-			sb.WriteString("; Add-Content -Path ")
+			sb.WriteString("Add-Content -Path ")
 			sb.WriteString(volMount.Name + "/" + k)
-			sb.WriteString(" -Value @\"\n")
+			sb.WriteString(" -Value @\"\r\n")
 			sb.WriteString(val)
-			sb.WriteString("\n\"@")
+			sb.WriteString("\r\n\"@")
 		} else {
-			sb.WriteString(" && cat >> ")
+			sb.WriteString("cat >> ")
 			sb.WriteString(volMount.Name + "/" + k)
 			sb.WriteString(" <<EOL\n")
 			sb.WriteString(val)
-			sb.WriteString("\nEOL\n")
+			sb.WriteString("\nEOL")
 		}
-	}
-	args = append(args, sb.String())
-	var buf bytes.Buffer
-	if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
-		return errors.Wrapf(err, "failed to write value, %s", buf.String())
+		args = append(args, sb.String())
+		var buf bytes.Buffer
+		if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
+			return errors.Wrapf(err, "failed to write value, %s", buf.String())
+		}
 	}
 	return nil
 }
