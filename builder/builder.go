@@ -478,7 +478,7 @@ func (b *Builder) createSecretFiles(ctx context.Context, volMount *volume.Volume
 	args = append(args, "mkdir "+volMount.Name)
 	var buf bytes.Buffer
 	if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
-		return errors.Wrapf(err, "failed to write value, %s", buf.String())
+		return errors.Wrapf(err, "failed to make directory, %s", buf.String())
 	}
 	for k, v := range volMount.Source.Secret {
 		var sb strings.Builder
