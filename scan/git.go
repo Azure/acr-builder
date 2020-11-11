@@ -151,9 +151,14 @@ func checkoutGit(root, ref, subdir string) (string, error) {
 	// Try checking out by ref name first. This will work on branches and sets
 	// .git/HEAD to the current branch name
 	if output, err := gitWithinDir(root, "checkout", ref); err != nil {
-		// If checking out by branch name fails check out the last fetched ref
-		if _, err2 := gitWithinDir(root, "checkout", "FETCH_HEAD"); err2 != nil {
+		// If the branch name is specified, throw an error
+		if ref != "" {
 			return "", errors.Wrapf(err, "error checking out %s: %s", ref, output)
+		}
+
+		// If the branch name is not specified, check out the last fetched ref
+		if output2, err2 := gitWithinDir(root, "checkout", "FETCH_HEAD"); err2 != nil {
+			return "", errors.Wrapf(err, "error checking out (no specified branch): %s", output2)
 		}
 	}
 
@@ -232,7 +237,7 @@ func fetchArgs(remoteURL string, ref string) []string {
 // ref: https://github.com/moby/moby/blob/master/builder/remotecontext/git/gitutils.go
 func getRefAndSubdir(fragment string) (ref string, subdir string) {
 	refAndDir := strings.SplitN(fragment, ":", 2)
-	ref = "master"
+	ref = ""
 	if refAndDir[0] != "" {
 		ref = refAndDir[0]
 	}
