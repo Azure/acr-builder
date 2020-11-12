@@ -151,7 +151,8 @@ func checkoutGit(root, ref, subdir string) (string, error) {
 	// Try checking out by ref name first. This will work on branches and sets
 	// .git/HEAD to the current branch name
 	if output, err := gitWithinDir(root, "checkout", ref); err != nil {
-		// If the branch name is specified, throw an error
+		// If the branch name is specified, then it means the branch does not exist,
+		// so throw an error
 		if ref != "" {
 			return "", errors.Wrapf(err, "error checking out %s: %s", ref, output)
 		}

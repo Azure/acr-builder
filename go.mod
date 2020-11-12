@@ -20,6 +20,7 @@ require (
 	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/gogo/googleapis v1.4.0 // indirect
+	github.com/google/go-cmp v0.4.0
 	github.com/google/uuid v0.0.0-20161128191214-064e2069ce9c
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/huandu/xstrings v1.2.0 // indirect
@@ -29,6 +30,7 @@ require (
 	github.com/urfave/cli v1.21.0
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	gopkg.in/yaml.v2 v2.2.2
+	gotest.tools/v3 v3.0.3
 )
 
 go 1.13
