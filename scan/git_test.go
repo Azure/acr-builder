@@ -78,6 +78,23 @@ func TestParseRemoteURL(t *testing.T) {
 				subdir: "mydir/mysubdir/",
 			},
 		},
+		{
+			doc: "Azure DevOps Git URL, no url-fragment",
+			url: "https://azure.visualstudio.com/ACR/_git/Build/",
+			expected: gitRepo{
+				remote: "https://azure.visualstudio.com/ACR/_git/Build/",
+				ref:    "",
+			},
+		},
+		{
+			doc: "Azure DevOps Git URL, with url-fragment",
+			url: "https://azure.visualstudio.com/ACR/_git/Build/#mybranch:mydir/mysubdir/",
+			expected: gitRepo{
+				remote: "https://azure.visualstudio.com/ACR/_git/Build/",
+				ref:    "mybranch",
+				subdir: "mydir/mysubdir/",
+			},
+		},
 	}
 
 	for _, tc := range tests {
