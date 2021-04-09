@@ -184,13 +184,13 @@ func TestCheckoutGit(t *testing.T) {
 	_, err = gitWithinDir(gitDir, "checkout", "-b", "default")
 	assert.NilError(t, err)
 
-	err = ioutil.WriteFile(filepath.Join(gitDir, "Dockerfile"), []byte("FROM scratch"), 0644)
+	err = ioutil.WriteFile(filepath.Join(gitDir, "Dockerfile"), []byte("FROM scratch"), 0600)
 	assert.NilError(t, err)
 
 	subDir := filepath.Join(gitDir, "subdir")
 	assert.NilError(t, os.Mkdir(subDir, 0755))
 
-	err = ioutil.WriteFile(filepath.Join(subDir, "Dockerfile"), []byte("FROM scratch\nEXPOSE 5000"), 0644)
+	err = ioutil.WriteFile(filepath.Join(subDir, "Dockerfile"), []byte("FROM scratch\nEXPOSE 5000"), 0600)
 	assert.NilError(t, err)
 
 	if runtime.GOOS != "windows" {
@@ -212,10 +212,10 @@ func TestCheckoutGit(t *testing.T) {
 	_, err = gitWithinDir(gitDir, "checkout", "-b", "test")
 	assert.NilError(t, err)
 
-	err = ioutil.WriteFile(filepath.Join(gitDir, "Dockerfile"), []byte("FROM scratch\nEXPOSE 3000"), 0644)
+	err = ioutil.WriteFile(filepath.Join(gitDir, "Dockerfile"), []byte("FROM scratch\nEXPOSE 3000"), 0600)
 	assert.NilError(t, err)
 
-	err = ioutil.WriteFile(filepath.Join(subDir, "Dockerfile"), []byte("FROM busybox\nEXPOSE 5000"), 0644)
+	err = ioutil.WriteFile(filepath.Join(subDir, "Dockerfile"), []byte("FROM busybox\nEXPOSE 5000"), 0600)
 	assert.NilError(t, err)
 
 	_, err = gitWithinDir(gitDir, "add", "-A")
@@ -238,7 +238,7 @@ func TestCheckoutGit(t *testing.T) {
 	_, err = gitWithinDir(subrepoDir, "config", "user.name", "Docker test")
 	assert.NilError(t, err)
 
-	err = ioutil.WriteFile(filepath.Join(subrepoDir, "subfile"), []byte("subcontents"), 0644)
+	err = ioutil.WriteFile(filepath.Join(subrepoDir, "subfile"), []byte("subcontents"), 0600)
 	assert.NilError(t, err)
 
 	_, err = gitWithinDir(subrepoDir, "add", "-A")
@@ -276,6 +276,7 @@ func TestCheckoutGit(t *testing.T) {
 		{"test", "FROM scratch" + eol + "EXPOSE 3000", false, false},
 		{"test:", "FROM scratch" + eol + "EXPOSE 3000", false, false},
 		{"test:subdir", "FROM busybox" + eol + "EXPOSE 5000", false, false},
+		{"nonexist:subdir", "FROM busybox" + eol + "EXPOSE 5000", true, false},
 	}
 
 	if runtime.GOOS != "windows" {
@@ -285,8 +286,8 @@ func TestCheckoutGit(t *testing.T) {
 		// 	error: unable to index file absolutelink
 		// 	fatal: adding files failed
 		fmt.Println("Windows!!!!!!!!!!")
-		cases = append(cases, singleCase{frag: "master:absolutelink", exp: "FROM scratch" + eol + "EXPOSE 5000", fail: false})
-		cases = append(cases, singleCase{frag: "master:parentlink", exp: "FROM scratch" + eol + "EXPOSE 5000", fail: false})
+		cases = append(cases, singleCase{frag: "default:absolutelink", exp: "FROM scratch" + eol + "EXPOSE 5000", fail: false})
+		cases = append(cases, singleCase{frag: "default:parentlink", exp: "FROM scratch" + eol + "EXPOSE 5000", fail: false})
 	}
 
 	for _, c := range cases {
@@ -304,13 +305,13 @@ func TestCheckoutGit(t *testing.T) {
 		assert.NilError(t, err)
 		defer os.RemoveAll(r)
 		if c.submodule {
-			b, err := ioutil.ReadFile(filepath.Join(r, "sub/subfile"))
-			assert.NilError(t, err)
+			b, innerErr := ioutil.ReadFile(filepath.Join(r, "sub/subfile"))
+			assert.NilError(t, innerErr)
 			assert.Check(t, is.Equal("subcontents", string(b)))
 		} else {
-			_, err := os.Stat(filepath.Join(r, "sub/subfile"))
-			assert.Assert(t, is.ErrorContains(err, ""))
-			assert.Assert(t, os.IsNotExist(err))
+			_, innerErr := os.Stat(filepath.Join(r, "sub/subfile"))
+			assert.Assert(t, is.ErrorContains(innerErr, ""))
+			assert.Assert(t, os.IsNotExist(innerErr))
 		}
 
 		b, err := ioutil.ReadFile(filepath.Join(r, "Dockerfile"))

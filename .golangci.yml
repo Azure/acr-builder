@@ -29,3 +29,6 @@ issues:
     - text: "Potential HTTP request made with variable url"
       linters:
         - gosec
+    - text: "SQL string concatenation"
+      linters:
+        - gosec
