@@ -1,6 +1,6 @@
-ARG DOCKER_CLI_BASE_IMAGE=docker:19.03.6-git
+ARG DOCKER_CLI_BASE_IMAGE=docker:20.10.5-git
 
-FROM golang:1.14.2-alpine AS gobuild-base
+FROM golang:1.16.3-alpine AS gobuild-base
 RUN apk add --no-cache \
 	git \
 	make
