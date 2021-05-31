@@ -357,7 +357,7 @@ func addBuildCacheOptsToCmd(domain, path, tag, originalBuildCmd string) (string,
 
 func invokesBuildkit(envs []string) bool {
 	for _, env := range envs {
-		if strings.Contains(env, BUILDKIT_ENV_VAR) {
+		if env == BUILDKIT_ENV_VAR {
 			return true
 		}
 	}

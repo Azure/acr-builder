@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/image"
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/remotes/docker"
 	"github.com/docker/distribution/reference"
 	"github.com/pkg/errors"
@@ -27,6 +27,9 @@ var _ DigestHelper = &remoteDigest{}
 
 func (d *remoteDigest) PopulateDigest(ctx context.Context, ref *image.Reference) error {
 	if ref == nil {
+		return nil
+	}
+	if ref.Digest != "" {
 		return nil
 	}
 	client := http.DefaultClient
@@ -49,21 +52,25 @@ func (d *remoteDigest) PopulateDigest(ctx context.Context, ref *image.Reference)
 		return err
 	}
 	_, desc, err := resolver.Resolve(ctx, imageRef)
-
-	// If the image is not pushed yet, it will not have any digest.
-	if err != nil && !strings.Contains(strings.ToLower(err.Error()), "not found") {
-		return errors.Wrapf(err, "Failed to Resolve the reference '%s'", ref.Reference)
+	if err == nil {
+		ref.Digest = desc.Digest.String()
+		return nil
 	}
-	ref.Digest = desc.Digest.String()
+	// If the image is not pushed yet, it will not have any digest.
+	if errdefs.IsNotFound(err) {
+		return nil
+	}
 
-	return nil
+	return errors.Wrapf(err, "Failed to Resolve the reference '%s'", ref.Reference)
 }
 
 func getReferencePath(ref *image.Reference) (string, error) {
 	fullRefPath := fmt.Sprintf("%s/%s", ref.Registry, ref.Repository)
+	tag := "latest"
 	if ref.Tag != "" {
-		fullRefPath = fmt.Sprintf("%s:%s", fullRefPath, ref.Tag)
+		tag = ref.Tag
 	}
+	fullRefPath = fmt.Sprintf("%s:%s", fullRefPath, tag)
 	fullRef, err := reference.Parse(fullRefPath)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to parse the reference %s", ref.Reference)
