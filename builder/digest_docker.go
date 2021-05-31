@@ -31,6 +31,9 @@ func (d *dockerStoreDigest) PopulateDigest(ctx context.Context, reference *image
 	if reference == nil {
 		return nil
 	}
+	if reference.Digest != "" {
+		return nil
+	}
 	// refString will always have the tag specified at this point.
 	// For "scratch", we have to compare it against "scratch:latest" even though
 	// scratch:latest isn't valid in a FROM clause.
