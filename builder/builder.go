@@ -346,22 +346,26 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 
 // getPopulateDigests populates digests on dependencies
 func (b *Builder) getPopulateDigests(ctx context.Context, dependencies []*image.Dependencies, usingBuildkit bool, registryCreds graph.RegistryLoginCredentials) error {
-	var digestFetcher DigestHelper
+	dockerStoreDigester := NewDockerStoreDigest(b.procManager, b.debug)
 
+	var baseImgDigester DigestHelper
+	baseImgDigester = dockerStoreDigester
 	if usingBuildkit {
-		digestFetcher = NewRemoteDigest(registryCreds)
-	} else {
-		digestFetcher = NewDockerStoreDigest(b.procManager, b.debug)
+		baseImgDigester = NewRemoteDigest(registryCreds)
 	}
+
 	for _, entry := range dependencies {
-		if err := digestFetcher.PopulateDigest(ctx, entry.Image); err != nil {
+		// Always check 'entry.Image' in the Docker store,
+		// If it was pushed, 'docker inspect' will return a Digest, if not, it will return empty.
+		if err := dockerStoreDigester.PopulateDigest(ctx, entry.Image); err != nil {
 			return err
 		}
-		if err := digestFetcher.PopulateDigest(ctx, entry.Runtime); err != nil {
+
+		if err := baseImgDigester.PopulateDigest(ctx, entry.Runtime); err != nil {
 			return err
 		}
 		for _, buildtime := range entry.Buildtime {
-			if err := digestFetcher.PopulateDigest(ctx, buildtime); err != nil {
+			if err := baseImgDigester.PopulateDigest(ctx, buildtime); err != nil {
 				return err
 			}
 		}
