@@ -21,6 +21,7 @@ const (
 	ImmediateExecutionToken = "-"
 	enabled                 = "enabled"
 	disabled                = "disabled"
+	BUILDKIT_ENV_VAR        = "DOCKER_BUILDKIT=1"
 )
 
 var (
@@ -93,6 +94,7 @@ type Step struct {
 	CompletedChan chanBool
 
 	ImageDependencies    []*image.Dependencies
+	UsesBuildkit         bool
 	Tags                 []string
 	BuildArgs            []string
 	DefaultBuildCacheTag string
@@ -141,6 +143,11 @@ func (s *Step) Validate() error {
 
 	if s.Cache != "" && !strings.EqualFold(s.Cache, enabled) && !strings.EqualFold(s.Cache, disabled) {
 		return errInvalidCacheValue
+	}
+
+	// check if the build step contains buildkit ENV var
+	if s.IsBuildStep() {
+		s.UsesBuildkit = invokesBuildkit(s.Envs)
 	}
 
 	return nil
@@ -346,4 +353,13 @@ func addBuildCacheOptsToCmd(domain, path, tag, originalBuildCmd string) (string,
 		return "", errors.Wrap(err, "failed to attach cache ID tag to the repo for build cache")
 	}
 	return fmt.Sprintf("--load --cache-to=type=registry,ref=%s,mode=max --cache-from=type=registry,ref=%s %s", cacheImage.String(), cacheImage.String(), originalBuildCmd), nil
+}
+
+func invokesBuildkit(envs []string) bool {
+	for _, env := range envs {
+		if env == BUILDKIT_ENV_VAR {
+			return true
+		}
+	}
+	return false
 }

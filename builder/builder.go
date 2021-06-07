@@ -162,18 +162,20 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	var deps []*image.Dependencies
 	for _, step := range task.Steps {
 		log.Printf("Step ID: %v marked as %v (elapsed time in seconds: %f)\n", step.ID, step.StepStatus, step.EndTime.Sub(step.StartTime).Seconds())
-		// currently we have a limitation where we cannot fetch the digest of the dependencies
-		// because we build the image using buildx, but query the digest using docker.
-		// https://github.com/Azure/acr-builder/issues/522
-		if step.UseBuildCacheForBuildStep() && runtime.GOOS == util.LinuxOS {
-			continue
-		}
+
 		if len(step.ImageDependencies) > 0 {
 			log.Printf("Populating digests for step ID: %s...\n", step.ID)
 			timeout := time.Duration(digestsTimeoutInSec) * time.Second
 			digestCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
-			if err := b.populateDigests(digestCtx, step.ImageDependencies); err != nil {
+
+			usingBuildkit := false
+			if (step.UseBuildCacheForBuildStep() && runtime.GOOS == util.LinuxOS) || step.UsesBuildkit {
+				log.Printf("Image was built using buildkit, fetching Digest from remote...")
+				usingBuildkit = true
+			}
+
+			if err := b.getPopulateDigests(digestCtx, step.ImageDependencies, usingBuildkit, task.RegistryLoginCredentials); err != nil {
 				return err
 			}
 			log.Printf("Successfully populated digests for step ID: %s\n", step.ID)
@@ -342,83 +344,33 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 		step.IgnoreErrors)
 }
 
-// populateDigests populates digests on dependencies
-func (b *Builder) populateDigests(ctx context.Context, dependencies []*image.Dependencies) error {
+// getPopulateDigests populates digests on dependencies
+func (b *Builder) getPopulateDigests(ctx context.Context, dependencies []*image.Dependencies, usingBuildkit bool, registryCreds graph.RegistryLoginCredentials) error {
+	dockerStoreDigester := NewDockerStoreDigest(b.procManager, b.debug)
+
+	var baseImgDigester DigestHelper
+	baseImgDigester = dockerStoreDigester
+	if usingBuildkit {
+		baseImgDigester = NewRemoteDigest(registryCreds)
+	}
+
 	for _, entry := range dependencies {
-		if err := b.queryDigest(ctx, entry.Image); err != nil {
+		// Always check 'entry.Image' in the Docker store,
+		// If it was pushed, 'docker inspect' will return a Digest, if not, it will return empty.
+		if err := dockerStoreDigester.PopulateDigest(ctx, entry.Image); err != nil {
 			return err
 		}
-		if err := b.queryDigest(ctx, entry.Runtime); err != nil {
+
+		if err := baseImgDigester.PopulateDigest(ctx, entry.Runtime); err != nil {
 			return err
 		}
 		for _, buildtime := range entry.Buildtime {
-			if err := b.queryDigest(ctx, buildtime); err != nil {
+			if err := baseImgDigester.PopulateDigest(ctx, buildtime); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
-}
-
-func (b *Builder) queryDigest(ctx context.Context, reference *image.Reference) error {
-	if reference != nil {
-		// refString will always have the tag specified at this point.
-		// For "scratch", we have to compare it against "scratch:latest" even though
-		// scratch:latest isn't valid in a FROM clause.
-		if reference.Reference == NoBaseImageSpecifierLatest {
-			return nil
-		}
-		args := []string{
-			"docker",
-			"run",
-			"--rm",
-
-			// Mount home
-			"--volume", util.DockerSocketVolumeMapping,
-			"--volume", homeVol + ":" + homeWorkDir,
-			"--env", homeEnv,
-
-			"docker",
-			"inspect",
-			"--format",
-			"\"{{json .RepoDigests}}\"",
-			reference.Reference,
-		}
-		if b.debug {
-			log.Printf("query digest args: %v\n", args)
-		}
-		var buf bytes.Buffer
-		if err := b.procManager.Run(ctx, args, nil, &buf, &buf, ""); err != nil {
-			return errors.Wrapf(err, "failed to query digests, msg: %s", buf.String())
-		}
-		trimCharPredicate := func(c rune) bool {
-			return c == '\n' || c == '\r' || c == '"' || c == '\t'
-		}
-		reference.Digest = getRepoDigest(strings.TrimFunc(buf.String(), trimCharPredicate), reference)
-	}
-
-	return nil
-}
-
-func getRepoDigest(jsonContent string, reference *image.Reference) string {
-	prefix := reference.Repository + "@"
-	// If the reference has "library/" prefixed, we have to remove it - otherwise
-	// we'll fail to query the digest, since image names aren't prefixed with "library/"
-	if strings.HasPrefix(prefix, "library/") && reference.Registry == DockerHubRegistry {
-		prefix = prefix[8:]
-	} else if len(reference.Registry) > 0 && reference.Registry != DockerHubRegistry {
-		prefix = reference.Registry + "/" + prefix
-	}
-	var digestList []string
-	if err := json.Unmarshal([]byte(jsonContent), &digestList); err != nil {
-		log.Printf("Error deserializing %s to json, error: %v\n", jsonContent, err)
-	}
-	for _, digest := range digestList {
-		if strings.HasPrefix(digest, prefix) {
-			return digest[len(prefix):]
-		}
-	}
-	return ""
 }
 
 func validateDockerContext(sourceContext string) {

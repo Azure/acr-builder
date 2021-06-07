@@ -147,6 +147,9 @@ func NewImageReference(imagePath string) (*image.Reference, error) {
 	if tagged, ok := ref.(reference.Tagged); ok {
 		result.Tag = tagged.Tag()
 	}
+	if digested, ok := ref.(reference.Digested); ok {
+		result.Digest = digested.Digest().String()
+	}
 	return result, nil
 }
 
