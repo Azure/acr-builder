@@ -10,7 +10,7 @@ const (
 	// containerWorkspaceDir is the default working directory for a container.
 	containerWorkspaceDir = "c:\\workspace"
 
-	configImageName = "mcr.microsoft.com/windows/nanoserver:2004"
+	configImageName = "mcr.microsoft.com/windows/nanoserver:ltsc2022"
 )
 
 var homeEnv = "USERPROFILE=" + homeWorkDir
