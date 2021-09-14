@@ -153,7 +153,7 @@ func checkoutGit(root, ref, subdir string) (string, error) {
 	// If the reference format is "pull/{pull-request-number}/head", then checkout to
 	// FETCH_HEAD. Previous step has already fetched the reference explicitly, and
 	// current step just needs to check out the head
-	if (strings.HasPrefix(ref, "pull/") && strings.HasSuffix(ref, "/head")) {
+	if strings.HasPrefix(ref, "pull/") && strings.HasSuffix(ref, "/head") {
 		output, err := gitWithinDir(root, "checkout", "FETCH_HEAD")
 		if err != nil {
 			return "", errors.Wrapf(err, "error checking out %s: %s", ref, output)
