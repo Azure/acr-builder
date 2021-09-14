@@ -85,6 +85,8 @@ type Step struct {
 	DisableWorkingDirectoryOverride bool `yaml:"disableWorkingDirectoryOverride"`
 	Pull                            bool `yaml:"pull"`
 
+	UsesBuildkit bool
+
 	StartTime  time.Time
 	EndTime    time.Time
 	StepStatus StepStatus
@@ -94,7 +96,6 @@ type Step struct {
 	CompletedChan chanBool
 
 	ImageDependencies    []*image.Dependencies
-	UsesBuildkit         bool
 	Tags                 []string
 	BuildArgs            []string
 	DefaultBuildCacheTag string

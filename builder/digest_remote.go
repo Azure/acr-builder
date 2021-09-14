@@ -40,7 +40,7 @@ func (d *remoteDigest) PopulateDigest(ctx context.Context, ref *image.Reference)
 	}
 	if cred, ok := d.registryCreds[ref.Registry]; ok {
 		if cred.Username.ResolvedValue == "" || cred.Password.ResolvedValue == "" {
-			return fmt.Errorf("Error fetching credentials for '%s'", ref.Registry)
+			return fmt.Errorf("error fetching credentials for '%s'", ref.Registry)
 		}
 		// Adds credential resolver if private registry
 		opts.Credentials = func(hostName string) (string, string, error) {
