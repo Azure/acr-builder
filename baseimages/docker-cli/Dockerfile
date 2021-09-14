@@ -1,6 +1,6 @@
 # Required.
 # docker build -f baseimages/docker-cli/Dockerfile -t docker .
-ARG DOCKER_CLI_BASE_IMAGE=docker:20.10.5-git
+ARG DOCKER_CLI_BASE_IMAGE=docker:20.10.8-git
 FROM ${DOCKER_CLI_BASE_IMAGE}
 
 ARG GIT_LFS_VERSION=2.5.2
