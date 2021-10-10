@@ -13,11 +13,12 @@ require (
 	github.com/Masterminds/semver v1.4.2 // indirect
 	github.com/Masterminds/sprig v2.20.0+incompatible
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
-	github.com/containerd/containerd v1.4.8
+	github.com/containerd/containerd v1.4.11
 	github.com/deislabs/oras v0.8.1
 	github.com/docker/cli v0.0.0-20200130152716-5d0cf8839492
 	github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
 	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-cmp v0.4.0
 	github.com/google/uuid v0.0.0-20161128191214-064e2069ce9c
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
