@@ -1,6 +1,9 @@
 module github.com/Azure/acr-builder
 
-replace github.com/docker/docker => github.com/docker/docker v0.0.0-20180413235638-61138fb5fc0f
+replace (
+	github.com/docker/docker => github.com/docker/docker v0.0.0-20180413235638-61138fb5fc0f
+	golang.org/x/sys => golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3
+)
 
 require (
 	github.com/Azure/azure-sdk-for-go v31.2.0+incompatible
