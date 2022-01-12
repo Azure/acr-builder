@@ -48,7 +48,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_LFS_DOWNLOAD_URL); \
 	[Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine); \
 	\
 	Write-Host 'Installing ...'; \
-	Write-Host 'git lfs install'; git lfs install; \
+	Write-Host 'git lfs install'; git lfs install --system; \
 	\
 	Write-Host 'Complete.';
 
