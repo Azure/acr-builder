@@ -5,7 +5,7 @@
 
 alias:
   src:
-    - "https://raw.githubusercontent.com/estebanreyl/preprocessor-test/master/input/valid-remote.yaml"
+    - "https://raw.githubusercontent.com/Azure/acr-builder/main/graph/testdata/preprocessor/valid-remote.yaml"
     - ./valid-external.yaml
 
   values:

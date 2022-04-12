@@ -97,7 +97,7 @@ func TestResolveMapAndValidate(t *testing.T) {
 func TestLoadExternalAlias(t *testing.T) {
 	resStrings := []string{"nonexistent.yaml",
 		"https://httpstat.us/404",
-		"https://raw.githubusercontent.com/estebanreyl/preprocessor-test/master/input/valid-remote.yaml",
+		"https://raw.githubusercontent.com/Azure/acr-builder/main/graph/testdata/preprocessor/valid-remote.yaml",
 		"./testdata/preprocessor/valid-external.yaml",
 		"./testdata/preprocessor/empty-external.yaml",
 	}
@@ -249,8 +249,8 @@ func TestLoadExternalAlias(t *testing.T) {
 
 func TestAddAliasFromRemote(t *testing.T) {
 	resStrings := []string{
-		"https://raw.githubusercontent.com/estebanreyl/preprocessor-test/master/input/invalid-remote.yaml",
-		"https://raw.githubusercontent.com/estebanreyl/preprocessor-test/master/input/valid-remote.yaml",
+		"https://raw.githubusercontent.com/Azure/acr-builder/main/graph/testdata/preprocessor/invalid-remote.yaml",
+		"https://raw.githubusercontent.com/Azure/acr-builder/main/graph/testdata/preprocessor/valid-remote.yaml",
 	}
 	tests := []struct {
 		name          string
