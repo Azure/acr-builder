@@ -15,10 +15,12 @@ import (
 	"os/exec"
 	"time"
 
+	"oras.land/oras-go/v2"
+	"oras.land/oras-go/v2/content/file"
+	"oras.land/oras-go/v2/registry/remote"
+	"oras.land/oras-go/v2/registry/remote/auth"
+
 	"github.com/Azure/acr-builder/util"
-	"github.com/containerd/containerd/remotes/docker"
-	"github.com/deislabs/oras/pkg/content"
-	"github.com/deislabs/oras/pkg/oras"
 	dockerbuild "github.com/docker/cli/cli/command/image/build"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/progress"
@@ -121,26 +123,39 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 }
 
 func (s *Scanner) getContextFromRegistry(ctx context.Context, registryArtifact string) (err error) {
-	authorizer := docker.NewAuthorizer(http.DefaultClient, func(hostName string) (string, string, error) {
-		// If no matching credential found, attempt an anonymous pull
-		if s.credentials[hostName] == nil {
-			return "", "", nil
-		}
-		return s.credentials[hostName].Username.ResolvedValue, s.credentials[hostName].Password.ResolvedValue, nil
-	})
-	resolver := docker.NewResolver(docker.ResolverOptions{
-		PlainHTTP: false,
-		Hosts: docker.ConfigureDefaultRegistries(
-			docker.WithAuthorizer(authorizer),
-		),
-	})
-	fileStore := content.NewFileStore(s.destinationFolder)
-	defer fileStore.Close()
+	src, err := remote.NewRepository(registryArtifact)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse artifact %s", registryArtifact)
+	}
+	src.Client = &auth.Client{
+		Header: http.Header{
+			"User-Agent":           {"oras-go"},
+			"X-Meta-Source-Client": {"azure/acr/tasks"},
+		},
+		Cache: auth.DefaultCache,
+		Credential: func(ctx context.Context, registry string) (auth.Credential, error) {
+			// If no matching credential found, attempt an anonymous pull
+			if s.credentials[registry] == nil {
+				return auth.EmptyCredential, nil
+			}
+
+			return auth.Credential{
+				Username: s.credentials[registry].Username.ResolvedValue,
+				Password: s.credentials[registry].Password.ResolvedValue,
+			}, nil
+		},
+	}
+
+	dest := file.New(s.destinationFolder)
+	defer dest.Close()
+
 	fmt.Printf("Pulling from %s and saving to %s...\n", registryArtifact, s.destinationFolder)
-	desc, _, err := oras.Pull(ctx, resolver, registryArtifact, fileStore)
+
+	desc, err := oras.Copy(ctx, src, src.Reference.Reference, dest, "")
 	if err != nil {
 		return errors.Wrap(err, "failed to pull artifact from registry")
 	}
+
 	fmt.Printf("Pulled from %s with digest %s\n", registryArtifact, desc.Digest)
 	return nil
 }
