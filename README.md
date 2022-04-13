@@ -2,7 +2,7 @@
 
 | Linux Build | Windows Build | Go Report |
 |---|---|---|
-|[![Build Status](https://dev.azure.com/azurecontainerregistry/acr-builder/_apis/build/status/acr-builder?branchName=main)](https://dev.azure.com/azurecontainerregistry/acr-builder/_build/latest?definitionId=2&branchName=main)|[![Build Status](https://dev.azure.com/azurecontainerregistry/acr-builder/_apis/build/status/acr-builder%20(Windows)?branchName=main)](https://dev.azure.com/azurecontainerregistry/acr-builder/_build/latest?definitionId=15&branchName=main)|[![Go Report Card](https://goreportcard.com/badge/github.com/Azure/acr-builder)](https://goreportcard.com/report/github.com/Azure/acr-builder)|
+|[![Build Status](https://dev.azure.com/azurecontainerregistry/acr-builder/_apis/build/status/acr-builder_linux?branchName=main)](https://dev.azure.com/azurecontainerregistry/acr-builder/_build/latest?definitionId=18&branchName=main)|[![Build Status](https://dev.azure.com/azurecontainerregistry/acr-builder/_apis/build/status/acr-builder_windows?branchName=main)](https://dev.azure.com/azurecontainerregistry/acr-builder/_build/latest?definitionId=19&branchName=main)|[![Go Report Card](https://goreportcard.com/badge/github.com/Azure/acr-builder)](https://goreportcard.com/report/github.com/Azure/acr-builder)|
 
 ACR Builder is the backbone behind [Azure Container Registry Tasks](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-tasks-overview).
 
