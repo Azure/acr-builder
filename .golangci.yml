@@ -18,7 +18,6 @@ linters:
     - gosec
     - govet
     - ineffassign
-    - maligned
     - staticcheck
     - structcheck
     - unconvert
