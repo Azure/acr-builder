@@ -52,27 +52,29 @@ func (c chanBool) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // Step is a step in the execution task.
 type Step struct {
-	ID                  string          `yaml:"id"`
-	Cmd                 string          `yaml:"cmd"`
-	Build               string          `yaml:"build"`
-	WorkingDirectory    string          `yaml:"workingDirectory"`
-	EntryPoint          string          `yaml:"entryPoint"`
-	User                string          `yaml:"user"`
-	Network             string          `yaml:"network"`
-	Isolation           string          `yaml:"isolation"`
-	CPUS                string          `yaml:"cpus"`
-	Cache               string          `yaml:"cache"`
-	Mounts              []*volume.Mount `yaml:"volumeMounts"`
-	Push                []string        `yaml:"push"`
-	Envs                []string        `yaml:"env"`
-	Expose              []string        `yaml:"expose"`
-	Ports               []string        `yaml:"ports"`
-	When                []string        `yaml:"when"`
-	ExitedWith          []int           `yaml:"exitedWith"`
-	ExitedWithout       []int           `yaml:"exitedWithout"`
-	Timeout             int             `yaml:"timeout"`
-	StartDelay          int             `yaml:"startDelay"`
-	RetryDelayInSeconds int             `yaml:"retryDelay"`
+	ID               string          `yaml:"id"`
+	Cmd              string          `yaml:"cmd"`
+	Build            string          `yaml:"build"`
+	WorkingDirectory string          `yaml:"workingDirectory"`
+	EntryPoint       string          `yaml:"entryPoint"`
+	User             string          `yaml:"user"`
+	Network          string          `yaml:"network"`
+	Isolation        string          `yaml:"isolation"`
+	CPUS             string          `yaml:"cpus"`
+	Cache            string          `yaml:"cache"`
+	Mounts           []*volume.Mount `yaml:"volumeMounts"`
+	Push             []string        `yaml:"push"`
+	Envs             []string        `yaml:"env"`
+	Expose           []string        `yaml:"expose"`
+	Ports            []string        `yaml:"ports"`
+	When             []string        `yaml:"when"`
+	ExitedWith       []int           `yaml:"exitedWith"`
+	ExitedWithout    []int           `yaml:"exitedWithout"`
+	Timeout          int             `yaml:"timeout"`
+	// DownloadRetries specifies how mant times a download in a step will be retried
+	DownloadRetries     int `yaml:"downloadRetries"`
+	StartDelay          int `yaml:"startDelay"`
+	RetryDelayInSeconds int `yaml:"retryDelay"`
 	// Retries specifies how many times a Step will be retried if it fails after its initial execution.
 	Retries       int      `yaml:"retries"`
 	RetryOnErrors []string `yaml:"retryOnErrors"`
