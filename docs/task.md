@@ -90,6 +90,7 @@ An object with the following properties:
 | [retryDelay](#retrydelay) | `int` | Optional | 0 |
 | [retries](#retries) | `int` | Optional | 0 |
 | [downloadRetries](#downloadRetries) | `int` | Optional | 0 |
+| [downloadRetryDelay](#downloadRetryDelay) | `int` | Optional | 0 |
 | [repeat](#repeat) | `int` | Optional | 0 |
 | [keep](#keep) | `bool` | Optional | false |
 | [detach](#detach) | `bool` | Optional | false |
@@ -266,6 +267,13 @@ The number of retries to attempt if a container fails its execution. A retry is 
 #### downloadRetries
 
 The number of retries to attempt if downloading a container fails in a single step.
+
+* Optional
+* Type: `int`
+
+#### downloadRetryDelay
+
+The delay in seconds between download retries.
 
 * Optional
 * Type: `int`
