@@ -89,6 +89,8 @@ An object with the following properties:
 | [startDelay](#startdelay) | `int` | Optional | 0 |
 | [retryDelay](#retrydelay) | `int` | Optional | 0 |
 | [retries](#retries) | `int` | Optional | 0 |
+| [downloadRetries](#downloadRetries) | `int` | Optional | 0 |
+| [downloadRetryDelay](#downloadRetryDelay) | `int` | Optional | 0 |
 | [repeat](#repeat) | `int` | Optional | 0 |
 | [keep](#keep) | `bool` | Optional | false |
 | [detach](#detach) | `bool` | Optional | false |
@@ -258,6 +260,20 @@ Defines the number of seconds to wait before executing the container.
 #### retries
 
 The number of retries to attempt if a container fails its execution. A retry is only attempted if a container's exit code is non-zero.
+
+* Optional
+* Type: `int`
+
+#### cmdDownloadRetries
+
+The number of retries to attempt if downloading a container fails in a single cmd step.
+
+* Optional
+* Type: `int`
+
+#### cmdDownloadRetryDelay
+
+The delay in seconds between download retries in a cmd step.
 
 * Optional
 * Type: `int`
