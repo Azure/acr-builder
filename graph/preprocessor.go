@@ -315,7 +315,7 @@ func FindVersion(data []byte) string {
 		if strings.HasPrefix(text, versionKey) {
 			tokens := strings.SplitN(text, ":", 2)
 			if len(tokens) == 2 && strings.TrimSpace(tokens[0]) == versionKey {
-				return strings.TrimSpace(tokens[1])
+				return strings.Trim(strings.TrimSpace(tokens[1]), "'\"")
 			}
 		}
 		break
