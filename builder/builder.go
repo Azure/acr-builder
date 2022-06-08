@@ -260,7 +260,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 
 	if step.IsCmdStep() && step.Pull {
 		log.Printf("Step specified pull. Performing an explicit pull...\n")
-		if err := b.pullImageBeforeRun(ctx, step.Cmd, step.DownloadRetries, step.DownloadRetryDelayInSeconds); err != nil {
+		if err := b.pullImageBeforeRun(ctx, step.Cmd, step.CmdDownloadRetries, step.CmdDownloadRetryDelayInSeconds); err != nil {
 			return err
 		}
 	}

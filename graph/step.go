@@ -72,10 +72,10 @@ type Step struct {
 	ExitedWithout    []int           `yaml:"exitedWithout"`
 	Timeout          int             `yaml:"timeout"`
 	// DownloadRetries specifies how many times a download in a step will be retried
-	DownloadRetries             int `yaml:"downloadRetries"`
-	DownloadRetryDelayInSeconds int `yaml:"downloadRetryDelay"`
-	StartDelay                  int `yaml:"startDelay"`
-	RetryDelayInSeconds         int `yaml:"retryDelay"`
+	CmdDownloadRetries             int `yaml:"cmdDownloadRetries"`
+	CmdDownloadRetryDelayInSeconds int `yaml:"cmdDownloadRetryDelay"`
+	StartDelay                     int `yaml:"startDelay"`
+	RetryDelayInSeconds            int `yaml:"retryDelay"`
 	// Retries specifies how many times a Step will be retried if it fails after its initial execution.
 	Retries       int      `yaml:"retries"`
 	RetryOnErrors []string `yaml:"retryOnErrors"`

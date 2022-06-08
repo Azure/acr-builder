@@ -264,16 +264,16 @@ The number of retries to attempt if a container fails its execution. A retry is 
 * Optional
 * Type: `int`
 
-#### downloadRetries
+#### cmdDownloadRetries
 
-The number of retries to attempt if downloading a container fails in a single step.
+The number of retries to attempt if downloading a container fails in a single cmd step.
 
 * Optional
 * Type: `int`
 
-#### downloadRetryDelay
+#### cmdDownloadRetryDelay
 
-The delay in seconds between download retries.
+The delay in seconds between download retries in a cmd step.
 
 * Optional
 * Type: `int`
