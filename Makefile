@@ -69,7 +69,7 @@ clean: ## Clean up all binaries
 .PHONY: lint
 lint: ## Run all linters
 	@echo "+ $@"
-	@golangci-lint run
+	@golangci-lint run --go=1.18
 
 .PHONY: coverage
 coverage: ## Runs coverage tests and generates a report
