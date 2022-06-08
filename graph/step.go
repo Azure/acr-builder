@@ -71,7 +71,7 @@ type Step struct {
 	ExitedWith       []int           `yaml:"exitedWith"`
 	ExitedWithout    []int           `yaml:"exitedWithout"`
 	Timeout          int             `yaml:"timeout"`
-	// DownloadRetries specifies how many times a download in a step will be retried
+	// CmdDownloadRetries specifies how many times a download in a step will be retried
 	CmdDownloadRetries             int `yaml:"cmdDownloadRetries"`
 	CmdDownloadRetryDelayInSeconds int `yaml:"cmdDownloadRetryDelay"`
 	StartDelay                     int `yaml:"startDelay"`
