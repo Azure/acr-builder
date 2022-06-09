@@ -260,7 +260,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 
 	if step.IsCmdStep() && step.Pull {
 		log.Printf("Step specified pull. Performing an explicit pull...\n")
-		if err := b.pullImageBeforeRun(ctx, step.Cmd); err != nil {
+		if err := b.pullImageBeforeRun(ctx, step.Cmd, step.CmdDownloadRetries, step.CmdDownloadRetryDelayInSeconds); err != nil {
 			return err
 		}
 	}
@@ -380,7 +380,7 @@ func validateDockerContext(sourceContext string) {
 	}
 }
 
-func (b *Builder) pullImageBeforeRun(ctx context.Context, cmdArgs string) error {
+func (b *Builder) pullImageBeforeRun(ctx context.Context, cmdArgs string, retries, retryDelayInSeconds int) error {
 	imageName := parseImageNameFromArgs(cmdArgs)
 	args := []string{
 		"docker",
@@ -394,7 +394,7 @@ func (b *Builder) pullImageBeforeRun(ctx context.Context, cmdArgs string) error 
 	if b.debug {
 		log.Printf("pull image args: %v\n", args)
 	}
-	return b.procManager.Run(ctx, args, nil, os.Stdout, os.Stdout, "")
+	return b.procManager.RunWithRetries(ctx, args, nil, os.Stdout, os.Stdout, "", retries, nil, retryDelayInSeconds, "")
 }
 
 // parseImageNameFromArgs parses an image's name from a command step's arguments.
