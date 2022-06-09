@@ -611,6 +611,21 @@ version:v1.1.0
 version:foo:bar:beta`,
 			"foo:bar:beta",
 		},
+		{
+			`       
+version:"v1.1.0"`,
+			"v1.1.0",
+		},
+		{
+			`       
+version:   'v1.1.0'`,
+			"v1.1.0",
+		},
+		{
+			`       
+version:   "v1.1.0'`,
+			"v1.1.0",
+		},
 	}
 
 	for _, test := range tests {
