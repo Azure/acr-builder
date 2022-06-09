@@ -1,9 +1,6 @@
-ARG DOCKER_CLI_BASE_IMAGE=docker:20.10.14-git
+ARG DOCKER_CLI_BASE_IMAGE=mcr.microsoft.com/acr/moby-cli:linux-latest
 
-FROM golang:1.18.3-alpine AS gobuild-base
-RUN apk add --no-cache \
-	git \
-	make
+FROM mcr.microsoft.com/oss/go/microsoft/golang:1.18.3 AS gobuild-base
 
 FROM gobuild-base AS acb
 WORKDIR /go/src/github.com/Azure/acr-builder
