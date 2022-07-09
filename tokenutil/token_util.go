@@ -47,25 +47,29 @@ func GetRegistryRefreshToken(registry, resourceID, clientID string) (string, err
 
 	req, err := http.NewRequest("POST", exchangeURL, strings.NewReader(v.Encode()))
 	if err != nil {
-		return "", errors.Wrap(err, "unable to create an HTTP post request to exchangeAPI")
+		return "", errors.Wrap(err, "unable to create the request to get ACR refresh token")
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	response, err := client.Do(req)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to make post request to exchangeAPI")
+		return "", errors.Wrap(err, "unable to make the request to get ACR refresh token")
 	}
 
 	defer response.Body.Close()
 
+	if response.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to get ACR refresh token, exchange API response code: %s", response.Status)
+	}
+
 	var token RegistryRefreshToken
 	jsonResponse, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to read response body from ACR oauth2")
+		return "", errors.Wrap(err, "unable to read the response from ACR exchange API")
 	}
 	err = json.Unmarshal(jsonResponse, &token)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to unmarshal response body from ACR oauth2")
+		return "", errors.Wrapf(err, "unable to parse the response from ACR exchange API: %s", jsonResponse)
 	}
 	return token.RefreshToken, nil
 }
