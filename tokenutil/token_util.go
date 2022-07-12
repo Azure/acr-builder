@@ -53,7 +53,7 @@ func GetRegistryRefreshToken(registry, resourceID, clientID string) (string, err
 
 	response, err := client.Do(req)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to make the request to get ACR refresh token")
+		return "", errors.Wrap(err, "unable to send the request to get ACR refresh token")
 	}
 
 	defer response.Body.Close()
