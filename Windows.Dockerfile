@@ -63,7 +63,7 @@ RUN $newPath = ('{0}\bin;C:\go\bin;{1}' -f $env:GOPATH, $env:PATH); \
 
 # install go lang
 
-ENV GOLANG_VERSION 1.18.3
+ENV GOLANG_VERSION 1.18.4
 
 RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSION); \
 	Write-Host ('Downloading {0} ...' -f $url); \
@@ -82,17 +82,14 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 
 # Download the docker executable
 FROM base as dockercli
-ARG DOCKER_VERSION=19-03-18
-ENV DOCKER_DOWNLOAD_URL https://dockermsft.blob.core.windows.net/dockercontainer/docker-${DOCKER_VERSION}.zip
+ARG DOCKER_VERSION=20.10.15
+ENV DOCKER_DOWNLOAD_URL https://mobyartifacts.azureedge.net/moby/moby-cli/${DOCKER_VERSION}+azure/windows/windows_amd64/moby-cli-${DOCKER_VERSION}+azure-1.amd64.zip
 RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
 	Invoke-WebRequest -Uri $env:DOCKER_DOWNLOAD_URL -OutFile 'docker.zip'; \
 	\
 	Write-Host 'Expanding ...'; \
 	Expand-Archive -Path docker.zip -DestinationPath C:\unzip\.; \
-	\
-	Write-Host 'Removing dockerd.exe ...'; \
-	Remove-Item C:\unzip\docker\dockerd.exe -Force; \
 	\
 	Write-Host 'Complete.';
 
