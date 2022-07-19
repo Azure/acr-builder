@@ -71,7 +71,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 
 # setup the runtime environment
 FROM base as runtime
-COPY --from=dockercli C:/unzip/docker/ C:/docker/
+COPY --from=dockercli C:/unzip/ C:/docker/
 RUN setx /M PATH $('C:\docker;{0}' -f $env:PATH);
 ENTRYPOINT [ "docker.exe" ]
 CMD [ "--help" ]
