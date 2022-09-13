@@ -24,7 +24,7 @@ steps:
 - script: |
     go version
     go env
-    go build -o acb.exe .\cmd\acb
+    go build -mod vendor -o acb.exe .\cmd\acb
   workingDirectory: '$(ModulePath)'
   displayName: 'Build'
 

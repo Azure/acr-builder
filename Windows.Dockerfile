@@ -98,7 +98,7 @@ FROM builder as acb
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
 RUN Write-Host ('Running build'); \
-	go build -o acb.exe .\cmd\acb; \
+	go build -mod vendor -o acb.exe .\cmd\acb; \
 	Write-Host ('Running unit tests'); \
 	go test ./...
 
