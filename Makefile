@@ -5,7 +5,7 @@ GO_GCFLAGS=$(shell				\
 	set -- ${GOPATHS};			\
 	echo "-gcflags=-trimpath=$${1}/src";	\
 	)
-GO_BUILD_FLAGS=
+GO_BUILD_FLAGS=-mod vendor
 GO_EXTRA_FLAGS=
 GO_TAGS=
 VERSION=$(shell git describe --match 'v[0-9]*' --dirty='.m' --always)
