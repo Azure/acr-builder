@@ -1,6 +1,6 @@
 ARG DOCKER_CLI_BASE_IMAGE=mcr.microsoft.com/acr/moby-cli:linux-latest
 
-FROM mcr.microsoft.com/oss/go/microsoft/golang:1.18.6 AS gobuild-base
+FROM mcr.microsoft.com/oss/go/microsoft/golang:1.18.7 AS gobuild-base
 
 FROM gobuild-base AS acb
 WORKDIR /go/src/github.com/Azure/acr-builder
