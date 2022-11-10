@@ -247,7 +247,7 @@ func TestCheckoutGit(t *testing.T) {
 	_, err = gitWithinDir(subrepoDir, "commit", "-am", "Subrepo initial")
 	assert.NilError(t, err)
 
-	cmd := exec.Command("git", "submodule", "add", subrepoDir, "sub") // this command doesn't work with --work-tree
+	cmd := exec.Command("git", "-c", "protocol.file.allow=always", "submodule", "add", subrepoDir, "sub") // this command doesn't work with --work-tree
 	cmd.Dir = gitDir
 	assert.NilError(t, cmd.Run())
 
