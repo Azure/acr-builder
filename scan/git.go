@@ -102,7 +102,8 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 		return "", err
 	}
 
-	cmd := exec.Command("git", "submodule", "update", "--init", "--recursive", "--depth=1")
+	// explicitly allow file protocol to allow local unit test
+	cmd := exec.Command("git", "-c", "protocol.file.allow=always", "submodule", "update", "--init", "--recursive", "--depth=1")
 	cmd.Dir = root
 	output, err := cmd.CombinedOutput()
 	if err != nil {
