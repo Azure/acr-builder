@@ -13,18 +13,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package errdef
+package registryutil
 
-import "errors"
+import (
+	"context"
 
-// Common errors used in ORAS
-var (
-	ErrAlreadyExists      = errors.New("already exists")
-	ErrInvalidDigest      = errors.New("invalid digest")
-	ErrInvalidReference   = errors.New("invalid reference")
-	ErrMissingReference   = errors.New("missing reference")
-	ErrNotFound           = errors.New("not found")
-	ErrSizeExceedsLimit   = errors.New("size exceeds limit")
-	ErrUnsupported        = errors.New("unsupported")
-	ErrUnsupportedVersion = errors.New("unsupported version")
+	"oras.land/oras-go/v2/registry"
+	"oras.land/oras-go/v2/registry/remote/auth"
 )
+
+// WithScopeHint adds a hinted scope to the context.
+func WithScopeHint(ctx context.Context, ref registry.Reference, actions ...string) context.Context {
+	scope := auth.ScopeRepository(ref.Repository, actions...)
+	return auth.AppendScopes(ctx, scope)
+}

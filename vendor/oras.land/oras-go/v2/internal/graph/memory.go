@@ -23,104 +23,106 @@ import (
 	"oras.land/oras-go/v2/content"
 	"oras.land/oras-go/v2/internal/descriptor"
 	"oras.land/oras-go/v2/internal/status"
+	"oras.land/oras-go/v2/internal/syncutil"
 )
 
-// Memory is a memory based UpEdgeFinder.
+// Memory is a memory based PredecessorFinder.
 type Memory struct {
-	upEdges sync.Map // map[descriptor.Descriptor]map[descriptor.Descriptor]ocispec.Descriptor
-	indexed sync.Map // map[descriptor.Descriptor]bool
+	predecessors sync.Map // map[descriptor.Descriptor]map[descriptor.Descriptor]ocispec.Descriptor
+	indexed      sync.Map // map[descriptor.Descriptor]any
 }
 
-// NewMemory creates a new memory UpEdgeFinder.
+// NewMemory creates a new memory PredecessorFinder.
 func NewMemory() *Memory {
 	return &Memory{}
 }
 
-// Index indexes up edges for each direct down edge of the given node.
+// Index indexes predecessors for each direct successor of the given node.
 // There is no data consistency issue as long as deletion is not implemented
 // for the underlying storage.
 func (m *Memory) Index(ctx context.Context, fetcher content.Fetcher, node ocispec.Descriptor) error {
-	downEdges, err := content.DownEdges(ctx, fetcher, node)
+	successors, err := content.Successors(ctx, fetcher, node)
 	if err != nil {
 		return err
 	}
 
-	return m.index(ctx, node, downEdges)
+	m.index(ctx, node, successors)
+	return nil
 }
 
-// Index indexes up edges for all the down edges of the given node.
+// Index indexes predecessors for all the successors of the given node.
 // There is no data consistency issue as long as deletion is not implemented
 // for the underlying storage.
 func (m *Memory) IndexAll(ctx context.Context, fetcher content.Fetcher, node ocispec.Descriptor) error {
 	// track content status
 	tracker := status.NewTracker()
 
-	// prepare pre-handler
-	preHandler := HandlerFunc(func(ctx context.Context, desc ocispec.Descriptor) ([]ocispec.Descriptor, error) {
+	var fn syncutil.GoFunc[ocispec.Descriptor]
+	fn = func(ctx context.Context, region *syncutil.LimitedRegion, desc ocispec.Descriptor) error {
 		// skip the node if other go routine is working on it
 		_, committed := tracker.TryCommit(desc)
 		if !committed {
-			return nil, ErrSkipDesc
+			return nil
 		}
 
 		// skip the node if it has been indexed
 		key := descriptor.FromOCI(desc)
 		_, exists := m.indexed.Load(key)
 		if exists {
-			return nil, ErrSkipDesc
+			return nil
 		}
 
-		downEdges, err := content.DownEdges(ctx, fetcher, desc)
+		successors, err := content.Successors(ctx, fetcher, desc)
 		if err != nil {
-			return nil, err
+			return err
 		}
+		m.index(ctx, desc, successors)
+		m.indexed.Store(key, nil)
 
-		if err := m.index(ctx, desc, downEdges); err != nil {
-			return nil, err
+		if len(successors) > 0 {
+			// traverse and index successors
+			return syncutil.Go(ctx, nil, fn, successors...)
 		}
-
-		return downEdges, nil
-	})
-
-	postHandler := Handlers()
-
-	// traverse the graph
-	return Dispatch(ctx, preHandler, postHandler, nil, node)
+		return nil
+	}
+	return syncutil.Go(ctx, nil, fn, node)
 }
 
-// UpEdges returns the nodes directly pointing to the current node.
-// UpEdges returns nil without error if the node does not exists in the store.
-// Like other operations, calling UpEdges() is go-routine safe. However, it does
-// not necessarily correspond to any consistent snapshot of the stored contents.
-func (m *Memory) UpEdges(_ context.Context, node ocispec.Descriptor) ([]ocispec.Descriptor, error) {
+// Predecessors returns the nodes directly pointing to the current node.
+// Predecessors returns nil without error if the node does not exists in the
+// store.
+// Like other operations, calling Predecessors() is go-routine safe. However,
+// it does not necessarily correspond to any consistent snapshot of the stored
+// contents.
+func (m *Memory) Predecessors(_ context.Context, node ocispec.Descriptor) ([]ocispec.Descriptor, error) {
 	key := descriptor.FromOCI(node)
-	value, exists := m.upEdges.Load(key)
+	value, exists := m.predecessors.Load(key)
 	if !exists {
 		return nil, nil
 	}
-	upEdges := value.(*sync.Map)
+	predecessors := value.(*sync.Map)
 
 	var res []ocispec.Descriptor
-	upEdges.Range(func(key, value interface{}) bool {
+	predecessors.Range(func(key, value interface{}) bool {
 		res = append(res, value.(ocispec.Descriptor))
 		return true
 	})
 	return res, nil
 }
 
-// index indexes up edges for each direct down edge of the given node.
+// index indexes predecessors for each direct successor of the given node.
 // There is no data consistency issue as long as deletion is not implemented
 // for the underlying storage.
-func (m *Memory) index(ctx context.Context, node ocispec.Descriptor, downEdges []ocispec.Descriptor) error {
-	upEdgeKey := descriptor.FromOCI(node)
-
-	for _, downEdge := range downEdges {
-		downEdgeKey := descriptor.FromOCI(downEdge)
-		value, _ := m.upEdges.LoadOrStore(downEdgeKey, &sync.Map{})
-		upEdges := value.(*sync.Map)
-		upEdges.Store(upEdgeKey, node)
+func (m *Memory) index(ctx context.Context, node ocispec.Descriptor, successors []ocispec.Descriptor) {
+	if len(successors) == 0 {
+		return
 	}
 
-	m.indexed.Store(upEdgeKey, true)
-	return nil
+	predecessorKey := descriptor.FromOCI(node)
+	for _, successor := range successors {
+		successorKey := descriptor.FromOCI(successor)
+		value, _ := m.predecessors.LoadOrStore(successorKey, &sync.Map{})
+		predecessors := value.(*sync.Map)
+		predecessors.Store(predecessorKey, node)
+	}
 }

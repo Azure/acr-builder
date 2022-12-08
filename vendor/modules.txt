@@ -209,8 +209,8 @@ github.com/morikuni/aec
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799
-## explicit
+# github.com/opencontainers/image-spec v1.1.0-rc2
+## explicit; go 1.17
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
 # github.com/opencontainers/runc v1.1.2
@@ -218,7 +218,6 @@ github.com/opencontainers/image-spec/specs-go/v1
 github.com/opencontainers/runc/libcontainer/user
 # github.com/oras-project/artifacts-spec v1.0.0-rc.1
 ## explicit; go 1.17
-github.com/oras-project/artifacts-spec/specs-go/v1
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -311,22 +310,27 @@ gotest.tools/v3/internal/assert
 gotest.tools/v3/internal/difflib
 gotest.tools/v3/internal/format
 gotest.tools/v3/internal/source
-# oras.land/oras-go/v2 v2.0.0-20220524144344-23cb9e0960a5
-## explicit; go 1.17
+# oras.land/oras-go/v2 v2.0.0-rc.5
+## explicit; go 1.18
 oras.land/oras-go/v2
 oras.land/oras-go/v2/content
 oras.land/oras-go/v2/content/file
 oras.land/oras-go/v2/errdef
 oras.land/oras-go/v2/internal/cas
+oras.land/oras-go/v2/internal/copyutil
 oras.land/oras-go/v2/internal/descriptor
 oras.land/oras-go/v2/internal/docker
 oras.land/oras-go/v2/internal/graph
 oras.land/oras-go/v2/internal/httputil
+oras.land/oras-go/v2/internal/interfaces
 oras.land/oras-go/v2/internal/ioutil
+oras.land/oras-go/v2/internal/platform
+oras.land/oras-go/v2/internal/registryutil
 oras.land/oras-go/v2/internal/resolver
 oras.land/oras-go/v2/internal/status
 oras.land/oras-go/v2/internal/syncutil
 oras.land/oras-go/v2/registry
 oras.land/oras-go/v2/registry/remote
 oras.land/oras-go/v2/registry/remote/auth
+oras.land/oras-go/v2/registry/remote/errcode
 oras.land/oras-go/v2/registry/remote/internal/errutil
