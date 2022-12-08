@@ -86,6 +86,22 @@ type Store struct {
 	// When specified, saving files to existing paths will be disabled.
 	// Default value: false.
 	DisableOverwrite bool
+	// ForceCAS controls if files with same content but different names are
+	// deduped after push operations. When a DAG is copied between CAS
+	// targets, nodes are deduped by content. By default, file store restores
+	// deduped successor files after a node is copied. This may result in two
+	// files with identical content. If this is not the desired behavior,
+	// ForceCAS can be specified to enforce CAS style dedup.
+	// Default value: false.
+	ForceCAS bool
+	// IgnoreNoName controls if push operations should ignore descriptors
+	// without a name. When specified, corresponding content will be discarded.
+	// Otherwise, content will be saved to a fallback storage.
+	// A typical scenario is pulling an arbitrary artifact masqueraded as OCI
+	// image to file store. This option can be specified to discard unnamed
+	// manifest and config file, while leaving only named layer files.
+	// Default value: false.
+	IgnoreNoName bool
 
 	workingDir   string   // the working directory of the file store
 	closed       int32    // if the store is closed - 0: false, 1: true.
@@ -191,26 +207,40 @@ func (s *Store) Fetch(ctx context.Context, target ocispec.Descriptor) (io.ReadCl
 }
 
 // Push pushes the content, matching the expected descriptor.
-// If name is not specified in the descriptor,
-// the content will be pushed to the fallback storage.
+// If name is not specified in the descriptor, the content will be pushed to
+// the fallback storage by default, or will be discarded when
+// Store.IgnoreNoName is true.
 func (s *Store) Push(ctx context.Context, expected ocispec.Descriptor, content io.Reader) error {
 	if s.isClosedSet() {
 		return ErrStoreClosed
 	}
 
 	if err := s.push(ctx, expected, content); err != nil {
+		if errors.Is(err, errSkipUnnamed) {
+			return nil
+		}
 		return err
+	}
+
+	if !s.ForceCAS {
+		if err := s.restoreDuplicates(ctx, expected); err != nil {
+			return fmt.Errorf("Failed to restore duplicated file: %w", err)
+		}
 	}
 
 	return s.graph.Index(ctx, s, expected)
 }
 
 // push pushes the content, matching the expected descriptor.
-// If name is not specified in the descriptor,
-// the content will be pushed to the fallback storage.
+// If name is not specified in the descriptor, the content will be pushed to
+// the fallback storage by default, or will be discarded when
+// Store.IgnoreNoName is true.
 func (s *Store) push(ctx context.Context, expected ocispec.Descriptor, content io.Reader) error {
 	name := expected.Annotations[ocispec.AnnotationTitle]
 	if name == "" {
+		if s.IgnoreNoName {
+			return errSkipUnnamed
+		}
 		return s.fallbackStorage.Push(ctx, expected, content)
 	}
 
@@ -239,6 +269,40 @@ func (s *Store) push(ctx context.Context, expected ocispec.Descriptor, content i
 
 	// update the name status as existed
 	status.exists = true
+	return nil
+}
+
+// restoreDuplicates restores successor files with same content but different names.
+// See Store.ForceCAS for more info.
+func (s *Store) restoreDuplicates(ctx context.Context, desc ocispec.Descriptor) error {
+	successors, err := content.Successors(ctx, s, desc)
+	if err != nil {
+		return err
+	}
+	for _, successor := range successors {
+		name := successor.Annotations[ocispec.AnnotationTitle]
+		if name == "" || s.nameExists(name) {
+			continue
+		}
+		if err := func() error {
+			desc := ocispec.Descriptor{
+				MediaType: successor.MediaType,
+				Digest:    successor.Digest,
+				Size:      successor.Size,
+			}
+			rc, err := s.Fetch(ctx, desc)
+			if err != nil {
+				return fmt.Errorf("%q: %s: %w", name, desc.MediaType, err)
+			}
+			defer rc.Close()
+			if err := s.push(ctx, successor, rc); err != nil {
+				return fmt.Errorf("%q: %s: %w", name, desc.MediaType, err)
+			}
+			return nil
+		}(); err != nil && !errors.Is(err, errdef.ErrNotFound) {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -299,13 +363,15 @@ func (s *Store) Tag(ctx context.Context, desc ocispec.Descriptor, ref string) er
 	return s.resolver.Tag(ctx, desc, ref)
 }
 
-// UpEdges returns nil without error if the node does not exists in the store.
-func (s *Store) UpEdges(ctx context.Context, node ocispec.Descriptor) ([]ocispec.Descriptor, error) {
+// Predecessors returns the nodes directly pointing to the current node.
+// Predecessors returns nil without error if the node does not exists in the
+// store.
+func (s *Store) Predecessors(ctx context.Context, node ocispec.Descriptor) ([]ocispec.Descriptor, error) {
 	if s.isClosedSet() {
 		return nil, ErrStoreClosed
 	}
 
-	return s.graph.UpEdges(ctx, node)
+	return s.graph.Predecessors(ctx, node)
 }
 
 // Add adds a file into the file store.
@@ -374,7 +440,7 @@ func (s *Store) PackFiles(ctx context.Context, names []string) (ocispec.Descript
 		layers = append(layers, desc)
 	}
 
-	return oras.Pack(ctx, s, layers, oras.PackOptions{})
+	return oras.Pack(ctx, s, "", layers, oras.PackOptions{})
 }
 
 // saveFile saves content matching the descriptor to the given file.

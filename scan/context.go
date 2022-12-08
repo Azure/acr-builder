@@ -151,7 +151,7 @@ func (s *Scanner) getContextFromRegistry(ctx context.Context, registryArtifact s
 
 	fmt.Printf("Pulling from %s and saving to %s...\n", registryArtifact, s.destinationFolder)
 
-	desc, err := oras.Copy(ctx, src, src.Reference.Reference, dest, "")
+	desc, err := oras.Copy(ctx, src, src.Reference.Reference, dest, "", oras.DefaultCopyOptions)
 	if err != nil {
 		return errors.Wrap(err, "failed to pull artifact from registry")
 	}

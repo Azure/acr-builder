@@ -23,8 +23,21 @@ type Target interface {
 	content.TagResolver
 }
 
-// GraphTarget is a CAS with generic tags that supports parent node finding.
+// GraphTarget is a CAS with generic tags that supports direct predecessor node
+// finding.
 type GraphTarget interface {
 	content.GraphStorage
 	content.TagResolver
+}
+
+// ReadOnlyTarget represents a read-only Target.
+type ReadOnlyTarget interface {
+	content.ReadOnlyStorage
+	content.Resolver
+}
+
+// ReadOnlyGraphTarget represents a read-only GraphTarget.
+type ReadOnlyGraphTarget interface {
+	content.ReadOnlyGraphStorage
+	content.Resolver
 }

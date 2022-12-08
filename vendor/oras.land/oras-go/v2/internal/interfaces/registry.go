@@ -13,18 +13,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package errdef
+package interfaces
 
-import "errors"
+import "oras.land/oras-go/v2/registry"
 
-// Common errors used in ORAS
-var (
-	ErrAlreadyExists      = errors.New("already exists")
-	ErrInvalidDigest      = errors.New("invalid digest")
-	ErrInvalidReference   = errors.New("invalid reference")
-	ErrMissingReference   = errors.New("missing reference")
-	ErrNotFound           = errors.New("not found")
-	ErrSizeExceedsLimit   = errors.New("size exceeds limit")
-	ErrUnsupported        = errors.New("unsupported")
-	ErrUnsupportedVersion = errors.New("unsupported version")
-)
+// ReferenceParser provides reference parsing.
+type ReferenceParser interface {
+	// ParseReference parses a reference to a fully qualified reference.
+	ParseReference(reference string) (registry.Reference, error)
+}
