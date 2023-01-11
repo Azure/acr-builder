@@ -13,8 +13,8 @@ Commit: "{{.Run.Commit}}"
 Branch: "{{.Run.Branch}}"
 
 # Default image aliases, can be used without $ directive in cmd
-acr: mcr.microsoft.com/acr/acr-cli:0.5
-az: mcr.microsoft.com/acr/azure-cli:da4db64
-bash: mcr.microsoft.com/acr/bash:da4db64
-curl: mcr.microsoft.com/acr/curl:da4db64
+acr: mcr.microsoft.com/acr/acr-cli:0.6
+az: mcr.microsoft.com/acr/azure-cli:a9325d5
+bash: mcr.microsoft.com/acr/bash:a9325d5
+curl: mcr.microsoft.com/acr/curl:a9325d5
 `
