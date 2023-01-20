@@ -28,7 +28,6 @@ import (
 
 	"github.com/opencontainers/go-digest"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
-	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content"
 	"oras.land/oras-go/v2/errdef"
 	"oras.land/oras-go/v2/internal/cas"
@@ -63,14 +62,17 @@ const (
 )
 
 // Store represents a file system based store, which implements `oras.Target`.
+//
 // In the file store, the contents described by names are location-addressed
 // by file paths. Meanwhile, the file paths are mapped to a virtual CAS
 // where all metadata are stored in the memory.
+//
 // The contents that are not described by names are stored in a fallback storage,
 // which is a limited memory CAS by default.
 // As all the metadata are stored in the memory, the file store
 // cannot be restored from the file system.
-// After use, the file store needs to be closed by calling the `Close()` function.
+//
+// After use, the file store needs to be closed by calling the [Store.Close] function.
 // The file store cannot be used after being closed.
 type Store struct {
 	// TarReproducible controls if the tarballs generated
@@ -125,7 +127,7 @@ type nameStatus struct {
 // as the fallback storage for contents without names.
 // When pushing content without names, the size of content being pushed
 // cannot exceed the default size limit: 4 MiB.
-func New(workingDir string) *Store {
+func New(workingDir string) (*Store, error) {
 	return NewWithFallbackLimit(workingDir, defaultFallbackPushSizeLimit)
 }
 
@@ -133,7 +135,7 @@ func New(workingDir string) *Store {
 // limited memory CAS as the fallback storage for contents without names.
 // When pushing content without names, the size of content being pushed
 // cannot exceed the size limit specified by the `limit` parameter.
-func NewWithFallbackLimit(workingDir string, limit int64) *Store {
+func NewWithFallbackLimit(workingDir string, limit int64) (*Store, error) {
 	m := cas.NewMemory()
 	ls := content.LimitStorage(m, limit)
 	return NewWithFallbackStorage(workingDir, ls)
@@ -141,13 +143,18 @@ func NewWithFallbackLimit(workingDir string, limit int64) *Store {
 
 // NewWithFallbackStorage creates a file store,
 // using the provided fallback storage for contents without names.
-func NewWithFallbackStorage(workingDir string, fallbackStorage content.Storage) *Store {
+func NewWithFallbackStorage(workingDir string, fallbackStorage content.Storage) (*Store, error) {
+	workingDirAbs, err := filepath.Abs(workingDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve absolute path for %s: %w", workingDir, err)
+	}
+
 	return &Store{
-		workingDir:      workingDir,
+		workingDir:      workingDirAbs,
 		fallbackStorage: fallbackStorage,
 		resolver:        resolver.NewMemory(),
 		graph:           graph.NewMemory(),
-	}
+	}, nil
 }
 
 // Close closes the file store and cleans up all the temporary files used by it.
@@ -224,7 +231,7 @@ func (s *Store) Push(ctx context.Context, expected ocispec.Descriptor, content i
 
 	if !s.ForceCAS {
 		if err := s.restoreDuplicates(ctx, expected); err != nil {
-			return fmt.Errorf("Failed to restore duplicated file: %w", err)
+			return fmt.Errorf("failed to restore duplicated file: %w", err)
 		}
 	}
 
@@ -422,25 +429,6 @@ func (s *Store) Add(_ context.Context, name, mediaType, path string) (ocispec.De
 	// update the name status as existed
 	status.exists = true
 	return desc, nil
-}
-
-// generates a manifest for the pack, and store the manifest in the file store.
-// If succeeded, returns a descriptor of the manifest.
-func (s *Store) PackFiles(ctx context.Context, names []string) (ocispec.Descriptor, error) {
-	if s.isClosedSet() {
-		return ocispec.Descriptor{}, ErrStoreClosed
-	}
-
-	var layers []ocispec.Descriptor
-	for _, name := range names {
-		desc, err := s.Add(ctx, name, "", "")
-		if err != nil {
-			return ocispec.Descriptor{}, fmt.Errorf("failed to add %s: %w", name, err)
-		}
-		layers = append(layers, desc)
-	}
-
-	return oras.Pack(ctx, s, "", layers, oras.PackOptions{})
 }
 
 // saveFile saves content matching the descriptor to the given file.

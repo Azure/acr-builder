@@ -242,7 +242,7 @@ golang.org/x/crypto/scrypt
 # golang.org/x/net v0.0.0-20220722155237-a158d28d115b
 ## explicit; go 1.17
 golang.org/x/net/context/ctxhttp
-# golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
+# golang.org/x/sync v0.1.0
 ## explicit
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
@@ -306,7 +306,7 @@ gotest.tools/v3/internal/assert
 gotest.tools/v3/internal/difflib
 gotest.tools/v3/internal/format
 gotest.tools/v3/internal/source
-# oras.land/oras-go/v2 v2.0.0-rc.5
+# oras.land/oras-go/v2 v2.0.0
 ## explicit; go 1.18
 oras.land/oras-go/v2
 oras.land/oras-go/v2/content
@@ -323,6 +323,7 @@ oras.land/oras-go/v2/internal/ioutil
 oras.land/oras-go/v2/internal/platform
 oras.land/oras-go/v2/internal/registryutil
 oras.land/oras-go/v2/internal/resolver
+oras.land/oras-go/v2/internal/slices
 oras.land/oras-go/v2/internal/status
 oras.land/oras-go/v2/internal/syncutil
 oras.land/oras-go/v2/registry
@@ -330,3 +331,4 @@ oras.land/oras-go/v2/registry/remote
 oras.land/oras-go/v2/registry/remote/auth
 oras.land/oras-go/v2/registry/remote/errcode
 oras.land/oras-go/v2/registry/remote/internal/errutil
+oras.land/oras-go/v2/registry/remote/retry

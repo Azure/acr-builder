@@ -26,6 +26,7 @@ import (
 	"oras.land/oras-go/v2/content"
 	"oras.land/oras-go/v2/errdef"
 	"oras.land/oras-go/v2/internal/cas"
+	"oras.land/oras-go/v2/internal/descriptor"
 	"oras.land/oras-go/v2/internal/platform"
 	"oras.land/oras-go/v2/internal/registryutil"
 	"oras.land/oras-go/v2/internal/status"
@@ -34,21 +35,17 @@ import (
 )
 
 // defaultConcurrency is the default value of CopyGraphOptions.Concurrency.
-const defaultConcurrency = 3 // This value is consistent with dockerd and containerd.
-
-var (
-	// DefaultCopyOptions provides the default CopyOptions.
-	DefaultCopyOptions = CopyOptions{
-		CopyGraphOptions: DefaultCopyGraphOptions,
-	}
-	// DefaultCopyGraphOptions provides the default CopyGraphOptions.
-	DefaultCopyGraphOptions CopyGraphOptions
-)
+const defaultConcurrency int = 3 // This value is consistent with dockerd and containerd.
 
 // errSkipDesc signals copyNode() to stop processing a descriptor.
 var errSkipDesc = errors.New("skip descriptor")
 
-// CopyOptions contains parameters for oras.Copy.
+// DefaultCopyOptions provides the default CopyOptions.
+var DefaultCopyOptions CopyOptions = CopyOptions{
+	CopyGraphOptions: DefaultCopyGraphOptions,
+}
+
+// CopyOptions contains parameters for [oras.Copy].
 type CopyOptions struct {
 	CopyGraphOptions
 	// MapRoot maps the resolved root node to a desired root node for copy.
@@ -61,12 +58,12 @@ type CopyOptions struct {
 // WithTargetPlatform configures opts.MapRoot to select the manifest whose
 // platform matches the given platform. When MapRoot is provided, the platform
 // selection will be applied on the mapped root node.
-// - If the given platform is nil, no platform selection will be applied.
-// - If the root node is a manifest, it will remain the same if platform
-// matches, otherwise ErrNotFound will be returned.
-// - If the root node is a manifest list, it will be mapped to the first
-// matching manifest if exists, otherwise ErrNotFound will be returned.
-// - Otherwise ErrUnsupported will be returned.
+//   - If the given platform is nil, no platform selection will be applied.
+//   - If the root node is a manifest, it will remain the same if platform
+//     matches, otherwise ErrNotFound will be returned.
+//   - If the root node is a manifest list, it will be mapped to the first
+//     matching manifest if exists, otherwise ErrNotFound will be returned.
+//   - Otherwise ErrUnsupported will be returned.
 func (opts *CopyOptions) WithTargetPlatform(p *ocispec.Platform) {
 	if p == nil {
 		return
@@ -86,11 +83,14 @@ func (opts *CopyOptions) WithTargetPlatform(p *ocispec.Platform) {
 // CopyGraphOptions.MaxMetadataBytes.
 const defaultCopyMaxMetadataBytes int64 = 4 * 1024 * 1024 // 4 MiB
 
-// CopyGraphOptions contains parameters for oras.CopyGraph.
+// DefaultCopyGraphOptions provides the default CopyGraphOptions.
+var DefaultCopyGraphOptions CopyGraphOptions
+
+// CopyGraphOptions contains parameters for [oras.CopyGraph].
 type CopyGraphOptions struct {
 	// Concurrency limits the maximum number of concurrent copy tasks.
 	// If less than or equal to 0, a default (currently 3) is used.
-	Concurrency int64
+	Concurrency int
 	// MaxMetadataBytes limits the maximum size of the metadata that can be
 	// cached in the memory.
 	// If less than or equal to 0, a default (currently 4 MiB) is used.
@@ -115,6 +115,7 @@ type CopyGraphOptions struct {
 // in the source Target to the destination Target.
 // The destination reference will be the same as the source reference if the
 // destination reference is left blank.
+//
 // Returns the descriptor of the root node on successful copy.
 func Copy(ctx context.Context, src ReadOnlyTarget, srcRef string, dst Target, dstRef string, opts CopyOptions) (ocispec.Descriptor, error) {
 	if src == nil {
@@ -134,7 +135,7 @@ func Copy(ctx context.Context, src ReadOnlyTarget, srcRef string, dst Target, ds
 	proxy := cas.NewProxyWithLimit(src, cas.NewMemory(), opts.MaxMetadataBytes)
 	root, err := resolveRoot(ctx, src, srcRef, proxy)
 	if err != nil {
-		return ocispec.Descriptor{}, err
+		return ocispec.Descriptor{}, fmt.Errorf("failed to resolve %s: %w", srcRef, err)
 	}
 
 	if opts.MapRoot != nil {
@@ -150,7 +151,7 @@ func Copy(ctx context.Context, src ReadOnlyTarget, srcRef string, dst Target, ds
 		return ocispec.Descriptor{}, err
 	}
 
-	if err := copyGraph(ctx, src, dst, proxy, root, opts.CopyGraphOptions); err != nil {
+	if err := copyGraph(ctx, src, dst, root, proxy, nil, nil, opts.CopyGraphOptions); err != nil {
 		return ocispec.Descriptor{}, err
 	}
 
@@ -160,28 +161,35 @@ func Copy(ctx context.Context, src ReadOnlyTarget, srcRef string, dst Target, ds
 // CopyGraph copies a rooted directed acyclic graph (DAG) from the source CAS to
 // the destination CAS.
 func CopyGraph(ctx context.Context, src content.ReadOnlyStorage, dst content.Storage, root ocispec.Descriptor, opts CopyGraphOptions) error {
-	// use caching proxy on non-leaf nodes
-	if opts.MaxMetadataBytes <= 0 {
-		opts.MaxMetadataBytes = defaultCopyMaxMetadataBytes
-	}
-	proxy := cas.NewProxyWithLimit(src, cas.NewMemory(), opts.MaxMetadataBytes)
-	return copyGraph(ctx, src, dst, proxy, root, opts)
+	return copyGraph(ctx, src, dst, root, nil, nil, nil, opts)
 }
 
 // copyGraph copies a rooted directed acyclic graph (DAG) from the source CAS to
-// the destination CAS with specified caching.
-func copyGraph(ctx context.Context, src content.ReadOnlyStorage, dst content.Storage, proxy *cas.Proxy, root ocispec.Descriptor, opts CopyGraphOptions) error {
+// the destination CAS with specified caching, concurrency limiter and tracker.
+func copyGraph(ctx context.Context, src content.ReadOnlyStorage, dst content.Storage, root ocispec.Descriptor,
+	proxy *cas.Proxy, limiter *semaphore.Weighted, tracker *status.Tracker, opts CopyGraphOptions) error {
+	if proxy == nil {
+		// use caching proxy on non-leaf nodes
+		if opts.MaxMetadataBytes <= 0 {
+			opts.MaxMetadataBytes = defaultCopyMaxMetadataBytes
+		}
+		proxy = cas.NewProxyWithLimit(src, cas.NewMemory(), opts.MaxMetadataBytes)
+	}
+	if limiter == nil {
+		// if Concurrency is not set or invalid, use the default concurrency
+		if opts.Concurrency <= 0 {
+			opts.Concurrency = defaultConcurrency
+		}
+		limiter = semaphore.NewWeighted(int64(opts.Concurrency))
+	}
+	if tracker == nil {
+		// track content status
+		tracker = status.NewTracker()
+	}
 	// if FindSuccessors is not provided, use the default one
 	if opts.FindSuccessors == nil {
 		opts.FindSuccessors = content.Successors
 	}
-	// if Concurrency is not set or invalid, use the default concurrency
-	if opts.Concurrency <= 0 {
-		opts.Concurrency = defaultConcurrency
-	}
-	limiter := semaphore.NewWeighted(opts.Concurrency)
-	// track content status
-	tracker := status.NewTracker()
 
 	// traverse the graph
 	var fn syncutil.GoFunc[ocispec.Descriptor]
@@ -217,39 +225,38 @@ func copyGraph(ctx context.Context, src content.ReadOnlyStorage, dst content.Sto
 		if err != nil {
 			return err
 		}
+		successors = removeForeignLayers(successors)
 
-		// handle leaf nodes
-		if len(successors) == 0 {
-			exists, err = proxy.Cache.Exists(ctx, desc)
-			if err != nil {
+		if len(successors) != 0 {
+			// for non-leaf nodes, process successors and wait for them to complete
+			region.End()
+			if err := syncutil.Go(ctx, limiter, fn, successors...); err != nil {
 				return err
 			}
-			if exists {
-				return copyNode(ctx, proxy.Cache, dst, desc, opts)
+			for _, node := range successors {
+				done, committed := tracker.TryCommit(node)
+				if committed {
+					return fmt.Errorf("%s: %s: successor not committed", desc.Digest, node.Digest)
+				}
+				select {
+				case <-done:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
 			}
-			return copyNode(ctx, src, dst, desc, opts)
+			if err := region.Start(); err != nil {
+				return err
+			}
 		}
 
-		// for non-leaf nodes, process successors and wait for them to complete
-		region.End()
-		if err := syncutil.Go(ctx, limiter, fn, successors...); err != nil {
+		exists, err = proxy.Cache.Exists(ctx, desc)
+		if err != nil {
 			return err
 		}
-		for _, node := range successors {
-			done, committed := tracker.TryCommit(node)
-			if committed {
-				return fmt.Errorf("%s: %s: successor not committed", desc.Digest, node.Digest)
-			}
-			select {
-			case <-done:
-			case <-ctx.Done():
-				return ctx.Err()
-			}
+		if exists {
+			return copyNode(ctx, proxy.Cache, dst, desc, opts)
 		}
-		if err := region.Start(); err != nil {
-			return err
-		}
-		return copyNode(ctx, proxy.Cache, dst, desc, opts)
+		return copyNode(ctx, src, dst, desc, opts)
 	}
 
 	return syncutil.Go(ctx, limiter, fn, root)
@@ -402,4 +409,18 @@ func prepareCopy(ctx context.Context, dst Target, dstRef string, proxy *cas.Prox
 	}
 
 	return nil
+}
+
+// removeForeignLayers in-place removes all foreign layers in the given slice.
+func removeForeignLayers(descs []ocispec.Descriptor) []ocispec.Descriptor {
+	var j int
+	for i, desc := range descs {
+		if !descriptor.IsForeignLayer(desc) {
+			if i != j {
+				descs[j] = desc
+			}
+			j++
+		}
+	}
+	return descs[:j]
 }

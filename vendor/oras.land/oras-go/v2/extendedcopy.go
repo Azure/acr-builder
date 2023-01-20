@@ -22,30 +22,33 @@ import (
 	"regexp"
 
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/sync/semaphore"
 	"oras.land/oras-go/v2/content"
+	"oras.land/oras-go/v2/internal/cas"
 	"oras.land/oras-go/v2/internal/copyutil"
 	"oras.land/oras-go/v2/internal/descriptor"
 	"oras.land/oras-go/v2/internal/docker"
+	"oras.land/oras-go/v2/internal/status"
+	"oras.land/oras-go/v2/internal/syncutil"
 	"oras.land/oras-go/v2/registry"
 )
 
-var (
-	// DefaultExtendedCopyOptions provides the default ExtendedCopyOptions.
-	DefaultExtendedCopyOptions = ExtendedCopyOptions{
-		ExtendedCopyGraphOptions: DefaultExtendedCopyGraphOptions,
-	}
-	// DefaultExtendedCopyGraphOptions provides the default ExtendedCopyGraphOptions.
-	DefaultExtendedCopyGraphOptions = ExtendedCopyGraphOptions{
-		CopyGraphOptions: DefaultCopyGraphOptions,
-	}
-)
+// DefaultExtendedCopyOptions provides the default ExtendedCopyOptions.
+var DefaultExtendedCopyOptions ExtendedCopyOptions = ExtendedCopyOptions{
+	ExtendedCopyGraphOptions: DefaultExtendedCopyGraphOptions,
+}
 
-// ExtendedCopyOptions contains parameters for oras.ExtendedCopy.
+// ExtendedCopyOptions contains parameters for [oras.ExtendedCopy].
 type ExtendedCopyOptions struct {
 	ExtendedCopyGraphOptions
 }
 
-// ExtendedCopyGraphOptions contains parameters for oras.ExtendedCopyGraph.
+// DefaultExtendedCopyGraphOptions provides the default ExtendedCopyGraphOptions.
+var DefaultExtendedCopyGraphOptions ExtendedCopyGraphOptions = ExtendedCopyGraphOptions{
+	CopyGraphOptions: DefaultCopyGraphOptions,
+}
+
+// ExtendedCopyGraphOptions contains parameters for [oras.ExtendedCopyGraph].
 type ExtendedCopyGraphOptions struct {
 	CopyGraphOptions
 	// Depth limits the maximum depth of the directed acyclic graph (DAG) that
@@ -62,6 +65,7 @@ type ExtendedCopyGraphOptions struct {
 // the given tagged node from the source GraphTarget to the destination Target.
 // The destination reference will be the same as the source reference if the
 // destination reference is left blank.
+//
 // Returns the descriptor of the tagged node on successful copy.
 func ExtendedCopy(ctx context.Context, src ReadOnlyGraphTarget, srcRef string, dst Target, dstRef string, opts ExtendedCopyOptions) (ocispec.Descriptor, error) {
 	if src == nil {
@@ -98,24 +102,40 @@ func ExtendedCopyGraph(ctx context.Context, src content.ReadOnlyGraphStorage, ds
 		return err
 	}
 
+	// if Concurrency is not set or invalid, use the default concurrency
+	if opts.Concurrency <= 0 {
+		opts.Concurrency = defaultConcurrency
+	}
+	limiter := semaphore.NewWeighted(int64(opts.Concurrency))
+	// use caching proxy on non-leaf nodes
+	if opts.MaxMetadataBytes <= 0 {
+		opts.MaxMetadataBytes = defaultCopyMaxMetadataBytes
+	}
+	proxy := cas.NewProxyWithLimit(src, cas.NewMemory(), opts.MaxMetadataBytes)
+	// track content status
+	tracker := status.NewTracker()
+
 	// copy the sub-DAGs rooted by the root nodes
-	for _, root := range roots {
-		if err := CopyGraph(ctx, src, dst, root, opts.CopyGraphOptions); err != nil {
+	return syncutil.Go(ctx, limiter, func(ctx context.Context, region *syncutil.LimitedRegion, root ocispec.Descriptor) error {
+		// As a root can be a predecessor of other roots, release the limit here
+		// for dispatching, to avoid dead locks where predecessor roots are
+		// handled first and are waiting for its successors to complete.
+		region.End()
+		if err := copyGraph(ctx, src, dst, root, proxy, limiter, tracker, opts.CopyGraphOptions); err != nil {
 			return err
 		}
-	}
-
-	return nil
+		return region.Start()
+	}, roots...)
 }
 
 // findRoots finds the root nodes reachable from the given node through a
 // depth-first search.
-func findRoots(ctx context.Context, storage content.ReadOnlyGraphStorage, node ocispec.Descriptor, opts ExtendedCopyGraphOptions) (map[descriptor.Descriptor]ocispec.Descriptor, error) {
+func findRoots(ctx context.Context, storage content.ReadOnlyGraphStorage, node ocispec.Descriptor, opts ExtendedCopyGraphOptions) ([]ocispec.Descriptor, error) {
 	visited := make(map[descriptor.Descriptor]bool)
-	roots := make(map[descriptor.Descriptor]ocispec.Descriptor)
+	rootMap := make(map[descriptor.Descriptor]ocispec.Descriptor)
 	addRoot := func(key descriptor.Descriptor, val ocispec.Descriptor) {
-		if _, exists := roots[key]; !exists {
-			roots[key] = val
+		if _, exists := rootMap[key]; !exists {
+			rootMap[key] = val
 		}
 	}
 
@@ -172,14 +192,22 @@ func findRoots(ctx context.Context, storage content.ReadOnlyGraphStorage, node o
 			}
 		}
 	}
+
+	roots := make([]ocispec.Descriptor, 0, len(rootMap))
+	for _, root := range rootMap {
+		roots = append(roots, root)
+	}
 	return roots, nil
 }
 
 // FilterAnnotation configures opts.FindPredecessors to filter the predecessors
-// whose annotation matches a given regex pattern. A predecessor is kept
-// if key is in its annotations and the annotation value matches regex.
+// whose annotation matches a given regex pattern.
+//
+// A predecessor is kept if key is in its annotations and the annotation value
+// matches regex.
 // If regex is nil, predecessors whose annotations contain key will be kept,
 // no matter of the annotation value.
+//
 // For performance consideration, when using both FilterArtifactType and
 // FilterAnnotation, it's recommended to call FilterArtifactType first.
 func (opts *ExtendedCopyGraphOptions) FilterAnnotation(key string, regex *regexp.Regexp) {
@@ -193,8 +221,8 @@ func (opts *ExtendedCopyGraphOptions) FilterAnnotation(key string, regex *regexp
 		var predecessors []ocispec.Descriptor
 		var err error
 		if fp == nil {
-			if rf, ok := src.(registry.ReferrerFinder); ok {
-				// if src is a ReferrerFinder, use Referrers() for possible memory saving
+			if rf, ok := src.(registry.ReferrerLister); ok {
+				// if src is a ReferrerLister, use Referrers() for possible memory saving
 				if err := rf.Referrers(ctx, desc, "", func(referrers []ocispec.Descriptor) error {
 					// for each page of the results, filter the referrers
 					for _, r := range referrers {
@@ -264,9 +292,11 @@ func fetchAnnotations(ctx context.Context, src content.ReadOnlyGraphStorage, des
 }
 
 // FilterArtifactType configures opts.FindPredecessors to filter the
-// predecessors whose artifact type matches a given regex pattern. A predecessor
-// is kept if its artifact type matches regex. If regex is nil, all
-// predecessors will be kept.
+// predecessors whose artifact type matches a given regex pattern.
+//
+// A predecessor is kept if its artifact type matches regex.
+// If regex is nil, all predecessors will be kept.
+//
 // For performance consideration, when using both FilterArtifactType and
 // FilterAnnotation, it's recommended to call FilterArtifactType first.
 func (opts *ExtendedCopyGraphOptions) FilterArtifactType(regex *regexp.Regexp) {
@@ -282,8 +312,8 @@ func (opts *ExtendedCopyGraphOptions) FilterArtifactType(regex *regexp.Regexp) {
 		var predecessors []ocispec.Descriptor
 		var err error
 		if fp == nil {
-			if rf, ok := src.(registry.ReferrerFinder); ok {
-				// if src is a ReferrerFinder, use Referrers() for possible memory saving
+			if rf, ok := src.(registry.ReferrerLister); ok {
+				// if src is a ReferrerLister, use Referrers() for possible memory saving
 				if err := rf.Referrers(ctx, desc, "", func(referrers []ocispec.Descriptor) error {
 					// for each page of the results, filter the referrers
 					for _, r := range referrers {
