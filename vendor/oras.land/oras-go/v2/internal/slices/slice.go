@@ -13,12 +13,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package docker
+package slices
 
-// docker media types
-const (
-	MediaTypeConfig       = "application/vnd.docker.container.image.v1+json"
-	MediaTypeManifestList = "application/vnd.docker.distribution.manifest.list.v2+json"
-	MediaTypeManifest     = "application/vnd.docker.distribution.manifest.v2+json"
-	MediaTypeForeignLayer = "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip"
-)
+// Clone returns a shallow copy of the slice.
+func Clone[S ~[]E, E any](s S) S {
+	if s == nil {
+		return nil
+	}
+	return append(make(S, 0, len(s)), s...)
+}

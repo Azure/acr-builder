@@ -146,7 +146,10 @@ func (s *Scanner) getContextFromRegistry(ctx context.Context, registryArtifact s
 		},
 	}
 
-	dest := file.New(s.destinationFolder)
+	dest, err := file.New(s.destinationFolder)
+	if err != nil {
+		return errors.Wrapf(err, "unable to pull artifact to %s", s.destinationFolder)
+	}
 	defer dest.Close()
 
 	fmt.Printf("Pulling from %s and saving to %s...\n", registryArtifact, s.destinationFolder)

@@ -38,6 +38,7 @@ import (
 	"oras.land/oras-go/v2/internal/httputil"
 	"oras.land/oras-go/v2/internal/ioutil"
 	"oras.land/oras-go/v2/internal/registryutil"
+	"oras.land/oras-go/v2/internal/slices"
 	"oras.land/oras-go/v2/internal/syncutil"
 	"oras.land/oras-go/v2/registry"
 	"oras.land/oras-go/v2/registry/remote/auth"
@@ -48,7 +49,7 @@ import (
 // dockerContentDigestHeader - The Docker-Content-Digest header, if present
 // on the response, returns the canonical digest of the uploaded blob.
 // See https://docs.docker.com/registry/spec/api/#digest-header
-// See https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pull
+// See https://github.com/opencontainers/distribution-spec/blob/v1.1.0-rc1/spec.md#pull
 const dockerContentDigestHeader = "Docker-Content-Digest"
 
 // Client is an interface for a HTTP client.
@@ -100,6 +101,8 @@ type Repository struct {
 	// If less than or equal to zero, a default (currently 4MiB) is used.
 	MaxMetadataBytes int64
 
+	// NOTE: Must keep fields in sync with newRepositoryWithOptions function.
+
 	// referrersState represents that if the repository supports Referrers API.
 	// default: referrersStateUnknown
 	referrersState referrersState
@@ -126,8 +129,31 @@ func NewRepository(reference string) (*Repository, error) {
 	}, nil
 }
 
+// newRepositoryWithOptions returns a Repository with the given Reference and
+// RepositoryOptions.
+//
+// RepositoryOptions are part of the Registry struct and set its defaults.
+// RepositoryOptions shares the same struct definition as Repository, which
+// contains unexported state that must not be copied to multiple Repositories.
+// To handle this we explicitly copy only the fields that we want to reproduce.
+func newRepositoryWithOptions(ref registry.Reference, opts *RepositoryOptions) (*Repository, error) {
+	if err := ref.ValidateRepository(); err != nil {
+		return nil, err
+	}
+	return &Repository{
+		Client:               opts.Client,
+		Reference:            ref,
+		PlainHTTP:            opts.PlainHTTP,
+		ManifestMediaTypes:   slices.Clone(opts.ManifestMediaTypes),
+		TagListPageSize:      opts.TagListPageSize,
+		ReferrerListPageSize: opts.ReferrerListPageSize,
+		MaxMetadataBytes:     opts.MaxMetadataBytes,
+	}, nil
+}
+
 // SetReferrersCapability indicates the Referrers API capability of the remote
 // repository. true: capable; false: not capable.
+//
 // SetReferrersCapability is valid only when it is called for the first time.
 // SetReferrersCapability returns ErrReferrersCapabilityAlreadySet if the
 // Referrers API capability has been already set.
@@ -233,6 +259,7 @@ func (r *Repository) FetchReference(ctx context.Context, reference string) (ocis
 // ParseReference resolves a tag or a digest reference to a fully qualified
 // reference from a base reference r.Reference.
 // Tag, digest, or fully qualified references are accepted as input.
+//
 // If reference is a fully qualified reference, then ParseReference parses it
 // and returns the parsed reference. If the parsed reference does not share
 // the same base reference with the Repository r, ParseReference returns a
@@ -277,9 +304,10 @@ func (r *Repository) ParseReference(reference string) (registry.Reference, error
 // If `last` is NOT empty, the entries in the response start after the
 // tag specified by `last`. Otherwise, the response starts from the top
 // of the Tags list.
+//
 // References:
-// - https://github.com/opencontainers/distribution-spec/blob/main/spec.md#content-discovery
-// - https://docs.docker.com/registry/spec/api/#tags
+//   - https://github.com/opencontainers/distribution-spec/blob/v1.1.0-rc1/spec.md#content-discovery
+//   - https://docs.docker.com/registry/spec/api/#tags
 func (r *Repository) Tags(ctx context.Context, last string, fn func(tags []string) error) error {
 	ctx = registryutil.WithScopeHint(ctx, r.Reference, auth.ActionPull)
 	url := buildRepositoryTagListURL(r.PlainHTTP, r.Reference)
@@ -351,9 +379,11 @@ func (r *Repository) Predecessors(ctx context.Context, desc ocispec.Descriptor) 
 
 // Referrers lists the descriptors of image or artifact manifests directly
 // referencing the given manifest descriptor.
+//
 // fn is called for each page of the referrers result.
 // If artifactType is not empty, only referrers of the same artifact type are
 // fed to fn.
+//
 // Reference: https://github.com/opencontainers/distribution-spec/blob/v1.1.0-rc1/spec.md#listing-referrers
 func (r *Repository) Referrers(ctx context.Context, desc ocispec.Descriptor, artifactType string, fn func(referrers []ocispec.Descriptor) error) error {
 	state := r.loadReferrersState()
@@ -598,14 +628,6 @@ func (s *blobStore) Fetch(ctx context.Context, target ocispec.Descriptor) (rc io
 		return nil, err
 	}
 
-	// probe server range request ability.
-	// Docker spec allows range header form of "Range: bytes=<start>-<end>".
-	// However, the remote server may still not RFC 7233 compliant.
-	// Reference: https://docs.docker.com/registry/spec/api/#blob
-	if target.Size > 0 {
-		req.Header.Set("Range", fmt.Sprintf("bytes=0-%d", target.Size-1))
-	}
-
 	resp, err := s.repo.client().Do(req)
 	if err != nil {
 		return nil, err
@@ -621,9 +643,15 @@ func (s *blobStore) Fetch(ctx context.Context, target ocispec.Descriptor) (rc io
 		if size := resp.ContentLength; size != -1 && size != target.Size {
 			return nil, fmt.Errorf("%s %q: mismatch Content-Length", resp.Request.Method, resp.Request.URL)
 		}
+
+		// check server range request capability.
+		// Docker spec allows range header form of "Range: bytes=<start>-<end>".
+		// However, the remote server may still not RFC 7233 compliant.
+		// Reference: https://docs.docker.com/registry/spec/api/#blob
+		if rangeUnit := resp.Header.Get("Accept-Ranges"); rangeUnit == "bytes" {
+			return httputil.NewReadSeekCloser(s.repo.client(), req, resp.Body, target.Size), nil
+		}
 		return resp.Body, nil
-	case http.StatusPartialContent:
-		return httputil.NewReadSeekCloser(s.repo.client(), req, resp.Body, target.Size), nil
 	case http.StatusNotFound:
 		return nil, fmt.Errorf("%s: %w", target.Digest, errdef.ErrNotFound)
 	default:
@@ -640,7 +668,7 @@ func (s *blobStore) Fetch(ctx context.Context, target ocispec.Descriptor) (rc io
 // References:
 // - https://docs.docker.com/registry/spec/api/#pushing-an-image
 // - https://docs.docker.com/registry/spec/api/#initiate-blob-upload
-// - https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-monolithically
+// - https://github.com/opencontainers/distribution-spec/blob/v1.1.0-rc1/spec.md#pushing-a-blob-monolithically
 func (s *blobStore) Push(ctx context.Context, expected ocispec.Descriptor, content io.Reader) error {
 	// start an upload
 	// pushing usually requires both pull and push actions.
@@ -783,13 +811,6 @@ func (s *blobStore) FetchReference(ctx context.Context, reference string) (desc 
 		return ocispec.Descriptor{}, nil, err
 	}
 
-	// probe server range request ability.
-	// Docker spec allows range header form of "Range: bytes=<start>-<end>".
-	// The form of "Range: bytes=<start>-" is also acceptable.
-	// However, the remote server may still not RFC 7233 compliant.
-	// Reference: https://docs.docker.com/registry/spec/api/#blob
-	req.Header.Set("Range", "bytes=0-")
-
 	resp, err := s.repo.client().Do(req)
 	if err != nil {
 		return ocispec.Descriptor{}, nil, err
@@ -802,17 +823,23 @@ func (s *blobStore) FetchReference(ctx context.Context, reference string) (desc 
 
 	switch resp.StatusCode {
 	case http.StatusOK: // server does not support seek as `Range` was ignored.
-		desc, err = generateBlobDescriptor(resp, refDigest)
+		if resp.ContentLength == -1 {
+			desc, err = s.Resolve(ctx, reference)
+		} else {
+			desc, err = generateBlobDescriptor(resp, refDigest)
+		}
 		if err != nil {
 			return ocispec.Descriptor{}, nil, err
+		}
+
+		// check server range request capability.
+		// Docker spec allows range header form of "Range: bytes=<start>-<end>".
+		// However, the remote server may still not RFC 7233 compliant.
+		// Reference: https://docs.docker.com/registry/spec/api/#blob
+		if rangeUnit := resp.Header.Get("Accept-Ranges"); rangeUnit == "bytes" {
+			return desc, httputil.NewReadSeekCloser(s.repo.client(), req, resp.Body, desc.Size), nil
 		}
 		return desc, resp.Body, nil
-	case http.StatusPartialContent:
-		desc, err = generateBlobDescriptor(resp, refDigest)
-		if err != nil {
-			return ocispec.Descriptor{}, nil, err
-		}
-		return desc, httputil.NewReadSeekCloser(s.repo.client(), req, resp.Body, desc.Size), nil
 	case http.StatusNotFound:
 		return ocispec.Descriptor{}, nil, fmt.Errorf("%s: %w", ref, errdef.ErrNotFound)
 	default:
@@ -942,7 +969,7 @@ func (s *manifestStore) deleteWithIndexing(ctx context.Context, target ocispec.D
 
 // indexReferrersForDelete indexes referrers for image or artifact manifest with
 // the subject field on manifest delete.
-// Reference: https://github.com/opencontainers/distribution-spec/blob/main/spec.md#deleting-manifests
+// Reference: https://github.com/opencontainers/distribution-spec/blob/v1.1.0-rc1/spec.md#deleting-manifests
 func (s *manifestStore) indexReferrersForDelete(ctx context.Context, desc ocispec.Descriptor, manifestJSON []byte) error {
 	var manifest struct {
 		Subject *ocispec.Descriptor `json:"subject"`
@@ -1026,7 +1053,11 @@ func (s *manifestStore) FetchReference(ctx context.Context, reference string) (d
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		desc, err = s.generateDescriptor(resp, ref, req.Method)
+		if resp.ContentLength == -1 {
+			desc, err = s.Resolve(ctx, reference)
+		} else {
+			desc, err = s.generateDescriptor(resp, ref, req.Method)
+		}
 		if err != nil {
 			return ocispec.Descriptor{}, nil, err
 		}
@@ -1148,7 +1179,7 @@ func (s *manifestStore) pushWithIndexing(ctx context.Context, expected ocispec.D
 
 // indexReferrersForPush indexes referrers for image or artifact manifest with
 // the subject field on manifest push.
-// Reference: https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-manifests-with-subject
+// Reference: https://github.com/opencontainers/distribution-spec/blob/v1.1.0-rc1/spec.md#pushing-manifests-with-subject
 func (s *manifestStore) indexReferrersForPush(ctx context.Context, desc ocispec.Descriptor, manifestJSON []byte) error {
 	var subject ocispec.Descriptor
 	switch desc.MediaType {
