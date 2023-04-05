@@ -9,7 +9,7 @@ require (
 	github.com/containerd/containerd v1.6.18
 	github.com/docker/cli v20.10.14+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker v20.10.14+incompatible
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/google/go-cmp v0.5.7
 	github.com/google/uuid v1.3.0
 	github.com/pkg/errors v0.9.1
