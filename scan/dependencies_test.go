@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
+
+	"github.com/Azure/acr-builder/pkg/image"
 )
 
 // TestResolveDockerfileDependencies tests resolving runtime and build time dependencies from a Dockerfile.
@@ -152,6 +154,88 @@ func TestCreateDockerfilePath(t *testing.T) {
 	for _, test := range tests {
 		if actual := createDockerfilePath(test.context, test.workDir, test.dockerfile); actual != test.expected {
 			t.Errorf("expected %s but got %s", test.expected, actual)
+		}
+	}
+}
+
+func TestNewImageReference(t *testing.T) {
+	tests := []struct {
+		imagePath              string
+		expectedImageReference *image.Reference
+	}{
+		{
+			"registry.hub.docker.com/library/node:16",
+			&image.Reference{
+				Registry:   "registry.hub.docker.com",
+				Repository: "library/node",
+				Tag:        "16",
+				Reference:  "registry.hub.docker.com/library/node:16",
+			},
+		},
+		{
+			"library/node:16",
+			&image.Reference{
+				Registry:   "registry.hub.docker.com",
+				Repository: "library/node",
+				Tag:        "16",
+				Reference:  "library/node:16",
+			},
+		},
+		{
+			"node:16",
+			&image.Reference{
+				Registry:   "registry.hub.docker.com",
+				Repository: "library/node",
+				Tag:        "16",
+				Reference:  "node:16",
+			},
+		},
+		{
+			"myregistry.azurecr.io/myorg/myimage:mytag",
+			&image.Reference{
+				Registry:   "myregistry.azurecr.io",
+				Repository: "myorg/myimage",
+				Tag:        "mytag",
+				Reference:  "myregistry.azurecr.io/myorg/myimage:mytag",
+			},
+		},
+		{
+			"myorg/myimage:mytag",
+			&image.Reference{
+				Registry:   "registry.hub.docker.com",
+				Repository: "myorg/myimage",
+				Tag:        "mytag",
+				Reference:  "myorg/myimage:mytag",
+			},
+		},
+		{
+			"registry.hub.docker.com/myorg/myimage:mytag",
+			&image.Reference{
+				Registry:   "registry.hub.docker.com",
+				Repository: "myorg/myimage",
+				Tag:        "mytag",
+				Reference:  "registry.hub.docker.com/myorg/myimage:mytag",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		imageReference, err := NewImageReference(test.imagePath)
+		if err != nil {
+			t.Errorf("Failed to get image reference: %v", err)
+		} else {
+			if imageReference.Registry != test.expectedImageReference.Registry {
+				t.Errorf("Unexpected registry. Got %s, expected %s", imageReference.Registry, test.expectedImageReference.Registry)
+			}
+			if imageReference.Repository != test.expectedImageReference.Repository {
+				t.Errorf("Unexpected repository. Got %s, expected %s", imageReference.Repository, test.expectedImageReference.Repository)
+			}
+			if imageReference.Tag != test.expectedImageReference.Tag {
+				t.Errorf("Unexpected tag. Got %s, expected %s", imageReference.Tag, test.expectedImageReference.Tag)
+			}
+			if imageReference.Reference != test.expectedImageReference.Reference {
+				t.Errorf("Unexpected reference. Got %s, expected %s", imageReference.Reference, test.expectedImageReference.Reference)
+			}
 		}
 	}
 }
