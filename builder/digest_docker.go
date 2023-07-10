@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
+
 package builder
 
 import (
@@ -72,11 +75,13 @@ func (d *dockerStoreDigest) PopulateDigest(ctx context.Context, reference *image
 
 func getRepoDigest(jsonContent string, reference *image.Reference) string {
 	prefix := reference.Repository + "@"
-	// If the reference has "library/" prefixed, we have to remove it - otherwise
+	// If the reference is in DockerHub library image format (eg, nginx:latest, library/node:16), we have to remove "/library" fix - otherwise
 	// we'll fail to query the digest, since image names aren't prefixed with "library/"
-	if strings.HasPrefix(prefix, "library/") && reference.Registry == DockerHubRegistry {
-		prefix = prefix[8:]
-	} else if len(reference.Registry) > 0 && reference.Registry != DockerHubRegistry {
+	if reference.Registry == DockerHubRegistry && !strings.HasPrefix(reference.Reference, DockerHubRegistry) {
+		if strings.HasPrefix(prefix, "library/") {
+			prefix = prefix[8:]
+		}
+	} else if len(reference.Registry) > 0 {
 		prefix = reference.Registry + "/" + prefix
 	}
 	var digestList []string

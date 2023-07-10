@@ -71,6 +71,76 @@ func TestGetRepoDigest(t *testing.T) {
 	}
 }
 
+func TestGetRepoDigestDockerHub(t *testing.T) {
+	tests := []struct {
+		id       int
+		json     string
+		imgRef   *image.Reference
+		expected string
+	}{
+		{
+			1,
+			`["registry.hub.docker.com/library/node@sha256:466d0a05ecb1e5b9890960592311fa10c2bc6012fc27dbfdcc74abf10fc324fc"]`,
+			&image.Reference{
+				Registry:   "registry.hub.docker.com",
+				Repository: "library/node",
+				Tag:        "16",
+				Reference:  "registry.hub.docker.com/library/node:16",
+			},
+			"sha256:466d0a05ecb1e5b9890960592311fa10c2bc6012fc27dbfdcc74abf10fc324fc",
+		},
+		{
+			2,
+			`["node@sha256:466d0a05ecb1e5b9890960592311fa10c2bc6012fc27dbfdcc74abf10fc324fc"]`,
+			&image.Reference{
+				Registry:   "registry.hub.docker.com",
+				Repository: "library/node",
+				Tag:        "16",
+				Reference:  "node:16",
+			},
+			"sha256:466d0a05ecb1e5b9890960592311fa10c2bc6012fc27dbfdcc74abf10fc324fc",
+		},
+		{
+			3,
+			`["node@sha256:466d0a05ecb1e5b9890960592311fa10c2bc6012fc27dbfdcc74abf10fc324fc"]`,
+			&image.Reference{
+				Registry:   "registry.hub.docker.com",
+				Repository: "library/node",
+				Tag:        "16",
+				Reference:  "library/node:16",
+			},
+			"sha256:466d0a05ecb1e5b9890960592311fa10c2bc6012fc27dbfdcc74abf10fc324fc",
+		},
+		{
+			4,
+			`["grafana/grafana@sha256:c2a9d25b77b9a7439e56efffa916e43eda09db4f7b78526082443f9c2ee18dc0"]`,
+			&image.Reference{
+				Registry:   "registry.hub.docker.com",
+				Repository: "grafana/grafana",
+				Tag:        "latest",
+				Reference:  "grafana/grafana:latest",
+			},
+			"sha256:c2a9d25b77b9a7439e56efffa916e43eda09db4f7b78526082443f9c2ee18dc0",
+		},
+		{
+			5,
+			`["registry.hub.docker.com/grafana/grafana@sha256:c2a9d25b77b9a7439e56efffa916e43eda09db4f7b78526082443f9c2ee18dc0"]`,
+			&image.Reference{
+				Registry:   "registry.hub.docker.com",
+				Repository: "grafana/grafana",
+				Tag:        "latest",
+				Reference:  "registry.hub.docker.com/grafana/grafana:latest",
+			},
+			"sha256:c2a9d25b77b9a7439e56efffa916e43eda09db4f7b78526082443f9c2ee18dc0",
+		},
+	}
+	for _, test := range tests {
+		if actual := getRepoDigest(test.json, test.imgRef); actual != test.expected {
+			t.Errorf("invalid repo digest, test id: %d; expected %s but got %s", test.id, test.expected, actual)
+		}
+	}
+}
+
 func TestParseImageNameFromArgs(t *testing.T) {
 	tests := []struct {
 		args     string
