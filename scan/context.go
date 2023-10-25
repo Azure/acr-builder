@@ -93,6 +93,8 @@ func (s *Scanner) getContextFromURL(remoteURL string) (err error) {
 		return errors.Wrapf(err, "unable to download remote context from %s", remoteURL)
 	}
 
+	fmt.Printf("Read context of %d bytes", response.ContentLength)
+
 	// TODO: revamp streaming, for now just pipe to buf and discard it.
 	var buf bytes.Buffer
 	progressOutput := streamformatter.NewProgressOutput(&buf)
@@ -116,7 +118,11 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 	}
 
 	if dockerbuild.IsArchive(magic) {
+		fmt.Println("starting to untar context")
 		err = archive.Untar(buf, s.destinationFolder, nil)
+		if err != nil {
+			return errors.Wrap(err, "failed to untar context")
+		}
 	}
 
 	return err
