@@ -60,6 +60,8 @@ var Command = cli.Command{
 			return errors.New("download requires context to be provided, see download --help")
 		}
 
+		log.Println("Downloading context")
+
 		// Add all creds provided by the user in the --credential flag
 		credentials, err := graph.CreateRegistryCredentialFromList(creds)
 		if err != nil {

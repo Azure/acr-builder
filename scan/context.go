@@ -60,16 +60,20 @@ func (s *Scanner) getContext(ctx context.Context, scContext string) (workingDir 
 	}
 
 	if isSourceControlURL {
+		fmt.Println("Getting context from Git URL")
 		workingDir, err := s.getContextFromGitURL(scContext)
 		return workingDir, err
 	} else if isURL {
+		fmt.Println("Getting context from URL")
 		err := s.getContextFromURL(scContext)
 		return s.destinationFolder, err
 	} else if isRegistryArtifact {
+		fmt.Println("Getting context from registry")
 		err := s.getContextFromRegistry(ctx, util.TrimArtifactPrefix(scContext))
 		return s.destinationFolder, err
 	}
 
+	fmt.Println("Context is local")
 	return scContext, nil
 }
 
