@@ -4,12 +4,10 @@
 package scan
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,7 +19,6 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 
 	"github.com/Azure/acr-builder/util"
-	dockerbuild "github.com/docker/cli/cli/command/image/build"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
@@ -93,36 +90,24 @@ func (s *Scanner) getContextFromURL(remoteURL string) (err error) {
 		return errors.Wrapf(err, "unable to download remote context from %s", remoteURL)
 	}
 
-	fmt.Printf("Read context of %d bytes", response.ContentLength)
+	fmt.Printf("Read context of %d bytes\n", response.ContentLength)
 
 	// TODO: revamp streaming, for now just pipe to buf and discard it.
 	var buf bytes.Buffer
 	progressOutput := streamformatter.NewProgressOutput(&buf)
-	r := progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", "Downloading build context")
-	defer func(response *http.Response) {
-		_ = response.Body.Close()
-	}(response)
 
-	err = s.getContextFromReader(r)
+	var rc io.ReadCloser = progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", "Downloading build context")
+	defer rc.Close()
+
+	err = s.getContextFromReader(rc)
 	return err
 }
 
 func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
-	buf := bufio.NewReader(r)
-	var magic []byte
-
-	// note: (sam) read 2048 magic bytes to accomodate Extended Pax headers.
-	magic, err = buf.Peek(archiveHeaderSize * 4)
-	if err != nil && err != io.EOF {
-		return errors.Wrap(err, "failed to peek context header")
-	}
-
-	if dockerbuild.IsArchive(magic) {
-		fmt.Println("starting to untar context")
-		err = archive.Untar(buf, s.destinationFolder, nil)
-		if err != nil {
-			return errors.Wrap(err, "failed to untar context")
-		}
+	fmt.Println("starting to untar context")
+	err = archive.Untar(r, s.destinationFolder, nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to untar context")
 	}
 
 	return err
@@ -191,12 +176,12 @@ func getWithStatusError(url string) (resp *http.Response, err error) {
 		// If the status code is 4xx then read the body and return an error
 		// If the status code is a 5xx then check the body on the final attempt and return an error.
 		if resp.StatusCode < 500 || attempt == maxRetries-1 {
-			body, bodyReadErr := ioutil.ReadAll(resp.Body)
+			body, bodyReadErr := io.ReadAll(resp.Body)
+			resp.Body.Close()
+
 			if bodyReadErr != nil {
 				return nil, errors.Wrap(bodyReadErr, fmt.Sprintf("%s: error reading body", msg))
 			}
-
-			resp.Body.Close()
 			return nil, errors.Errorf("%s: %s", msg, bytes.TrimSpace(body))
 		}
 
