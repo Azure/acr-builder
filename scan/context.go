@@ -63,7 +63,7 @@ func (s *Scanner) getContext(ctx context.Context, scContext string) (workingDir 
 		workingDir, err := s.getContextFromGitURL(scContext)
 		return workingDir, err
 	} else if isURL {
-		fmt.Printf("Getting context from URL %s\n", scContext)
+		fmt.Println("Getting context from URL")
 		err := s.getContextFromURL(scContext)
 		return s.destinationFolder, err
 	} else if isRegistryArtifact {
@@ -92,7 +92,7 @@ func (s *Scanner) getContextFromURL(remoteURL string) (err error) {
 		var response *http.Response
 		response, err = getWithStatusError(remoteURL)
 		if err != nil {
-			return errors.Wrapf(err, "unable to download remote context from %s", remoteURL)
+			return errors.Wrap(err, "unable to download remote context")
 		}
 
 		fmt.Printf("Read context with status code %d\n", response.StatusCode)
