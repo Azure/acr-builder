@@ -4,6 +4,7 @@
 package scan
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -19,6 +20,7 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 
 	"github.com/Azure/acr-builder/util"
+	dockerbuild "github.com/docker/cli/cli/command/image/build"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
@@ -26,7 +28,8 @@ import (
 )
 
 const (
-	maxRetries = 3
+	archiveHeaderSize = 512
+	maxRetries        = 3
 )
 
 // ObtainSourceCode obtains the source code from the specified context.
@@ -101,26 +104,37 @@ func (s *Scanner) getContextFromURL(remoteURL string) (err error) {
 		// TODO: revamp output streaming, for now just discard it
 		progressOutput := streamformatter.NewProgressOutput(io.Discard)
 
-		var rc io.ReadCloser = progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", "Downloading build context")
-		defer rc.Close()
+		r := progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", "Downloading build context")
+		defer r.Close()
 
-		err = s.getContextFromReader(rc)
+		err = s.getContextFromReader(r)
 		if err == nil {
 			return nil
 		}
 
-		attempt++
 		time.Sleep(util.GetExponentialBackoff(attempt))
+		attempt++
 	}
 
 	return err
 }
 
 func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
-	fmt.Println("starting to untar context")
-	err = archive.Untar(r, s.destinationFolder, nil)
-	if err != nil {
-		return errors.Wrap(err, "failed to untar context")
+	buf := bufio.NewReader(r)
+	var magic []byte
+
+	// note: (sam) read 2048 magic bytes to accomodate Extended Pax headers.
+	magic, err = buf.Peek(archiveHeaderSize * 4)
+	if err != nil && err != io.EOF {
+		return errors.Wrap(err, "failed to peek context header")
+	}
+
+	if dockerbuild.IsArchive(magic) {
+		fmt.Println("starting to untar context")
+		err = archive.Untar(r, s.destinationFolder, nil)
+		if err != nil {
+			return errors.Wrap(err, "failed to untar context")
+		}
 	}
 
 	return err
