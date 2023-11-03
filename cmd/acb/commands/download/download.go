@@ -60,9 +60,12 @@ var Command = cli.Command{
 			return errors.New("download requires context to be provided, see download --help")
 		}
 
+		log.Println("Downloading context")
+
 		// Add all creds provided by the user in the --credential flag
 		credentials, err := graph.CreateRegistryCredentialFromList(creds)
 		if err != nil {
+			log.Println("Failed to add credentials")
 			return err
 		}
 
@@ -75,16 +78,20 @@ var Command = cli.Command{
 		if util.IsRegistryArtifact(downloadCtx) {
 			registryLoginCredentials, err = graph.ResolveCustomRegistryCredentials(ctx, credentials)
 			if err != nil {
+				log.Println("Failed to resolve credentials")
 				return err
 			}
 		}
 
 		scanner, err := scan.NewScanner(pm, downloadCtx, "", destination, nil, nil, "", registryLoginCredentials)
 		if err != nil {
+			log.Println("Failed to create new scanner")
 			return err
 		}
+
 		workingDir, sha, branch, err := scanner.ObtainSourceCode(ctx, downloadCtx)
 		if err != nil {
+			log.Println("Failed to obtain source code")
 			return err
 		}
 

@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -63,12 +62,15 @@ func (s *Scanner) getContext(ctx context.Context, scContext string) (workingDir 
 	}
 
 	if isSourceControlURL {
+		fmt.Println("Getting context from Git URL")
 		workingDir, err := s.getContextFromGitURL(scContext)
 		return workingDir, err
 	} else if isURL {
+		fmt.Println("Getting context from URL")
 		err := s.getContextFromURL(scContext)
 		return s.destinationFolder, err
 	} else if isRegistryArtifact {
+		fmt.Println("Getting context from registry")
 		err := s.getContextFromRegistry(ctx, util.TrimArtifactPrefix(scContext))
 		return s.destinationFolder, err
 	}
@@ -88,20 +90,32 @@ func (s *Scanner) getContextFromGitURL(gitURL string) (contextDir string, err er
 }
 
 func (s *Scanner) getContextFromURL(remoteURL string) (err error) {
-	response, err := getWithStatusError(remoteURL)
-	if err != nil {
-		return errors.Wrapf(err, "unable to download remote context from %s", remoteURL)
+	attempt := 0
+	for attempt < maxRetries {
+		var response *http.Response
+		response, err = getWithStatusError(remoteURL)
+		if err != nil {
+			return errors.Wrap(err, "unable to download remote context")
+		}
+
+		fmt.Printf("Read context with status code %d\n", response.StatusCode)
+		fmt.Printf("Read context of %d bytes\n", response.ContentLength)
+
+		// TODO: revamp output streaming, for now just discard it
+		progressOutput := streamformatter.NewProgressOutput(io.Discard)
+
+		r := progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", "Downloading build context")
+		defer r.Close()
+
+		err = s.getContextFromReader(r)
+		if err == nil {
+			return nil
+		}
+
+		time.Sleep(util.GetExponentialBackoff(attempt))
+		attempt++
 	}
 
-	// TODO: revamp streaming, for now just pipe to buf and discard it.
-	var buf bytes.Buffer
-	progressOutput := streamformatter.NewProgressOutput(&buf)
-	r := progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", "Downloading build context")
-	defer func(response *http.Response) {
-		_ = response.Body.Close()
-	}(response)
-
-	err = s.getContextFromReader(r)
 	return err
 }
 
@@ -116,7 +130,11 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 	}
 
 	if dockerbuild.IsArchive(magic) {
-		err = archive.Untar(buf, s.destinationFolder, nil)
+		fmt.Println("starting to untar context")
+		err = archive.Untar(r, s.destinationFolder, nil)
+		if err != nil {
+			return errors.Wrap(err, "failed to untar context")
+		}
 	}
 
 	return err
@@ -170,12 +188,14 @@ func (s *Scanner) getContextFromRegistry(ctx context.Context, registryArtifact s
 // - The response is 5xx
 func getWithStatusError(url string) (resp *http.Response, err error) {
 	attempt := 0
-
 	for attempt < maxRetries {
 		resp, err = http.Get(url)
 		if err != nil {
+			time.Sleep(util.GetExponentialBackoff(attempt))
+			attempt++
 			continue
 		}
+
 		if resp.StatusCode < 400 {
 			return resp, nil
 		}
@@ -185,12 +205,12 @@ func getWithStatusError(url string) (resp *http.Response, err error) {
 		// If the status code is 4xx then read the body and return an error
 		// If the status code is a 5xx then check the body on the final attempt and return an error.
 		if resp.StatusCode < 500 || attempt == maxRetries-1 {
-			body, bodyReadErr := ioutil.ReadAll(resp.Body)
+			body, bodyReadErr := io.ReadAll(resp.Body)
+			resp.Body.Close()
+
 			if bodyReadErr != nil {
 				return nil, errors.Wrap(bodyReadErr, fmt.Sprintf("%s: error reading body", msg))
 			}
-
-			resp.Body.Close()
 			return nil, errors.Errorf("%s: %s", msg, bytes.TrimSpace(body))
 		}
 
