@@ -131,7 +131,7 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 
 	if dockerbuild.IsArchive(magic) {
 		fmt.Println("starting to untar context")
-		err = archive.Untar(r, s.destinationFolder, nil)
+		err = archive.Untar(buf, s.destinationFolder, nil)
 		if err != nil {
 			return errors.Wrap(err, "failed to untar context")
 		}
