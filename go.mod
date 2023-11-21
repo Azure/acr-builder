@@ -1,5 +1,7 @@
 module github.com/Azure/acr-builder
 
+go 1.21
+
 require (
 	github.com/Azure/azure-sdk-for-go v63.2.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.17
@@ -68,5 +70,3 @@ require (
 	google.golang.org/grpc v1.56.3 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 )
-
-go 1.18
