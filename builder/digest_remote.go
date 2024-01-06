@@ -52,6 +52,9 @@ func (d *remoteDigest) PopulateDigest(ctx context.Context, ref *image.Reference)
 
 		config.Authorizer = docker.NewDockerAuthorizer(
 			docker.WithAuthCreds(func(hostName string) (string, string, error) {
+				if hostName != ref.Registry {
+					return "", "", fmt.Errorf("hostName '%s' does not match the registry '%s'", hostName, ref.Registry)
+				}
 				return cred.Username.ResolvedValue, cred.Password.ResolvedValue, nil
 			}),
 		)
