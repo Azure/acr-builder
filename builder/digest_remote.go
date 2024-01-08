@@ -37,20 +37,34 @@ func (d *remoteDigest) PopulateDigest(ctx context.Context, ref *image.Reference)
 	if ref.Reference == NoBaseImageSpecifierLatest {
 		return nil
 	}
-	client := http.DefaultClient
-	opts := docker.ResolverOptions{
-		Client: client,
+
+	config := docker.RegistryHost{
+		Client:       http.DefaultClient,
+		Scheme:       "https",
+		Path:         "/v2",
+		Capabilities: docker.HostCapabilityPull,
 	}
+
 	if cred, ok := d.registryCreds[ref.Registry]; ok {
 		if cred.Username.ResolvedValue == "" || cred.Password.ResolvedValue == "" {
 			return fmt.Errorf("error fetching credentials for '%s'", ref.Registry)
 		}
-		// Adds credential resolver if private registry
-		opts.Credentials = func(hostName string) (string, string, error) {
-			return cred.Username.ResolvedValue, cred.Password.ResolvedValue, nil
-		}
-	}
 
+		config.Authorizer = docker.NewDockerAuthorizer(
+			docker.WithAuthCreds(func(hostName string) (string, string, error) {
+				if hostName != ref.Registry {
+					return "", "", fmt.Errorf("hostName '%s' does not match the registry '%s'", hostName, ref.Registry)
+				}
+				return cred.Username.ResolvedValue, cred.Password.ResolvedValue, nil
+			}),
+		)
+	}
+	opts := docker.ResolverOptions{
+		Hosts: func(hostName string) ([]docker.RegistryHost, error) {
+			config.Host = hostName
+			return []docker.RegistryHost{config}, nil
+		},
+	}
 	resolver := docker.NewResolver(opts)
 	imageRef, err := getReferencePath(ref)
 	if err != nil {
