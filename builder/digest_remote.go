@@ -39,10 +39,11 @@ func (d *remoteDigest) PopulateDigest(ctx context.Context, ref *image.Reference)
 	}
 
 	config := docker.RegistryHost{
-		Client:       http.DefaultClient,
-		Scheme:       "https",
-		Path:         "/v2",
-		Capabilities: docker.HostCapabilityPull,
+		Client: http.DefaultClient,
+		Scheme: "https",
+		Path:   "/v2",
+		// NOTE: it requires both pull and resolve capabilities to get the digest
+		Capabilities: docker.HostCapabilityPull | docker.HostCapabilityResolve,
 	}
 
 	if cred, ok := d.registryCreds[ref.Registry]; ok {
@@ -56,6 +57,16 @@ func (d *remoteDigest) PopulateDigest(ctx context.Context, ref *image.Reference)
 					return "", "", fmt.Errorf("hostName '%s' does not match the registry '%s'", hostName, ref.Registry)
 				}
 				return cred.Username.ResolvedValue, cred.Password.ResolvedValue, nil
+			}),
+		)
+	} else {
+		config.Authorizer = docker.NewDockerAuthorizer(
+			docker.WithAuthCreds(func(hostName string) (string, string, error) {
+				if hostName != ref.Registry {
+					return "", "", fmt.Errorf("hostName '%s' does not match the registry '%s'", hostName, ref.Registry)
+				}
+				// NOTE: empty credential for anonymous access
+				return "", "", nil
 			}),
 		)
 	}
