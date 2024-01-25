@@ -152,11 +152,11 @@ func checkoutGit(root, ref, subdir string) (string, error) {
 	// Try checking out by ref name first. This will work on branches and sets
 	// .git/HEAD to the current branch name
 	// If the reference format is "pull/{pull-request-number}/head" (for GitHub Repo)
-	// or "refs/pull/{pull-request-number}/merge" (for AzureDevOps Repo), then checkout to
+	// or "pull/{pull-request-number}/merge" (for AzureDevOps Repo), then checkout to
 	// FETCH_HEAD. Previous step has already fetched the reference explicitly, and
 	// current step just needs to check out the head
-	if (strings.HasPrefix(ref, "pull/") && strings.HasSuffix(ref, "/head")) ||
-		(strings.HasPrefix(ref, "refs/pull/") && strings.HasSuffix(ref, "/merge")) {
+	if (strings.HasPrefix(ref, "pull/") || (strings.HasPrefix(ref, "refs/pull/")) &&
+		strings.HasSuffix(ref, "/head")) || strings.HasSuffix(ref, "/merge") {
 		output, err := gitWithinDir(root, "checkout", "FETCH_HEAD")
 		if err != nil {
 			return "", errors.Wrapf(err, "error checking out %s: %s", ref, output)
