@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/docker/docker/pkg/symlink"
@@ -93,7 +94,7 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 		// It's mainly for the scenario if the reference is a git commit,
 		// eg, https://github.com/abc.git#bcaf8913695e5ad57868c8c82af58f9e699e7f59
 		if output2, err2 := gitWithinDir(root, "fetch", "origin"); err2 != nil {
-			return "", errors.Wrapf(err, "error fetching: %s", output2)
+			return "", errors.Wrapf(err, "error fetching: %s", censorGitPAT(output2))
 		}
 	}
 
@@ -305,4 +306,11 @@ func git(args ...string) ([]byte, error) {
 // ref: https://github.com/moby/moby/blob/master/builder/remotecontext/git/gitutils.go
 func isGitTransport(str string) bool {
 	return urlutil.IsURL(str) || strings.HasPrefix(str, "git://") || strings.HasPrefix(str, "git@")
+}
+
+func censorGitPAT(output []byte) []byte {
+	pattern := `https://.*?@github\.com`
+	re := regexp.MustCompile(pattern)
+	censoredOutput := re.ReplaceAll(output, []byte("https://<REDACTED>@github.com"))
+	return censoredOutput
 }
