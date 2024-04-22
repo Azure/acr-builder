@@ -73,18 +73,6 @@ ENTRYPOINT ["dotnet", "Web.dll"]`)
 	}
 }
 
-func TestGita(t *testing.T) {
-	fmt.Println("Welcome to My Go Program!")
-
-	context := "https://github.com/NVIDIA/k8s-device-plugin/archive/refs/tags/v0.14.3.tar.gz"
-	_, err := Clone(context, "/home/yuehaoliang/demo")
-	if err != nil {
-		fmt.Println(err, "unable to git clone")
-	}
-
-	fmt.Println("Exiting the program. Goodbye!")
-}
-
 func TestResolveDockerfileDependencies_WithBOM(t *testing.T) {
 	expectedRuntime := "scratch"
 	expectedBuildDeps := map[string]bool{
