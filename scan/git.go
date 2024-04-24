@@ -309,8 +309,8 @@ func isGitTransport(str string) bool {
 }
 
 func censorGitPAT(output []byte) []byte {
-	pattern := `https://.*?@github\.com`
+	pattern := `https://.*?@`
 	re := regexp.MustCompile(pattern)
-	censoredOutput := re.ReplaceAll(output, []byte("https://<REDACTED>@github.com"))
+	censoredOutput := re.ReplaceAll(output, []byte("https://<REDACTED>@"))
 	return censoredOutput
 }
