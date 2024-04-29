@@ -346,3 +346,19 @@ func TestValidGitTransport(t *testing.T) {
 		}
 	}
 }
+
+func TestSensorGitPAT(t *testing.T) {
+	type message struct {
+		before string
+		after  string
+	}
+
+	messages := []message{
+		{"fatal: Authentication failed for 'https://dummy:ABCabc123@github.com/username/reponame.git/'",
+			"fatal: Authentication failed for 'https://<REDACTED>@github.com/username/reponame.git/'"},
+	}
+
+	for _, m := range messages {
+		assert.Check(t, is.Equal(m.after, string(censorGitPAT([]byte(m.before)))))
+	}
+}
