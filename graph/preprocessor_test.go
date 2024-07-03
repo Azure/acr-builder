@@ -626,12 +626,112 @@ version:   'v1.1.0'`,
 version:   "v1.1.0'`,
 			"v1.1.0",
 		},
+		{
+			`       
+"version"`,
+			"",
+		},
+		{
+			` # task.yml file
+# should be skipped
+
+"version"  : v1.1.0    
+`,
+			"v1.1.0",
+		},
+		{
+			`
+build: something
+"version": v1.1.0`,
+			"",
+		},
+		{
+			`       
+"version"`,
+			"",
+		},
+		{
+			`       
+"version":v1.1.0
+			`,
+			"v1.1.0",
+		},
+		{
+			`       
+"version":foo:bar:beta`,
+			"foo:bar:beta",
+		},
+		{
+			`       
+"version":"v1.1.0"`,
+			"v1.1.0",
+		},
+		{
+			`       
+"version":   'v1.1.0'`,
+			"v1.1.0",
+		},
+		{
+			`       
+"version":   "v1.1.0'`,
+			"v1.1.0",
+		},
+		{
+			`       
+'version'`,
+			"",
+		},
+		{
+			` # task.yml file
+# should be skipped
+
+'version'  : v1.1.0    
+`,
+			"v1.1.0",
+		},
+		{
+			`
+build: something
+'version': v1.1.0`,
+			"",
+		},
+		{
+			`       
+'version'`,
+			"",
+		},
+		{
+			`       
+'version':v1.1.0
+			`,
+			"v1.1.0",
+		},
+		{
+			`       
+'version':foo:bar:beta`,
+			"foo:bar:beta",
+		},
+		{
+			`       
+'version':"v1.1.0"`,
+			"v1.1.0",
+		},
+		{
+			`       
+'version':   'v1.1.0'`,
+			"v1.1.0",
+		},
+		{
+			`       
+'version':   "v1.1.0'`,
+			"v1.1.0",
+		},
 	}
 
 	for _, test := range tests {
 		actualVersion := FindVersion([]byte(test.task))
 		if actualVersion != test.expectedVersion {
-			t.Errorf("Expected %s but got %s", test.expectedVersion, actualVersion)
+			t.Errorf("Expected %s but got %s ---\n%v", test.expectedVersion, actualVersion, test)
 		}
 	}
 }
