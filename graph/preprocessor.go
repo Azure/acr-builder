@@ -312,9 +312,9 @@ func FindVersion(data []byte) string {
 		}
 
 		// use text instead of trimmedText since ' version: ' is also invalid.
-		if strings.HasPrefix(text, versionKey) {
+		if strings.HasPrefix(strings.TrimLeft(text, "'\""), versionKey) {
 			tokens := strings.SplitN(text, ":", 2)
-			if len(tokens) == 2 && strings.TrimSpace(tokens[0]) == versionKey {
+			if len(tokens) == 2 && strings.Trim(strings.TrimSpace(tokens[0]), "'\"") == versionKey {
 				return strings.Trim(strings.TrimSpace(tokens[1]), "'\"")
 			}
 		}
