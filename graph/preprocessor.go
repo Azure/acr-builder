@@ -318,7 +318,6 @@ func FindVersion(data []byte) string {
 				return strings.Trim(strings.TrimSpace(tokens[1]), "'\"")
 			}
 		}
-		break
 	}
 
 	return ""
