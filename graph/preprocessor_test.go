@@ -588,7 +588,7 @@ version  : v1.1.0
 			`
 build: something
 version: v1.1.0`,
-			"",
+			"v1.1.0",
 		},
 		{
 			`
@@ -643,7 +643,7 @@ version:   "v1.1.0'`,
 			`
 build: something
 "version": v1.1.0`,
-			"",
+			"v1.1.0",
 		},
 		{
 			`       
@@ -693,7 +693,7 @@ build: something
 			`
 build: something
 'version': v1.1.0`,
-			"",
+			"v1.1.0",
 		},
 		{
 			`       
@@ -724,6 +724,11 @@ build: something
 		{
 			`       
 'version':   "v1.1.0'`,
+			"v1.1.0",
+		},
+		{
+			`       
+"version':   "v1.1.0'`,
 			"v1.1.0",
 		},
 	}
