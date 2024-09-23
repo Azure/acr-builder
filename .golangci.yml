@@ -18,10 +18,10 @@ linters:
     - gosec
     - govet
     - ineffassign
+    - revive
     - staticcheck
-    - structcheck
     - unconvert
-    - varcheck
+    - unused
 issues:
   exclude-rules:
     - text: "Potential HTTP request made with variable url"
