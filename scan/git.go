@@ -15,8 +15,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/docker/docker/pkg/symlink"
-	"github.com/docker/docker/pkg/urlutil"
+	"github.com/docker/docker/builder/remotecontext/urlutil"
+	"github.com/moby/sys/symlink"
 	"github.com/pkg/errors"
 )
 

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containerd/containerd/sys"
+	"github.com/containerd/containerd/pkg/userns"
 	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/pkg/system"
 	"golang.org/x/sys/unix"
@@ -35,16 +35,8 @@ func getWalkRoot(srcPath string, include string) string {
 	return strings.TrimSuffix(srcPath, string(filepath.Separator)) + string(filepath.Separator) + include
 }
 
-// CanonicalTarNameForPath returns platform-specific filepath
-// to canonical posix-style path for tar archival. p is relative
-// path.
-func CanonicalTarNameForPath(p string) string {
-	return p // already unix-style
-}
-
 // chmodTarEntry is used to adjust the file permissions used in tar header based
 // on the platform the archival is done.
-
 func chmodTarEntry(perm os.FileMode) os.FileMode {
 	return perm // noop for unix as golang APIs provide perm bits correctly
 }
@@ -102,7 +94,7 @@ func handleTarTypeBlockCharFifo(hdr *tar.Header, path string) error {
 	}
 
 	err := system.Mknod(path, mode, int(system.Mkdev(hdr.Devmajor, hdr.Devminor)))
-	if errors.Is(err, syscall.EPERM) && sys.RunningInUserNS() {
+	if errors.Is(err, syscall.EPERM) && userns.RunningInUserNS() {
 		// In most cases, cannot create a device if running in user namespace
 		err = nil
 	}

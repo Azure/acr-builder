@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/docker/docker/pkg/urlutil"
+	"github.com/docker/docker/builder/remotecontext/urlutil"
 )
 
 const (
