@@ -14,13 +14,13 @@ func TestIsAlphanumeric(t *testing.T) {
 
 	for _, char := range alphaNum {
 		if isAlphanumeric(char) != true {
-			t.Fatalf("TestisAlphanumeric failed + " + string(char) + "improperly classified as non alphanumeric")
+			t.Fatalf("TestisAlphanumeric failed %s improperly classified as non alphanumeric", string(char))
 		}
 	}
 
 	for _, char := range nonAlpha {
 		if isAlphanumeric(char) == true {
-			t.Fatalf("TestisAlphanumeric failed + " + string(char) + "improperly classified as non alphanumeric")
+			t.Fatalf("TestisAlphanumeric failed %s improperly classified as non alphanumeric", string(char))
 		}
 	}
 }

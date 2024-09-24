@@ -5,7 +5,6 @@ package templating
 
 import (
 	"encoding/base64"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -65,7 +64,7 @@ func readFile(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(abs)
+	data, err := os.ReadFile(abs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read file: %s, absolute path: %s", path, abs)
 	}

@@ -7,7 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -85,10 +85,10 @@ func TestResolveMapAndValidate(t *testing.T) {
 			continue
 		}
 		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+			t.Fatalf("Expected test %s to to error but it didn't", test.name)
 		}
 		if err != nil {
-			t.Fatalf("Test " + test.name + "failed with error: " + err.Error())
+			t.Fatalf("Test %s failed with error: %v", test.name, err.Error())
 		}
 	}
 }
@@ -235,14 +235,14 @@ func TestLoadExternalAlias(t *testing.T) {
 			continue
 		}
 		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+			t.Fatalf("Expected test %s to error but it didn't", test.name)
 		}
 		if err != nil {
-			t.Fatalf("Test " + test.name + "failed with error: " + err.Error())
+			t.Fatalf("Test %s failed with error: %v", test.name, err.Error())
 		}
 		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
 		if !eq {
-			t.Fatalf("Expected output for " + test.name + " differed from actual")
+			t.Fatalf("Expected output for %s differed from actual", test.name)
 		}
 	}
 }
@@ -299,11 +299,11 @@ func TestAddAliasFromRemote(t *testing.T) {
 			continue
 		}
 		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+			t.Fatalf("Expected test %s to error but it didn't", test.name)
 		}
 		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
 		if !eq {
-			t.Fatalf("Expected output for " + test.name + " differed from actual")
+			t.Fatalf("Expected output for %s differed from actual", test.name)
 		}
 	}
 }
@@ -361,14 +361,14 @@ func TestAddAliasFromFile(t *testing.T) {
 			continue
 		}
 		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+			t.Fatalf("Expected test %s to error but it didn't", test.name)
 		}
 		if err != nil {
-			t.Fatalf("Test " + test.name + "failed with error: " + err.Error())
+			t.Fatalf("Test %s failed with error: %v", test.name, err.Error())
 		}
 		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
 		if !eq {
-			t.Fatalf("Expected output for " + test.name + " differed from actual")
+			t.Fatalf("Expected output for %s differed from actual", test.name)
 		}
 	}
 }
@@ -379,7 +379,7 @@ func TestPreProcessBytes(t *testing.T) {
 	taskDefinitionSrc := "./testdata/preprocessor/preprocessing-stress.yaml"
 	yamlMap, err := extractTaskYamls(taskDefinitionSrc)
 	if err != nil {
-		t.Fatalf("Could not read source for tests at:" + taskDefinitionSrc + "Error: " + err.Error())
+		t.Fatalf("Could not read source for tests at: %s Error: %v", taskDefinitionSrc, err.Error())
 	}
 	tests := []struct {
 		nameAndTaskIdentifier string
@@ -426,22 +426,22 @@ func TestPreProcessBytes(t *testing.T) {
 			continue
 		}
 		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.nameAndTaskIdentifier + " to error but it didn't")
+			t.Fatalf("Expected test %s to error but it didn't", test.nameAndTaskIdentifier)
 		}
 		if err != nil {
-			t.Fatalf("Test " + test.nameAndTaskIdentifier + "failed with error: " + err.Error())
+			t.Fatalf("Test %s failed with error: %v", test.nameAndTaskIdentifier, err.Error())
 		}
 		var actual interface{}
 		yaml.Unmarshal(data, &actual)
 		actualBytes, err := yaml.Marshal(actual)
 		if err != nil {
-			t.Fatalf("Test " + test.nameAndTaskIdentifier + "failed with error: " + err.Error())
+			t.Fatalf("Test %s failed with error: %v", test.nameAndTaskIdentifier, err.Error())
 		}
 		var expected interface{}
 		yaml.Unmarshal(yamlMap[test.expected], &expected)
 		expectedBytes, err := yaml.Marshal(expected)
 		if err != nil {
-			t.Fatalf("Test " + test.nameAndTaskIdentifier + "failed with error: " + err.Error())
+			t.Fatalf("Test %s failed with error: %v", test.nameAndTaskIdentifier, err.Error())
 		}
 
 		if !bytes.Equal(actualBytes, expectedBytes) {
@@ -449,7 +449,7 @@ func TestPreProcessBytes(t *testing.T) {
 			fmt.Print(string(data))
 			fmt.Print("Expected: \n")
 			fmt.Print(string(yamlMap[test.expected]))
-			t.Fatalf("Expected output for " + test.nameAndTaskIdentifier + " differed from actual")
+			t.Fatalf("Expected output for %s differed from actual", test.nameAndTaskIdentifier)
 		}
 
 	}
@@ -457,7 +457,7 @@ func TestPreProcessBytes(t *testing.T) {
 
 func extractTaskYamls(file string) (map[string][]byte, error) {
 	processed := make(map[string][]byte)
-	data, fileReadingError := ioutil.ReadFile(file)
+	data, fileReadingError := os.ReadFile(file)
 
 	if fileReadingError != nil {
 		return processed, fileReadingError
@@ -562,7 +562,7 @@ func TestPreProcessSteps(t *testing.T) {
 		ExpandCommandAliases(&test.alias, &test.current)
 
 		if test.current.Steps[0].Cmd != test.expected.Cmd {
-			t.Fatalf("Test " + test.nameAndTaskIdentifier + " expected: " + test.expected.Cmd + " but resolved to " + test.current.Steps[0].Cmd)
+			t.Fatalf("Test %s expected: %s but but resolved to %s", test.nameAndTaskIdentifier, test.expected.Cmd, test.current.Steps[0].Cmd)
 		}
 	}
 }

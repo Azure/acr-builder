@@ -126,8 +126,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			nil,
 			buildkitdContainerInitRetryDelay,
 			buildkitdContainerName,
-			buildkitdContainerInitRepeat,
-			false)
+			buildkitdContainerInitRepeat)
 		if err != nil {
 			log.Printf("buildx create --use failed with error: '%v'", err)
 		}
@@ -340,18 +339,17 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 		step.RetryOnErrors,
 		step.RetryDelayInSeconds,
 		step.ID,
-		step.Repeat,
-		step.IgnoreErrors)
+		step.Repeat)
 }
 
 // getPopulateDigests populates digests on dependencies
 func (b *Builder) getPopulateDigests(ctx context.Context, dependencies []*image.Dependencies, usingBuildkit bool, registryCreds graph.RegistryLoginCredentials) error {
-	dockerStoreDigester := NewDockerStoreDigest(b.procManager, b.debug)
+	dockerStoreDigester := newDockerStoreDigest(b.procManager, b.debug)
 
 	var baseImgDigester DigestHelper
 	baseImgDigester = dockerStoreDigester
 	if usingBuildkit {
-		baseImgDigester = NewRemoteDigest(registryCreds)
+		baseImgDigester = newRemoteDigest(registryCreds)
 	}
 
 	for _, entry := range dependencies {

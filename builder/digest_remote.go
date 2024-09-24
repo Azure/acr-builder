@@ -19,7 +19,7 @@ type remoteDigest struct {
 	registryCreds graph.RegistryLoginCredentials
 }
 
-func NewRemoteDigest(creds graph.RegistryLoginCredentials) *remoteDigest {
+func newRemoteDigest(creds graph.RegistryLoginCredentials) *remoteDigest {
 	return &remoteDigest{
 		registryCreds: creds,
 	}

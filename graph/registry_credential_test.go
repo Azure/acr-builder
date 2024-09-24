@@ -46,11 +46,11 @@ func TestCreateCredentialFromString(t *testing.T) {
 				t.Errorf("Expected the tests to return error but did not: %v", test)
 			}
 			continue
-		} else {
-			expected := test.credObject
-			if !actual.Equals(expected) {
-				t.Fatalf("Expected %v but got %v", expected, actual)
-			}
+		}
+
+		expected := test.credObject
+		if !actual.Equals(expected) {
+			t.Fatalf("Expected %v but got %v", expected, actual)
 		}
 
 		if err != nil {
@@ -97,12 +97,12 @@ func TestCreateCredentialFromList(t *testing.T) {
 				t.Errorf("Expected the tests to return error but did not: %v", test)
 			}
 			continue
-		} else {
-			for i, a := range actual {
-				expected := test.credList[i]
-				if !a.Equals(expected) {
-					t.Fatalf("Expected %v but got %v", expected, actual)
-				}
+		}
+
+		for i, a := range actual {
+			expected := test.credList[i]
+			if !a.Equals(expected) {
+				t.Fatalf("Expected %v but got %v", expected, actual)
 			}
 		}
 

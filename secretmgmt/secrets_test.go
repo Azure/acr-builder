@@ -13,7 +13,7 @@ import (
 )
 
 // MockResolveSecret will mock the azure keyvault resolve and return the concatenated key vault and client ID as the value. This is used for testing purposes only.
-func MockResolveSecret(ctx context.Context, secret *Secret, errorChan chan error) {
+func MockResolveSecret(_ context.Context, secret *Secret, errorChan chan error) {
 	if secret == nil {
 		errorChan <- errors.New("secret cannot be nil")
 		return

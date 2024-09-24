@@ -1,15 +1,9 @@
 run:
   concurrency: 2
-  deadline: 1m
-  skip-dirs:
-    - vendor
-    - docs
-    - baseimages
 linters-settings:
   govet:
-    check-shadowing: true
-  golint:
-    min-confidence: 0
+    enable:
+      - shadow
 linters:
   disable-all: true
   enable:
@@ -18,11 +12,15 @@ linters:
     - gosec
     - govet
     - ineffassign
+    - revive
     - staticcheck
-    - structcheck
     - unconvert
-    - varcheck
+    - unused
 issues:
+  exclude-dirs:
+    - vendor
+    - docs
+    - baseimages
   exclude-rules:
     - text: "Potential HTTP request made with variable url"
       linters:

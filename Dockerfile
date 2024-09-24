@@ -1,6 +1,6 @@
 ARG DOCKER_CLI_BASE_IMAGE=mcr.microsoft.com/acr/moby-cli:linux-latest
 
-FROM mcr.microsoft.com/oss/go/microsoft/golang:1.21-fips-cbl-mariner2.0 AS gobuild-base
+FROM mcr.microsoft.com/oss/go/microsoft/golang:1.22-fips-cbl-mariner2.0 AS gobuild-base
 
 FROM gobuild-base AS acb
 RUN tdnf update -y && tdnf install make git -y

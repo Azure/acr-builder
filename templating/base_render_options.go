@@ -125,7 +125,7 @@ func OverrideValuesWithBuildInfo(c1 *Config, c2 *Config, opts *BaseRenderOptions
 
 // LoadAndRenderBuildSteps loads a template file for build and renders it according to an optional values file, --set values,
 // and base render options.
-func LoadAndRenderBuildSteps(ctx context.Context, template *Template, opts *BaseRenderOptions) (string, error) {
+func LoadAndRenderBuildSteps(_ context.Context, template *Template, opts *BaseRenderOptions) (string, error) {
 	// load steps and override values
 	mergedVals, err := loadSteps(template, opts)
 	if err != nil {

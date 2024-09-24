@@ -11,8 +11,9 @@ package graph
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"os"
 	"regexp"
 	"runtime"
 	"strings"
@@ -118,7 +119,7 @@ func addAliasFromRemote(alias *Alias, url string) error {
 		return getErr
 	}
 	if res.StatusCode > 299 {
-		httpErr, err := ioutil.ReadAll(res.Body)
+		httpErr, err := io.ReadAll(res.Body)
 		if err != nil {
 			return err
 		}
@@ -127,7 +128,7 @@ func addAliasFromRemote(alias *Alias, url string) error {
 
 	defer res.Body.Close()
 
-	data, readErr := ioutil.ReadAll(res.Body)
+	data, readErr := io.ReadAll(res.Body)
 	if readErr != nil {
 		return readErr
 	}
@@ -139,7 +140,7 @@ func addAliasFromRemote(alias *Alias, url string) error {
 // Alias. Note alias definitions already in alias will not be
 // overwritten.
 func addAliasFromFile(alias *Alias, fileURI string) error {
-	data, fileReadingError := ioutil.ReadFile(fileURI)
+	data, fileReadingError := os.ReadFile(fileURI)
 	if fileReadingError != nil {
 		return fileReadingError
 	}
