@@ -5,8 +5,8 @@ package templating
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/Azure/acr-builder/util"
 	yaml "gopkg.in/yaml.v2"
@@ -34,7 +34,7 @@ func Deserialize(b []byte) (v Values, err error) {
 // DeserializeFromFile will parse the specified file name and convert it
 // to a Values object.
 func DeserializeFromFile(fileName string) (Values, error) {
-	b, err := ioutil.ReadFile(fileName)
+	b, err := os.ReadFile(fileName)
 	if err != nil {
 		return map[string]interface{}{}, err
 	}
