@@ -151,7 +151,7 @@ func (s *Scanner) getContextFromRegistry(ctx context.Context, registryArtifact s
 			"X-Meta-Source-Client": {"azure/acr/tasks"},
 		},
 		Cache: auth.DefaultCache,
-		Credential: func(ctx context.Context, registry string) (auth.Credential, error) {
+		Credential: func(_ context.Context, registry string) (auth.Credential, error) {
 			// If no matching credential found, attempt an anonymous pull
 			if s.credentials[registry] == nil {
 				return auth.EmptyCredential, nil

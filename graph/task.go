@@ -6,8 +6,8 @@ package graph
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"runtime"
 	"strings"
 
@@ -148,7 +148,7 @@ func (t *Task) AddTaskDefaults(ctx context.Context, opts *TaskOptions) error {
 
 // UnmarshalTaskFromFile unmarshals a Task from a file.
 func UnmarshalTaskFromFile(ctx context.Context, file string, opts *TaskOptions) (*Task, error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}

@@ -21,7 +21,7 @@ const (
 	ImmediateExecutionToken = "-"
 	enabled                 = "enabled"
 	disabled                = "disabled"
-	BUILDKIT_ENV_VAR        = "DOCKER_BUILDKIT=1"
+	BuildKitEnv             = "DOCKER_BUILDKIT=1"
 )
 
 var (
@@ -46,7 +46,7 @@ func (c chanBool) MarshalYAML() (interface{}, error) {
 
 // UnMarshalYAML for chan bool's in step. Avoids having UnMarshal try to resolve chan bool values as these
 // cannot be unmarshaled. Removing this interface causes a crash when umarshaling a task.
-func (c chanBool) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (c chanBool) UnmarshalYAML(_ func(interface{}) error) error {
 	return nil
 }
 
@@ -361,7 +361,7 @@ func addBuildCacheOptsToCmd(domain, path, tag, originalBuildCmd string) (string,
 
 func invokesBuildkit(envs []string) bool {
 	for _, env := range envs {
-		if env == BUILDKIT_ENV_VAR {
+		if env == BuildKitEnv {
 			return true
 		}
 	}

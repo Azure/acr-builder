@@ -47,8 +47,7 @@ func (pm *ProcManager) RunRepeatWithRetries(
 	retryOnErrors []string,
 	retryDelay int,
 	containerName string,
-	repeat int,
-	ignoreErrors bool) error {
+	repeat int) error {
 	var aggErrors util.Errors
 	for i := 0; i <= repeat; i++ {
 		innerErr := pm.RunWithRetries(ctx, args, stdIn, stdOut, stdErr, cmdDir, retries, retryOnErrors, retryDelay, containerName)
@@ -95,19 +94,19 @@ func (pm *ProcManager) RunWithRetries(
 		if err = pm.Run(ctx, args, stdIn, stdOutWriter, stdErrWriter, cmdDir); err == nil {
 			log.Printf("Successfully executed container: %s\n", containerName)
 			break
-		} else {
-			attempt++
-			if attempt <= retries {
-				if !needToCheckError || containsAnyError(retryOnErrors, &stdOutBuf, &stdErrBuf) {
-					log.Printf("Container failed during run: %s, waiting %d seconds before retrying...\n", containerName, retryDelay)
-					time.Sleep(time.Duration(retryDelay) * time.Second)
-					continue
-				}
-			}
-
-			log.Printf("Container failed during run: %s. No retries remaining.\n", containerName)
-			break
 		}
+
+		attempt++
+		if attempt <= retries {
+			if !needToCheckError || containsAnyError(retryOnErrors, &stdOutBuf, &stdErrBuf) {
+				log.Printf("Container failed during run: %s, waiting %d seconds before retrying...\n", containerName, retryDelay)
+				time.Sleep(time.Duration(retryDelay) * time.Second)
+				continue
+			}
+		}
+
+		log.Printf("Container failed during run: %s. No retries remaining.\n", containerName)
+		break
 	}
 	return err
 }

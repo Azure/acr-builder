@@ -3,7 +3,7 @@ package tokenutil
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -63,7 +63,7 @@ func GetRegistryRefreshToken(registry, resourceID, clientID string) (string, err
 	}
 
 	var token RegistryRefreshToken
-	jsonResponse, err := ioutil.ReadAll(response.Body)
+	jsonResponse, err := io.ReadAll(response.Body)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to read the response from ACR exchange API")
 	}

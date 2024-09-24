@@ -21,7 +21,7 @@ type dockerStoreDigest struct {
 	debug       bool
 }
 
-func NewDockerStoreDigest(procManager *procmanager.ProcManager, debug bool) *dockerStoreDigest {
+func newDockerStoreDigest(procManager *procmanager.ProcManager, debug bool) *dockerStoreDigest {
 	return &dockerStoreDigest{
 		procManager: procManager,
 		debug:       debug,

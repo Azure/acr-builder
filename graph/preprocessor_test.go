@@ -85,10 +85,10 @@ func TestResolveMapAndValidate(t *testing.T) {
 			continue
 		}
 		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+			t.Fatalf("Expected test %s to to error but it didn't", test.name)
 		}
 		if err != nil {
-			t.Fatalf("Test " + test.name + "failed with error: " + err.Error())
+			t.Fatalf("Test %s failed with error: %v", test.name, err.Error())
 		}
 	}
 }
@@ -235,14 +235,14 @@ func TestLoadExternalAlias(t *testing.T) {
 			continue
 		}
 		if err == nil && test.shouldError {
-			t.Fatalf("Expected test " + test.name + " to error but it didn't")
+			t.Fatalf("Expected test %s to error but it didn't", test.name)
 		}
 		if err != nil {
-			t.Fatalf("Test " + test.name + "failed with error: " + err.Error())
+			t.Fatalf("Test %s failed with error: %v", test.name, err.Error())
 		}
 		eq := reflect.DeepEqual(test.alias.AliasMap, test.alias.AliasMap)
 		if !eq {
-			t.Fatalf("Expected output for " + test.name + " differed from actual")
+			t.Fatalf("Expected output for %s differed from actual", test.name)
 		}
 	}
 }
