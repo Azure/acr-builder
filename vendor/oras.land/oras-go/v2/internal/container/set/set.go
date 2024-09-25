@@ -13,17 +13,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package registryutil
+package set
 
-import (
-	"context"
+// Set represents a set data structure.
+type Set[T comparable] map[T]struct{}
 
-	"oras.land/oras-go/v2/registry"
-	"oras.land/oras-go/v2/registry/remote/auth"
-)
+// New returns an initialized set.
+func New[T comparable]() Set[T] {
+	return make(Set[T])
+}
 
-// WithScopeHint adds a hinted scope to the context.
-func WithScopeHint(ctx context.Context, ref registry.Reference, actions ...string) context.Context {
-	scope := auth.ScopeRepository(ref.Repository, actions...)
-	return auth.AppendScopes(ctx, scope)
+// Add adds item into the set s.
+func (s Set[T]) Add(item T) {
+	s[item] = struct{}{}
+}
+
+// Contains returns true if the set s contains item.
+func (s Set[T]) Contains(item T) bool {
+	_, ok := s[item]
+	return ok
+}
+
+// Delete deletes an item from the set.
+func (s Set[T]) Delete(item T) {
+	delete(s, item)
 }

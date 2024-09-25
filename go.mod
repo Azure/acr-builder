@@ -19,7 +19,7 @@ require (
 	github.com/urfave/cli v1.22.12
 	gopkg.in/yaml.v2 v2.4.0
 	gotest.tools/v3 v3.5.0
-	oras.land/oras-go/v2 v2.0.0
+	oras.land/oras-go/v2 v2.5.0
 )
 
 require (
@@ -70,7 +70,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sync v0.5.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231212172506-995d672761c0 // indirect
