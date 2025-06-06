@@ -19,17 +19,32 @@ steps:
 
 - script: |
     set -e
+
+    # Create Go wrapper script
+    mkdir -p go-wrapper-bin
+    cat > go-wrapper-bin/go <<'EOF'
+    #!/bin/sh
+    exec /usr/bin/go "$@"
+    EOF
+    chmod +x go-wrapper-bin/go
+
+    # Prepend wrapper to PATH
+    export PATH="$(pwd)/go-wrapper-bin:$PATH"
+
+    # Install golangci-lint to GOPATH/bin
+    export PATH="$(GOPATH)/bin:$PATH"
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b "$(GOPATH)/bin" v1.64.8
+
+    # Setup as before
     GOOS=linux scripts/setup/dev_setup
     echo '##vso[task.prependpath]$(GOPATH)/bin'
     mkdir -p '$(ModulePath)'
     shopt -s dotglob extglob
     mv !(work) '$(ModulePath)'
-  displayName: 'Setup'
 
-- script: |
-    set -e
+    # Build (CodeQL will now see the wrapper)
+    cd '$(ModulePath)'
     go version
     go env
     GOOS=linux make
-  workingDirectory: '$(ModulePath)'
-  displayName: 'Build'
+  displayName: 'Setup and Build (with Go wrapper)'
