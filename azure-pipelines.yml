@@ -24,7 +24,7 @@ steps:
     mkdir -p go-wrapper-bin
     cat > go-wrapper-bin/go <<'EOF'
     #!/bin/sh
-    exec /usr/local/go/bin/go "$@"
+    exec /usr/bin/go "$@"
     EOF
     chmod +x go-wrapper-bin/go
 
