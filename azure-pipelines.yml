@@ -51,5 +51,6 @@ steps:
 
     # Build (CodeQL will now see the wrapper)
     cd '$(ModulePath)'
+    go build ./...
     GOOS=linux make
   displayName: 'Setup and Build (with Go wrapper)'
