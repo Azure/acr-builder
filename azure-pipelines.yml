@@ -20,16 +20,17 @@ steps:
 - script: |
     set -e
 
-    # Create Go wrapper script
-    mkdir -p go-wrapper-bin
-    cat > go-wrapper-bin/go <<'EOF'
-    #!/bin/sh
-    exec /usr/bin/go "$@"
+    # Static binary workaround for CodeQL and Go 1.21+
+    mkdir -p $AGENT_TEMPDIRECTORY/codeql-go-tracing
+    WORKAROUND_DIR=$AGENT_TEMPDIRECTORY/codeql-go-tracing
+    WHICH_GO=$(which go)
+    cat > "${WORKAROUND_DIR}/go" <<EOF
+    #!/bin/bash
+    exec $WHICH_GO "\$@"
     EOF
-    chmod +x go-wrapper-bin/go
 
-    # Prepend wrapper to PATH
-    export PATH="$(pwd)/go-wrapper-bin:$PATH"
+    chmod 755 "${WORKAROUND_DIR}/go"
+    export PATH="${WORKAROUND_DIR}:${PATH}"
 
     # Install golangci-lint to GOPATH/bin
     export PATH="$(GOPATH)/bin:$PATH"
@@ -42,9 +43,14 @@ steps:
     shopt -s dotglob extglob
     mv !(work) '$(ModulePath)'
 
-    # Build (CodeQL will now see the wrapper)
-    cd '$(ModulePath)'
+    # Confirm wrapper is used
+    echo "Go in PATH: $(which go)"
+    cat $(which go)
     go version
     go env
+
+    # Build (CodeQL will now see the wrapper)
+    cd '$(ModulePath)'
+    go build ./...
     GOOS=linux make
   displayName: 'Setup and Build (with Go wrapper)'
