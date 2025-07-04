@@ -331,6 +331,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 	// TODO(transteven): Remove this once Windows Server 2019 Hyper-V can run on Windows Server 2022
 	// without any startup issues.
 	if runtime.GOOS == util.WindowsOS && (step.Isolation == "" || step.Isolation == "hyperv") {
+		// TODO: Check if the pre-run container has been started before
 		// Running a throwaway container ensures subsequent containers can run without issues
 		if parseImageNameFromArgs(step.Cmd) == "mcr.microsoft.com/windows/servercore:ltsc2019" || step.ContainsImageDependency("mcr.microsoft.com/windows/servercore:ltsc2019") {
 			preRunArgs := []string{
@@ -343,12 +344,17 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 			}
 
 			if b.debug {
-				log.Printf("Pre-run args: %v\n", preRunArgs)
+				log.Printf("Pre-run args: %v\n", strings.Join(args, ", "))
 			}
 
-			// Run the pre-run command
-			if err := b.procManager.Run(ctx, preRunArgs, nil, os.Stdout, os.Stderr, ""); err != nil {
-				log.Println("Pre-run prevented an error")
+			// Silently run the command to not confuse the user
+			err := b.procManager.Run(ctx, preRunArgs, nil, nil, nil, "")
+			if b.debug {
+				if err != nil {
+					log.Println("Prevented a crash by running a pre-run container")
+				} else {
+					log.Printf("Pre-run ran without issues")
+				}
 			}
 		}
 	}
