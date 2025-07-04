@@ -328,6 +328,31 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 	stepCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	// TODO(transteven): Remove this once Windows Server 2019 Hyper-V can run on Windows Server 2022
+	// without any startup issues.
+	if runtime.GOOS == util.WindowsOS && (step.Isolation == "" || step.Isolation == "hyperv") {
+		// Running a throwaway container ensures subsequent containers can run without issues
+		if parseImageNameFromArgs(step.Cmd) == "mcr.microsoft.com/windows/servercore:ltsc2019" || step.ContainsImageDependency("mcr.microsoft.com/windows/servercore:ltsc2019") {
+			preRunArgs := []string{
+				"docker",
+				"run",
+				"--rm",
+				"--name", step.ID + "_prerun",
+				"--isolation", "hyperv",
+				"mcr.microsoft.com/windows/servercore:ltsc2019",
+			}
+
+			if b.debug {
+				log.Printf("Pre-run args: %v\n", preRunArgs)
+			}
+
+			// Run the pre-run command
+			if err := b.procManager.Run(ctx, preRunArgs, nil, os.Stdout, os.Stderr, ""); err != nil {
+				log.Println("Pre-run prevented an error")
+			}
+		}
+	}
+
 	return b.procManager.RunRepeatWithRetries(
 		stepCtx,
 		args,
