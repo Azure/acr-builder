@@ -367,3 +367,15 @@ func invokesBuildkit(envs []string) bool {
 	}
 	return false
 }
+
+func (s *Step) ContainsImageDependency(imageReference string) bool {
+	if s == nil || len(s.ImageDependencies) == 0 {
+		return false
+	}
+	for _, dep := range s.ImageDependencies {
+		if dep.Image != nil && dep.Image.Reference == imageReference {
+			return true
+		}
+	}
+	return false
+}
