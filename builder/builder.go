@@ -443,7 +443,6 @@ func (b *Builder) preRunWindowsContainer(ctx context.Context, step *graph.Step) 
 	}
 }
 
-
 // prepareVolumeSource creates and populates the host file and volume for the specified source type
 func (b *Builder) prepareVolumeSource(ctx context.Context, volMount *volume.Volume) error {
 	switch {
