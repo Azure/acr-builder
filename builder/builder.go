@@ -335,7 +335,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 	// without any startup issues.
 	// The current workaround is to run a throwaway container to ensure subsequent runs succeed.
 	if runtime.GOOS == util.WindowsOS && (step.Isolation == "" || step.Isolation == "hyperv") {
-		if parseImageNameFromArgs(step.Cmd) == "mcr.microsoft.com/windows/servercore:ltsc2019" || step.ContainsImageDependency("mcr.microsoft.com/windows/servercore:ltsc2019") {
+		if parseImageNameFromArgs(step.Cmd) == WindowServerCore2019Image || step.ContainsImageDependency(WindowServerCore2019Image) {
 			once.Do(func() { b.preRunWindowsContainer(stepCtx, step) })
 		}
 	}
@@ -424,7 +424,8 @@ func (b *Builder) preRunWindowsContainer(ctx context.Context, step *graph.Step) 
 		"--rm",
 		"--name", step.ID + "_prerun",
 		"--isolation", "hyperv",
-		"mcr.microsoft.com/windows/servercore:ltsc2019",
+		"--pull", "always",
+		WindowServerCore2019Image,
 	}
 
 	if b.debug {
