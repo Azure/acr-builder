@@ -344,16 +344,17 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 			}
 
 			if b.debug {
-				log.Printf("Pre-run args: %v\n", strings.Join(args, ", "))
+				log.Printf("Pre-run args: %v\n", strings.Join(preRunArgs, ", "))
 			}
 
-			// Silently run the command to not confuse the user
-			err := b.procManager.Run(ctx, preRunArgs, nil, nil, nil, "")
+			// Silently run the command to not confuse the user. Only expose error in debug mode.
+			var stdErrBuf bytes.Buffer
+			err := b.procManager.Run(ctx, preRunArgs, nil, nil, &stdErrBuf, "")
 			if b.debug {
 				if err != nil {
-					log.Println("Prevented a crash by running a pre-run container")
+					log.Printf("Pre-run ran with error: %s\n", stdErrBuf.String())
 				} else {
-					log.Printf("Pre-run ran without issues")
+					log.Printf("Pre-run ran without issues\n")
 				}
 			}
 		}
