@@ -13,6 +13,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Azure/acr-builder/graph"
@@ -27,6 +28,8 @@ const (
 	dockerImg = "docker"
 	buildxImg = "buildx"
 )
+
+var once sync.Once
 
 // Builder builds images.
 type Builder struct {
@@ -328,6 +331,15 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 	stepCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	// TODO(transteven): Remove this once Windows Server 2019 Hyper-V can run on Windows Server 2022
+	// without any startup issues.
+	// The current workaround is to run a throwaway container to ensure subsequent runs succeed.
+	if runtime.GOOS == util.WindowsOS && (step.Isolation == "" || step.Isolation == "hyperv") {
+		if parseImageNameFromArgs(step.Cmd) == WindowServerCore2019Image || step.ContainsImageDependency(WindowServerCore2019Image) {
+			once.Do(func() { b.preRunWindowsContainer(stepCtx, step) })
+		}
+	}
+
 	return b.procManager.RunRepeatWithRetries(
 		stepCtx,
 		args,
@@ -402,6 +414,34 @@ func parseImageNameFromArgs(cmdArgs string) string {
 		return cmdArgs
 	}
 	return cmdArgs[:idx]
+}
+
+// preRunWindowsContainer runs a Windows Server 2019 Hyper-V container to ensure subsequent runs succeed.
+func (b *Builder) preRunWindowsContainer(ctx context.Context, step *graph.Step) {
+	preRunArgs := []string{
+		"docker",
+		"run",
+		"--rm",
+		"--name", step.ID + "_prerun",
+		"--isolation", "hyperv",
+		"--pull", "always",
+		WindowServerCore2019Image,
+	}
+
+	if b.debug {
+		log.Printf("Pre-run args: %v\n", strings.Join(preRunArgs, ", "))
+	}
+
+	// Silently run the command to not confuse the user. Only expose error in debug mode.
+	var stdErrBuf bytes.Buffer
+	err := b.procManager.Run(ctx, preRunArgs, nil, nil, &stdErrBuf, "")
+	if b.debug {
+		if err != nil {
+			log.Printf("Pre-run ran with error: %s\n", stdErrBuf.String())
+		} else {
+			log.Printf("Pre-run ran without issues\n")
+		}
+	}
 }
 
 // prepareVolumeSource creates and populates the host file and volume for the specified source type

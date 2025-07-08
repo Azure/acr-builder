@@ -29,4 +29,6 @@ const (
 	buildkitdContainerInitRetryDelay      = 5 // 5 seconds
 	buildkitdContainerName                = "acrbuildkitdcontainer"
 	buildkitdContainerInitRepeat          = 0 // no repetition for retries
+
+	WindowServerCore2019Image = "mcr.microsoft.com/windows/servercore:ltsc2019"
 )
