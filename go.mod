@@ -1,6 +1,6 @@
 module github.com/Azure/acr-builder
 
-go 1.24.2
+go 1.24.4
 
 require (
 	github.com/Azure/azure-sdk-for-go v63.2.0+incompatible
