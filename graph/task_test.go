@@ -2,7 +2,6 @@ package graph
 
 import (
 	"context"
-	gocontext "context"
 	"reflect"
 	"testing"
 
@@ -40,7 +39,7 @@ func TestUsingRegistryCreds(t *testing.T) {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		resolvedSecrets, err := ResolveCustomRegistryCredentials(gocontext.Background(), []*RegistryCredential{cred})
+		resolvedSecrets, err := ResolveCustomRegistryCredentials(context.Background(), []*RegistryCredential{cred})
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
@@ -80,7 +79,7 @@ func TestNewTask(t *testing.T) {
 			}
 		}
 
-		task, err := NewTask(gocontext.Background(), test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.isBuildTask, "", "")
+		task, err := NewTask(context.Background(), test.steps, test.secrets, test.registry, []*RegistryCredential{cred}, test.isBuildTask, "", "")
 		if err != nil {
 			t.Fatalf("Unexpected err while creating task: %v", err)
 		}
@@ -127,7 +126,7 @@ func TestInitializeTimeouts(t *testing.T) {
 			Steps:       test.steps,
 			StepTimeout: test.stepTimeout,
 		}
-		err := task.initialize(gocontext.Background())
+		err := task.initialize(context.Background())
 		if err != nil {
 			t.Fatalf("Unexpected err during initialization: %v", err)
 		}

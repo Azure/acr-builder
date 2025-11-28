@@ -1,15 +1,9 @@
+version: "2"
 run:
   concurrency: 2
-  timeout: 5m
-linters-settings:
-  govet:
-    enable:
-      - shadow
 linters:
-  disable-all: true
+  default: none
   enable:
-    - gofmt
-    - goimports
     - gosec
     - govet
     - ineffassign
@@ -17,15 +11,46 @@ linters:
     - staticcheck
     - unconvert
     - unused
-issues:
-  exclude-dirs:
-    - vendor
-    - docs
-    - baseimages
-  exclude-rules:
-    - text: "Potential HTTP request made with variable url"
-      linters:
-        - gosec
-    - text: "SQL string concatenation"
-      linters:
-        - gosec
+  settings:
+    govet:
+      enable:
+        - shadow
+  exclusions:
+
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - gosec
+        text: Potential HTTP request made with variable url
+      - linters:
+          - gosec
+        text: SQL string concatenation
+      - linters:
+          - revive
+        path: 'util/*'
+        text: 'var-naming: avoid meaningless package names'
+    paths:
+      - vendor
+      - docs
+      - baseimages
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - vendor
+      - docs
+      - baseimages
+      - third_party$
+      - builtin$
+      - examples$

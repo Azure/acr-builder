@@ -96,7 +96,7 @@ func (e *Engine) RenderGoTemplate(name string, input string, data interface{}) (
 	}
 
 	// NB: handle `missingkey=zero` by removing the string.
-	rendered = strings.Replace(buf.String(), "<no value>", "", -1)
+	rendered = strings.ReplaceAll(buf.String(), "<no value>", "")
 	return rendered, nil
 }
 

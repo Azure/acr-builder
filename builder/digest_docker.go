@@ -78,9 +78,7 @@ func getRepoDigest(jsonContent string, reference *image.Reference) string {
 	// If the reference is in DockerHub library image format (eg, nginx:latest, library/node:16), we have to remove "/library" fix - otherwise
 	// we'll fail to query the digest, since image names aren't prefixed with "library/"
 	if reference.Registry == DockerHubRegistry && !strings.HasPrefix(reference.Reference, DockerHubRegistry) {
-		if strings.HasPrefix(prefix, "library/") {
-			prefix = prefix[8:]
-		}
+		prefix = strings.TrimPrefix(prefix, "library/")
 	} else if len(reference.Registry) > 0 {
 		prefix = reference.Registry + "/" + prefix
 	}

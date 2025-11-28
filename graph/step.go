@@ -214,8 +214,8 @@ func (s *Step) Equals(t *Step) bool {
 		util.IntSequenceEquals(s.ExitedWith, t.ExitedWith) &&
 		util.IntSequenceEquals(s.ExitedWithout, t.ExitedWithout) &&
 		s.StartDelay == t.StartDelay &&
-		s.StartTime == t.StartTime &&
-		s.EndTime == t.EndTime &&
+		time.Time.Equal(s.StartTime, t.StartTime) &&
+		time.Time.Equal(s.EndTime, t.EndTime) &&
 		s.StepStatus == t.StepStatus &&
 		s.Privileged == t.Privileged &&
 		s.User == t.User &&

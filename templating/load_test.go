@@ -131,7 +131,7 @@ func TestDecodeTemplate_Invalid(t *testing.T) {
 
 func adjustCRInExpectedStringOnWindows(expectedStr string) string {
 	if runtime.GOOS == util.WindowsOS {
-		return strings.Replace(expectedStr, "\n", "\r\n", -1)
+		return strings.ReplaceAll(expectedStr, "\n", "\r\n")
 	}
 	return expectedStr
 }
