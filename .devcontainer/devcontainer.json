@@ -1,0 +1,14 @@
+{
+  "name": "ACR Builder",
+  "image": "mcr.microsoft.com/devcontainers/go:1.25",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "streetsidesoftware.code-spell-checker"
+      ]
+    }
+  },
+  "onCreateCommand": "./scripts/setup/dev_setup",
+  "postCreateCommand": "go version && make --version"
+}
