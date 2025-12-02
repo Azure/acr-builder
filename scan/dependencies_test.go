@@ -76,7 +76,7 @@ ENTRYPOINT ["dotnet", "Web.dll"]`)
 func TestResolveDockerfileDependencies_WithBOM(t *testing.T) {
 	expectedRuntime := "scratch"
 	expectedBuildDeps := map[string]bool{
-		fmt.Sprintf("golang:1.10-alpine"): true,
+		"golang:1.10-alpine": true,
 	}
 	df := []byte(`FROM golang:1.10-alpine AS gobuild-base
 RUN apk add --no-cache \
@@ -110,7 +110,7 @@ CMD [ ]`)
 func TestResolveDockerfileDependencies_WithTarget(t *testing.T) {
 	expectedRuntime := "node:lts"
 	expectedBuildDeps := map[string]bool{
-		fmt.Sprintf("scratch"): true,
+		"scratch": true,
 	}
 	df := []byte(`FROM scratch AS base
 	RUN ls

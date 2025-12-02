@@ -1,5 +1,5 @@
 ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:ltsc2022
-FROM $WINDOWS_IMAGE as base
+FROM $WINDOWS_IMAGE AS base
 
 # set the default shell as powershell.
 # $ProgressPreference: https://github.com/PowerShell/PowerShell/issues/2138#issuecomment-251261324
@@ -52,7 +52,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_LFS_DOWNLOAD_URL); \
 	\
 	Write-Host 'Complete.';
 
-FROM base as builder
+FROM base AS builder
 # ideally, this would be C:\go to match Linux a bit closer, but C:\go is the recommended install path for Go itself on Windows
 ENV GOPATH C:\\gopath
 
@@ -63,7 +63,7 @@ RUN $newPath = ('{0}\bin;C:\go\bin;{1}' -f $env:GOPATH, $env:PATH); \
 
 # install go lang
 
-ENV GOLANG_VERSION 1.24.6
+ENV GOLANG_VERSION 1.25.4
 
 RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSION); \
 	Write-Host ('Downloading {0} ...' -f $url); \
@@ -81,7 +81,7 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 	Write-Host 'Complete.';
 
 # Download the docker executable
-FROM base as dockercli
+FROM base AS dockercli
 ARG DOCKER_VERSION=20.10.15
 ENV DOCKER_DOWNLOAD_URL https://mobyartifacts.azureedge.net/moby/moby-cli/${DOCKER_VERSION}+azure/windows/windows_amd64/moby-cli-${DOCKER_VERSION}+azure-1.amd64.zip
 RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
@@ -94,7 +94,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	Write-Host 'Complete.';
 
 # Build the acr-builder
-FROM builder as acb
+FROM builder AS acb
 WORKDIR \\gopath\\src\\github.com\\Azure\\acr-builder
 COPY ./ /gopath/src/github.com/Azure/acr-builder
 RUN Write-Host ('Running build'); \
@@ -103,7 +103,7 @@ RUN Write-Host ('Running build'); \
 	go test ./...
 
 # setup the runtime environment
-FROM base as runtime
+FROM base AS runtime
 ARG ACB_BASEIMAGE=mcr.microsoft.com/windows/servercore:ltsc2022
 COPY --from=dockercli C:/unzip/ C:/docker/
 COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe C:/acr-builder/acb.exe

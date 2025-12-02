@@ -310,7 +310,7 @@ func shellQuote(str string) string {
 		return "''"
 	}
 	if shellEscapePattern.MatchString(str) {
-		return "'" + strings.Replace(str, "'", "'\"'\"'", -1) + "'"
+		return "'" + strings.ReplaceAll(str, "'", "'\"'\"'") + "'"
 	}
 	return str
 }

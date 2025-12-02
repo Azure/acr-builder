@@ -161,8 +161,8 @@ func TestCheckoutGit(t *testing.T) {
 	defer os.RemoveAll(root)
 
 	autocrlf := gitGetConfig("core.autocrlf")
-	if !(autocrlf == "true" || autocrlf == "false" ||
-		autocrlf == "input" || autocrlf == "") {
+	if autocrlf != "true" && autocrlf != "false" &&
+		autocrlf != "input" && autocrlf != "" {
 		t.Logf("unknown core.autocrlf value: \"%s\"", autocrlf)
 	}
 	eol := "\n"
