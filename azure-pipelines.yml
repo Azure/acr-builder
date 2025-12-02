@@ -34,7 +34,7 @@ steps:
 
     # Install golangci-lint to GOPATH/bin
     export PATH="$(GOPATH)/bin:$PATH"
-    curl -sfL curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.6.2
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.6.2
 
     # Setup as before
     GOOS=linux scripts/setup/dev_setup
