@@ -4,6 +4,7 @@
 package scan
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
 	"context"
@@ -20,10 +21,10 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 
 	"github.com/Azure/acr-builder/util"
-	dockerbuild "github.com/docker/cli/cli/command/image/build"
-	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
+	"github.com/moby/go-archive"
+	"github.com/moby/go-archive/compression"
 	"github.com/pkg/errors"
 )
 
@@ -129,7 +130,7 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 		return errors.Wrap(err, "failed to peek context header")
 	}
 
-	if dockerbuild.IsArchive(magic) {
+	if isArchive(magic) {
 		fmt.Println("starting to untar context")
 		err = archive.Untar(buf, s.destinationFolder, nil)
 		if err != nil {
@@ -138,6 +139,15 @@ func (s *Scanner) getContextFromReader(r io.Reader) (err error) {
 	}
 
 	return err
+}
+
+func isArchive(header []byte) bool {
+	if compression.Detect(header) != compression.None {
+		return true
+	}
+	r := tar.NewReader(bytes.NewBuffer(header))
+	_, err := r.Next()
+	return err == nil
 }
 
 func (s *Scanner) getContextFromRegistry(ctx context.Context, registryArtifact string) (err error) {
