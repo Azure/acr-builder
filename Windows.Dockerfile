@@ -1,4 +1,4 @@
-ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:ltsc2022
+ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:ltsc2025
 FROM $WINDOWS_IMAGE AS base
 
 # set the default shell as powershell.
@@ -82,8 +82,8 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 
 # Download the docker executable
 FROM base AS dockercli
-ARG DOCKER_VERSION=20.10.15
-ENV DOCKER_DOWNLOAD_URL https://mobyartifacts.azureedge.net/moby/moby-cli/${DOCKER_VERSION}+azure/windows/windows_amd64/moby-cli-${DOCKER_VERSION}+azure-1.amd64.zip
+ARG DOCKER_VERSION=29.1.3
+ENV DOCKER_DOWNLOAD_URL https://download.docker.com/win/static/stable/x86_64/docker-${DOCKER_VERSION}.zip
 RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
 	Invoke-WebRequest -Uri $env:DOCKER_DOWNLOAD_URL -OutFile 'docker.zip'; \
@@ -104,10 +104,9 @@ RUN Write-Host ('Running build'); \
 
 # setup the runtime environment
 FROM base AS runtime
-ARG ACB_BASEIMAGE=mcr.microsoft.com/windows/servercore:ltsc2022
-COPY --from=dockercli C:/unzip/ C:/docker/
+COPY --from=dockercli C:/unzip/docker/docker.exe C:/docker/docker.exe
 COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe C:/acr-builder/acb.exe
-ENV ACB_CONFIGIMAGENAME=$ACB_BASEIMAGE
+ENV ACB_CONFIGIMAGENAME=$WINDOWS_IMAGE
 
 RUN setx /M PATH $('C:\acr-builder;C:\docker;{0}' -f $env:PATH);
 

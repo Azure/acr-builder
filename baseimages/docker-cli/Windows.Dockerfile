@@ -1,8 +1,8 @@
 # Required.
 # docker build -f baseimages/docker-cli/Windows.Dockerfile -t docker .
 
-ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:ltsc2022
-FROM $WINDOWS_IMAGE as base
+ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:ltsc2025
+FROM $WINDOWS_IMAGE AS base
 
 # set the default shell as powershell.
 # $ProgressPreference: https://github.com/PowerShell/PowerShell/issues/2138#issuecomment-251261324
@@ -57,9 +57,9 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_LFS_DOWNLOAD_URL); \
 	Write-Host 'Complete.';
 
 # Download the docker executable
-FROM base as dockercli
-ARG DOCKER_VERSION=20.10.15
-ENV DOCKER_DOWNLOAD_URL https://mobyartifacts.azureedge.net/moby/moby-cli/${DOCKER_VERSION}+azure/windows/windows_amd64/moby-cli-${DOCKER_VERSION}+azure-1.amd64.zip
+FROM base AS dockercli
+ARG DOCKER_VERSION=29.1.3
+ENV DOCKER_DOWNLOAD_URL https://download.docker.com/win/static/stable/x86_64/docker-${DOCKER_VERSION}.zip
 RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
 	Invoke-WebRequest -Uri $env:DOCKER_DOWNLOAD_URL -OutFile 'docker.zip'; \
@@ -70,8 +70,8 @@ RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	Write-Host 'Complete.';
 
 # setup the runtime environment
-FROM base as runtime
-COPY --from=dockercli C:/unzip/ C:/docker/
+FROM base AS runtime
+COPY --from=dockercli C:/unzip/docker/docker.exe C:/docker/docker.exe
 RUN setx /M PATH $('C:\docker;{0}' -f $env:PATH);
 ENTRYPOINT [ "docker.exe" ]
 CMD [ "--help" ]
