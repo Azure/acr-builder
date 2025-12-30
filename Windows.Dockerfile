@@ -1,5 +1,5 @@
 ARG WINDOWS_IMAGE=mcr.microsoft.com/windows/servercore:ltsc2025
-FROM $WINDOWS_IMAGE AS base
+FROM ${WINDOWS_IMAGE} AS base
 
 # set the default shell as powershell.
 # $ProgressPreference: https://github.com/PowerShell/PowerShell/issues/2138#issuecomment-251261324
@@ -104,9 +104,10 @@ RUN Write-Host ('Running build'); \
 
 # setup the runtime environment
 FROM base AS runtime
+ARG WINDOWS_IMAGE
 COPY --from=dockercli C:/unzip/docker/docker.exe C:/docker/docker.exe
 COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe C:/acr-builder/acb.exe
-ENV ACB_CONFIGIMAGENAME=$WINDOWS_IMAGE
+ENV ACB_CONFIGIMAGENAME ${WINDOWS_IMAGE}
 
 RUN setx /M PATH $('C:\acr-builder;C:\docker;{0}' -f $env:PATH);
 
