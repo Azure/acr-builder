@@ -14,8 +14,8 @@ Branch: "{{.Run.Branch}}"
 
 # Default image aliases, can be used without $ directive in cmd
 acr: mcr.microsoft.com/acr/acr-cli:0.17
-az: mcr.microsoft.com/acr/azure-cli:7260211
-bash: mcr.microsoft.com/acr/bash:7260211
-curl: mcr.microsoft.com/acr/curl:7260211
-cssc: mcr.microsoft.com/acr/cssc:7260211
+az: mcr.microsoft.com/acr/azure-cli:1fb6e2a
+bash: mcr.microsoft.com/acr/bash:1fb6e2a
+curl: mcr.microsoft.com/acr/curl:1fb6e2a
+cssc: mcr.microsoft.com/acr/cssc:1fb6e2a
 `
