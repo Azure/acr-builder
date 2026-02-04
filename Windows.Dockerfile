@@ -63,7 +63,7 @@ RUN $newPath = ('{0}\bin;C:\go\bin;{1}' -f $env:GOPATH, $env:PATH); \
 
 # install go lang
 
-ENV GOLANG_VERSION 1.25.5
+ENV GOLANG_VERSION 1.25.6
 
 RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSION); \
 	Write-Host ('Downloading {0} ...' -f $url); \
@@ -82,7 +82,7 @@ RUN $url = ('https://golang.org/dl/go{0}.windows-amd64.zip' -f $env:GOLANG_VERSI
 
 # Download the docker executable
 FROM base AS dockercli
-ARG DOCKER_VERSION=29.1.3
+ARG DOCKER_VERSION=29.2.1
 ENV DOCKER_DOWNLOAD_URL https://download.docker.com/win/static/stable/x86_64/docker-${DOCKER_VERSION}.zip
 RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
