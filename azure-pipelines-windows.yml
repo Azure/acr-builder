@@ -28,8 +28,8 @@ steps:
   workingDirectory: '$(ModulePath)'
   displayName: 'Build'
 
-
 - script: |
     go test ./... 
   workingDirectory: '$(ModulePath)'
   displayName: 'Test'
+

@@ -54,3 +54,11 @@ steps:
     go build ./...
     GOOS=linux make
   displayName: 'Setup and Build (with Go wrapper)'
+
+- script: |
+    set -e
+
+    docker build -t acb:$(Build.BuildId) -f Dockerfile '$(ModulePath)'
+
+    docker build -t docker:$(Build.BuildId) -f Dockerfile '$(ModulePath)/baseimages/docker-cli'
+  displayName: 'Docker Build'
