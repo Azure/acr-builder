@@ -58,7 +58,11 @@ steps:
 - script: |
     set -e
 
-    docker build -t acb:$(Build.BuildId) -f Dockerfile '$(ModulePath)'
+    echo '$(ModulePath)'
 
-    docker build -t docker:$(Build.BuildId) -f Dockerfile '$(ModulePath)/baseimages/docker-cli'
+    cd '$(ModulePath)'
+    docker build -t acb:$(Build.BuildId) -f Dockerfile .
+
+    cd '$(ModulePath)/baseimages/docker-cli'
+    docker build -t docker:$(Build.BuildId) -f Dockerfile .
   displayName: 'Docker Build'
