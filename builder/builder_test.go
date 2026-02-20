@@ -6,8 +6,10 @@ package builder
 import (
 	"context"
 	"runtime"
+	"strings"
 	"testing"
 
+	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/pkg/procmanager"
 	"github.com/Azure/acr-builder/pkg/volume"
@@ -156,6 +158,69 @@ func TestParseImageNameFromArgs(t *testing.T) {
 		if actual := parseImageNameFromArgs(test.args); actual != test.expected {
 			t.Errorf("Expected %s but got %s", test.expected, actual)
 		}
+	}
+}
+
+func TestBuildStepDisablesBuildkitWhenNotExplicitlyEnabled(t *testing.T) {
+	tests := []struct {
+		name            string
+		envs            []string
+		usesBuildkit    bool
+		expectBuildkit0 bool
+	}{
+		{
+			name:            "no envs, buildkit not enabled",
+			envs:            nil,
+			usesBuildkit:    false,
+			expectBuildkit0: true,
+		},
+		{
+			name:            "with envs, buildkit not enabled",
+			envs:            []string{"FOO=bar"},
+			usesBuildkit:    false,
+			expectBuildkit0: true,
+		},
+		{
+			name:            "buildkit explicitly enabled via env",
+			envs:            []string{"DOCKER_BUILDKIT=1"},
+			usesBuildkit:    true,
+			expectBuildkit0: false,
+		},
+		{
+			name:            "buildkit enabled with other envs",
+			envs:            []string{"FOO=bar", "DOCKER_BUILDKIT=1"},
+			usesBuildkit:    true,
+			expectBuildkit0: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			step := &graph.Step{
+				ID:           "build-step",
+				Build:        "-f Dockerfile .",
+				Envs:         make([]string, len(test.envs)),
+				UsesBuildkit: test.usesBuildkit,
+			}
+			copy(step.Envs, test.envs)
+
+			// Simulate the logic in runStep: inject DOCKER_BUILDKIT=0 when buildkit is not used
+			if !step.UsesBuildkit {
+				step.Envs = append(step.Envs, "DOCKER_BUILDKIT=0")
+			}
+
+			builder := &Builder{}
+			args := builder.getDockerRunArgsForStep("volName", "workDir", step, "", "docker build -f Dockerfile .")
+			argsStr := strings.Join(args, " ")
+
+			containsBuildkit0 := strings.Contains(argsStr, "DOCKER_BUILDKIT=0")
+			if test.expectBuildkit0 && !containsBuildkit0 {
+				t.Errorf("expected DOCKER_BUILDKIT=0 in args but was not found: %s", argsStr)
+			}
+			if !test.expectBuildkit0 && containsBuildkit0 {
+				t.Errorf("did not expect DOCKER_BUILDKIT=0 in args but it was found: %s", argsStr)
+			}
+		})
 	}
 }
 

@@ -312,6 +312,11 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 		if step.UseBuildCacheForBuildStep() {
 			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", buildxImg+" build "+step.Build)
 		} else {
+			if !step.UsesBuildkit {
+				// Moby v23 and above has enabled BuildKit by default but it breaks the base image digest inspection.
+				// Disable BuildKit to avoid this issue for now.
+				step.Envs = append(step.Envs, "DOCKER_BUILDKIT=0")
+			}
 			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", dockerImg+" build "+step.Build)
 		}
 	} else if step.IsPushStep() {
