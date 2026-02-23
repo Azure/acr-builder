@@ -58,7 +58,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_LFS_DOWNLOAD_URL); \
 
 # Download the docker executable
 FROM base AS dockercli
-ARG DOCKER_VERSION=29.1.3
+ARG DOCKER_VERSION=29.2.1
 ENV DOCKER_DOWNLOAD_URL https://download.docker.com/win/static/stable/x86_64/docker-${DOCKER_VERSION}.zip
 RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
