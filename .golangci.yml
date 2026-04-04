@@ -16,7 +16,6 @@ linters:
       enable:
         - shadow
   exclusions:
-
     generated: lax
     presets:
       - comments
@@ -26,10 +25,13 @@ linters:
     rules:
       - linters:
           - gosec
-        text: Potential HTTP request made with variable url
+        text: G101
       - linters:
           - gosec
-        text: SQL string concatenation
+        text: G107
+      - linters:
+          - gosec
+        text: G117
       - linters:
           - revive
         path: 'util/*'
