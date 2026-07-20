@@ -236,8 +236,8 @@ golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/pkcs12
 golang.org/x/crypto/pkcs12/internal/rc2
 golang.org/x/crypto/scrypt
-# golang.org/x/sync v0.19.0
-## explicit; go 1.24.0
+# golang.org/x/sync v0.22.0
+## explicit; go 1.25.0
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 # golang.org/x/sys v0.45.0
@@ -302,8 +302,8 @@ gotest.tools/v3/internal/assert
 gotest.tools/v3/internal/difflib
 gotest.tools/v3/internal/format
 gotest.tools/v3/internal/source
-# oras.land/oras-go/v2 v2.6.0
-## explicit; go 1.23.0
+# oras.land/oras-go/v2 v2.6.2
+## explicit; go 1.25.0
 oras.land/oras-go/v2
 oras.land/oras-go/v2/content
 oras.land/oras-go/v2/content/file
