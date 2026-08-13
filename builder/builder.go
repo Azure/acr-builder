@@ -91,7 +91,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 	if task.InitBuildkitContainer {
 		log.Println("Task will use build cache, initializing buildkitd container")
 		// --workdir = /workspace
-		args := b.getDockerRunArgs(
+		args, err := b.getDockerRunArgs(
 			make(map[string]string),
 			b.workspaceDir,
 			"",
@@ -110,6 +110,9 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 			buildkitdContainerName,
 			buildxImg+" create --use",
 		)
+		if err != nil {
+			return errors.Wrap(err, "failed to prepare buildkitd command")
+		}
 		if b.debug {
 			log.Printf("buildkitd container args: %v\n", strings.Join(args, ", "))
 		}
@@ -118,7 +121,7 @@ func (b *Builder) RunTask(ctx context.Context, task *graph.Task) error {
 		buildkitCtx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 
-		err := b.procManager.RunRepeatWithRetries(
+		err = b.procManager.RunRepeatWithRetries(
 			buildkitCtx,
 			args,
 			nil,
@@ -274,6 +277,7 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 	}()
 
 	var args []string
+	var err error
 
 	if step.IsBuildStep() {
 		dockerfile, target, dockerContext := parseDockerBuildCmd(step.Build)
@@ -310,14 +314,14 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 		step.UpdateBuildStepWithDefaults()
 
 		if step.UseBuildCacheForBuildStep() {
-			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", buildxImg+" build "+step.Build)
+			args, err = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", buildxImg+" build "+step.Build)
 		} else {
 			if !step.UsesBuildkit {
 				// Moby v23 and above has enabled BuildKit by default but it breaks the base image digest inspection.
 				// Disable BuildKit to avoid this issue for now.
 				step.Envs = append(step.Envs, "DOCKER_BUILDKIT=0")
 			}
-			args = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", dockerImg+" build "+step.Build)
+			args, err = b.getDockerRunArgsForStep(volName, workingDirectory, step, "", dockerImg+" build "+step.Build)
 		}
 	} else if step.IsPushStep() {
 		timeout := time.Duration(step.Timeout) * time.Second
@@ -325,7 +329,10 @@ func (b *Builder) runStep(ctx context.Context, step *graph.Step, credentials []*
 		defer cancel()
 		return b.pushWithRetries(pushCtx, step.Push)
 	} else {
-		args = b.getDockerRunArgsForStep(b.workspaceDir, step.WorkingDirectory, step, step.EntryPoint, step.Cmd)
+		args, err = b.getDockerRunArgsForStep(b.workspaceDir, step.WorkingDirectory, step, step.EntryPoint, step.Cmd)
+	}
+	if err != nil {
+		return err
 	}
 
 	if b.debug {

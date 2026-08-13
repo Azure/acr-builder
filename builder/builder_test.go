@@ -210,7 +210,10 @@ func TestBuildStepDisablesBuildkitWhenNotExplicitlyEnabled(t *testing.T) {
 			}
 
 			builder := &Builder{}
-			args := builder.getDockerRunArgsForStep("volName", "workDir", step, "", "docker build -f Dockerfile .")
+			args, err := builder.getDockerRunArgsForStep("volName", "workDir", step, "", "docker build -f Dockerfile .")
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			argsStr := strings.Join(args, " ")
 
 			containsBuildkit0 := strings.Contains(argsStr, "DOCKER_BUILDKIT=0")

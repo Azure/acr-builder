@@ -80,21 +80,34 @@ func TestGetImageDependencies(t *testing.T) {
 
 func TestGetBuildDockerRunArgs(t *testing.T) {
 	builder := &Builder{}
-	actualCmds := builder.getDockerRunArgsForStep("volName", "stepWorkDir", &graph.Step{ID: "id", Build: "-f Dockerfile .", Envs: []string{"foo=bar", "HOME=qux"}}, "", "docker build -f Dockerfile .")
+	actualCmds, err := builder.getDockerRunArgsForStep("volName", "stepWorkDir", &graph.Step{ID: "id", Build: "-f Dockerfile .", Envs: []string{"foo=bar", "HOME=qux"}}, "", "docker build -f Dockerfile .")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	var expectedCmds []string
 
 	if runtime.GOOS == util.WindowsOS {
 		expectedCmds = []string{
-			"powershell.exe",
-			"-Command",
-			"docker run --rm --cpus 1 --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --env foo=bar --env HOME=qux --workdir c:\\workspace/stepWorkDir docker build -f Dockerfile .",
+			"docker", "run", "--rm", "--cpus", "1", "--name", "id",
+			"--volume", "volName:c:\\workspace",
+			"--volume", "\\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine",
+			"--volume", "home:c:\\acb\\home",
+			"--env", "USERPROFILE=c:\\acb\\home",
+			"--env", "foo=bar", "--env", "HOME=qux",
+			"--workdir", "c:\\workspace/stepWorkDir",
+			"docker", "build", "-f", "Dockerfile", ".",
 		}
 	} else {
 		expectedCmds = []string{
-			"/bin/sh",
-			"-c",
-			"docker run --rm --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --env foo=bar --env HOME=qux --workdir /workspace/stepWorkDir docker build -f Dockerfile .",
+			"docker", "run", "--rm", "--name", "id",
+			"--volume", "volName:/workspace",
+			"--volume", "/var/run/docker.sock:/var/run/docker.sock",
+			"--volume", "home:/acb/home",
+			"--env", "HOME=/acb/home",
+			"--env", "foo=bar", "--env", "HOME=qux",
+			"--workdir", "/workspace/stepWorkDir",
+			"docker", "build", "-f", "Dockerfile", ".",
 		}
 	}
 
@@ -105,26 +118,73 @@ func TestGetBuildDockerRunArgs(t *testing.T) {
 
 func TestGetNonBuildDockerRunArgs(t *testing.T) {
 	builder := &Builder{}
-	actualCmds := builder.getDockerRunArgsForStep("volName", "stepWorkDir", &graph.Step{ID: "id", Envs: []string{"foo=bar"}}, "", "hello-world")
+	actualCmds, err := builder.getDockerRunArgsForStep("volName", "stepWorkDir", &graph.Step{ID: "id", Envs: []string{"foo=bar"}}, "", "hello-world")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	var expectedCmds []string
 
 	if runtime.GOOS == util.WindowsOS {
 		expectedCmds = []string{
-			"powershell.exe",
-			"-Command",
-			"docker run --rm --isolation hyperv --name id --volume volName:c:\\workspace --volume \\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine --volume home:c:\\acb\\home --env USERPROFILE=c:\\acb\\home --env foo=bar --workdir c:\\workspace/stepWorkDir hello-world",
+			"docker", "run", "--rm", "--isolation", "hyperv", "--name", "id",
+			"--volume", "volName:c:\\workspace",
+			"--volume", "\\\\.\\pipe\\docker_engine:\\\\.\\pipe\\docker_engine",
+			"--volume", "home:c:\\acb\\home",
+			"--env", "USERPROFILE=c:\\acb\\home",
+			"--env", "foo=bar",
+			"--workdir", "c:\\workspace/stepWorkDir",
+			"hello-world",
 		}
 	} else {
 		expectedCmds = []string{
-			"/bin/sh",
-			"-c",
-			"docker run --rm --name id --volume volName:/workspace --volume /var/run/docker.sock:/var/run/docker.sock --volume home:/acb/home --env HOME=/acb/home --env foo=bar --workdir /workspace/stepWorkDir hello-world",
+			"docker", "run", "--rm", "--name", "id",
+			"--volume", "volName:/workspace",
+			"--volume", "/var/run/docker.sock:/var/run/docker.sock",
+			"--volume", "home:/acb/home",
+			"--env", "HOME=/acb/home",
+			"--env", "foo=bar",
+			"--workdir", "/workspace/stepWorkDir",
+			"hello-world",
 		}
 	}
 
 	if !reflect.DeepEqual(actualCmds, expectedCmds) {
 		t.Errorf("invalid docker run args, expected %v but got %v", expectedCmds, actualCmds)
+	}
+}
+
+func TestGetDockerRunArgsPreservesShellSyntaxAsLiteralArguments(t *testing.T) {
+	builder := &Builder{}
+	maliciousEnv := "BRANCH=x$(id);whoami"
+	actualCmds, err := builder.getDockerRunArgsForStep(
+		"volName",
+		"stepWorkDir",
+		&graph.Step{ID: "id", Envs: []string{maliciousEnv}},
+		"",
+		`docker echo "hello world" "$(id)" "x;y" "|"`,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if actualCmds[0] != "docker" {
+		t.Fatalf("expected docker to be executed directly, got %q", actualCmds[0])
+	}
+	wantCommandArgs := []string{"docker", "echo", "hello world", "$(id)", "x;y", "|"}
+	actualCommandArgs := actualCmds[len(actualCmds)-len(wantCommandArgs):]
+	if !reflect.DeepEqual(actualCommandArgs, wantCommandArgs) {
+		t.Fatalf("expected literal command args %v, got %v", wantCommandArgs, actualCommandArgs)
+	}
+	foundEnv := false
+	for _, arg := range actualCmds {
+		if arg == maliciousEnv {
+			foundEnv = true
+			break
+		}
+	}
+	if !foundEnv {
+		t.Fatalf("expected environment value to remain one literal argument: %v", actualCmds)
 	}
 }
 

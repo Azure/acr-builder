@@ -121,6 +121,22 @@ cmd: bash echo "hello world"
 
 This runs a container called `bash` and tells it to run the `echo` command with `"Hello World"` as a parameter.
 
+The command is parsed into the container image and its arguments. Shell expansion, pipelines, redirection, and command chaining are not performed by the build host. To use shell features, invoke a shell explicitly inside the container, for example:
+
+```yaml
+cmd: bash sh -c 'echo "$HOME" | grep acb'
+```
+
+Command strings use the same parsing rules on Linux and Windows; they are not parsed as Bash, PowerShell, or Command Prompt syntax:
+
+* ASCII space, tab, carriage return, and line feed separate arguments when outside quotes. Repeated, leading, and trailing separators are ignored. Other Unicode whitespace is literal data.
+* Single (`'`) and double (`"`) quotes group text and are removed from the resulting argument. Whitespace inside quotes is preserved, empty quotes produce an empty argument, and adjacent quoted and unquoted text forms one argument.
+* Outside quotes, a single backslash escapes an ASCII separator or either quote character. A doubled backslash is preserved as a literal pair and does not escape the following character. A backslash before any other character is preserved.
+* Inside double quotes, a single backslash escapes only a double quote. A doubled backslash is preserved as a literal pair; other backslashes are preserved.
+* Inside single quotes, every character other than the closing single quote is literal, including backslashes and double quotes.
+* Shell metacharacters such as `$`, `;`, `|`, `&`, `<`, and `>` are ordinary argument characters.
+* Invalid UTF-8, NUL characters, and unterminated quotes are rejected.
+
 * Optional
 * Type: `string`
 

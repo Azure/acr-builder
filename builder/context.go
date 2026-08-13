@@ -43,74 +43,74 @@ func (b *Builder) getDockerRunArgs(
 	cpus string,
 	entrypoint string,
 	containerName string,
-	cmd string) []string {
-	var args []string
-	var sb strings.Builder
-	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
-	// so we don't have to write our own argv parser for exec.Command.
-	if runtime.GOOS == util.WindowsOS {
-		args = []string{"powershell.exe", "-Command"}
-	} else {
-		args = []string{"/bin/sh", "-c"}
+	cmd string) ([]string, error) {
+	// Command steps previously ran through a host shell to reuse its field splitting.
+	// Parse cmd with the task's OS-independent rules and invoke Docker directly so
+	// task data cannot be interpreted as host-shell code. Tasks that need expansion,
+	// pipelines, redirection, or chaining must invoke a shell inside the container.
+	commandArgs, err := splitCommandLine(cmd)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse step command")
+	}
+	if len(commandArgs) == 0 {
+		return nil, errors.New("step command is empty")
 	}
 
-	sb.WriteString("docker run")
+	args := []string{"docker", "run"}
 	if remove {
-		sb.WriteString(" --rm")
+		args = append(args, "--rm")
 	}
 	if detach {
-		sb.WriteString(" --detach")
+		args = append(args, "--detach")
 	}
 	for _, port := range ports {
-		sb.WriteString(" -p " + port)
+		args = append(args, "-p", port)
 	}
 	for _, exp := range expose {
-		sb.WriteString(" --expose " + exp)
+		args = append(args, "--expose", exp)
 	}
 	if privilaged {
-		sb.WriteString(" --privileged")
+		args = append(args, "--privileged")
 	}
 	if user != "" {
-		sb.WriteString(" --user " + user)
+		args = append(args, "--user", user)
 	}
 	if network != "" {
-		sb.WriteString(" --network " + network)
+		args = append(args, "--network", network)
 	}
 	if isolation != "" {
-		sb.WriteString(" --isolation " + isolation)
+		args = append(args, "--isolation", isolation)
 	}
 	if cpus != "" {
-		sb.WriteString(" --cpus " + cpus)
+		args = append(args, "--cpus", cpus)
 	}
 	if entrypoint != "" {
-		sb.WriteString(" --entrypoint " + entrypoint)
+		args = append(args, "--entrypoint", entrypoint)
 	}
-	sb.WriteString(" --name " + containerName)
-	sb.WriteString(" --volume " + volName + ":" + containerWorkspaceDir)
-	sb.WriteString(" --volume " + util.DockerSocketVolumeMapping)
-	sb.WriteString(" --volume " + homeVol + ":" + homeWorkDir)
+	args = append(args, "--name", containerName)
+	args = append(args, "--volume", volName+":"+containerWorkspaceDir)
+	args = append(args, "--volume", util.DockerSocketVolumeMapping)
+	args = append(args, "--volume", homeVol+":"+homeWorkDir)
 	if len(volMounts) > 0 {
 		for key, val := range volMounts {
-			sb.WriteString(" --volume " + key + ":" + val)
+			args = append(args, "--volume", key+":"+val)
 		}
 	}
-	sb.WriteString(" --env " + homeEnv)
+	args = append(args, "--env", homeEnv)
 
 	// User environment variables come after any defaults.
 	// This allows overriding the HOME environment variable for a step.
 	// NB: this has the assumption that the underlying runtime handles the case of duplicated
 	// environment variables by only keeping the last specified.
 	for _, env := range envs {
-		sb.WriteString(" --env " + env)
+		args = append(args, "--env", env)
 	}
 
 	if !disableWorkDirOverride {
-		sb.WriteString(" --workdir " + normalizeWorkDir(workDir))
+		args = append(args, "--workdir", normalizeWorkDir(workDir))
 	}
-	sb.WriteString(" " + cmd)
-
-	args = append(args, sb.String())
-	return args
+	args = append(args, commandArgs...)
+	return args, nil
 }
 
 // getDockerRunArgsForStep populates the args for running a Docker container for the step.
@@ -119,9 +119,7 @@ func (b *Builder) getDockerRunArgsForStep(
 	stepWorkDir string,
 	step *graph.Step,
 	entrypoint string,
-	cmd string) []string {
-	// Run user commands from a shell instance in order to mirror the shell's field splitting algorithms,
-	// so we don't have to write our own argv parser for exec.Command.
+	cmd string) ([]string, error) {
 	if runtime.GOOS == util.WindowsOS && step.Isolation == "" && !step.IsBuildStep() {
 		// Use hyperv isolation for non-build steps.
 		// Use default isolation for build step to improve performance. It assumes the docker-cli image is compatible with the host os.
