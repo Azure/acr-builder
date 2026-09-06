@@ -102,9 +102,11 @@ func (s *Scanner) getContextFromURL(remoteURL string) (err error) {
 
 		// response.Body is read directly, with no progress-reporting wrapper,
 		// since download progress isn't currently surfaced to the caller.
-		defer response.Body.Close()
-
+		// Close it immediately after each attempt (rather than deferring to
+		// function return) so a failed attempt doesn't hold its connection
+		// open across retries.
 		err = s.getContextFromReader(response.Body)
+		response.Body.Close()
 		if err == nil {
 			return nil
 		}
