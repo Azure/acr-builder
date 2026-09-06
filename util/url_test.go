@@ -99,6 +99,57 @@ func TestIsGitURL(t *testing.T) {
 	}
 }
 
+func TestIsURL(t *testing.T) {
+	tests := []struct {
+		url      string
+		expected bool
+	}{
+		{"https://github.com/Azure/acr-builder.git", true},
+		{"http://github.com/Azure/acr-builder.git", true},
+		{"HTTPS://github.com/Azure/acr-builder.git", false}, // scheme match is case-sensitive
+		{"git://github.com/Azure/acr-builder.git", false},
+		{"git@github.com:Azure/acr-builder.git", false},
+		{"github.com/Azure/acr-builder", false},
+		{"ftp://github.com/Azure/acr-builder.git", false},
+		{"", false},
+	}
+
+	for _, test := range tests {
+		if valid := IsURL(test.url); valid != test.expected {
+			t.Errorf("IsURL(%q) = %v, expected %v", test.url, valid, test.expected)
+		}
+	}
+}
+
+// TestIsGitURLProtocols verifies the non-HTTP(S) Git transports (git://, git@,
+// and the legacy github.com/ prefix) that IsGitURL also needs to recognize,
+// in addition to the https://...git URLs covered by validGitURLs/invalidGitURLs.
+func TestIsGitURLProtocols(t *testing.T) {
+	validTests := []string{
+		"git://github.com/Azure/acr-builder",
+		"git://github.com/Azure/acr-builder.git",
+		"git@github.com:Azure/acr-builder.git",
+		"github.com/Azure/acr-builder",
+		"github.com/Azure/acr-builder.git",
+	}
+	for _, test := range validTests {
+		if valid := IsGitURL(test); !valid {
+			t.Errorf("%s should be a git url", test)
+		}
+	}
+
+	invalidTests := []string{
+		"https://gitlab.com/Azure/acr-builder", // https, but no .git suffix
+		"ssh://git@github.com/Azure/acr-builder.git",
+		"gitgithub.com/Azure/acr-builder", // no separator after the "git" prefix
+	}
+	for _, test := range invalidTests {
+		if valid := IsGitURL(test); valid {
+			t.Errorf("%s should not be a git url", test)
+		}
+	}
+}
+
 func TestIsSourceControlURL(t *testing.T) {
 	validTests := validDevOpsURLs
 	validTests = append(validTests, validVSTSURLs...)

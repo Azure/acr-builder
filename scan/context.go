@@ -21,8 +21,6 @@ import (
 	"oras.land/oras-go/v2/registry/remote/auth"
 
 	"github.com/Azure/acr-builder/util"
-	"github.com/docker/docker/pkg/progress"
-	"github.com/docker/docker/pkg/streamformatter"
 	"github.com/moby/go-archive"
 	"github.com/moby/go-archive/compression"
 	"github.com/pkg/errors"
@@ -102,13 +100,11 @@ func (s *Scanner) getContextFromURL(remoteURL string) (err error) {
 		fmt.Printf("Read context with status code %d\n", response.StatusCode)
 		fmt.Printf("Read context of %d bytes\n", response.ContentLength)
 
-		// TODO: revamp output streaming, for now just discard it
-		progressOutput := streamformatter.NewProgressOutput(io.Discard)
+		// response.Body is read directly, with no progress-reporting wrapper,
+		// since download progress isn't currently surfaced to the caller.
+		defer response.Body.Close()
 
-		r := progress.NewProgressReader(response.Body, progressOutput, response.ContentLength, "", "Downloading build context")
-		defer r.Close()
-
-		err = s.getContextFromReader(r)
+		err = s.getContextFromReader(response.Body)
 		if err == nil {
 			return nil
 		}

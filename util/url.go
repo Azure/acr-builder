@@ -5,9 +5,8 @@ package util
 
 import (
 	"net/url"
+	"regexp"
 	"strings"
-
-	"github.com/docker/docker/builder/remotecontext/urlutil"
 )
 
 const (
@@ -15,6 +14,10 @@ const (
 	vstsHost        = ".visualstudio.com"
 	httpsScheme     = "https"
 )
+
+// gitURLPathWithFragmentSuffix matches fragments to use as Git reference and build
+// context from the Git repository. See IsGitURL for details.
+var gitURLPathWithFragmentSuffix = regexp.MustCompile(`\.git(?:#.+)?$`)
 
 // IsAzureDevOpsGitURL determines whether or not the specified string is an Azure DevOps Git URL.
 func IsAzureDevOpsGitURL(s string) bool {
@@ -47,8 +50,20 @@ func IsSourceControlURL(s string) bool {
 }
 
 // IsGitURL determines whether or not the specified string is a Git URL.
+//
+// This is a rudimentary check (no validation is performed to ensure the URL
+// is well-formed) mirroring docker build's own git-context detection:
+// https://github.com/moby/moby/blob/master/builder/remotecontext/urlutil/urlutil.go
 func IsGitURL(s string) bool {
-	return urlutil.IsGitURL(s)
+	if IsURL(s) && gitURLPathWithFragmentSuffix.MatchString(s) {
+		return true
+	}
+	for _, prefix := range []string{"git://", "github.com/", "git@"} {
+		if strings.HasPrefix(s, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // IsRegistryArtifact determines whether or not the specified string is a registry artifact
@@ -58,7 +73,7 @@ func IsRegistryArtifact(s string) bool {
 
 // IsURL determines whether or not the specified string is a URL.
 func IsURL(s string) bool {
-	return urlutil.IsURL(s)
+	return strings.HasPrefix(s, "https://") || strings.HasPrefix(s, "http://")
 }
 
 // IsLocalContext determines whether or not the specified string is local.

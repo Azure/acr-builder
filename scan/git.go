@@ -15,7 +15,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/docker/docker/builder/remotecontext/urlutil"
+	"github.com/Azure/acr-builder/util"
 	"github.com/moby/sys/symlink"
 	"github.com/pkg/errors"
 )
@@ -262,7 +262,7 @@ func getRefAndSubdir(fragment string) (ref string, subdir string) {
 
 // ref: https://github.com/moby/moby/blob/master/builder/remotecontext/git/gitutils.go
 func supportsShallowClone(remoteURL string) bool {
-	if urlutil.IsURL(remoteURL) {
+	if util.IsURL(remoteURL) {
 		// Check if the HTTP server is smart
 
 		// Smart servers must correctly respond to a query for the git-upload-pack service
@@ -305,7 +305,7 @@ func git(args ...string) ([]byte, error) {
 
 // ref: https://github.com/moby/moby/blob/master/builder/remotecontext/git/gitutils.go
 func isGitTransport(str string) bool {
-	return urlutil.IsURL(str) || strings.HasPrefix(str, "git://") || strings.HasPrefix(str, "git@")
+	return util.IsURL(str) || strings.HasPrefix(str, "git://") || strings.HasPrefix(str, "git@")
 }
 
 func censorGitPAT(output []byte) []byte {
