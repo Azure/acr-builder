@@ -12,7 +12,7 @@ require (
 	github.com/docker/distribution v2.8.2+incompatible
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/moby/go-archive v0.3.0
+	github.com/moby/go-archive v0.3.3
 	github.com/moby/sys/symlink v0.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/cli v1.22.12
