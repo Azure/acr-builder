@@ -7,6 +7,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -18,7 +19,12 @@ import (
 func TestGetContextFromReaderUntarsDeviceNode(t *testing.T) {
 	// Creating device nodes requires CAP_MKNOD, which ordinary test runners lack.
 	probe := filepath.Join(t.TempDir(), "ptmx")
-	if err := unix.Mknod(probe, unix.S_IFCHR|0600, int(unix.Mkdev(5, 2))); err != nil {
+	dev := unix.Mkdev(5, 2)
+	if dev > math.MaxInt {
+		t.Fatalf("device number %d overflows int", dev)
+		return
+	}
+	if err := unix.Mknod(probe, unix.S_IFCHR|0600, int(dev)); err != nil {
 		if errors.Is(err, syscall.EPERM) || errors.Is(err, syscall.EACCES) {
 			t.Skipf("device creation is not permitted: %v", err)
 		}
