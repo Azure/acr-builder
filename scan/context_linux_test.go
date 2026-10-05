@@ -6,10 +6,8 @@ package scan
 import (
 	"archive/tar"
 	"bytes"
-	"errors"
 	"os"
 	"path/filepath"
-	"syscall"
 	"testing"
 )
 
@@ -20,10 +18,6 @@ func TestGetContextFromReaderUntarsDeviceNode(t *testing.T) {
 	destination := t.TempDir()
 	scanner := &Scanner{destinationFolder: destination}
 	if err := scanner.getContextFromReader(bytes.NewReader(archive)); err != nil {
-		// Creating device nodes requires CAP_MKNOD, which ordinary test runners lack.
-		if errors.Is(err, syscall.EPERM) || errors.Is(err, syscall.EACCES) {
-			t.Skipf("device creation is not permitted: %v", err)
-		}
 		t.Fatal(err)
 	}
 	info, err := os.Lstat(filepath.Join(destination, "dev", "ptmx"))
