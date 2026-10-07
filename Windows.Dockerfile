@@ -31,7 +31,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_DOWNLOAD_URL); \
 	\
 	Write-Host 'Complete.';
 
-ARG GIT_LFS_VERSION=2.5.2
+ARG GIT_LFS_VERSION=3.8.0
 ENV GIT_LFS_DOWNLOAD_URL https://github.com/git-lfs/git-lfs/releases/download/v${GIT_LFS_VERSION}/git-lfs-windows-amd64-v${GIT_LFS_VERSION}.zip
 RUN Write-Host ('Downloading {0} ...' -f $env:GIT_LFS_DOWNLOAD_URL); \
 	[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; \
@@ -44,7 +44,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_LFS_DOWNLOAD_URL); \
 	Remove-Item git-lfs.zip -Force; \
 	\
 	Write-Host 'Updating PATH ...'; \
-	$env:PATH = 'C:\git-lfs;' + $env:PATH; \
+	$env:PATH = 'C:\git-lfs\git-lfs-' + $env:GIT_LFS_VERSION + ';' + $env:PATH; \
 	[Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine); \
 	\
 	Write-Host 'Installing ...'; \
