@@ -71,6 +71,10 @@ RUN Write-Host ('Downloading {0} ...' -f $env:DOCKER_DOWNLOAD_URL); \
 
 # setup the runtime environment
 FROM base AS runtime
+# Trust only the mounted job workspace
+ENV GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=safe.directory \
+    GIT_CONFIG_VALUE_0=C:\\workspace
 COPY --from=dockercli C:/unzip/docker/docker.exe C:/docker/docker.exe
 RUN setx /M PATH $('C:\docker;{0}' -f $env:PATH);
 ENTRYPOINT [ "docker.exe" ]

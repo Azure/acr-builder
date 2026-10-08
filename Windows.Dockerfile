@@ -104,6 +104,10 @@ RUN Write-Host ('Running build'); \
 
 # setup the runtime environment
 FROM base AS runtime
+# Trust only the mounted job workspace
+ENV GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=safe.directory \
+    GIT_CONFIG_VALUE_0=C:\\workspace
 ARG WINDOWS_IMAGE
 COPY --from=dockercli C:/unzip/docker/docker.exe C:/docker/docker.exe
 COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe C:/acr-builder/acb.exe
