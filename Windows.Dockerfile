@@ -6,10 +6,10 @@ FROM ${WINDOWS_IMAGE} AS base
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 # install MinGit (especially for "go get" and docker build by git repos)
-ENV GIT_VERSION 2.17.1
+ENV GIT_VERSION 2.56.0
 ENV GIT_TAG v${GIT_VERSION}.windows.1
 ENV GIT_DOWNLOAD_URL https://github.com/git-for-windows/git/releases/download/${GIT_TAG}/MinGit-${GIT_VERSION}-64-bit.zip
-ENV GIT_DOWNLOAD_SHA256 668d16a799dd721ed126cc91bed49eb2c072ba1b25b50048280a4e2c5ed56e59
+ENV GIT_DOWNLOAD_SHA256 064b440ff870ed5198527e8f3a92cdf5bd2fd0fedf5e718af95e3fdaddeff718
 # disable prompt asking for credential
 ENV GIT_TERMINAL_PROMPT 0
 RUN Write-Host ('Downloading {0} ...' -f $env:GIT_DOWNLOAD_URL); \
@@ -23,7 +23,7 @@ RUN Write-Host ('Downloading {0} ...' -f $env:GIT_DOWNLOAD_URL); \
 	Remove-Item git.zip -Force; \
 	\
 	Write-Host 'Updating PATH ...'; \
-	$env:PATH = 'C:\git\cmd;C:\git\mingw64\bin;C:\git\usr\bin;' + $env:PATH; \
+	$env:PATH = 'C:\git\cmd;C:\git\ucrt64\bin;C:\git\usr\bin;' + $env:PATH; \
 	[Environment]::SetEnvironmentVariable('PATH', $env:PATH, [EnvironmentVariableTarget]::Machine); \
 	\
 	Write-Host 'Verifying install ...'; \
@@ -104,6 +104,10 @@ RUN Write-Host ('Running build'); \
 
 # setup the runtime environment
 FROM base AS runtime
+# Trust only the mounted job workspace
+ENV GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=safe.directory \
+    GIT_CONFIG_VALUE_0=C:\\workspace
 ARG WINDOWS_IMAGE
 COPY --from=dockercli C:/unzip/docker/docker.exe C:/docker/docker.exe
 COPY --from=acb /gopath/src/github.com/Azure/acr-builder/acb.exe C:/acr-builder/acb.exe
