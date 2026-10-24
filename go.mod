@@ -9,7 +9,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.4
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/containerd/containerd v1.7.36
-	github.com/docker/distribution v2.8.2+incompatible
+	github.com/distribution/reference v0.6.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/moby/go-archive v0.3.3

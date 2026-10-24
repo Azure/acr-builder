@@ -217,6 +217,25 @@ func TestNewImageReference(t *testing.T) {
 				Reference:  "registry.hub.docker.com/myorg/myimage:mytag",
 			},
 		},
+		{
+			"myregistry.azurecr.io/myorg/myimage@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			&image.Reference{
+				Registry:   "myregistry.azurecr.io",
+				Repository: "myorg/myimage",
+				Digest:     "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+				Reference:  "myregistry.azurecr.io/myorg/myimage@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			},
+		},
+		{
+			"myregistry.azurecr.io/myorg/myimage:mytag@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			&image.Reference{
+				Registry:   "myregistry.azurecr.io",
+				Repository: "myorg/myimage",
+				Tag:        "mytag",
+				Digest:     "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+				Reference:  "myregistry.azurecr.io/myorg/myimage:mytag@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -232,6 +251,9 @@ func TestNewImageReference(t *testing.T) {
 			}
 			if imageReference.Tag != test.expectedImageReference.Tag {
 				t.Errorf("Unexpected tag. Got %s, expected %s", imageReference.Tag, test.expectedImageReference.Tag)
+			}
+			if imageReference.Digest != test.expectedImageReference.Digest {
+				t.Errorf("Unexpected digest. Got %s, expected %s", imageReference.Digest, test.expectedImageReference.Digest)
 			}
 			if imageReference.Reference != test.expectedImageReference.Reference {
 				t.Errorf("Unexpected reference. Got %s, expected %s", imageReference.Reference, test.expectedImageReference.Reference)

@@ -564,6 +564,24 @@ func TestUseBuildCache(t *testing.T) {
 	}
 }
 
+func TestGetCmdForBuildCacheWithTagAndDigest(t *testing.T) {
+	step := &Step{
+		ID:    "build",
+		Build: "-f Dockerfile .",
+		Tags:  []string{"test.com:5000/team/image:release@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
+		Cache: "enabled",
+	}
+
+	actual, err := step.GetCmdWithCacheFlags("task", "fallback.azurecr.io")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := "--load --cache-to=type=registry,ref=test.com:5000/team/image:cache_task_build,mode=max --cache-from=type=registry,ref=test.com:5000/team/image:cache_task_build -f Dockerfile ."
+	if actual != expected {
+		t.Errorf("expected %q but got %q", expected, actual)
+	}
+}
+
 func TestGetCmdForBuildCache(t *testing.T) {
 	tests := []struct {
 		s        *Step
