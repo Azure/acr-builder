@@ -12,7 +12,7 @@ import (
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/Azure/acr-builder/pkg/volume"
 	"github.com/Azure/acr-builder/util"
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
 	"github.com/pkg/errors"
 )
 
@@ -342,8 +342,7 @@ func getDomainPath(s string) (string, string, error) {
 	if !ok {
 		return "", "", errors.New("failed to extract the name from registry url")
 	}
-	d, p := reference.SplitHostname(reference.TrimNamed(named))
-	return d, p, nil
+	return reference.Domain(named), reference.Path(named), nil
 }
 
 // addBuildCacheOptsToCmd appends the build cache options to the original Build command
