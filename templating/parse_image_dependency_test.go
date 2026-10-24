@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/Azure/acr-builder/util"
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
 )
 
 // TestParseImageDependency validates that we can handle quotes in the Dockerfile FROM cmd directive.

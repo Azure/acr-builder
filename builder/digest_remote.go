@@ -11,7 +11,7 @@ import (
 	"github.com/Azure/acr-builder/graph"
 	"github.com/Azure/acr-builder/pkg/image"
 	"github.com/containerd/containerd/remotes/docker"
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
 	"github.com/pkg/errors"
 )
 
