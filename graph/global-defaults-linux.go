@@ -17,5 +17,5 @@ acr: mcr.microsoft.com/acr/acr-cli:0.21
 az: mcr.microsoft.com/acr/azure-cli:a8f7a6c
 bash: mcr.microsoft.com/acr/bash:a8f7a6c
 curl: mcr.microsoft.com/acr/curl:a8f7a6c
-cssc: mcr.microsoft.com/acr/cssc:a8f7a6
+cssc: mcr.microsoft.com/acr/cssc:a8f7a6c
 `
