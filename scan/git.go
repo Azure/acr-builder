@@ -115,10 +115,12 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 	if err != nil {
 		return "", err
 	}
-	if u, parseErr := url.Parse(repo.remote); parseErr == nil && u.User != nil && (u.Scheme == "https" || u.Scheme == "http") {
-		if err := ignoreGitInDockerContexts(root); err != nil {
-			return "", err
-		}
+
+	// Keep .git out of the Docker build context as a safe default so COPY . .
+	// doesn't copy credentials from .git/config. This can break Dockerfiles
+	// that run git describe against the copied source.
+	if err := ignoreGitInDockerContexts(root); err != nil {
+		return "", err
 	}
 
 	return checkoutDir, nil
