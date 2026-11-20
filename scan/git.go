@@ -117,7 +117,7 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 	}
 
 	// Keep .git out of the Docker build context as a safe default so COPY . .
-	// doesn't copy credentials from .git/config. This can break Dockerfiles
+	// doesn't copy credentials from .git/config. This may break Dockerfiles
 	// that run git describe against the copied source.
 	if err := ignoreGitInDockerContexts(root); err != nil {
 		return "", err
@@ -126,8 +126,7 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 	return checkoutDir, nil
 }
 
-// Set the default on the downloaded checkout. Dockerfile-specific ignore files
-// take precedence over the root .dockerignore, so give those the same rule.
+// Append **/.git to the root .dockerignore and any other tracked *.dockerignore files.
 func ignoreGitInDockerContexts(root string) error {
 	names, err := gitWithinDir(root, "ls-files", "--full-name", "-z", "--", "*.dockerignore")
 	if err != nil {
