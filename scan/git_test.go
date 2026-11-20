@@ -21,34 +21,6 @@ import (
 	is "gotest.tools/v3/assert/cmp"
 )
 
-func TestIgnoreGitInDockerContexts(t *testing.T) {
-	root := t.TempDir()
-	_, err := gitWithinDir(root, "init")
-	assert.NilError(t, err)
-	custom := "images/App.Dockerfile.dockerignore"
-	assert.NilError(t, os.Mkdir(filepath.Join(root, "images"), 0755))
-	assert.NilError(t, os.WriteFile(filepath.Join(root, custom), []byte("generated"), 0644))
-	_, err = gitWithinDir(root, "add", "--", custom)
-	assert.NilError(t, err)
-	config, err := os.ReadFile(filepath.Join(root, ".git", "config"))
-	assert.NilError(t, err)
-	assert.NilError(t, ignoreGitInDockerContexts(root))
-	for _, name := range []string{".dockerignore", custom} {
-		data, err := os.ReadFile(filepath.Join(root, name))
-		assert.NilError(t, err)
-		matcher, err := patternmatcher.New(strings.Fields(string(data)))
-		assert.NilError(t, err)
-		for path, want := range map[string]bool{".git/config": true, "sub/.git/config": true, ".github/workflow": false, "generated": name == custom} {
-			ignored, err := matcher.MatchesOrParentMatches(path)
-			assert.NilError(t, err)
-			assert.Equal(t, ignored, want, "%s: %s", name, path)
-		}
-	}
-	after, err := os.ReadFile(filepath.Join(root, ".git", "config"))
-	assert.NilError(t, err)
-	assert.Equal(t, string(after), string(config))
-}
-
 func TestParseRemoteURL(t *testing.T) {
 	tests := []struct {
 		doc      string
@@ -389,4 +361,47 @@ func TestSensorGitPAT(t *testing.T) {
 	for _, m := range messages {
 		assert.Check(t, is.Equal(m.after, string(censorGitPAT([]byte(m.before)))))
 	}
+}
+
+// Check that both the root and Dockerfile-specific ignore files tell Docker to skip .git.
+// The project's existing ignore rules should still work, and its Git config should stay unchanged.
+func TestIgnoreGitInDockerContexts(t *testing.T) {
+	root := t.TempDir()
+	_, err := gitWithinDir(root, "init")
+	assert.NilError(t, err)
+
+	custom := "images/App.Dockerfile.dockerignore"
+	assert.NilError(t, os.Mkdir(filepath.Join(root, "images"), 0755))
+	assert.NilError(t, os.WriteFile(filepath.Join(root, custom), []byte("generated"), 0644))
+	_, err = gitWithinDir(root, "add", "--", custom)
+	assert.NilError(t, err)
+	config, err := os.ReadFile(filepath.Join(root, ".git", "config"))
+	assert.NilError(t, err)
+
+	assert.NilError(t, ignoreGitInDockerContexts(root))
+	for _, name := range []string{".dockerignore", custom} {
+		data, err := os.ReadFile(filepath.Join(root, name))
+		assert.NilError(t, err)
+		matcher, err := patternmatcher.New(strings.Fields(string(data)))
+		assert.NilError(t, err)
+
+		cases := []struct {
+			path    string
+			ignored bool
+		}{
+			{".git/config", true},
+			{"sub/.git/config", true},
+			{".github/workflow", false},
+			{"generated", name == custom},
+		}
+		for _, tc := range cases {
+			ignored, err := matcher.MatchesOrParentMatches(tc.path)
+			assert.NilError(t, err)
+			assert.Check(t, is.Equal(tc.ignored, ignored), "%s: %s", name, tc.path)
+		}
+	}
+
+	after, err := os.ReadFile(filepath.Join(root, ".git", "config"))
+	assert.NilError(t, err)
+	assert.Check(t, is.Equal(string(config), string(after)))
 }
