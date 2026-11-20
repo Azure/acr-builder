@@ -115,8 +115,56 @@ func cloneGitRepo(repo gitRepo, root string) (checkoutDir string, err error) {
 	if err != nil {
 		return "", err
 	}
+	if u, parseErr := url.Parse(repo.remote); parseErr == nil && u.User != nil && (u.Scheme == "https" || u.Scheme == "http") {
+		if err := ignoreGitInDockerContexts(root); err != nil {
+			return "", err
+		}
+	}
 
 	return checkoutDir, nil
+}
+
+// Set the default on the downloaded checkout. Dockerfile-specific ignore files
+// take precedence over the root .dockerignore, so give those the same rule.
+func ignoreGitInDockerContexts(root string) error {
+	names, err := gitWithinDir(root, "ls-files", "--full-name", "-z", "--", "*.dockerignore")
+	if err != nil {
+		return errors.Wrap(err, "listing Docker ignore files")
+	}
+	checkout, err := os.OpenRoot(root)
+	if err != nil {
+		return err
+	}
+	defer checkout.Close()
+	// The default file is needed even when the repository has no ignore files.
+	paths := []string{".dockerignore"}
+	for name := range strings.SplitSeq(string(names), "\x00") {
+		if name != "" && name != ".dockerignore" {
+			paths = append(paths, name)
+		}
+	}
+	for _, name := range paths {
+		info, err := checkout.Lstat(name)
+		if err == nil && !info.Mode().IsRegular() {
+			continue // Never append to the target of a repository-supplied symlink.
+		}
+		if err != nil && !os.IsNotExist(err) {
+			return err
+		}
+		f, err := checkout.OpenFile(name, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		if err != nil {
+			return err
+		}
+		_, err = f.WriteString("\n**/.git\n") // Also handles files without a final newline.
+		closeErr := f.Close()
+		if err != nil {
+			return err
+		}
+		if closeErr != nil {
+			return closeErr
+		}
+	}
+	return nil
 }
 
 func enableCredentialCache(root string) error {
